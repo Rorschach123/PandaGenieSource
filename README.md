@@ -20,6 +20,25 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 
 ---
 
+## Why PandaGenie
+
+The explosion of generative AI marks a new internet revolution — following the PC era and the mobile era. Computing power is now quantified as **Tokens**, much like data plans from telecom carriers. If this is a new cycle in history, ChatGPT was Year Zero, and an entirely new class of applications is about to emerge.
+
+Here's the fundamental insight: everything in computing is **computation**. Users want **results**, not processes. So the role of AI is to **bridge every step** — turning natural language intent directly into executed outcomes.
+
+PandaGenie starts from this premise: **make your smartphone a true AI assistant**, where any task can be accomplished through a single conversation.
+
+### Design Principles
+
+| Principle | Description |
+|-----------|-------------|
+| **Transparent & Secure** | Every step the AI takes, every piece of data it touches — fully visible and user-controllable. All module code is open-source and auditable |
+| **Low Token Cost** | Tokens are like a data plan — not unlimited. Precise prompt engineering and task planning minimize consumption |
+| **Built for Everyone** | Users only need to know *what* they want, not *which button to press* or *how many steps to click through* |
+| **Connecting Devs & Users** | Developers build modules, modules carry capabilities, AI dispatches on user commands — a new model of developer-user collaboration |
+
+---
+
 ## How It Works
 
 > "Compress all photos in /Download into a zip" — that's all you say.
@@ -215,20 +234,23 @@ PandaGenieSource/
 
 ## Contributing
 
-We'd love to have you build modules for PandaGenie! The best part? You can **vibe code** the entire thing — describe what you want to an AI coding assistant and it will generate the module for you.
+PandaGenie is a **co-creation platform** — beyond the official modules, we sincerely invite more developers to join and build a richer module ecosystem together.
+
+The best part? You can **vibe code** the entire thing — describe what you want to an AI coding assistant like Cursor and it will generate the complete module for you. This entire project was built that way.
 
 ### How to Contribute
 
 1. **Fork** this repo
 2. Create your module in `source/<your_module_id>/`
 3. Test it with Developer Mode enabled on the app
-4. **Submit a Pull Request**
+4. **Submit a Pull Request** — after review, we'll add the official signature and publish
 
-### What Makes a Great Module?
+### Co-creation Guidelines
 
-- Solves a real problem on Android
+- **Open & transparent code** — all module code is publicly auditable to ensure trustworthy behavior
+- **Protect your developer key** — sign modules with your dev key first, submit for review, then official signing
 - Clear API descriptions (the AI reads them!)
-- Supports both Chinese and English (`_en` fields)
+- Support both Chinese and English (`_en` fields)
 - Minimal permissions — request only what you need
 
 ### Ideas for New Modules
