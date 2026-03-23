@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>文件信息统计</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.stats-header {
+  text-align: center;
+  padding: 20px 0 12px;
+}
+.stats-header .icon { font-size: 48px; color: var(--primary); margin-bottom: 8px; }
+.stats-header h2 { margin: 0; font-size: 20px; }
+.stats-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.tool-card {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 16px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tool-card:active { opacity: 0.8; transform: scale(0.97); }
+.tool-card .emoji { font-size: 28px; margin-bottom: 6px; }
+.tool-card .name { font-size: 14px; font-weight: 500; color: var(--on-surface); }
+.tool-card .desc { font-size: 11px; color: var(--on-surface-variant); margin-top: 3px; }
+.input-row { margin-bottom: 10px; }
+.input-row label { display: block; font-size: 12px; color: var(--on-surface-variant); margin-bottom: 4px; font-weight: 500; }
+.input-row input, .input-row select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  background: var(--surface-variant);
+  color: var(--on-surface);
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+.input-row input:focus, .input-row select:focus { border-color: var(--primary); }
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+.btn-exec {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--primary);
+  color: var(--on-primary);
+  transition: all 0.15s;
+  margin-bottom: 12px;
+}
+.btn-exec:active { opacity: 0.8; }
+.btn-exec:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-back {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--outline);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.result-box {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 10px;
+  font-size: 13px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(128,128,128,0.15);
+}
+.result-row .rl { color: var(--on-surface-variant); flex-shrink: 0; margin-right: 10px; }
+.result-row .rv { color: var(--on-surface); text-align: right; word-break: break-all; flex: 1; }
+.mono { font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all; }
+.match-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.match-badge.yes { background: #E8F5E9; color: #2E7D32; }
+.match-badge.no { background: var(--error-container); color: var(--error); }
+.file-item {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.file-item .fi-name { font-size: 13px; font-weight: 500; color: var(--on-surface); word-break: break-all; }
+.file-item .fi-detail { font-size: 11px; color: var(--on-surface-variant); margin-top: 2px; }
+.ext-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(128,128,128,0.1);
+  font-size: 12px;
+}
+.ext-bar .ext-name { font-weight: 600; width: 80px; color: var(--on-surface); }
+.ext-bar .ext-count { color: var(--on-surface-variant); width: 50px; text-align: right; }
+.ext-bar .ext-size { color: var(--on-surface-variant); flex: 1; text-align: right; }
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--outline);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast {
+  position: fixed;
+  bottom: 60px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--on-surface);
+  color: var(--surface);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('tools')">工具</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-tools" class="tab-content active">
+
+  <div class="stats-header">
+    <div class="icon">📊</div>
+    <h2 id="headerTitle">文件信息统计</h2>
+    <p id="headerDesc">文件哈希、对比、目录统计、重复检测</p>
+  </div>
+
+  <div id="mainMenu">
+    <div class="tool-grid">
+      <div class="tool-card" onclick="showTool('fileInfo')">
+        <div class="emoji">📄</div>
+        <div class="name" data-i="文件信息|File Info">文件信息</div>
+        <div class="desc" data-i="大小/时间/类型|Size/Time/Type">大小/时间/类型</div>
+      </div>
+      <div class="tool-card" onclick="showTool('fileHash')">
+        <div class="emoji">🔐</div>
+        <div class="name" data-i="哈希计算|Hash">哈希计算</div>
+        <div class="desc" data-i="MD5/SHA-1/SHA-256|MD5/SHA-1/SHA-256">MD5/SHA-1/SHA-256</div>
+      </div>
+      <div class="tool-card" onclick="showTool('compare')">
+        <div class="emoji">🔀</div>
+        <div class="name" data-i="文件对比|Compare">文件对比</div>
+        <div class="desc" data-i="判断两文件是否一致|Check if two files match">判断两文件是否一致</div>
+      </div>
+      <div class="tool-card" onclick="showTool('verify')">
+        <div class="emoji">✅</div>
+        <div class="name" data-i="校验完整性|Verify">校验完整性</div>
+        <div class="desc" data-i="用已知哈希校验|Verify against known hash">用已知哈希校验</div>
+      </div>
+      <div class="tool-card" onclick="showTool('dirStats')">
+        <div class="emoji">📁</div>
+        <div class="name" data-i="目录统计|Dir Stats">目录统计</div>
+        <div class="desc" data-i="大小/文件数/类型分布|Size/Count/Type distribution">大小/文件数/类型分布</div>
+      </div>
+      <div class="tool-card" onclick="showTool('duplicates')">
+        <div class="emoji">👯</div>
+        <div class="name" data-i="查找重复|Duplicates">查找重复</div>
+        <div class="desc" data-i="按内容查找重复文件|Find duplicate files by content">按内容查找重复文件</div>
+      </div>
+      <div class="tool-card" onclick="showTool('largeFiles')">
+        <div class="emoji">💾</div>
+        <div class="name" data-i="大文件扫描|Large Files">大文件扫描</div>
+        <div class="desc" data-i="找出占用空间大的文件|Find space-consuming files">找出占用空间大的文件</div>
+      </div>
+      <div class="tool-card" onclick="showTool('textStats')">
+        <div class="emoji">📝</div>
+        <div class="name" data-i="文本统计|Text Stats">文本统计</div>
+        <div class="desc" data-i="行数/字数/字符数|Lines/Words/Characters">行数/字数/字符数</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool panels -->
+  <div id="toolPanel" class="hidden">
+    <button class="btn-back" onclick="backToMenu()" data-i="← 返回|← Back">← 返回</button>
+    <div id="toolContent"></div>
+    <div id="toolResult"></div>
+  </div>
+
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 id="apiModInfoTitle">模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>类型: <span class="badge" data-i="纯Java插件 (无原生库)|Pure Java plugin (no native libs)">纯Java插件 (无原生库)</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 id="apiListTitle">接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', ['tools','api'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+function esc(text) {
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showTool(id) {
+  document.getElementById('mainMenu').classList.add('hidden');
+  document.getElementById('toolPanel').classList.remove('hidden');
+  document.getElementById('toolResult').innerHTML = '';
+  var c = document.getElementById('toolContent');
+  var html = '';
+  switch(id) {
+    case 'fileInfo':
+      html = inp(T('文件路径','File Path'), 'fPath', '/sdcard/') + btn(T('获取信息','Get Info'), "execFileInfo()");
+      break;
+    case 'fileHash':
+      html = inp(T('文件路径','File Path'), 'hPath', '/sdcard/') + sel(T('算法','Algorithm'), 'hAlgo', ['SHA-256','MD5','SHA-1']) + btn(T('计算哈希','Calculate Hash'), "execFileHash()");
+      break;
+    case 'compare':
+      html = inp(T('文件1路径','File 1 Path'), 'cPath1', '/sdcard/') + inp(T('文件2路径','File 2 Path'), 'cPath2', '/sdcard/') + btn(T('对比文件','Compare'), "execCompare()");
+      break;
+    case 'verify':
+      html = inp(T('文件路径','File Path'), 'vPath', '/sdcard/') + inp(T('期望哈希值','Expected Hash'), 'vHash', '') + sel(T('算法','Algorithm'), 'vAlgo', ['SHA-256','MD5','SHA-1']) + btn(T('校验','Verify'), "execVerify()");
+      break;
+    case 'dirStats':
+      html = inp(T('目录路径','Directory Path'), 'dPath', '/sdcard/') + chk('dRecur', T('递归子目录','Include subdirectories'), true) + btn(T('统计','Analyze'), "execDirStats()");
+      break;
+    case 'duplicates':
+      html = inp(T('目录路径','Directory Path'), 'dupPath', '/sdcard/') + chk('dupRecur', T('递归子目录','Include subdirectories'), true) + btn(T('查找重复','Find Duplicates'), "execDuplicates()");
+      break;
+    case 'largeFiles':
+      html = inp(T('目录路径','Directory Path'), 'lfPath', '/sdcard/') + inp(T('最小大小(MB)','Min Size (MB)'), 'lfSize', '100') + chk('lfRecur', T('递归子目录','Include subdirectories'), true) + btn(T('扫描','Scan'), "execLargeFiles()");
+      break;
+    case 'textStats':
+      html = inp(T('文本文件路径','Text File Path'), 'tPath', '/sdcard/') + btn(T('统计','Analyze'), "execTextStats()");
+      break;
+  }
+  c.innerHTML = html;
+}
+
+function backToMenu() {
+  document.getElementById('mainMenu').classList.remove('hidden');
+  document.getElementById('toolPanel').classList.add('hidden');
+}
+
+function inp(label, id, val) {
+  return '<div class="input-row"><label>' + label + '</label><input id="' + id + '" value="' + (val||'') + '" /></div>';
+}
+function sel(label, id, opts) {
+  var h = '<div class="input-row"><label>' + label + '</label><select id="' + id + '">';
+  opts.forEach(function(o) { h += '<option>' + o + '</option>'; });
+  return h + '</select></div>';
+}
+function chk(id, label, checked) {
+  return '<div class="check-row"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '> <label for="' + id + '">' + label + '</label></div>';
+}
+function btn(text, onclick) {
+  return '<button class="btn-exec" onclick="' + onclick + '">' + text + '</button>';
+}
+
+function resultRows(pairs) {
+  var h = '<div class="result-box">';
+  pairs.forEach(function(p) { h += '<div class="result-row"><span class="rl">' + p[0] + '</span><span class="rv">' + p[1] + '</span></div>'; });
+  return h + '</div>';
+}
+
+function execFileInfo() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('getFileInfo', { path: v('fPath') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([
+      [T('文件名','Name'), esc(data.name)],
+      [T('路径','Path'), esc(data.path)],
+      [T('类型','Type'), data.isDirectory ? T('目录','Directory') : T('文件','File')],
+      [T('大小','Size'), esc(data.sizeFormatted) + ' (' + data.size + ' B)'],
+      [T('修改时间','Modified'), esc(data.lastModified)],
+      [T('扩展名','Extension'), esc(data.extension || '-')],
+      [T('MIME','MIME'), esc(data.mimeType)],
+      [T('可读','Readable'), data.canRead ? '✓' : '✗'],
+      [T('可写','Writable'), data.canWrite ? '✓' : '✗'],
+      [T('隐藏','Hidden'), data.isHidden ? T('是','Yes') : T('否','No')],
+      [T('上级目录','Parent'), esc(data.parent)]
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execFileHash() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('getFileHash', { path: v('hPath'), algorithm: v('hAlgo') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([
+      [T('文件','File'), esc(data.name)],
+      [T('大小','Size'), esc(data.sizeFormatted)],
+      [T('算法','Algorithm'), esc(data.algorithm)],
+      [T('哈希值','Hash'), '<span class="mono">' + esc(data.hash) + '</span>']
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execCompare() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('compareFiles', { path1: v('cPath1'), path2: v('cPath2') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    var badge = data.identical ? '<span class="match-badge yes">' + T('完全一致','Identical') + '</span>' : '<span class="match-badge no">' + T('不一致','Different') + '</span>';
+    r.innerHTML = '<div style="text-align:center;margin:12px 0">' + badge + '</div>' + resultRows([
+      [T('文件1','File 1'), esc(data.file1)],
+      [T('大小','Size'), esc(data.size1Formatted)],
+      [T('文件2','File 2'), esc(data.file2)],
+      [T('大小','Size'), esc(data.size2Formatted)],
+      [T('结果','Result'), esc(data.reason)]
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execVerify() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('verifyChecksum', { path: v('vPath'), expectedHash: v('vHash'), algorithm: v('vAlgo') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    var badge = data.verified ? '<span class="match-badge yes">' + T('校验通过','Verified') + '</span>' : '<span class="match-badge no">' + T('校验失败','Mismatch') + '</span>';
+    r.innerHTML = '<div style="text-align:center;margin:12px 0">' + badge + '</div>' + resultRows([
+      [T('文件','File'), esc(data.path)],
+      [T('算法','Algorithm'), esc(data.algorithm)],
+      [T('期望','Expected'), '<span class="mono">' + esc(data.expectedHash) + '</span>'],
+      [T('实际','Actual'), '<span class="mono">' + esc(data.actualHash) + '</span>']
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execDirStats() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('getDirStats', { path: v('dPath'), recursive: cv('dRecur') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    var h = resultRows([
+      [T('目录','Directory'), esc(data.path)],
+      [T('总大小','Total Size'), esc(data.totalSizeFormatted)],
+      [T('文件数','Files'), data.fileCount],
+      [T('目录数','Dirs'), data.directoryCount]
+    ]);
+    if (data.extensionBreakdown && data.extensionBreakdown.length > 0) {
+      h += '<div class="result-box" style="margin-top:8px"><div style="font-weight:600;margin-bottom:6px">' + T('按扩展名分布','By Extension') + '</div>';
+      for (var i = 0; i < Math.min(data.extensionBreakdown.length, 30); i++) {
+        var e = data.extensionBreakdown[i];
+        h += '<div class="ext-bar"><span class="ext-name">' + esc(e.extension) + '</span><span class="ext-count">' + e.count + T(' 个',' files') + '</span><span class="ext-size">' + esc(e.totalSizeFormatted) + '</span></div>';
+      }
+      h += '</div>';
+    }
+    r.innerHTML = h;
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execDuplicates() {
+  var r = document.getElementById('toolResult');
+  r.innerHTML = '<div class="result-box"><span class="spinner"></span>' + T('扫描中，可能需要较长时间...','Scanning, this may take a while...') + '</div>';
+  setTimeout(function() {
+    try {
+      var data = JSON.parse(invokeNative('findDuplicates', { path: v('dupPath'), recursive: cv('dupRecur') }));
+      if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+      var h = resultRows([
+        [T('扫描文件数','Files Scanned'), data.filesScanned],
+        [T('重复组数','Duplicate Groups'), data.duplicateGroups],
+        [T('浪费空间','Wasted Space'), esc(data.wastedSpaceFormatted)]
+      ]);
+      if (data.duplicates && data.duplicates.length > 0) {
+        h += '<div class="result-box" style="margin-top:8px">';
+        for (var i = 0; i < data.duplicates.length; i++) {
+          var g = data.duplicates[i];
+          h += '<div style="font-weight:500;margin:8px 0 4px">' + T('组 ','Group ') + (i+1) + ' (' + g.count + T(' 个文件, ',' files, ') + esc(g.fileSizeFormatted) + T(' 每个',' each') + ')</div>';
+          for (var j = 0; j < g.files.length; j++) {
+            h += '<div class="file-item"><div class="fi-name">' + esc(g.files[j]) + '</div></div>';
+          }
+        }
+        h += '</div>';
+      }
+      r.innerHTML = h;
+    } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+  }, 50);
+}
+
+function execLargeFiles() {
+  var r = document.getElementById('toolResult');
+  r.innerHTML = '<div class="result-box"><span class="spinner"></span>' + T('扫描中...','Scanning...') + '</div>';
+  setTimeout(function() {
+    try {
+      var data = JSON.parse(invokeNative('findLargeFiles', { path: v('lfPath'), minSizeMB: parseFloat(v('lfSize')) || 100, recursive: cv('lfRecur') }));
+      if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+      var h = resultRows([
+        [T('目录','Directory'), esc(data.directory)],
+        [T('阈值','Threshold'), '>= ' + data.minSizeMB + ' MB'],
+        [T('找到','Found'), data.found + T(' 个文件',' files')]
+      ]);
+      if (data.files && data.files.length > 0) {
+        h += '<div class="result-box" style="margin-top:8px">';
+        for (var i = 0; i < data.files.length; i++) {
+          var f = data.files[i];
+          h += '<div class="file-item"><div class="fi-name">' + esc(f.name) + '</div><div class="fi-detail">' + esc(f.sizeFormatted) + ' · ' + esc(f.lastModified) + '</div><div class="fi-detail" style="font-size:10px;opacity:0.7">' + esc(f.path) + '</div></div>';
+        }
+        h += '</div>';
+      }
+      r.innerHTML = h;
+    } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+  }, 50);
+}
+
+function execTextStats() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('getTextStats', { path: v('tPath') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([
+      [T('文件','File'), esc(data.name)],
+      [T('大小','Size'), esc(data.sizeFormatted)],
+      [T('总行数','Total Lines'), data.totalLines],
+      [T('非空行','Non-blank'), data.nonBlankLines],
+      [T('空行','Blank Lines'), data.blankLines],
+      [T('单词数','Words'), data.words],
+      [T('字符数','Characters'), data.characters]
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function v(id) { return document.getElementById(id).value.trim(); }
+function cv(id) { return document.getElementById(id).checked; }
+
+function applyI18n() {
+  document.title = T('文件信息统计','File Stats');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('工具','Tools');
+  if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
+  document.getElementById('headerTitle').textContent = T('文件信息统计','File Stats');
+  document.getElementById('headerDesc').textContent = T('文件哈希、对比、目录统计、重复检测','Hash, compare, dir stats, duplicates');
+
+  document.querySelectorAll('[data-i]').forEach(function(el) {
+    var parts = el.getAttribute('data-i').split('|');
+    el.textContent = T(parts[0], parts[1] || parts[0]);
+  });
+
+  var el;
+  el = document.getElementById('apiModInfoTitle'); if(el) el.textContent = T('模块信息','Module Info');
+  el = document.getElementById('apiListTitle'); if(el) el.textContent = T('接口列表','API List');
+}
+applyI18n();
+
+var apis = [
+  ['getFileInfo', T('获取文件完整信息','Get file info'), 'path', T('大小/时间/类型/权限','Size/time/type/permissions')],
+  ['getFileHash', T('计算文件哈希','Calculate hash'), 'path, algorithm', T('MD5/SHA-1/SHA-256','MD5/SHA-1/SHA-256')],
+  ['compareFiles', T('对比两个文件','Compare two files'), 'path1, path2', T('先比大小再比哈希','Size then hash')],
+  ['verifyChecksum', T('校验文件完整性','Verify checksum'), 'path, expectedHash, algorithm', T('对比已知哈希值','Compare known hash')],
+  ['getDirStats', T('目录统计','Directory stats'), 'path, recursive', T('大小/文件数/分布','Size/count/breakdown')],
+  ['findDuplicates', T('查找重复文件','Find duplicates'), 'path, recursive, minSize', T('按SHA-256分组','Group by SHA-256')],
+  ['findLargeFiles', T('大文件扫描','Find large files'), 'path, minSizeMB, recursive, limit', T('按大小降序排列','Sort by size desc')],
+  ['searchByName', T('文件名搜索','Search by name'), 'path, keywords, recursive, limit', T('关键词匹配','Keyword match')],
+  ['getTextStats', T('文本文件统计','Text file stats'), 'path', T('行/词/字符数','Lines/words/chars')],
+  ['batchFileInfo', T('批量文件信息','Batch file info'), 'paths, algorithm', T('多个文件一起查','Multi-file query')]
+];
+var tb = '<tr><th>' + T('接口','API') + '</th><th>' + T('说明','Desc') + '</th><th>' + T('参数','Params') + '</th><th>' + T('返回','Returns') + '</th></tr>';
+apis.forEach(function(a) {
+  tb += '<tr><td><code>' + a[0] + '</code></td><td>' + a[1] + '</td><td style="font-size:11px">' + a[2] + '</td><td style="font-size:11px">' + a[3] + '</td></tr>';
+});
+document.getElementById('apiTable').innerHTML = tb;
+
+(function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    if (info.description) document.getElementById('moduleDesc').textContent = info.description;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

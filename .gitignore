@@ -1,0 +1,17 @@
+# Build logs
+logs/
+
+# Legacy build directory
+mk_module/
+
+# Compiled module files
+*.mod
+
+# Native build outputs (CMake/Ninja artifacts)
+source/*/native/build/
+
+# Downloaded dependency JARs (e.g. javax.inject for OCR)
+source/*/libs/
+
+# Generated signing certificate (output of init_module_signing.ps1)
+keys/

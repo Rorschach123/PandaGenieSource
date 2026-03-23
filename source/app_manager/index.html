@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>应用管理</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.app-header {
+  text-align: center;
+  padding: 20px 0 12px;
+}
+.app-header .icon {
+  font-size: 48px;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.app-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.app-header p {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+}
+.search-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.search-box input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: var(--surface-variant);
+  color: var(--on-surface);
+  font-size: 14px;
+  outline: none;
+}
+.search-box input:focus {
+  border-color: var(--primary);
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+}
+.filter-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.app-count {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-bottom: 8px;
+}
+.app-list {
+  min-height: 200px;
+}
+.app-item {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+.app-item:active {
+  opacity: 0.8;
+  transform: scale(0.99);
+}
+.app-item .app-icon-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.app-item .app-meta {
+  flex: 1;
+  min-width: 0;
+}
+.app-item .app-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-item .app-pkg {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-item .app-ver {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 1px;
+}
+.app-item .app-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.app-item .act-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface);
+  color: var(--primary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.act-btn:active {
+  background: var(--primary-container);
+}
+.detail-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+.detail-modal.show { display: flex; }
+.detail-modal .modal-body {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 24px 20px;
+  width: 92%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.detail-modal .modal-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.detail-modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.detail-modal .modal-header .pkg {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+  word-break: break-all;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-variant);
+  font-size: 13px;
+}
+.detail-row .label {
+  color: var(--on-surface-variant);
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+.detail-row .value {
+  color: var(--on-surface);
+  text-align: right;
+  word-break: break-all;
+  flex: 1;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.modal-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.modal-actions button:active { opacity: 0.8; }
+.modal-actions .btn-open {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.modal-actions .btn-settings {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+.modal-actions .btn-uninstall {
+  background: var(--error-container);
+  color: var(--error);
+}
+.modal-actions .btn-close {
+  background: var(--surface-variant);
+  color: var(--on-surface);
+}
+.loading {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+}
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--outline);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--on-surface-variant);
+}
+.empty-state .emoji { font-size: 36px; margin-bottom: 8px; }
+.system-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--outline);
+  color: var(--surface);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--on-surface);
+  color: var(--surface);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('apps')">应用列表</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-apps" class="tab-content active">
+  <div class="app-header">
+    <div class="icon">📱</div>
+    <h2 id="headerTitle">应用管理</h2>
+    <p id="headerDesc">查看、启动和管理已安装的应用</p>
+  </div>
+
+  <div class="search-box">
+    <input id="searchInput" placeholder="搜索应用名或包名..." oninput="filterApps()" />
+  </div>
+
+  <div class="filter-row">
+    <label><input type="checkbox" id="showSystem" onchange="loadApps()"> <span id="labelSystem">显示系统应用</span></label>
+    <span class="app-count" id="appCount"></span>
+  </div>
+
+  <div class="app-list" id="appList">
+    <div class="loading"><span class="spinner"></span>加载中...</div>
+  </div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 id="apiModInfoTitle">模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>类型: <span class="badge" id="modTypeBadge">纯Java插件 (无原生库)</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 id="apiListTitle">接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+  <div class="card">
+    <h3 id="apiCallTitle">对外调用说明</h3>
+    <p style="font-size:13px;color:var(--on-surface-variant);margin-bottom:8px" id="apiCallDesc">
+      本模块支持以下两种对外调用方式：
+    </p>
+    <p style="font-size:13px"><b>1. AI 任务调度调用</b></p>
+    <p style="font-size:12px;color:var(--on-surface-variant);margin:4px 0 8px" id="aiCallExample">
+      用户通过自然语言描述，AI将自动匹配到本模块的接口并执行。<br>
+      例如："打开微信" → 自动调用 <code>openApp</code><br>
+      例如："查看抖音的详细信息" → 自动调用 <code>getAppInfo</code>
+    </p>
+    <p style="font-size:13px"><b>2. 跳转打开模块页面</b></p>
+    <p style="font-size:12px;color:var(--on-surface-variant);margin:4px 0 8px" id="openModExample">
+      用户说"打开应用管理"，AI返回 <code>openModule: "app_manager"</code>，<br>
+      App显示跳转按钮，点击后打开本H5页面。
+    </p>
+  </div>
+</div>
+
+<div class="detail-modal" id="detailModal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal-body">
+    <div class="modal-header">
+      <h3 id="detailAppName"></h3>
+      <div class="pkg" id="detailPkg"></div>
+    </div>
+    <div id="detailRows"></div>
+    <div class="modal-actions" id="detailActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+var allApps = [];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', ['apps','api'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+function loadApps() {
+  var listEl = document.getElementById('appList');
+  listEl.innerHTML = '<div class="loading"><span class="spinner"></span>' + T('加载中...','Loading...') + '</div>';
+  var includeSystem = document.getElementById('showSystem').checked;
+
+  setTimeout(function() {
+    try {
+      var raw = invokeNative('listApps', { includeSystem: includeSystem });
+      var data = JSON.parse(raw);
+      allApps = data.apps || [];
+      document.getElementById('appCount').textContent = T('共 ','Total ') + allApps.length + T(' 个应用',' apps');
+      filterApps();
+    } catch (e) {
+      listEl.innerHTML = '<div class="empty-state"><div class="emoji">⚠️</div><div>' + T('加载失败: ','Load failed: ') + escapeHtml(e.message) + '</div></div>';
+    }
+  }, 50);
+}
+
+function filterApps() {
+  var query = document.getElementById('searchInput').value.trim().toLowerCase();
+  var filtered = allApps;
+  if (query) {
+    filtered = allApps.filter(function(app) {
+      return app.appName.toLowerCase().indexOf(query) >= 0 || app.packageName.toLowerCase().indexOf(query) >= 0;
+    });
+  }
+  renderAppList(filtered);
+}
+
+function renderAppList(apps) {
+  var listEl = document.getElementById('appList');
+  if (!apps.length) {
+    listEl.innerHTML = '<div class="empty-state"><div class="emoji">🔍</div><div>' + T('没有找到应用','No apps found') + '</div></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < apps.length; i++) {
+    var app = apps[i];
+    var initial = app.appName.charAt(0).toUpperCase();
+    html += '<div class="app-item" onclick="showDetail(\'' + escapeAttr(app.packageName) + '\')">' +
+      '<div class="app-icon-circle">' + escapeHtml(initial) + '</div>' +
+      '<div class="app-meta">' +
+        '<div class="app-name">' + escapeHtml(app.appName) + '</div>' +
+        '<div class="app-pkg">' + escapeHtml(app.packageName) + '</div>' +
+        (app.versionName ? '<div class="app-ver">v' + escapeHtml(app.versionName) + '</div>' : '') +
+      '</div>' +
+      '<div class="app-actions">' +
+        '<button class="act-btn" title="' + T('打开','Launch') + '" onclick="event.stopPropagation();launchApp(\'' + escapeAttr(app.packageName) + '\')">▶</button>' +
+        '<button class="act-btn" title="' + T('设置','Settings') + '" onclick="event.stopPropagation();openSettings(\'' + escapeAttr(app.packageName) + '\')">⚙</button>' +
+      '</div>' +
+    '</div>';
+  }
+  listEl.innerHTML = html;
+}
+
+function showDetail(packageName) {
+  try {
+    var raw = invokeNative('getAppInfo', { nameOrPackage: packageName });
+    var info = JSON.parse(raw);
+    document.getElementById('detailAppName').textContent = info.appName || packageName;
+    document.getElementById('detailPkg').textContent = info.packageName || packageName;
+
+    var rows = [
+      [T('版本','Version'), (info.versionName || '') + ' (' + (info.versionCode || '') + ')'],
+      [T('安装时间','Install Time'), info.firstInstallTime || ''],
+      [T('更新时间','Update Time'), info.lastUpdateTime || ''],
+      [T('安装来源','Installer'), (info.installerLabel || '') + (info.installerPackage && info.installerPackage !== info.installerLabel ? ' (' + info.installerPackage + ')' : '')],
+      [T('目标SDK','Target SDK'), info.targetSdkVersion || ''],
+      [T('最低SDK','Min SDK'), info.minSdkVersion || ''],
+      [T('系统应用','System App'), info.isSystemApp ? T('是','Yes') : T('否','No')],
+      [T('启用状态','Enabled'), info.enabled ? T('已启用','Enabled') : T('已禁用','Disabled')],
+      [T('安装路径','Source Dir'), info.sourceDir || ''],
+      [T('数据目录','Data Dir'), info.dataDir || '']
+    ];
+
+    var html = '';
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i][1] === '' || rows[i][1] === undefined) continue;
+      html += '<div class="detail-row"><span class="label">' + rows[i][0] + '</span><span class="value">' + escapeHtml(String(rows[i][1])) + '</span></div>';
+    }
+    document.getElementById('detailRows').innerHTML = html;
+
+    var actHtml = '<button class="btn-open" onclick="launchApp(\'' + escapeAttr(packageName) + '\')">' + T('打开','Launch') + '</button>' +
+      '<button class="btn-settings" onclick="openSettings(\'' + escapeAttr(packageName) + '\')">' + T('设置','Settings') + '</button>';
+    if (!info.isSystemApp) {
+      actHtml += '<button class="btn-uninstall" onclick="uninstallApp(\'' + escapeAttr(packageName) + '\')">' + T('卸载','Uninstall') + '</button>';
+    }
+    actHtml += '<button class="btn-close" onclick="closeDetail()">' + T('关闭','Close') + '</button>';
+    document.getElementById('detailActions').innerHTML = actHtml;
+
+    document.getElementById('detailModal').classList.add('show');
+  } catch (e) {
+    showToast(T('获取详情失败: ','Failed to get details: ') + e.message);
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+function launchApp(packageName) {
+  try {
+    invokeNative('openApp', { nameOrPackage: packageName });
+    showToast(T('已启动','Launched'));
+  } catch (e) {
+    showToast(T('启动失败: ','Launch failed: ') + e.message);
+  }
+}
+
+function openSettings(packageName) {
+  try {
+    invokeNative('openAppSettings', { nameOrPackage: packageName });
+    showToast(T('已打开设置','Settings opened'));
+  } catch (e) {
+    showToast(T('打开失败: ','Failed: ') + e.message);
+  }
+}
+
+function uninstallApp(packageName) {
+  try {
+    invokeNative('uninstallApp', { packageName: packageName });
+    showToast(T('已发送卸载请求','Uninstall request sent'));
+    closeDetail();
+  } catch (e) {
+    showToast(T('卸载失败: ','Uninstall failed: ') + e.message);
+  }
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function escapeAttr(s) {
+  return s.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    if (info.description) document.getElementById('moduleDesc').textContent = info.description;
+  } catch (e) {}
+}
+
+function applyI18n() {
+  document.title = T('应用管理','App Manager');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('应用列表','App List');
+  if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
+  document.getElementById('headerTitle').textContent = T('应用管理','App Manager');
+  document.getElementById('headerDesc').textContent = T('查看、启动和管理已安装的应用','View, launch and manage installed apps');
+  document.getElementById('searchInput').placeholder = T('搜索应用名或包名...','Search app name or package...');
+  document.getElementById('labelSystem').textContent = T('显示系统应用','Show system apps');
+  var el;
+  el = document.getElementById('apiModInfoTitle'); if(el) el.textContent = T('模块信息','Module Info');
+  el = document.getElementById('modTypeBadge'); if(el) el.textContent = T('纯Java插件 (无原生库)','Pure Java plugin (no native libs)');
+  el = document.getElementById('apiListTitle'); if(el) el.textContent = T('接口列表','API List');
+  el = document.getElementById('apiCallTitle'); if(el) el.textContent = T('对外调用说明','External Call Guide');
+}
+applyI18n();
+
+var apis = [
+  ['listApps', T('获取已安装应用列表','List installed apps'), 'includeSystem', T('返回count和apps数组(packageName,appName,versionName)','Returns count and apps array (packageName,appName,versionName)')],
+  ['openApp', T('打开指定应用','Launch an app'), 'nameOrPackage', T('支持应用名或包名，返回launched/packageName/appName','Accepts app name or package name, returns launched/packageName/appName')],
+  ['getAppInfo', T('获取应用详细信息','Get app details'), 'nameOrPackage', T('返回包名/版本/安装时间/来源/SDK等','Returns package/version/install time/source/SDK etc.')],
+  ['uninstallApp', T('卸载应用','Uninstall app'), 'packageName', T('弹出系统卸载确认对话框','Shows system uninstall confirmation')],
+  ['openAppSettings', T('打开应用设置页','Open app settings page'), 'nameOrPackage', T('跳转到系统设置的应用详情页','Opens system settings app detail page')]
+];
+var tb = '<tr><th>' + T('接口','API') + '</th><th>' + T('说明','Description') + '</th><th>' + T('参数','Params') + '</th><th>' + T('返回','Returns') + '</th></tr>';
+apis.forEach(function(a) {
+  tb += '<tr><td><code>' + a[0] + '</code></td><td>' + a[1] + '</td><td>' + a[2] + '</td><td style="font-size:11px">' + a[3] + '</td></tr>';
+});
+document.getElementById('apiTable').innerHTML = tb;
+
+initModuleInfo();
+loadApps();
+</script>
+</body>
+</html>

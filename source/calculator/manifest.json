@@ -1,0 +1,39 @@
+{
+  "id": "calculator",
+  "name": "计算器",
+  "name_en": "Calculator",
+  "description": "科学计算器模块，支持四则运算、三角函数、对数、阶乘、排列组合、表达式解析等",
+  "description_en": "Scientific calculator with arithmetic, trigonometry, logarithms, factorials, combinations and expression parsing",
+  "version": "1.0",
+  "icon": "calculate",
+  "soLibraries": ["libcalculator.so"],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.calculator.CalculatorPlugin",
+  "soLoadMode": "manual",
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"evaluate","desc":"计算纯数学表达式，仅支持数字和数学运算：运算符(+,-,*,/,^,%)、函数(sin,cos,tan,asin,acos,atan,sinh,cosh,tanh,sqrt,cbrt,abs,ceil,floor,round,ln,log,log10,log2,pow,mod,max,min,deg,rad,fact,perm,comb)、常量(pi,e)。不支持变量、字符串操作或length等函数。示例：2+3*4、sqrt(16)、sin(pi/2)","desc_en":"Evaluate a pure math expression. Supports operators(+,-,*,/,^,%), functions(sin,cos,tan,asin,acos,atan,sinh,cosh,tanh,sqrt,cbrt,abs,ceil,floor,round,ln,log,log10,log2,pow,mod,max,min,deg,rad,fact,perm,comb), constants(pi,e). No variables or string functions. Examples: 2+3*4, sqrt(16), sin(pi/2)","params":["expression"],"paramDesc":["纯数学表达式，只能包含数字、运算符和数学函数"],"paramDesc_en":["Pure math expression with numbers, operators and math functions only"]},
+    {"name":"add","desc":"加法","desc_en":"Addition","params":["a","b"],"paramDesc":["数值","数值"],"paramDesc_en":["Number","Number"]},
+    {"name":"subtract","desc":"减法","desc_en":"Subtraction","params":["a","b"],"paramDesc":["数值","数值"],"paramDesc_en":["Number","Number"]},
+    {"name":"multiply","desc":"乘法","desc_en":"Multiplication","params":["a","b"],"paramDesc":["数值","数值"],"paramDesc_en":["Number","Number"]},
+    {"name":"divide","desc":"除法","desc_en":"Division","params":["a","b"],"paramDesc":["数值","数值"],"paramDesc_en":["Number","Number"]},
+    {"name":"power","desc":"幂运算","desc_en":"Power/Exponentiation","params":["base","exp"],"paramDesc":["底数","指数"],"paramDesc_en":["Base","Exponent"]},
+    {"name":"sqrt","desc":"平方根","desc_en":"Square root","params":["x"],"paramDesc":["数值"],"paramDesc_en":["Number"]},
+    {"name":"sin","desc":"正弦(弧度)","desc_en":"Sine (radians)","params":["x"],"paramDesc":["弧度值"],"paramDesc_en":["Value in radians"]},
+    {"name":"cos","desc":"余弦(弧度)","desc_en":"Cosine (radians)","params":["x"],"paramDesc":["弧度值"],"paramDesc_en":["Value in radians"]},
+    {"name":"tan","desc":"正切(弧度)","desc_en":"Tangent (radians)","params":["x"],"paramDesc":["弧度值"],"paramDesc_en":["Value in radians"]},
+    {"name":"ln","desc":"自然对数","desc_en":"Natural logarithm","params":["x"],"paramDesc":["数值"],"paramDesc_en":["Number"]},
+    {"name":"log10","desc":"常用对数","desc_en":"Common logarithm (base 10)","params":["x"],"paramDesc":["数值"],"paramDesc_en":["Number"]},
+    {"name":"factorial","desc":"阶乘","desc_en":"Factorial","params":["n"],"paramDesc":["非负整数"],"paramDesc_en":["Non-negative integer"]},
+    {"name":"combination","desc":"组合数C(n,r)","desc_en":"Combination C(n,r)","params":["n","r"],"paramDesc":["总数","选取数"],"paramDesc_en":["Total count","Selection count"]},
+    {"name":"permutation","desc":"排列数P(n,r)","desc_en":"Permutation P(n,r)","params":["n","r"],"paramDesc":["总数","选取数"],"paramDesc_en":["Total count","Selection count"]},
+    {"name":"degToRad","desc":"角度转弧度","desc_en":"Degrees to radians","params":["deg"],"paramDesc":["角度值"],"paramDesc_en":["Degrees"]},
+    {"name":"radToDeg","desc":"弧度转角度","desc_en":"Radians to degrees","params":["rad"],"paramDesc":["弧度值"],"paramDesc_en":["Radians"]}
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "app_manager",
+  "name": "应用管理",
+  "name_en": "App Manager",
+  "description": "已安装应用管理模块，支持获取应用列表、打开应用、查看应用详情（包名、版本、安装时间、来源等）、卸载应用、跳转系统设置应用信息页",
+  "description_en": "Manage installed apps: list, launch, view details (package name, version, install time, source), uninstall, and open system app info page",
+  "version": "1.0",
+  "icon": "apps",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.app_manager.AppManagerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [
+    {
+      "name": "android.permission.REQUEST_DELETE_PACKAGES",
+      "desc": "用于请求卸载应用",
+      "desc_en": "Request to uninstall applications"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"listApps","desc":"仅用于获取已安装应用列表（包名+应用名），用户问【有哪些应用】【列出所有应用】时使用","desc_en":"List installed apps (package name + app name). Use when user asks to list or show all apps","params":["includeSystem"],"paramDesc":["是否包含系统应用(true/false，默认false)"],"paramDesc_en":["Include system apps (true/false, default false)"]},
+    {"name":"openApp","desc":"直接启动/打开/运行手机上的应用。当用户说【打开XX】【启动XX】【运行XX】时，必须直接调用此接口，不需要先调用getAppInfo或listApps查询。支持应用名或包名，内部自动查找匹配","desc_en":"Directly launch/open/run an app on the phone. When user says 'open XX', 'launch XX', 'run XX', call this action directly without calling getAppInfo or listApps first. Accepts app name or package name, auto-resolves internally","params":["nameOrPackage"],"paramDesc":["应用名或包名，如: 微信、com.tencent.mm"],"paramDesc_en":["App name or package name, e.g. WeChat, com.tencent.mm"]},
+    {"name":"getAppInfo","desc":"仅用于查询应用的详细信息（版本号、安装时间、来源等）。仅在用户明确要求查看/了解应用信息时使用，不要在打开应用前调用此接口","desc_en":"Only for querying app details (version, install time, source, etc). Use only when user explicitly asks to view/check app info. Do NOT call before openApp","params":["nameOrPackage"],"paramDesc":["应用名或包名"],"paramDesc_en":["App name or package name"]},
+    {"name":"uninstallApp","desc":"请求卸载指定应用（会弹出系统确认对话框）","desc_en":"Request to uninstall an app (shows system confirmation dialog)","params":["packageName"],"paramDesc":["要卸载的应用包名"],"paramDesc_en":["Package name of the app to uninstall"]},
+    {"name":"openAppSettings","desc":"打开系统设置中指定应用的详情页，用户说【打开XX的设置】【查看XX的权限】时使用","desc_en":"Open the system settings detail page for a specific app. Use when user says 'open settings for XX' or 'check permissions of XX'","params":["nameOrPackage"],"paramDesc":["应用名或包名"],"paramDesc_en":["App name or package name"]}
+  ]
+}

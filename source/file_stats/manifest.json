@@ -1,0 +1,39 @@
+{
+  "id": "file_stats",
+  "name": "文件信息统计",
+  "name_en": "File Stats",
+  "description": "文件信息统计模块，支持获取文件详情、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、文件名关键词搜索、文本统计等",
+  "description_en": "File statistics module: file details, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, filename search, text stats",
+  "version": "1.0",
+  "icon": "analytics",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.file_stats.FileStatsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read"],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于读取手机存储中的文件信息",
+      "desc_en": "Read file information from device storage"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"getFileInfo","desc":"获取文件的完整信息，包括大小、创建时间、修改时间、文件类型、MIME类型、是否隐藏、可读/可写状态等","desc_en":"Get comprehensive file info: size, created/modified time, file type, MIME, hidden, readable/writable status","params":["path"],"paramDesc":["文件的绝对路径"],"paramDesc_en":["Absolute file path"]},
+    {"name":"getFileHash","desc":"计算文件的哈希值，支持MD5、SHA-1、SHA-256算法。用于校验文件完整性、判断文件是否被修改","desc_en":"Calculate file hash using MD5, SHA-1 or SHA-256. For integrity checks and modification detection","params":["path","algorithm"],"paramDesc":["文件的绝对路径","哈希算法: MD5/SHA-1/SHA-256(默认SHA-256)"],"paramDesc_en":["Absolute file path","Hash algorithm: MD5/SHA-1/SHA-256 (default SHA-256)"]},
+    {"name":"compareFiles","desc":"对比两个文件是否完全相同。先比较大小，大小一致再比较SHA-256哈希。返回是否相同及差异详情","desc_en":"Compare two files for equality. Compares size first, then SHA-256 hash. Returns whether identical and difference details","params":["path1","path2"],"paramDesc":["第一个文件的绝对路径","第二个文件的绝对路径"],"paramDesc_en":["Absolute path of first file","Absolute path of second file"]},
+    {"name":"verifyChecksum","desc":"用已知的哈希值校验文件完整性，判断文件是否与预期一致","desc_en":"Verify file integrity against a known hash value","params":["path","expectedHash","algorithm"],"paramDesc":["文件的绝对路径","期望的哈希值","哈希算法: MD5/SHA-1/SHA-256(默认SHA-256)"],"paramDesc_en":["Absolute file path","Expected hash value","Hash algorithm: MD5/SHA-1/SHA-256 (default SHA-256)"]},
+    {"name":"getDirStats","desc":"统计目录信息：总大小、文件数量、子目录数量、按扩展名分类的文件数量和大小分布","desc_en":"Directory statistics: total size, file count, subdirectory count, breakdown by extension","params":["path","recursive"],"paramDesc":["目录的绝对路径","是否递归统计子目录(true/false，默认true)"],"paramDesc_en":["Absolute directory path","Recursively include subdirectories (true/false, default true)"]},
+    {"name":"findDuplicates","desc":"在指定目录中查找重复文件（内容完全相同的文件），按SHA-256哈希分组返回","desc_en":"Find duplicate files in a directory by SHA-256 hash, grouped by identical content","params":["path","recursive","minSize"],"paramDesc":["目录的绝对路径","是否递归子目录(true/false，默认true)","最小文件大小过滤，单位字节(默认1024，跳过小文件)"],"paramDesc_en":["Absolute directory path","Recurse subdirectories (true/false, default true)","Minimum file size filter in bytes (default 1024, skip tiny files)"]},
+    {"name":"findLargeFiles","desc":"在指定目录中查找超过指定大小的文件，按大小降序排列","desc_en":"Find files exceeding a size threshold in a directory, sorted by size descending","params":["path","minSizeMB","recursive","limit"],"paramDesc":["目录的绝对路径","最小文件大小(MB)","是否递归子目录(true/false，默认true)","最多返回条数(默认50)"],"paramDesc_en":["Absolute directory path","Minimum file size in MB","Recurse subdirectories (true/false, default true)","Max results (default 50)"]},
+    {"name":"searchByName","desc":"在指定目录中按文件名关键词搜索文件，支持多个关键词(逗号分隔)，支持大小写不敏感匹配","desc_en":"Search files by filename keyword in a directory. Supports multiple keywords (comma-separated), case-insensitive","params":["path","keywords","recursive","limit"],"paramDesc":["目录的绝对路径","文件名关键词(多个用逗号分隔)","是否递归子目录(true/false，默认true)","最多返回条数(默认100)"],"paramDesc_en":["Absolute directory path","Filename keywords (comma-separated)","Recurse subdirectories (true/false, default true)","Max results (default 100)"]},
+    {"name":"getTextStats","desc":"统计文本文件的行数、单词数、字符数、空行数、非空行数","desc_en":"Count lines, words, characters, blank lines, non-blank lines of a text file","params":["path"],"paramDesc":["文本文件的绝对路径"],"paramDesc_en":["Absolute path of a text file"]},
+    {"name":"batchFileInfo","desc":"批量获取多个文件的基本信息（大小、修改时间、哈希），路径用逗号分隔","desc_en":"Get basic info (size, modified time, hash) for multiple files. Paths separated by commas","params":["paths","algorithm"],"paramDesc":["文件路径列表(逗号分隔)","哈希算法: MD5/SHA-1/SHA-256(默认SHA-256)"],"paramDesc_en":["File paths (comma-separated)","Hash algorithm: MD5/SHA-1/SHA-256 (default SHA-256)"]}
+  ]
+}

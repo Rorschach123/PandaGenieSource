@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>提醒助手</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.rm-header { text-align: center; padding: 20px 0 12px; }
+.rm-header .icon { font-size: 48px; color: var(--primary); margin-bottom: 8px; }
+.rm-header h2 { margin: 0; font-size: 20px; }
+.rm-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.tool-card {
+  background: var(--surface-variant); border-radius: 14px; padding: 16px 14px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.tool-card:active { opacity: 0.8; transform: scale(0.97); }
+.tool-card .emoji { font-size: 28px; margin-bottom: 6px; }
+.tool-card .name { font-size: 14px; font-weight: 500; color: var(--on-surface); }
+.tool-card .desc { font-size: 11px; color: var(--on-surface-variant); margin-top: 3px; }
+.input-row { margin-bottom: 10px; }
+.input-row label { display: block; font-size: 12px; color: var(--on-surface-variant); margin-bottom: 4px; font-weight: 500; }
+.input-row input, .input-row select, .input-row textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--outline); border-radius: 10px;
+  background: var(--surface-variant); color: var(--on-surface); font-size: 14px;
+  box-sizing: border-box; outline: none; font-family: inherit;
+}
+.input-row input:focus, .input-row select:focus, .input-row textarea:focus { border-color: var(--primary); }
+.input-row textarea { resize: vertical; min-height: 60px; }
+.btn-exec {
+  display: block; width: 100%; padding: 12px; border: none; border-radius: 20px;
+  font-size: 15px; font-weight: 500; cursor: pointer;
+  background: var(--primary); color: var(--on-primary); transition: all 0.15s; margin-bottom: 12px;
+}
+.btn-exec:active { opacity: 0.8; }
+.btn-exec:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-back {
+  display: inline-block; padding: 6px 14px; border: 1px solid var(--outline); border-radius: 16px;
+  background: var(--surface); color: var(--on-surface); font-size: 13px; cursor: pointer; margin-bottom: 12px;
+}
+.result-box {
+  background: var(--surface-variant); border-radius: 14px; padding: 14px 16px;
+  margin-top: 10px; font-size: 13px; max-height: 60vh; overflow-y: auto;
+}
+.result-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(128,128,128,0.15); }
+.result-row .rl { color: var(--on-surface-variant); flex-shrink: 0; margin-right: 10px; }
+.result-row .rv { color: var(--on-surface); text-align: right; word-break: break-all; flex: 1; }
+.event-card {
+  background: var(--surface); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  border-left: 4px solid var(--primary);
+}
+.event-card .ev-title { font-size: 15px; font-weight: 500; color: var(--on-surface); }
+.event-card .ev-time { font-size: 12px; color: var(--primary); margin-top: 3px; }
+.event-card .ev-detail { font-size: 11px; color: var(--on-surface-variant); margin-top: 2px; }
+.event-card .ev-actions { display: flex; gap: 8px; margin-top: 8px; }
+.event-card .ev-btn {
+  padding: 4px 12px; border-radius: 10px; font-size: 12px; border: none; cursor: pointer;
+}
+.ev-btn.del { background: var(--error-container); color: var(--error); }
+.ev-btn.del:active { opacity: 0.7; }
+.allday-badge {
+  display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px;
+  border-radius: 6px; background: var(--primary-container); color: var(--primary);
+  margin-left: 6px; vertical-align: middle;
+}
+.hidden { display: none; }
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid var(--outline); border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast {
+  position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+  background: var(--on-surface); color: var(--surface); padding: 10px 20px;
+  border-radius: 20px; font-size: 13px; z-index: 200; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('tools')">提醒工具</div>
+  <div class="tab" onclick="switchTab('upcoming')">近期日程</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-tools" class="tab-content active">
+  <div class="rm-header">
+    <div class="icon">🔔</div>
+    <h2 id="headerTitle">提醒助手</h2>
+    <p id="headerDesc">日历事件、闹钟、倒计时、生日提醒</p>
+  </div>
+
+  <div id="mainMenu">
+    <div class="tool-grid">
+      <div class="tool-card" onclick="showTool('createEvent')">
+        <div class="emoji">📅</div>
+        <div class="name" data-i="创建事件|Create Event">创建事件</div>
+        <div class="desc" data-i="添加日历提醒|Add calendar reminder">添加日历提醒</div>
+      </div>
+      <div class="tool-card" onclick="showTool('listEvents')">
+        <div class="emoji">🔍</div>
+        <div class="name" data-i="查询事件|Query Events">查询事件</div>
+        <div class="desc" data-i="按日期范围查询|Search by date range">按日期范围查询</div>
+      </div>
+      <div class="tool-card" onclick="showTool('setAlarm')">
+        <div class="emoji">⏰</div>
+        <div class="name" data-i="设置闹钟|Set Alarm">设置闹钟</div>
+        <div class="desc" data-i="系统闹钟|System alarm clock">系统闹钟</div>
+      </div>
+      <div class="tool-card" onclick="showTool('setTimer')">
+        <div class="emoji">⏱️</div>
+        <div class="name" data-i="倒计时|Timer">倒计时</div>
+        <div class="desc" data-i="设置倒计时提醒|Set countdown timer">设置倒计时提醒</div>
+      </div>
+      <div class="tool-card" onclick="showTool('birthday')">
+        <div class="emoji">🎂</div>
+        <div class="name" data-i="生日提醒|Birthday">生日提醒</div>
+        <div class="desc" data-i="每年自动提醒|Yearly recurring">每年自动提醒</div>
+      </div>
+      <div class="tool-card" onclick="showTool('openCal')">
+        <div class="emoji">📆</div>
+        <div class="name" data-i="打开日历|Open Calendar">打开日历</div>
+        <div class="desc" data-i="跳转系统日历|Open system calendar">跳转系统日历</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toolPanel" class="hidden">
+    <button class="btn-back" onclick="backToMenu()" data-i="← 返回|← Back">← 返回</button>
+    <div id="toolContent"></div>
+    <div id="toolResult"></div>
+  </div>
+</div>
+
+<div id="tab-upcoming" class="tab-content">
+  <div class="rm-header">
+    <div class="icon">📋</div>
+    <h2 data-i="近期日程|Upcoming">近期日程</h2>
+  </div>
+  <div class="input-row">
+    <label data-i="查看未来几天|Days ahead">查看未来几天</label>
+    <select id="upDays">
+      <option value="1" data-i="今天|Today">今天</option>
+      <option value="3">3</option>
+      <option value="7" selected>7</option>
+      <option value="14">14</option>
+      <option value="30">30</option>
+    </select>
+  </div>
+  <button class="btn-exec" onclick="loadUpcoming()" data-i="刷新|Refresh">刷新</button>
+  <div id="upcomingList"></div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 data-i="模块信息|Module Info">模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>类型: <span class="badge" data-i="纯Java插件 (无原生库)|Pure Java plugin (no native libs)">纯Java插件 (无原生库)</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 data-i="接口列表|API List">接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+function switchTab(name) {
+  var tabs = ['tools','upcoming','api'];
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', tabs[i] === name); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'upcoming') loadUpcoming();
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+function esc(text) { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+function showTool(id) {
+  document.getElementById('mainMenu').classList.add('hidden');
+  document.getElementById('toolPanel').classList.remove('hidden');
+  document.getElementById('toolResult').innerHTML = '';
+  var c = document.getElementById('toolContent');
+  var now = new Date();
+  var today = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+  var nowTime = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  var h = '';
+  switch(id) {
+    case 'createEvent':
+      h = inp(T('标题','Title'), 'evTitle', '') +
+          ta(T('描述','Description'), 'evDesc', '') +
+          inp(T('开始时间','Start Time'), 'evStart', today + ' ' + nowTime) +
+          inp(T('结束时间(可空)','End Time (optional)'), 'evEnd', '') +
+          inp(T('地点(可空)','Location (optional)'), 'evLoc', '') +
+          sel(T('重复','Repeat'), 'evRepeat', [
+            {v:'none',t:T('不重复','None')}, {v:'daily',t:T('每天','Daily')},
+            {v:'weekly',t:T('每周','Weekly')}, {v:'monthly',t:T('每月','Monthly')},
+            {v:'yearly',t:T('每年','Yearly')}
+          ]) +
+          inp(T('提前提醒(分钟)','Reminder (minutes)'), 'evRemind', '10') +
+          btn(T('创建事件','Create Event'), "execCreateEvent()");
+      break;
+    case 'listEvents':
+      h = inp(T('开始日期','Start Date'), 'qStart', today) +
+          inp(T('结束日期(可空)','End Date (optional)'), 'qEnd', '') +
+          btn(T('查询','Query'), "execListEvents()");
+      break;
+    case 'setAlarm':
+      h = inp(T('小时(0-23)','Hour (0-23)'), 'alHour', pad(now.getHours())) +
+          inp(T('分钟(0-59)','Minute (0-59)'), 'alMin', '00') +
+          inp(T('标签(可空)','Label (optional)'), 'alLabel', '') +
+          inp(T('重复星期(如1,2,3 周一到周三，留空不重复)','Repeat days (1=Mon..7=Sun, empty=no repeat)'), 'alDays', '') +
+          btn(T('设置闹钟','Set Alarm'), "execSetAlarm()");
+      break;
+    case 'setTimer':
+      h = inp(T('分钟','Minutes'), 'tmMin', '5') +
+          inp(T('秒','Seconds'), 'tmSec', '0') +
+          inp(T('标签(可空)','Label (optional)'), 'tmLabel', '') +
+          btn(T('开始倒计时','Start Timer'), "execSetTimer()");
+      break;
+    case 'birthday':
+      h = inp(T('姓名','Name'), 'bdName', '') +
+          inp(T('生日(MM-dd 或 yyyy-MM-dd)','Birthday (MM-dd or yyyy-MM-dd)'), 'bdDate', '') +
+          inp(T('提前提醒(分钟，1440=1天)','Remind before (min, 1440=1 day)'), 'bdRemind', '1440') +
+          btn(T('创建生日提醒','Create Birthday Reminder'), "execBirthday()");
+      break;
+    case 'openCal':
+      h = inp(T('日期(可空，默认今天)','Date (optional, today)'), 'ocDate', today) +
+          btn(T('打开日历','Open Calendar'), "execOpenCal()");
+      break;
+  }
+  c.innerHTML = h;
+}
+
+function backToMenu() {
+  document.getElementById('mainMenu').classList.remove('hidden');
+  document.getElementById('toolPanel').classList.add('hidden');
+}
+
+function inp(label, id, val) { return '<div class="input-row"><label>' + label + '</label><input id="' + id + '" value="' + esc(val||'') + '" /></div>'; }
+function ta(label, id, val) { return '<div class="input-row"><label>' + label + '</label><textarea id="' + id + '">' + esc(val||'') + '</textarea></div>'; }
+function sel(label, id, opts) {
+  var h = '<div class="input-row"><label>' + label + '</label><select id="' + id + '">';
+  opts.forEach(function(o) { h += '<option value="' + o.v + '">' + o.t + '</option>'; });
+  return h + '</select></div>';
+}
+function btn(text, onclick) { return '<button class="btn-exec" onclick="' + onclick + '">' + text + '</button>'; }
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+function resultRows(pairs) {
+  var h = '<div class="result-box">';
+  pairs.forEach(function(p) { h += '<div class="result-row"><span class="rl">' + p[0] + '</span><span class="rv">' + p[1] + '</span></div>'; });
+  return h + '</div>';
+}
+
+function renderEvents(events) {
+  if (!events || !events.length) return '<div class="result-box" style="text-align:center;padding:30px">' + T('暂无事件','No events') + '</div>';
+  var h = '';
+  for (var i = 0; i < events.length; i++) {
+    var ev = events[i];
+    h += '<div class="event-card">' +
+      '<div class="ev-title">' + esc(ev.title || T('无标题','Untitled'));
+    if (ev.allDay) h += '<span class="allday-badge">' + T('全天','All Day') + '</span>';
+    h += '</div>' +
+      '<div class="ev-time">' + esc(ev.startTime || '') + (ev.allDay ? '' : ' ~ ' + esc(ev.endTime || '')) + '</div>';
+    if (ev.location) h += '<div class="ev-detail">📍 ' + esc(ev.location) + '</div>';
+    if (ev.description) h += '<div class="ev-detail">' + esc(ev.description) + '</div>';
+    if (ev.rrule) h += '<div class="ev-detail">🔁 ' + esc(ev.rrule) + '</div>';
+    h += '<div class="ev-actions"><button class="ev-btn del" onclick="delEvent(' + ev.eventId + ')">' + T('删除','Delete') + '</button></div>';
+    h += '</div>';
+  }
+  return h;
+}
+
+function execCreateEvent() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('createEvent', {
+      title: v('evTitle'), description: v('evDesc'), startTime: v('evStart'),
+      endTime: v('evEnd'), location: v('evLoc'), rrule: v('evRepeat'),
+      reminderMinutes: parseInt(v('evRemind')) || 10
+    }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([
+      [T('事件ID','Event ID'), data.eventId],
+      [T('标题','Title'), esc(data.title)],
+      [T('开始','Start'), esc(data.startTime)],
+      [T('重复','Repeat'), esc(data.repeat)],
+      [T('提醒','Reminder'), data.reminderMinutes + T(' 分钟前',' min before')],
+      [T('状态','Status'), '✅ ' + esc(data.message)]
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execListEvents() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('listEvents', { startDate: v('qStart'), endDate: v('qEnd') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = '<div style="font-size:12px;color:var(--on-surface-variant);margin-bottom:8px">' + T('找到 ','Found ') + data.count + T(' 个事件',' events') + '</div>' + renderEvents(data.events);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execSetAlarm() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('setAlarm', {
+      hour: parseInt(v('alHour')), minute: parseInt(v('alMin')),
+      label: v('alLabel'), daysOfWeek: v('alDays')
+    }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([[T('状态','Status'), '✅ ' + esc(data.message)]]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execSetTimer() {
+  var r = document.getElementById('toolResult');
+  try {
+    var secs = (parseInt(v('tmMin')) || 0) * 60 + (parseInt(v('tmSec')) || 0);
+    var data = JSON.parse(invokeNative('setTimer', { seconds: secs, label: v('tmLabel') }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([[T('时长','Duration'), esc(data.display)], [T('状态','Status'), '✅ ' + esc(data.message)]]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execBirthday() {
+  var r = document.getElementById('toolResult');
+  try {
+    var data = JSON.parse(invokeNative('createBirthdayReminder', {
+      name: v('bdName'), date: v('bdDate'), reminderMinutes: parseInt(v('bdRemind')) || 1440
+    }));
+    if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+    r.innerHTML = resultRows([
+      [T('姓名','Name'), esc(data.name)],
+      [T('日期','Date'), esc(data.date)],
+      [T('重复','Repeat'), T('每年','Yearly')],
+      [T('状态','Status'), '✅ ' + esc(data.message)]
+    ]);
+  } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+}
+
+function execOpenCal() {
+  try {
+    invokeNative('openCalendar', { date: v('ocDate') });
+    showToast(T('已打开日历','Calendar opened'));
+  } catch(e) { showToast(T('打开失败: ','Failed: ') + e.message); }
+}
+
+function loadUpcoming() {
+  var el = document.getElementById('upcomingList');
+  el.innerHTML = '<div class="result-box"><span class="spinner"></span>' + T('加载中...','Loading...') + '</div>';
+  setTimeout(function() {
+    try {
+      var data = JSON.parse(invokeNative('getUpcoming', { days: parseInt(document.getElementById('upDays').value) || 7 }));
+      if (data.error) { el.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+      el.innerHTML = '<div style="font-size:12px;color:var(--on-surface-variant);margin-bottom:8px">' +
+        T('未来 ','Next ') + data.daysAhead + T(' 天，共 ',' days, ') + data.count + T(' 个事件',' events') + '</div>' +
+        renderEvents(data.events);
+    } catch(e) { el.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+  }, 50);
+}
+
+function delEvent(id) {
+  try {
+    var data = JSON.parse(invokeNative('deleteEvent', { eventId: id }));
+    showToast(data.deleted ? T('已删除','Deleted') : T('删除失败','Delete failed'));
+    loadUpcoming();
+  } catch(e) { showToast(e.message); }
+}
+
+function v(id) { return document.getElementById(id).value.trim(); }
+
+function applyI18n() {
+  document.title = T('提醒助手','Reminder');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('提醒工具','Tools');
+  if(tabs[1]) tabs[1].textContent = T('近期日程','Upcoming');
+  if(tabs[2]) tabs[2].textContent = T('接口说明','API Docs');
+  document.getElementById('headerTitle').textContent = T('提醒助手','Reminder');
+  document.getElementById('headerDesc').textContent = T('日历事件、闹钟、倒计时、生日提醒','Calendar, alarm, timer, birthday');
+  document.querySelectorAll('[data-i]').forEach(function(el) {
+    var p = el.getAttribute('data-i').split('|');
+    el.textContent = T(p[0], p[1] || p[0]);
+  });
+}
+applyI18n();
+
+var apis = [
+  ['createEvent', T('创建日历事件/提醒','Create calendar event'), 'title, startTime, ...', T('支持标题/描述/时间/地点/重复/提醒','Title/desc/time/location/repeat/reminder')],
+  ['listEvents', T('查询日期范围内事件','Query events by range'), 'startDate, endDate', T('返回事件列表','Returns event list')],
+  ['updateEvent', T('修改已有事件','Update event'), 'eventId, ...', T('可更新标题/时间/地点','Update title/time/location')],
+  ['deleteEvent', T('删除事件','Delete event'), 'eventId', T('删除指定事件','Delete by ID')],
+  ['getCalendars', T('列出日历账户','List calendars'), T('无参数','none'), T('返回设备上所有日历','All device calendars')],
+  ['setAlarm', T('设置闹钟','Set alarm'), 'hour, minute, label, daysOfWeek', T('打开系统闹钟设置','Opens system alarm')],
+  ['setTimer', T('倒计时','Set timer'), 'seconds, label', T('打开系统倒计时','Opens system timer')],
+  ['createBirthdayReminder', T('生日提醒','Birthday reminder'), 'name, date', T('每年重复全天事件','Yearly all-day event')],
+  ['openCalendar', T('打开日历','Open calendar'), 'date', T('跳转系统日历','Opens system calendar')],
+  ['getUpcoming', T('近期事件摘要','Upcoming events'), 'days', T('未来N天事件','Events in next N days')]
+];
+var tb = '<tr><th>' + T('接口','API') + '</th><th>' + T('说明','Desc') + '</th><th>' + T('参数','Params') + '</th><th>' + T('返回','Returns') + '</th></tr>';
+apis.forEach(function(a) {
+  tb += '<tr><td><code>' + a[0] + '</code></td><td>' + a[1] + '</td><td style="font-size:11px">' + a[2] + '</td><td style="font-size:11px">' + a[3] + '</td></tr>';
+});
+document.getElementById('apiTable').innerHTML = tb;
+
+(function() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    if (info.description) document.getElementById('moduleDesc').textContent = info.description;
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

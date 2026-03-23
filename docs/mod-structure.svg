@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" font-family="'Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="mg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6C63FF"/><stop offset="100%" stop-color="#5A52D5"/></linearGradient>
+    <filter id="ms"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/></filter>
+  </defs>
+
+  <rect width="720" height="400" rx="14" fill="#F8F9FD"/>
+  <text x="360" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#2D3436">.mod File Structure</text>
+
+  <!-- Main package -->
+  <g filter="url(#ms)">
+    <rect x="40" y="55" width="300" height="325" rx="12" fill="#fff" stroke="#6C63FF" stroke-width="2"/>
+    <rect x="40" y="55" width="300" height="36" rx="12" fill="url(#mg1)"/>
+    <rect x="40" y="79" width="300" height="12" fill="url(#mg1)"/>
+    <text x="190" y="79" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">example.mod (ZIP/JAR)</text>
+  </g>
+
+  <!-- Files inside -->
+  <g font-size="12">
+    <text x="65" y="115" fill="#6C63FF" font-weight="600">&#x1F4C4;</text>
+    <text x="85" y="115" fill="#333" font-weight="600">manifest.json</text>
+    <text x="85" y="130" fill="#999" font-size="10">Module metadata, APIs, permissions</text>
+
+    <text x="65" y="155" fill="#00C9A7" font-weight="600">&#x1F310;</text>
+    <text x="85" y="155" fill="#333" font-weight="600">index.html</text>
+    <text x="85" y="170" fill="#999" font-size="10">H5 UI page (i18n: zh/en)</text>
+
+    <text x="65" y="195" fill="#FF6B6B" font-weight="600">&#x2615;</text>
+    <text x="85" y="195" fill="#333" font-weight="600">plugin.jar</text>
+    <text x="85" y="210" fill="#999" font-size="10">Compiled DEX (Java plugin code)</text>
+
+    <text x="65" y="240" fill="#F9CA24" font-weight="600">&#x1F4C2;</text>
+    <text x="85" y="240" fill="#333" font-weight="600">libs/</text>
+    <text x="100" y="258" fill="#666" font-size="11">arm64-v8a/libexample.so</text>
+    <text x="100" y="274" fill="#666" font-size="11">armeabi-v7a/libexample.so</text>
+    <text x="85" y="290" fill="#999" font-size="10">Optional native libraries</text>
+
+    <text x="65" y="318" fill="#4834D4" font-weight="600">&#x1F512;</text>
+    <text x="85" y="318" fill="#333" font-weight="600">META-INF/</text>
+    <text x="100" y="336" fill="#666" font-size="11">DEV.SF / DEV.RSA</text>
+    <text x="100" y="352" fill="#666" font-size="11">OFFICIAL.SF / OFFICIAL.RSA</text>
+    <text x="85" y="368" fill="#999" font-size="10">Dual jarsigner signatures</text>
+  </g>
+
+  <!-- Right side: plugin interface -->
+  <g filter="url(#ms)">
+    <rect x="380" y="55" width="300" height="130" rx="12" fill="#1E1E2E" stroke="#444" stroke-width="1"/>
+    <text x="530" y="79" text-anchor="middle" font-size="13" font-weight="700" fill="#6C63FF">ModulePlugin Interface</text>
+    <text x="400" y="103" font-size="11" fill="#C792EA" font-family="'Cascadia Code','Consolas',monospace">public interface</text>
+    <text x="527" y="103" font-size="11" fill="#82AAFF" font-family="'Cascadia Code','Consolas',monospace"> ModulePlugin</text>
+    <text x="625" y="103" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace"> {</text>
+    <text x="410" y="123" font-size="11" fill="#FFCB6B" font-family="'Cascadia Code','Consolas',monospace">String</text>
+    <text x="455" y="123" font-size="11" fill="#82AAFF" font-family="'Cascadia Code','Consolas',monospace"> invoke</text>
+    <text x="497" y="123" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace">(</text>
+    <text x="420" y="143" font-size="11" fill="#C792EA" font-family="'Cascadia Code','Consolas',monospace">Context</text>
+    <text x="476" y="143" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace"> ctx,</text>
+    <text x="507" y="143" font-size="11" fill="#C792EA" font-family="'Cascadia Code','Consolas',monospace"> String</text>
+    <text x="555" y="143" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace"> action,</text>
+    <text x="420" y="163" font-size="11" fill="#C792EA" font-family="'Cascadia Code','Consolas',monospace">String</text>
+    <text x="470" y="163" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace"> paramsJson);</text>
+    <text x="400" y="178" font-size="11" fill="#C3C3C3" font-family="'Cascadia Code','Consolas',monospace">}</text>
+  </g>
+
+  <!-- Right side: flow -->
+  <g filter="url(#ms)">
+    <rect x="380" y="205" width="300" height="175" rx="12" fill="#fff" stroke="#00C9A7" stroke-width="2"/>
+    <text x="530" y="232" text-anchor="middle" font-size="13" font-weight="700" fill="#00C9A7">How AI Uses Your Module</text>
+    <line x1="400" y1="240" x2="660" y2="240" stroke="#E8E8E8"/>
+  </g>
+
+  <g font-size="11">
+    <circle cx="410" cy="260" r="10" fill="#6C63FF"/><text x="410" y="264" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">1</text>
+    <text x="428" y="264" fill="#333">AI reads your manifest.json APIs</text>
+
+    <circle cx="410" cy="290" r="10" fill="#6C63FF"/><text x="410" y="294" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">2</text>
+    <text x="428" y="294" fill="#333">User asks a question naturally</text>
+
+    <circle cx="410" cy="320" r="10" fill="#6C63FF"/><text x="410" y="324" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">3</text>
+    <text x="428" y="324" fill="#333">AI plans: { module, action, params }</text>
+
+    <circle cx="410" cy="350" r="10" fill="#6C63FF"/><text x="410" y="354" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">4</text>
+    <text x="428" y="354" fill="#333">Runtime calls plugin.invoke()</text>
+
+    <circle cx="410" cy="370" r="10" fill="#00C9A7"/><text x="410" y="374" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">&#x2713;</text>
+    <text x="428" y="374" fill="#333">Result returned to user</text>
+  </g>
+</svg>

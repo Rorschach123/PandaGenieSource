@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" font-family="'Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="sf1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#00C9A7"/><stop offset="100%" stop-color="#00A388"/></linearGradient>
+    <linearGradient id="sf2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#6C63FF"/><stop offset="100%" stop-color="#5A52D5"/></linearGradient>
+    <linearGradient id="sf3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FF6B6B"/><stop offset="100%" stop-color="#EE5A24"/></linearGradient>
+    <filter id="sf"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/></filter>
+    <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,1 L8,5 L0,9 Z" fill="#666"/></marker>
+  </defs>
+
+  <rect width="800" height="300" rx="14" fill="#F8F9FD"/>
+  <text x="400" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#2D3436">Dual-Signature Security Model</text>
+
+  <!-- Step 1: Unsigned -->
+  <g filter="url(#sf)">
+    <rect x="30" y="60" width="150" height="100" rx="12" fill="#fff" stroke="#DDD" stroke-width="2"/>
+    <text x="105" y="90" text-anchor="middle" font-size="24">&#x1F4E6;</text>
+    <text x="105" y="115" text-anchor="middle" font-size="12" font-weight="600" fill="#333">Unsigned Package</text>
+    <text x="105" y="132" text-anchor="middle" font-size="10" fill="#999">manifest + plugin</text>
+    <text x="105" y="148" text-anchor="middle" font-size="10" fill="#999">+ html + libs</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M180 110 L230 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#sa)"/>
+
+  <!-- Step 2: Dev sign -->
+  <g filter="url(#sf)">
+    <rect x="235" y="60" width="170" height="100" rx="12" fill="url(#sf1)"/>
+    <text x="320" y="88" text-anchor="middle" font-size="20" fill="#fff">&#x1F511;</text>
+    <text x="320" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Layer 1: DEV</text>
+    <text x="320" y="130" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Developer Signature</text>
+    <text x="320" y="148" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.7)">Identity + fingerprint</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <path d="M405 110 L455 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#sa)"/>
+
+  <!-- Step 3: Official sign -->
+  <g filter="url(#sf)">
+    <rect x="460" y="60" width="170" height="100" rx="12" fill="url(#sf2)"/>
+    <text x="545" y="88" text-anchor="middle" font-size="20" fill="#fff">&#x1F3DB;</text>
+    <text x="545" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Layer 2: OFFICIAL</text>
+    <text x="545" y="130" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Official Certification</text>
+    <text x="545" y="148" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.7)">Tamper-proof guarantee</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <path d="M630 110 L680 110" stroke="#666" stroke-width="2" fill="none" marker-end="url(#sa)"/>
+
+  <!-- Step 4: Final .mod -->
+  <g filter="url(#sf)">
+    <rect x="685" y="60" width="90" height="100" rx="12" fill="url(#sf3)"/>
+    <text x="730" y="92" text-anchor="middle" font-size="26" fill="#fff">&#x2705;</text>
+    <text x="730" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">.mod</text>
+    <text x="730" y="136" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Ready!</text>
+  </g>
+
+  <!-- Verification -->
+  <g filter="url(#sf)">
+    <rect x="30" y="195" width="745" height="90" rx="12" fill="#fff" stroke="#E8E8E8" stroke-width="1.5"/>
+    <text x="400" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="#2D3436">App-side Verification Flow</text>
+    <line x1="50" y1="232" x2="755" y2="232" stroke="#EEE"/>
+  </g>
+
+  <g font-size="11">
+    <rect x="55" y="245" width="150" height="28" rx="6" fill="#EDEEFF"/>
+    <text x="130" y="264" text-anchor="middle" fill="#6C63FF" font-weight="600">&#x1F50D; Check OFFICIAL sig</text>
+
+    <path d="M210 259 L235 259" stroke="#999" stroke-width="1.5" fill="none" marker-end="url(#sa)"/>
+
+    <rect x="240" y="245" width="150" height="28" rx="6" fill="#E8FFF5"/>
+    <text x="315" y="264" text-anchor="middle" fill="#00A388" font-weight="600">&#x1F50D; Check DEV sig</text>
+
+    <path d="M395 259 L420 259" stroke="#999" stroke-width="1.5" fill="none" marker-end="url(#sa)"/>
+
+    <rect x="425" y="245" width="170" height="28" rx="6" fill="#FFF5E5"/>
+    <text x="510" y="264" text-anchor="middle" fill="#F0932B" font-weight="600">&#x1F517; Match devCertFingerprint</text>
+
+    <path d="M600 259 L625 259" stroke="#999" stroke-width="1.5" fill="none" marker-end="url(#sa)"/>
+
+    <rect x="630" y="245" width="130" height="28" rx="6" fill="#E8FFE8"/>
+    <text x="695" y="264" text-anchor="middle" fill="#27AE60" font-weight="700">&#x2705; Load module</text>
+  </g>
+</svg>

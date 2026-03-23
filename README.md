@@ -1,2 +1,273 @@
-# PandaGenieSource
-PandaGenie's official modules source code
+<div align="center">
+
+<h1>&#x1F43C; PandaGenie</h1>
+
+<p><strong>AI-Powered Modular Android Assistant</strong></p>
+
+<p>
+Tell PandaGenie what you need in natural language.<br/>
+It plans, executes, and delivers — powered by <strong>any LLM</strong> and a growing library of <strong>hot-loadable modules</strong>.
+</p>
+
+<p>
+  <a href="#download">Download APK</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://github.com/user/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
+  <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
+  <a href="README_CN.md">&#x1F1E8;&#x1F1F3; 中文</a>
+</p>
+
+</div>
+
+---
+
+## How It Works
+
+> "Compress all photos in /Download into a zip" — that's all you say.
+
+PandaGenie connects to your preferred LLM (GPT, Claude, DeepSeek, or any OpenAI-compatible API), reads the capabilities of all installed modules, and automatically plans multi-step tasks. No coding, no clicking through menus.
+
+<p align="center">
+  <img src="docs/architecture.svg" width="100%" alt="PandaGenie Architecture" />
+</p>
+
+**Key highlights:**
+
+- **Any LLM backend** — OpenAI, Anthropic Claude, self-hosted, or any compatible API
+- **Hot-loadable modules** — drop a `.mod` file, restart, done. No APK rebuild needed
+- **AI auto-discovers** new capabilities from module manifests
+- **Sandboxed execution** — file access, network, and permission controls per module
+- **Offline voice** — built-in Vosk speech recognition
+- **Dual-signature security** — tamper-proof module verification
+
+---
+
+## Architecture
+
+PandaGenie follows a clean separation between the **AI brain** and the **module ecosystem**:
+
+```
+User  ──>  AI Engine  ──>  Task Executor  ──>  Module Runtime  ──>  Plugin.invoke()
+             │                   │                    │
+        Build prompt        Run steps           Sandbox + verify
+        from modules       resolve vars        ClassLoader isolation
+```
+
+The app **never hardcodes** any module. All capabilities are declared in each module's `manifest.json` and dynamically injected into the AI system prompt at runtime.
+
+---
+
+## Module System
+
+Each `.mod` file is a self-contained package:
+
+<p align="center">
+  <img src="docs/mod-structure.svg" width="100%" alt=".mod File Structure" />
+</p>
+
+A module only needs to implement **one interface**:
+
+```java
+public interface ModulePlugin {
+    String invoke(Context context, String action, String paramsJson) throws Exception;
+}
+```
+
+The AI reads your `manifest.json`, understands what your module can do, and calls `invoke()` with the right `action` and `params` — automatically.
+
+---
+
+## Security: Dual-Signature Model
+
+Every `.mod` carries two layers of JAR signatures for tamper-proof distribution:
+
+<p align="center">
+  <img src="docs/signing-flow.svg" width="100%" alt="Dual-Signature Flow" />
+</p>
+
+| Layer | Purpose |
+|-------|---------|
+| **DEV** (Developer) | Identifies the module author. Fingerprint bound to manifest |
+| **OFFICIAL** | Proves the module passed official review. Verified against app-embedded cert |
+
+Developer Mode allows loading DEV-only signed modules for testing.
+
+---
+
+## Available Modules
+
+| Module | Description | Type |
+|--------|-------------|------|
+| &#x1F4C1; **File Manager** | Browse, create, copy, move, delete, search files | Native |
+| &#x1F9EE; **Calculator** | Scientific math: expressions, trig, logs, factorial | Native |
+| &#x1F4E6; **Archive** | ZIP (with password), TAR, GZ compression | Native |
+| &#x1F4F1; **App Manager** | List, launch, uninstall apps, view app info | Java |
+| &#x1F4CA; **File Stats** | Hash, compare, dir stats, duplicate finder | Java |
+| &#x23F0; **Reminder** | Calendar events, alarms, timers, birthday reminders | Java |
+| &#x1F50F; **Signature Checker** | Verify APK and module signatures | Java |
+
+> **Want more?** That's where **you** come in.
+
+---
+
+## Download
+
+<!-- TODO: Add download link -->
+> &#x1F4E5; **APK Download**: *Coming soon*
+
+---
+
+## Create Your Own Module
+
+Building a PandaGenie module is **incredibly simple** — perfect for vibe coding with AI assistants like Cursor.
+
+### 3 Files. That's It.
+
+```
+source/my_module/
+├── manifest.json      ← Tell AI what you can do
+├── index.html         ← Optional UI page
+└── plugin_src/
+    └── .../MyPlugin.java   ← Your logic
+```
+
+### Quick Example
+
+**manifest.json** — describe your APIs:
+
+```json
+{
+  "id": "my_module",
+  "name": "My Module",
+  "name_en": "My Module",
+  "description": "Does something cool",
+  "version": "1.0",
+  "apis": [
+    {
+      "name": "doSomething",
+      "desc": "Does the thing",
+      "desc_en": "Does the thing",
+      "params": ["input"],
+      "paramDesc": ["The input"],
+      "paramDesc_en": ["The input"]
+    }
+  ]
+}
+```
+
+**MyPlugin.java** — implement one method:
+
+```java
+public class MyPlugin implements ModulePlugin {
+    @Override
+    public String invoke(Context ctx, String action, String params) throws Exception {
+        JSONObject p = new JSONObject(params);
+        if ("doSomething".equals(action)) {
+            return new JSONObject()
+                .put("success", true)
+                .put("output", "Done: " + p.optString("input"))
+                .toString();
+        }
+        return new JSONObject().put("success", false).put("error", "Unknown action").toString();
+    }
+}
+```
+
+### Build & Deploy
+
+```powershell
+# In PandaGenieModules/module-dev-toolkit/
+.\mk_module.ps1 -Action init-dev-signing    # First time only
+.\mk_module.ps1 -Action pack -Modules "my_module"
+
+adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
+```
+
+For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/user/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
+
+---
+
+## Project Structure
+
+This project is split into two repositories:
+
+| Repo | Purpose |
+|------|---------|
+| **[PandaGenieSource](.)** (this repo) | Module source code and build tools |
+| **[PandaGenieModules](https://github.com/user/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
+
+```
+PandaGenieSource/
+├── source/                    # Module source files
+│   ├── shared_api/            # ModulePlugin interface
+│   ├── calculator/
+│   ├── filemanager/
+│   ├── archive/
+│   ├── app_manager/
+│   ├── file_stats/
+│   ├── reminder/
+│   └── signature_checker/
+└── tools/
+    ├── pack_modules.ps1       # Pack & sign .mod files
+    └── build_all_native.ps1   # Compile native libraries
+```
+
+---
+
+## Contributing
+
+We'd love to have you build modules for PandaGenie! The best part? You can **vibe code** the entire thing — describe what you want to an AI coding assistant and it will generate the module for you.
+
+### How to Contribute
+
+1. **Fork** this repo
+2. Create your module in `source/<your_module_id>/`
+3. Test it with Developer Mode enabled on the app
+4. **Submit a Pull Request**
+
+### What Makes a Great Module?
+
+- Solves a real problem on Android
+- Clear API descriptions (the AI reads them!)
+- Supports both Chinese and English (`_en` fields)
+- Minimal permissions — request only what you need
+
+### Ideas for New Modules
+
+- &#x1F3A8; **Image tools** — resize, convert, watermark
+- &#x1F4DD; **Note taking** — create/search notes
+- &#x1F4E7; **SMS manager** — search, export messages
+- &#x1F4F6; **Network tools** — ping, DNS lookup, speed test
+- &#x1F50B; **Battery manager** — stats, optimization tips
+- &#x1F3B5; **Audio tools** — metadata, convert formats
+- &#x1F4CB; **Clipboard manager** — history, templates
+- &#x1F4CD; **Location tools** — nearby places, coordinates
+- ...and anything else you can imagine!
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| App | Kotlin, Jetpack Compose, Material 3 |
+| AI | Any OpenAI-compatible / Claude API |
+| Speech | Vosk (offline) |
+| Modules | Java plugins, DEX ClassLoader, optional JNI/C++ |
+| Signing | PKCS12 keystores, jarsigner, DPAPI |
+| Build | PowerShell, Android SDK (d8, javac) |
+
+---
+
+## License
+
+This project is licensed under the LGPL-3.0 License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with &#x2764;&#xFE0F; and a lot of vibe coding**
+
+*PandaGenie — Let AI handle the boring stuff on your phone*
+
+</div>

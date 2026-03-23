@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>签名校验</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.verify-header {
+  text-align: center;
+  padding: 20px 0 12px;
+}
+.verify-header .icon {
+  font-size: 48px;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.verify-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.verify-header p {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 18px 0 8px;
+  padding-left: 4px;
+}
+.verify-card {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+.verify-card.pass {
+  border-left: 4px solid #2E7D32;
+}
+.verify-card.fail {
+  border-left: 4px solid var(--error);
+}
+.verify-card.checking {
+  border-left: 4px solid var(--outline);
+  opacity: 0.7;
+}
+.verify-card .status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.verify-card.pass .status-icon {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+.verify-card.fail .status-icon {
+  background: var(--error-container);
+  color: var(--error);
+}
+.verify-card.checking .status-icon {
+  background: var(--surface);
+  color: var(--outline);
+}
+.verify-card .info {
+  flex: 1;
+  min-width: 0;
+}
+.verify-card .info .name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+.verify-card .info .detail {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+  word-break: break-all;
+}
+.verify-card .info .detail.error-text {
+  color: var(--error);
+}
+.summary-bar {
+  background: var(--primary-container);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 16px 0 8px;
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+.summary-bar.all-pass {
+  background: #E8F5E9;
+}
+.summary-bar.has-fail {
+  background: var(--error-container);
+}
+.summary-item .num {
+  font-size: 24px;
+  font-weight: 600;
+}
+.summary-item .label {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+.summary-bar.all-pass .summary-item .num { color: #2E7D32; }
+.summary-bar.has-fail .summary-item .num { color: var(--error); }
+.btn-verify {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all 0.2s;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn-verify:active { opacity: 0.8; transform: scale(0.98); }
+.btn-verify:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fingerprint {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+  display: inline-block;
+  word-break: break-all;
+}
+.sign-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+  margin-right: 4px;
+}
+.sign-badge.official {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+.sign-badge.developer {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+.dev-info {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 3px;
+}
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--outline);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.timestamp {
+  text-align: center;
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 12px;
+  opacity: 0.6;
+}
+.return-sample {
+  background: var(--surface);
+  border: 1px solid var(--surface-variant);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--on-surface-variant);
+  max-height: 200px;
+  overflow-y: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('verify')">签名校验</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-verify" class="tab-content active">
+
+<div class="verify-header">
+  <div class="icon">🛡️</div>
+  <h2>签名校验中心</h2>
+  <p>验证APK安装包与模块的官方签名状态</p>
+</div>
+
+<button class="btn-verify" id="btnVerify" onclick="startVerification()">开始校验</button>
+
+<div id="summarySection" style="display:none">
+  <div class="summary-bar" id="summaryBar">
+    <div class="summary-item">
+      <div class="num" id="totalCount">0</div>
+      <div class="label">总计</div>
+    </div>
+    <div class="summary-item">
+      <div class="num" id="passCount">0</div>
+      <div class="label">通过</div>
+    </div>
+    <div class="summary-item">
+      <div class="num" id="failCount">0</div>
+      <div class="label">未通过</div>
+    </div>
+  </div>
+</div>
+
+<div id="apkSection" style="display:none">
+  <div class="section-title">APK 安装包签名</div>
+  <div id="apkResult"></div>
+</div>
+
+<div id="moduleSection" style="display:none">
+  <div class="section-title">模块签名 (<span id="moduleCount">0</span> 个)</div>
+  <div id="moduleResults"></div>
+</div>
+
+<div class="timestamp" id="timestamp"></div>
+
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3>模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>类型: <span class="badge">纯Java插件 (无原生库)</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)">
+      校验APK安装包和所有已加载模块的官方签名状态，确保应用完整性和模块合法性。<br>
+      支持通过AI对话直接调用，也可以通过"打开签名校验"跳转到本页面。
+    </p>
+  </div>
+  <div class="card">
+    <h3>接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+  <div class="card">
+    <h3>对外调用说明</h3>
+    <p style="font-size:13px;color:var(--on-surface-variant);margin-bottom:8px">
+      本模块支持以下两种对外调用方式：
+    </p>
+    <p style="font-size:13px"><b>1. AI 任务调度调用</b></p>
+    <p style="font-size:12px;color:var(--on-surface-variant);margin:4px 0 8px">
+      用户通过自然语言描述，AI将自动匹配到本模块的接口并执行。<br>
+      例如："帮我检查一下所有模块的签名是否正常" → 自动调用 <code>verifyAllModules</code>
+    </p>
+    <p style="font-size:13px"><b>2. 跳转打开模块页面</b></p>
+    <p style="font-size:12px;color:var(--on-surface-variant);margin:4px 0 8px">
+      用户说"打开签名校验"，AI返回 <code>openModule: "signature_checker"</code>，<br>
+      App显示跳转按钮，点击后打开本H5页面。
+    </p>
+  </div>
+  <div class="card">
+    <h3>返回数据示例</h3>
+    <p style="font-size:12px;color:var(--on-surface-variant);margin-bottom:6px"><code>verifyAll</code> 返回格式：</p>
+    <div class="return-sample">{
+  "apk": {
+    "verified": true,
+    "packageName": "ai.rorsch.pandagenie",
+    "fingerprint": "FB:20:CC:61:...",
+    "subject": "CN=PandaGenie Official APK Signing",
+    "issuer": "CN=PandaGenie Official APK Signing"
+  },
+  "modules": [
+    {
+      "file": "calculator-1.0.mod",
+      "id": "calculator",
+      "name": "计算器",
+      "version": "1.0",
+      "verified": true,
+      "signerCount": 2,
+      "isOfficial": true,
+      "devFingerprint": "49:91:D7:53:...",
+      "devSubject": "CN=PandaGenie Official, OU=Developer",
+      "officialFingerprint": "82:E8:33:25:...",
+      "officialSubject": "CN=PandaGenie Official Module Signing",
+      "developer": {"name": "PandaGenie Official"}
+    },
+    {
+      "file": "my-plugin-1.0.mod",
+      "id": "my_plugin",
+      "name": "我的插件",
+      "version": "1.0",
+      "verified": true,
+      "signerCount": 1,
+      "isOfficial": false,
+      "devFingerprint": "A1:B2:C3:...",
+      "devSubject": "CN=John Doe, OU=Developer",
+      "developer": {"name": "张三", "email": "zhangsan@example.com"}
+    }
+  ]
+}</div>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+var isVerifying = false;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', ['verify','api'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return res.output;
+}
+
+function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) {
+      document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    }
+  } catch (e) {}
+}
+
+function createCard(name, status, detail, fingerprint, extra) {
+  extra = extra || {};
+  var stateClass = status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : 'checking';
+  var icon = status === 'pass' ? '✓' : status === 'fail' ? '✗' : '⋯';
+  var detailClass = status === 'fail' ? 'detail error-text' : 'detail';
+
+  var html = '<div class="verify-card ' + stateClass + '">' +
+    '<div class="status-icon">' + icon + '</div>' +
+    '<div class="info">' +
+    '<div class="name">' + escapeHtml(name) + '</div>';
+  if (detail) {
+    html += '<div class="' + detailClass + '">' + escapeHtml(detail) + '</div>';
+  }
+  if (extra.devFingerprint) {
+    html += '<span class="sign-badge developer">'+T('开发者签名','Developer Signed')+'</span>';
+  }
+  if (extra.isOfficial) {
+    html += '<span class="sign-badge official">'+T('官方认证','Official')+'</span>';
+  }
+  if (extra.developer) {
+    var devParts = [];
+    if (extra.developer.name) devParts.push(escapeHtml(extra.developer.name));
+    if (extra.developer.email) devParts.push(escapeHtml(extra.developer.email));
+    if (extra.developer.url) devParts.push(escapeHtml(extra.developer.url));
+    if (devParts.length > 0) {
+      html += '<div class="dev-info">'+T('开发者: ','Developer: ') + devParts.join(' · ') + '</div>';
+    }
+  }
+  if (extra.devSubject) {
+    html += '<div class="dev-info">'+T('开发者签名主体: ','Dev Signer: ') + escapeHtml(extra.devSubject) + '</div>';
+  }
+  if (extra.devFingerprint) {
+    html += '<div class="fingerprint">DEV: ' + escapeHtml(extra.devFingerprint) + '</div>';
+  }
+  if (extra.officialFingerprint) {
+    html += '<div class="fingerprint">OFFICIAL: ' + escapeHtml(extra.officialFingerprint) + '</div>';
+  }
+  if (extra.signerSubject) {
+    html += '<div class="dev-info">'+T('签名主体: ','Signer: ') + escapeHtml(extra.signerSubject) + '</div>';
+  }
+  if (fingerprint) {
+    html += '<div class="fingerprint">' + escapeHtml(fingerprint) + '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function startVerification() {
+  if (isVerifying) return;
+  isVerifying = true;
+
+  var btn = document.getElementById('btnVerify');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>'+T('校验中...','Verifying...');
+
+  document.getElementById('summarySection').style.display = 'none';
+  document.getElementById('apkSection').style.display = 'block';
+  document.getElementById('moduleSection').style.display = 'block';
+
+  document.getElementById('apkResult').innerHTML = createCard(T('APK 安装包','APK Package'), 'checking', T('正在校验...','Verifying...'), '');
+  document.getElementById('moduleResults').innerHTML = createCard(T('模块列表','Module List'), 'checking', T('正在获取...','Fetching...'), '');
+
+  setTimeout(function() { doVerification(); }, 100);
+}
+
+function doVerification() {
+  var totalPass = 0;
+  var totalFail = 0;
+  var totalItems = 0;
+
+  try {
+    var resultJson = invokeNative('verifyAll', {});
+    var result = JSON.parse(resultJson);
+
+    var apkInfo = result.apk;
+    totalItems++;
+    if (apkInfo.verified) {
+      totalPass++;
+      document.getElementById('apkResult').innerHTML = createCard(
+        T('APK 安装包','APK Package') + ' (' + (apkInfo.packageName || '') + ')',
+        'pass',
+        T('官方签名验证通过','Official signature verified'),
+        apkInfo.fingerprint ? 'SHA-256: ' + apkInfo.fingerprint : '',
+        { signerSubject: apkInfo.subject || '' }
+      );
+    } else {
+      totalFail++;
+      document.getElementById('apkResult').innerHTML = createCard(
+        T('APK 安装包','APK Package'),
+        'fail',
+        apkInfo.error || T('签名校验未通过','Verification failed'),
+        ''
+      );
+    }
+
+    var modules = result.modules || [];
+    document.getElementById('moduleCount').textContent = modules.length;
+
+    if (modules.length === 0) {
+      document.getElementById('moduleResults').innerHTML =
+        '<div class="verify-card checking"><div class="status-icon">—</div>' +
+        '<div class="info"><div class="name">'+T('没有已加载的模块','No loaded modules')+'</div></div></div>';
+    } else {
+      var html = '';
+      for (var i = 0; i < modules.length; i++) {
+        var mod = modules[i];
+        totalItems++;
+        var modName = (mod.name || mod.id || T('未知模块','Unknown module'));
+        var version = mod.version ? ' v' + mod.version : '';
+        var extra = {
+          developer: mod.developer || null,
+          isOfficial: !!mod.isOfficial,
+          devFingerprint: mod.devFingerprint || '',
+          devSubject: mod.devSubject || '',
+          officialFingerprint: mod.officialFingerprint || '',
+          officialSubject: mod.officialSubject || ''
+        };
+        if (mod.verified) {
+          totalPass++;
+          var desc;
+          if (mod.isOfficial && mod.devFingerprint) {
+            desc = T('双重签名验证通过 (开发者 + 官方认证)','Dual signature verified (Developer + Official)');
+          } else if (mod.isOfficial) {
+            desc = T('官方签名验证通过','Official signature verified');
+          } else {
+            desc = T('开发者签名验证通过 (无官方认证)','Developer signed (not officially certified)');
+          }
+          html += createCard(modName + version, 'pass', desc, '', extra);
+        } else {
+          totalFail++;
+          html += createCard(modName + version, 'fail',
+            mod.error || T('签名校验未通过','Verification failed'), '', extra);
+        }
+      }
+      document.getElementById('moduleResults').innerHTML = html;
+    }
+
+    document.getElementById('totalCount').textContent = totalItems;
+    document.getElementById('passCount').textContent = totalPass;
+    document.getElementById('failCount').textContent = totalFail;
+
+    var bar = document.getElementById('summaryBar');
+    bar.className = 'summary-bar ' + (totalFail > 0 ? 'has-fail' : 'all-pass');
+    document.getElementById('summarySection').style.display = 'block';
+
+  } catch (err) {
+    document.getElementById('apkResult').innerHTML = createCard(T('校验失败','Verification failed'), 'fail', err.message || T('未知错误','Unknown error'), '');
+    document.getElementById('moduleResults').innerHTML = '';
+  }
+
+  document.getElementById('timestamp').textContent = T('校验时间: ','Verified at: ') + new Date().toLocaleString();
+
+  var btn = document.getElementById('btnVerify');
+  btn.disabled = false;
+  btn.textContent = T('重新校验','Verify Again');
+  isVerifying = false;
+}
+
+function applyI18n() {
+  document.title = T('签名校验','Signature Verification');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('签名校验','Verification');
+  if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
+  var header = document.querySelector('.verify-header h2');
+  if(header) header.textContent = T('签名校验中心','Signature Verification Center');
+  var headerP = document.querySelector('.verify-header p');
+  if(headerP) headerP.textContent = T('验证APK安装包与模块的官方签名状态','Verify APK and module signature status');
+  var btn = document.getElementById('btnVerify');
+  if(btn && !isVerifying) btn.textContent = T('开始校验','Start Verification');
+  var summaryLabels = document.querySelectorAll('.summary-item .label');
+  if(summaryLabels[0]) summaryLabels[0].textContent = T('总计','Total');
+  if(summaryLabels[1]) summaryLabels[1].textContent = T('通过','Pass');
+  if(summaryLabels[2]) summaryLabels[2].textContent = T('未通过','Fail');
+  var sections = document.querySelectorAll('.section-title');
+  if(sections[0]) sections[0].textContent = T('APK 安装包签名','APK Signature');
+  if(sections[1]) sections[1].innerHTML = T('模块签名','Module Signatures') + ' (<span id="moduleCount">0</span>)';
+  var apiCards = document.querySelectorAll('#tab-api .card');
+  if(apiCards[0]) {
+    apiCards[0].querySelector('h3').textContent = T('模块信息','Module Info');
+    var badges = apiCards[0].querySelectorAll('.badge');
+    if(badges.length > 1) badges[1].textContent = T('纯Java插件 (无原生库)','Pure Java plugin (no native libs)');
+  }
+  if(apiCards[1]) apiCards[1].querySelector('h3').textContent = T('接口列表','API List');
+  if(apiCards[2]) apiCards[2].querySelector('h3').textContent = T('对外调用说明','External Call Guide');
+  if(apiCards[3]) apiCards[3].querySelector('h3').textContent = T('返回数据示例','Response Example');
+}
+applyI18n();
+
+var apis = [
+  ['verifyApk', T('校验APK安装包的签名信息','Verify APK signature'), T('无参数','None'), T('返回packageName/fingerprint/subject/issuer/verified','Returns packageName/fingerprint/subject/issuer/verified')],
+  ['verifyModule', T('校验指定模块的签名(含开发者信息)','Verify module signature (with dev info)'), 'moduleId', T('返回verified/fingerprint/signType/developer/signerSubject','Returns verified/fingerprint/signType/developer/signerSubject')],
+  ['verifyAllModules', T('校验所有已安装模块的签名','Verify all module signatures'), T('无参数','None'), T('返回每个模块的校验结果(含signType/developer)','Returns each module result (with signType/developer)')],
+  ['verifyAll', T('一次性校验APK和全部模块签名','Verify APK + all modules'), T('无参数','None'), T('返回apk+modules完整报告','Returns complete apk+modules report')]
+];
+var tb = '<tr><th>'+T('接口','API')+'</th><th>'+T('说明','Description')+'</th><th>'+T('参数','Params')+'</th><th>'+T('返回','Returns')+'</th></tr>';
+apis.forEach(function(a) {
+  tb += '<tr><td><code>' + a[0] + '</code></td><td>' + a[1] + '</td><td>' + a[2] + '</td><td style="font-size:11px">' + a[3] + '</td></tr>';
+});
+document.getElementById('apiTable').innerHTML = tb;
+initModuleInfo();
+</script>
+</body>
+</html>

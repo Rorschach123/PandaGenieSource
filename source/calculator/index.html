@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Calculator</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.calc-display {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  text-align: right;
+  min-height: 80px;
+}
+.calc-expr { font-size: 13px; color: var(--on-surface-variant); min-height: 20px; }
+.calc-result { font-size: 32px; font-weight: 300; word-break: break-all; }
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.calc-btn {
+  padding: 14px 0;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.calc-btn:active { transform: scale(0.95); }
+.calc-btn.num { background: var(--surface-variant); color: var(--on-surface); }
+.calc-btn.op { background: var(--tertiary-container); color: var(--tertiary); }
+.calc-btn.func { background: var(--primary-container); color: var(--primary); font-size: 14px; }
+.calc-btn.action { background: var(--error-container); color: var(--error); }
+.calc-btn.eq { background: var(--primary); color: var(--on-primary); }
+</style>
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('calc')">计算器</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+  <div class="tab" onclick="switchTab('history')">历史</div>
+</div>
+
+<div id="tab-calc" class="tab-content active">
+  <div class="calc-display">
+    <div class="calc-expr" id="expr"></div>
+    <div class="calc-result" id="display">0</div>
+  </div>
+  <div class="calc-grid">
+    <button class="calc-btn func" onclick="input('sin(')">sin</button>
+    <button class="calc-btn func" onclick="input('cos(')">cos</button>
+    <button class="calc-btn func" onclick="input('tan(')">tan</button>
+    <button class="calc-btn action" onclick="backspace()">⌫</button>
+    <button class="calc-btn func" onclick="input('ln(')">ln</button>
+    <button class="calc-btn func" onclick="input('log(')">log</button>
+    <button class="calc-btn func" onclick="input('sqrt(')">√</button>
+    <button class="calc-btn action" onclick="clearAll()">C</button>
+    <button class="calc-btn op" onclick="input('(')">(</button>
+    <button class="calc-btn op" onclick="input(')')">)</button>
+    <button class="calc-btn op" onclick="input('^')">^</button>
+    <button class="calc-btn op" onclick="input('/')">/</button>
+    <button class="calc-btn num" onclick="input('7')">7</button>
+    <button class="calc-btn num" onclick="input('8')">8</button>
+    <button class="calc-btn num" onclick="input('9')">9</button>
+    <button class="calc-btn op" onclick="input('*')">×</button>
+    <button class="calc-btn num" onclick="input('4')">4</button>
+    <button class="calc-btn num" onclick="input('5')">5</button>
+    <button class="calc-btn num" onclick="input('6')">6</button>
+    <button class="calc-btn op" onclick="input('-')">-</button>
+    <button class="calc-btn num" onclick="input('1')">1</button>
+    <button class="calc-btn num" onclick="input('2')">2</button>
+    <button class="calc-btn num" onclick="input('3')">3</button>
+    <button class="calc-btn op" onclick="input('+')">+</button>
+    <button class="calc-btn func" onclick="input('pi')">π</button>
+    <button class="calc-btn num" onclick="input('0')">0</button>
+    <button class="calc-btn num" onclick="input('.')">.</button>
+    <button class="calc-btn eq" onclick="calculate()">=</button>
+  </div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3>模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>引擎: <span class="badge">libcalculator.so</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3>接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+</div>
+
+<div id="tab-history" class="tab-content">
+  <div id="historyList"><div class="empty">暂无计算历史</div></div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+var display = '0', expr = '', isResult = false, calcHistory = [];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['calc','api','history'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function updateDisplay() {
+  document.getElementById('display').textContent = display;
+  document.getElementById('expr').textContent = expr;
+}
+
+function input(v) {
+  if (isResult) { display = v; isResult = false; }
+  else display = display === '0' ? v : display + v;
+  updateDisplay();
+}
+
+function backspace() {
+  if (isResult) { display = '0'; isResult = false; }
+  else display = display.length > 1 ? display.slice(0,-1) : '0';
+  updateDisplay();
+}
+
+function clearAll() { display = '0'; expr = ''; isResult = false; updateDisplay(); }
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return res.output;
+}
+
+function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) {
+      document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    }
+  } catch (e) {}
+}
+
+function normalizeExpression(value) {
+  var exprValue = (value || '').trim();
+  if (!exprValue) throw new Error(T('请输入表达式','Enter expression'));
+  exprValue = exprValue.replace(/×/g, '*').replace(/÷/g, '/');
+
+  if (/[+\-*/^,]$/.test(exprValue)) {
+    throw new Error(T('表达式不完整','Incomplete expression'));
+  }
+
+  var leftCount = (exprValue.match(/\(/g) || []).length;
+  var rightCount = (exprValue.match(/\)/g) || []).length;
+  if (rightCount > leftCount) {
+    throw new Error(T('括号不匹配','Unmatched parentheses'));
+  }
+  while (leftCount > rightCount) {
+    exprValue += ')';
+    rightCount++;
+  }
+  return exprValue;
+}
+
+function calculate() {
+  try {
+    var e = normalizeExpression(display);
+    var r = invokeNative('evaluate', { expression: e });
+    expr = e;
+    var num = parseFloat(r);
+    display = num === Math.floor(num) && Math.abs(num) < 1e15 ? Math.floor(num).toString() : r;
+    isResult = true;
+    calcHistory.unshift({expr:e, result:display, time:new Date().toLocaleTimeString()});
+    renderHistory();
+  } catch(err) {
+    display = T('错误','Error');
+    expr = err && err.message ? err.message : T('计算失败','Calc failed');
+    isResult = true;
+  }
+  updateDisplay();
+}
+
+function renderHistory() {
+  var el = document.getElementById('historyList');
+  if (!calcHistory.length) { el.innerHTML = '<div class="empty">'+T('暂无计算历史','No calculation history')+'</div>'; return; }
+  el.innerHTML = calcHistory.map(function(h){
+    return '<div class="history-item" onclick="useHistory(\''+h.result+'\')">' +
+      '<div style="font-size:13px;color:var(--on-surface-variant)">'+h.expr+'</div>' +
+      '<div style="font-size:16px;color:var(--primary)">= '+h.result+'</div>' +
+      '<div class="time">'+h.time+'</div></div>';
+  }).join('');
+}
+
+function useHistory(v) { display = v; isResult = false; switchTab('calc'); updateDisplay(); }
+
+var apis = [
+  ['evaluate',T('计算表达式','Evaluate expression'),'expression'],
+  ['add',T('加法','Addition'),'a, b'],['subtract',T('减法','Subtraction'),'a, b'],
+  ['multiply',T('乘法','Multiplication'),'a, b'],['divide',T('除法','Division'),'a, b'],
+  ['power',T('幂运算','Power'),'base, exp'],['sqrt',T('平方根','Square root'),'x'],
+  ['sin',T('正弦','Sine'),'x'],['cos',T('余弦','Cosine'),'x'],['tan',T('正切','Tangent'),'x'],
+  ['ln',T('自然对数','Natural log'),'x'],['log10',T('常用对数','Common log'),'x'],
+  ['factorial',T('阶乘','Factorial'),'n'],
+  ['combination',T('组合C(n,r)','Combination C(n,r)'),'n, r'],
+  ['permutation',T('排列P(n,r)','Permutation P(n,r)'),'n, r'],
+  ['degToRad',T('角度→弧度','Deg→Rad'),'deg'],['radToDeg',T('弧度→角度','Rad→Deg'),'rad']
+];
+var tb = '<tr><th>'+T('接口','API')+'</th><th>'+T('说明','Description')+'</th><th>'+T('参数','Params')+'</th></tr>';
+apis.forEach(function(a){tb+='<tr><td><code>'+a[0]+'</code></td><td>'+a[1]+'</td><td>'+a[2]+'</td></tr>';});
+document.getElementById('apiTable').innerHTML = tb;
+initModuleInfo();
+
+function applyI18n() {
+  document.title = T('计算器','Calculator');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('计算器','Calculator');
+  if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
+  if(tabs[2]) tabs[2].textContent = T('历史','History');
+  var apiTab = document.getElementById('tab-api');
+  if(apiTab) {
+    var h3s = apiTab.querySelectorAll('h3');
+    if(h3s[0]) h3s[0].textContent = T('模块信息','Module Info');
+    if(h3s[1]) h3s[1].textContent = T('接口列表','API List');
+  }
+  var verEl = document.getElementById('moduleVersion');
+  if(verEl && verEl.parentElement) {
+    verEl.parentElement.childNodes[0].textContent = T('版本: ','Version: ');
+  }
+  var descEl = document.getElementById('moduleDesc');
+  if(descEl) descEl.textContent = T('通过C++ native实现的科学计算器，支持表达式解析和各类数学函数。','A native C++ scientific calculator with expression parsing and math functions.');
+}
+applyI18n();
+</script>
+</body>
+</html>

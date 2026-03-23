@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6C63FF"/><stop offset="100%" stop-color="#3F3D56"/></linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00C9A7"/><stop offset="100%" stop-color="#00A388"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FF6B6B"/><stop offset="100%" stop-color="#EE5A24"/></linearGradient>
+    <linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4834D4"/><stop offset="100%" stop-color="#686DE0"/></linearGradient>
+    <linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F9CA24"/><stop offset="100%" stop-color="#F0932B"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.15"/></filter>
+  </defs>
+
+  <rect width="900" height="520" rx="16" fill="#F8F9FD"/>
+
+  <text x="450" y="38" text-anchor="middle" font-size="20" font-weight="700" fill="#2D3436">PandaGenie Architecture</text>
+
+  <!-- User -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="70" width="140" height="90" rx="14" fill="url(#g1)"/>
+    <text x="100" y="105" text-anchor="middle" font-size="28" fill="#fff">&#x1F9D1;</text>
+    <text x="100" y="130" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">User</text>
+    <text x="100" y="147" text-anchor="middle" font-size="10" fill="#ddd">Voice / Text</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <path d="M170 115 L220 115" stroke="#6C63FF" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+  <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#6C63FF"/></marker></defs>
+
+  <!-- AI Engine -->
+  <g filter="url(#shadow)">
+    <rect x="225" y="55" width="200" height="120" rx="14" fill="#fff" stroke="#6C63FF" stroke-width="2"/>
+    <text x="325" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#6C63FF">AI Engine</text>
+    <line x1="245" y1="90" x2="405" y2="90" stroke="#E8E8E8" stroke-width="1"/>
+    <text x="325" y="110" text-anchor="middle" font-size="11" fill="#555">LLM (GPT / Claude / ...)</text>
+    <text x="325" y="128" text-anchor="middle" font-size="11" fill="#555">ModuleRegistry Prompt</text>
+    <text x="325" y="146" text-anchor="middle" font-size="11" fill="#555">Task Planning &amp; Scheduling</text>
+    <text x="325" y="164" text-anchor="middle" font-size="10" fill="#999">JSON { steps[ ] }</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <path d="M425 115 L475 115" stroke="#00C9A7" stroke-width="2.5" fill="none" marker-end="url(#arr2)"/>
+  <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#00C9A7"/></marker></defs>
+
+  <!-- Task Executor -->
+  <g filter="url(#shadow)">
+    <rect x="480" y="55" width="180" height="120" rx="14" fill="url(#g2)"/>
+    <text x="570" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Task Executor</text>
+    <line x1="500" y1="90" x2="640" y2="90" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <text x="570" y="110" text-anchor="middle" font-size="11" fill="#fff">Step-by-step execution</text>
+    <text x="570" y="128" text-anchor="middle" font-size="11" fill="#fff">Variable resolution</text>
+    <text x="570" y="146" text-anchor="middle" font-size="11" fill="#fff">Loop expansion</text>
+    <text x="570" y="164" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.7)">Permission check</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <path d="M660 115 L710 115" stroke="#FF6B6B" stroke-width="2.5" fill="none" marker-end="url(#arr3)"/>
+  <defs><marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#FF6B6B"/></marker></defs>
+
+  <!-- Module Runtime -->
+  <g filter="url(#shadow)">
+    <rect x="715" y="55" width="160" height="120" rx="14" fill="url(#g3)"/>
+    <text x="795" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Module Runtime</text>
+    <line x1="735" y1="90" x2="855" y2="90" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <text x="795" y="110" text-anchor="middle" font-size="11" fill="#fff">Sandbox Context</text>
+    <text x="795" y="128" text-anchor="middle" font-size="11" fill="#fff">ClassLoader isolation</text>
+    <text x="795" y="146" text-anchor="middle" font-size="11" fill="#fff">Signature verify</text>
+    <text x="795" y="164" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.7)">plugin.invoke()</text>
+  </g>
+
+  <!-- Module boxes row -->
+  <text x="450" y="220" text-anchor="middle" font-size="14" font-weight="600" fill="#2D3436">Installed Modules (.mod)</text>
+
+  <!-- Module cards -->
+  <g filter="url(#shadow)">
+    <rect x="30" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#6C63FF" stroke-width="1.5"/>
+    <text x="90" y="268" text-anchor="middle" font-size="20">&#x1F4C1;</text>
+    <text x="90" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">File Manager</text>
+    <text x="90" y="305" text-anchor="middle" font-size="9" fill="#999">Native (.so)</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="165" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#00C9A7" stroke-width="1.5"/>
+    <text x="225" y="268" text-anchor="middle" font-size="20">&#x1F9EE;</text>
+    <text x="225" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">Calculator</text>
+    <text x="225" y="305" text-anchor="middle" font-size="9" fill="#999">Native (.so)</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="300" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#FF6B6B" stroke-width="1.5"/>
+    <text x="360" y="268" text-anchor="middle" font-size="20">&#x1F4E6;</text>
+    <text x="360" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">Archive</text>
+    <text x="360" y="305" text-anchor="middle" font-size="9" fill="#999">ZIP / TAR / GZ</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="435" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#F9CA24" stroke-width="1.5"/>
+    <text x="495" y="268" text-anchor="middle" font-size="20">&#x1F4F1;</text>
+    <text x="495" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">App Manager</text>
+    <text x="495" y="305" text-anchor="middle" font-size="9" fill="#999">Java only</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="570" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#4834D4" stroke-width="1.5"/>
+    <text x="630" y="268" text-anchor="middle" font-size="20">&#x1F4CA;</text>
+    <text x="630" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">File Stats</text>
+    <text x="630" y="305" text-anchor="middle" font-size="9" fill="#999">Hash / Compare</text>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="705" y="240" width="120" height="80" rx="10" fill="#fff" stroke="#E056A0" stroke-width="1.5"/>
+    <text x="765" y="268" text-anchor="middle" font-size="20">&#x23F0;</text>
+    <text x="765" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#333">Reminder</text>
+    <text x="765" y="305" text-anchor="middle" font-size="9" fill="#999">Calendar / Alarm</text>
+  </g>
+
+  <!-- Arrow down from executor -->
+  <path d="M570 175 L570 195 L450 195 L450 235" stroke="#888" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#arr4)"/>
+  <defs><marker id="arr4" viewBox="0 0 10 10" refX="5" refY="10" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,0 L5,10 Z" fill="#888"/></marker></defs>
+
+  <!-- Your Module -->
+  <g filter="url(#shadow)">
+    <rect x="310" y="350" width="280" height="80" rx="14" fill="url(#g4)" stroke="#4834D4" stroke-width="0"/>
+    <text x="450" y="378" text-anchor="middle" font-size="22" fill="#fff">&#x2728;</text>
+    <text x="450" y="400" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Your Module Here!</text>
+    <text x="450" y="418" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.8)">Write a plugin, pack it, drop it in</text>
+  </g>
+
+  <!-- Bottom labels -->
+  <g>
+    <rect x="30" y="460" width="840" height="46" rx="10" fill="#EDEEFF"/>
+    <text x="450" y="480" text-anchor="middle" font-size="12" fill="#6C63FF" font-weight="600">No APK modification needed  &#x2022;  Hot-reload modules  &#x2022;  AI auto-discovers new capabilities  &#x2022;  Sandboxed execution</text>
+    <text x="450" y="496" text-anchor="middle" font-size="11" fill="#888">Jetpack Compose  &#x2022;  Kotlin  &#x2022;  Material 3  &#x2022;  Offline Speech (Vosk)  &#x2022;  Any LLM Backend</text>
+  </g>
+</svg>

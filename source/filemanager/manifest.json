@@ -1,0 +1,42 @@
+{
+  "id": "filemanager",
+  "name": "文件管理器",
+  "name_en": "File Manager",
+  "description": "文件管理器模块，支持目录遍历、文件增删改查、搜索等操作",
+  "description_en": "File manager with directory browsing, file CRUD, search and more",
+  "version": "1.0",
+  "icon": "folder",
+  "soLibraries": ["libfilemanager.so"],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.filemanager.FileManagerPlugin",
+  "soLoadMode": "manual",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于访问手机存储中的文件和目录，支持浏览、搜索、复制、移动和删除文件",
+      "desc_en": "Access files and directories on device storage for browsing, searching, copying, moving and deleting"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"listDirectory","desc":"列出目录内容","desc_en":"List directory contents","params":["path"],"paramDesc":["目录路径"],"paramDesc_en":["Directory path"]},
+    {"name":"createDirectory","desc":"创建目录","desc_en":"Create a directory","params":["path"],"paramDesc":["目录路径"],"paramDesc_en":["Directory path"]},
+    {"name":"deleteFile","desc":"删除文件","desc_en":"Delete a file","params":["path"],"paramDesc":["文件路径"],"paramDesc_en":["File path"]},
+    {"name":"deleteDirectory","desc":"删除目录","desc_en":"Delete a directory","params":["path","recursive"],"paramDesc":["目录路径","是否递归删除(true/false)"],"paramDesc_en":["Directory path","Recursive delete (true/false)"]},
+    {"name":"copyFile","desc":"复制文件","desc_en":"Copy a file","params":["src","dst"],"paramDesc":["源文件路径","目标文件路径"],"paramDesc_en":["Source file path","Destination file path"]},
+    {"name":"moveFile","desc":"移动文件","desc_en":"Move a file","params":["src","dst"],"paramDesc":["源文件路径","目标文件路径"],"paramDesc_en":["Source file path","Destination file path"]},
+    {"name":"renameFile","desc":"重命名文件","desc_en":"Rename a file","params":["oldPath","newPath"],"paramDesc":["原文件路径","新文件路径"],"paramDesc_en":["Original file path","New file path"]},
+    {"name":"getFileInfo","desc":"获取文件信息(大小、修改时间等)","desc_en":"Get file info (size, modified time, etc.)","params":["path"],"paramDesc":["文件路径"],"paramDesc_en":["File path"]},
+    {"name":"searchFiles","desc":"搜索文件(支持通配符)","desc_en":"Search files (supports wildcards)","params":["dir","pattern","recursive"],"paramDesc":["搜索目录","搜索模式(如*.txt)","是否递归搜索(true/false)"],"paramDesc_en":["Search directory","Search pattern (e.g. *.txt)","Recursive search (true/false)"]},
+    {"name":"readTextFile","desc":"读取文本文件内容","desc_en":"Read text file content","params":["path"],"paramDesc":["文件路径"],"paramDesc_en":["File path"]},
+    {"name":"writeTextFile","desc":"写入文本文件","desc_en":"Write to a text file","params":["path","content"],"paramDesc":["文件路径","写入内容"],"paramDesc_en":["File path","Content to write"]},
+    {"name":"fileExists","desc":"检查文件是否存在","desc_en":"Check if a file exists","params":["path"],"paramDesc":["文件路径"],"paramDesc_en":["File path"]},
+    {"name":"getFileSize","desc":"获取文件大小","desc_en":"Get file size","params":["path"],"paramDesc":["文件路径"],"paramDesc_en":["File path"]}
+  ]
+}

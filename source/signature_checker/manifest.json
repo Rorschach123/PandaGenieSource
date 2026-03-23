@@ -1,0 +1,27 @@
+{
+  "id": "signature_checker",
+  "name": "签名校验",
+  "name_en": "Signature Checker",
+  "description": "签名校验模块，校验APK安装包和所有已加载模块的签名状态（区分官方签名和开发者签名），展示开发者信息、签名指纹、签名主体，确保应用和模块的完整性与合法性",
+  "description_en": "Verify APK and module signatures (official & developer), display fingerprints and developer info to ensure integrity",
+  "version": "1.1",
+  "icon": "verified_user",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.signature_checker.SignatureCheckerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read"],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"verifyApk","desc":"校验当前APK安装包的签名信息，返回签名证书指纹、包名、签发者","desc_en":"Verify APK signature, returns certificate fingerprint, package name and issuer","params":[],"paramDesc":[],"paramDesc_en":[]},
+    {"name":"verifyModule","desc":"校验指定模块的签名，区分官方签名和开发者签名，返回签名类型、开发者信息、签名指纹","desc_en":"Verify a specific module signature, distinguishing official and developer signatures, returns signature type, developer info and fingerprint","params":["moduleId"],"paramDesc":["模块ID或文件名"],"paramDesc_en":["Module ID or filename"]},
+    {"name":"verifyAllModules","desc":"校验设备上所有已安装模块的签名，逐个列出校验结果，包含签名类型和开发者信息","desc_en":"Verify signatures of all installed modules, listing results with signature type and developer info","params":[],"paramDesc":[],"paramDesc_en":[]},
+    {"name":"verifyAll","desc":"一次性校验APK安装包签名和全部模块签名，返回完整报告（含签名类型、开发者信息）","desc_en":"Verify both APK and all module signatures at once, returns a full report with signature types and developer info","params":[],"paramDesc":[],"paramDesc_en":[]}
+  ]
+}

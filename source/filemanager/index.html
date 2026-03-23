@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>File Manager</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.path-bar {
+  background: var(--surface-variant);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+.search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+.search-bar input { flex: 1; }
+.file-list { min-height: 200px; }
+.info-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+.info-modal.show { display: flex; }
+.info-modal .modal-body {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--surface-variant); font-size: 13px; }
+.info-row .label { color: var(--on-surface-variant); }
+</style>
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('browse')">浏览</div>
+  <div class="tab" onclick="switchTab('search')">搜索</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-browse" class="tab-content active">
+  <div class="path-bar" id="pathBar">/sdcard</div>
+  <div id="backBtn" style="display:none;margin-bottom:8px">
+    <button class="btn btn-outline btn-sm" onclick="goUp()">⬆ 返回上级</button>
+  </div>
+  <div class="file-list" id="fileList"><div class="loading">加载中...</div></div>
+</div>
+
+<div id="tab-search" class="tab-content">
+  <div class="input-group">
+    <label>搜索目录</label>
+    <input id="searchDir" value="/sdcard" />
+  </div>
+  <div class="input-group">
+    <label>搜索模式 (如 *.jpg, *.zip)</label>
+    <input id="searchPattern" placeholder="*.txt" />
+  </div>
+  <div class="row" style="margin-bottom:10px">
+    <label><input type="checkbox" id="searchRecursive" checked> 递归搜索</label>
+  </div>
+  <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+  <div id="searchResult"></div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3>模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>引擎: <span class="badge">libfilemanager.so</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3>接口列表</h3>
+    <table class="api-table" id="apiTable"></table>
+  </div>
+</div>
+
+<div class="info-modal" id="infoModal">
+  <div class="modal-body">
+    <h3 style="margin-bottom:10px">文件信息</h3>
+    <div id="infoContent"></div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" onclick="closeInfo()">关闭</button>
+      <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="deleteItem()">删除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+var currentPath = '/sdcard', selectedPath = '';
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['browse','search','api'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  var k = b/1024; if (k < 1024) return k.toFixed(1)+' KB';
+  var m = k/1024; if (m < 1024) return m.toFixed(1)+' MB';
+  return (m/1024).toFixed(2)+' GB';
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return res.output;
+}
+
+function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) {
+      document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    }
+  } catch (e) {}
+}
+
+function loadDir(path) {
+  currentPath = path;
+  document.getElementById('pathBar').textContent = path;
+  document.getElementById('backBtn').style.display = path === '/sdcard' ? 'none' : 'block';
+  document.getElementById('fileList').innerHTML = '<div class="loading">'+T('加载中...','Loading...')+'</div>';
+  try {
+    if (window.NativeBridge) {
+      var result = invokeNative('listDirectory', { path: path });
+      if (result) {
+        renderFiles(result);
+      } else {
+        document.getElementById('fileList').innerHTML = '<div class="empty">'+T('返回数据为空','Empty response')+'</div>';
+      }
+    } else {
+      document.getElementById('fileList').innerHTML = '<div class="empty">'+T('NativeBridge 未就绪','NativeBridge not ready')+'</div>';
+    }
+  } catch(e) {
+    document.getElementById('fileList').innerHTML = '<div class="empty">'+T('加载失败: ','Load failed: ') + e.message + '</div>';
+  }
+}
+
+function renderFiles(json) {
+  var el = document.getElementById('fileList');
+  try {
+    var items = JSON.parse(json);
+    items.sort(function(a,b){ return a.isDirectory===b.isDirectory ? a.name.localeCompare(b.name) : (b.isDirectory?1:-1); });
+    if (!items.length) { el.innerHTML = '<div class="empty">'+T('目录为空','Directory empty')+'</div>'; return; }
+    el.innerHTML = items.map(function(f){
+      var icon = f.isDirectory ? '📁' : '📄';
+      var size = !f.isDirectory && f.size ? '<span class="file-size">'+formatSize(f.size)+'</span>' : '';
+      var filePath = f.fullPath || f.path || '';
+      var escapedPath = filePath.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<div class="file-item" onclick="onFileClick(\''+escapedPath+'\','+f.isDirectory+')">' +
+        '<span class="file-icon">'+icon+'</span><span class="file-name">'+f.name+'</span>'+size+'</div>';
+    }).join('');
+  } catch(e) { el.innerHTML = '<div class="empty">'+T('解析失败: ','Parse failed: ') + e.message + '</div>'; }
+}
+
+function onFileClick(path, isDir) {
+  if (isDir) loadDir(path);
+  else showFileInfo(path);
+}
+
+function goUp() {
+  var parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
+  loadDir(parent || '/sdcard');
+}
+
+function showFileInfo(path) {
+  selectedPath = path;
+  try {
+    if (window.NativeBridge) {
+      var info = invokeNative('getFileInfo', { path: path });
+      document.getElementById('infoContent').innerHTML = '<pre style="font-size:12px;white-space:pre-wrap">'+info+'</pre>';
+    }
+  } catch(e) {
+    document.getElementById('infoContent').innerHTML = '<pre style="font-size:12px;color:red">'+T('获取信息失败: ','Failed to get info: ')+e.message+'</pre>';
+  }
+  document.getElementById('infoModal').classList.add('show');
+}
+
+function closeInfo() { document.getElementById('infoModal').classList.remove('show'); }
+
+function deleteItem() {
+  if (!selectedPath || !window.NativeBridge) return;
+  if (confirm(T('确定删除？','Confirm delete?'))) {
+    try {
+      invokeNative('deleteFile', { path: selectedPath });
+    } catch(e) {}
+    closeInfo();
+    loadDir(currentPath);
+  }
+}
+
+function doSearch() {
+  var dir = document.getElementById('searchDir').value;
+  var pattern = document.getElementById('searchPattern').value;
+  var recursive = document.getElementById('searchRecursive').checked;
+  if (!pattern) { alert(T('请输入搜索模式','Enter search pattern')); return; }
+  var el = document.getElementById('searchResult');
+  el.innerHTML = '<div class="loading">'+T('搜索中...','Searching...')+'</div>';
+  try {
+    if (window.NativeBridge) {
+      var result = invokeNative('searchFiles', { dir: dir, pattern: pattern, recursive: recursive });
+      try {
+        var files = JSON.parse(result);
+        if (!files.length) { el.innerHTML = '<div class="result-box">'+T('未找到匹配文件','No matching files')+'</div>'; return; }
+        el.innerHTML = '<div class="result-box">'+T('找到 ','Found ')+files.length+T(' 个文件:',' files:')+'<br><br>'+files.map(function(f){return '<div class="file-item" onclick="showFileInfo(\''+f.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">' +
+          '<span class="file-icon">📄</span><span class="file-name">'+f+'</span></div>';}).join('')+'</div>';
+      } catch(e) { el.innerHTML = '<div class="result-box error">'+T('解析失败: ','Parse failed: ')+e.message+'</div>'; }
+    } else {
+      el.innerHTML = '<div class="result-box error">'+T('NativeBridge 未就绪','NativeBridge not ready')+'</div>';
+    }
+  } catch(e) {
+    el.innerHTML = '<div class="result-box error">'+T('搜索出错: ','Search error: ')+e.message+'</div>';
+  }
+}
+
+function initPage() {
+  if (window.NativeBridge) {
+    loadDir('/sdcard');
+  } else {
+    document.getElementById('fileList').innerHTML = '<div class="empty">'+T('NativeBridge 未就绪，正在重试...','NativeBridge not ready, retrying...')+'</div>';
+    var retries = 0;
+    var timer = setInterval(function() {
+      retries++;
+      if (window.NativeBridge) {
+        clearInterval(timer);
+        loadDir('/sdcard');
+      } else if (retries > 20) {
+        clearInterval(timer);
+        document.getElementById('fileList').innerHTML = '<div class="empty">'+T('NativeBridge 加载超时，请退出重试','NativeBridge timed out, please restart')+'</div>';
+      }
+    }, 200);
+  }
+}
+
+initPage();
+initModuleInfo();
+
+function applyI18n() {
+  document.title = T('文件管理器','File Manager');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('浏览','Browse');
+  if(tabs[1]) tabs[1].textContent = T('搜索','Search');
+  if(tabs[2]) tabs[2].textContent = T('接口说明','API Docs');
+  var backBtn = document.querySelector('#backBtn button');
+  if(backBtn) backBtn.textContent = T('⬆ 返回上级','⬆ Go Up');
+  var labels = document.querySelectorAll('#tab-search .input-group label');
+  if(labels[0]) labels[0].textContent = T('搜索目录','Search Directory');
+  if(labels[1]) labels[1].textContent = T('搜索模式 (如 *.jpg, *.zip)','Pattern (e.g. *.jpg, *.zip)');
+  var recurLabel = document.querySelector('#tab-search .row label');
+  if(recurLabel) recurLabel.innerHTML = '<input type="checkbox" id="searchRecursive" checked> '+T('递归搜索','Recursive');
+  var searchBtn = document.querySelector('#tab-search .btn-primary');
+  if(searchBtn) searchBtn.textContent = T('搜索','Search');
+  var apiCards = document.querySelectorAll('#tab-api .card');
+  if(apiCards[0]) {
+    var h3 = apiCards[0].querySelector('h3');
+    if(h3) h3.textContent = T('模块信息','Module Info');
+  }
+  if(apiCards[1]) {
+    var h3 = apiCards[1].querySelector('h3');
+    if(h3) h3.textContent = T('接口列表','API List');
+  }
+  var verEl = document.getElementById('moduleVersion');
+  if(verEl && verEl.parentElement) {
+    verEl.parentElement.childNodes[0].textContent = T('版本: ','Version: ');
+  }
+  var descEl = document.getElementById('moduleDesc');
+  if(descEl) descEl.textContent = T('C++ native文件管理器，提供文件系统的完整CRUD操作和搜索能力。','C++ native file manager with complete CRUD operations and search capabilities.');
+  var apiData = [
+    ['listDirectory',T('列出目录','List directory'),'path'],
+    ['createDirectory',T('创建目录','Create directory'),'path'],
+    ['deleteFile',T('删除文件','Delete file'),'path'],
+    ['deleteDirectory',T('删除目录','Delete directory'),'path, recursive'],
+    ['copyFile',T('复制文件','Copy file'),'src, dst'],
+    ['moveFile',T('移动文件','Move file'),'src, dst'],
+    ['renameFile',T('重命名','Rename'),'oldPath, newPath'],
+    ['getFileInfo',T('文件信息','File info'),'path'],
+    ['searchFiles',T('搜索文件','Search files'),'dir, pattern, recursive'],
+    ['readTextFile',T('读取文本','Read text'),'path'],
+    ['writeTextFile',T('写入文本','Write text'),'path, content'],
+    ['fileExists',T('是否存在','File exists'),'path'],
+    ['getFileSize',T('文件大小','File size'),'path']
+  ];
+  var apiTb = '<tr><th>'+T('接口','API')+'</th><th>'+T('说明','Description')+'</th><th>'+T('参数','Params')+'</th></tr>';
+  apiData.forEach(function(a){apiTb+='<tr><td><code>'+a[0]+'</code></td><td>'+a[1]+'</td><td>'+a[2]+'</td></tr>';});
+  document.getElementById('apiTable').innerHTML = apiTb;
+  var modalH3 = document.querySelector('.modal-body h3');
+  if(modalH3) modalH3.textContent = T('文件信息','File Info');
+  var closeBtn = document.querySelector('#infoModal .btn-outline');
+  if(closeBtn) closeBtn.textContent = T('关闭','Close');
+  var delBtn = document.getElementById('deleteBtn');
+  if(delBtn) delBtn.textContent = T('删除','Delete');
+}
+applyI18n();
+</script>
+</body>
+</html>

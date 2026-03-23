@@ -1,0 +1,38 @@
+{
+  "id": "archive",
+  "name": "压缩解压",
+  "name_en": "Archive",
+  "description": "文件压缩解压模块，支持ZIP(含密码加密)、TAR、GZ、TAR.GZ格式",
+  "description_en": "Archive module supporting ZIP (with password), TAR, GZ, TAR.GZ formats",
+  "version": "1.0",
+  "icon": "archive",
+  "soLibraries": ["libarchive_module.so"],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.archive.ArchivePlugin",
+  "soLoadMode": "manual",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于读取和写入手机存储中的压缩包与解压目录",
+      "desc_en": "Read and write archive files and extraction directories on device storage"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"compressZip","desc":"将文件压缩为ZIP格式","desc_en":"Compress files into ZIP format","params":["inputPaths","outputPath","password"],"paramDesc":["输入文件路径列表(逗号分隔)","输出ZIP文件路径","密码(可为空)"],"paramDesc_en":["Input file paths (comma-separated)","Output ZIP file path","Password (optional)"]},
+    {"name":"decompressZip","desc":"解压ZIP文件","desc_en":"Extract a ZIP file","params":["archivePath","outputDir","password"],"paramDesc":["ZIP文件路径","输出目录","密码(可为空)"],"paramDesc_en":["ZIP file path","Output directory","Password (optional)"]},
+    {"name":"compressTar","desc":"将文件打包为TAR","desc_en":"Pack files into TAR format","params":["inputPaths","outputPath"],"paramDesc":["输入文件路径列表(逗号分隔)","输出TAR文件路径"],"paramDesc_en":["Input file paths (comma-separated)","Output TAR file path"]},
+    {"name":"decompressTar","desc":"解压TAR文件","desc_en":"Extract a TAR file","params":["archivePath","outputDir"],"paramDesc":["TAR文件路径","输出目录"],"paramDesc_en":["TAR file path","Output directory"]},
+    {"name":"compressGz","desc":"GZIP压缩单个文件","desc_en":"GZIP compress a single file","params":["inputPath","outputPath"],"paramDesc":["输入文件路径","输出gz文件路径"],"paramDesc_en":["Input file path","Output .gz file path"]},
+    {"name":"decompressGz","desc":"GZIP解压","desc_en":"GZIP decompress","params":["archivePath","outputPath"],"paramDesc":["gz文件路径","输出文件路径"],"paramDesc_en":[".gz file path","Output file path"]},
+    {"name":"compressTarGz","desc":"打包并GZIP压缩","desc_en":"Pack and GZIP compress into tar.gz","params":["inputPaths","outputPath"],"paramDesc":["输入文件路径列表(逗号分隔)","输出tar.gz文件路径"],"paramDesc_en":["Input file paths (comma-separated)","Output tar.gz file path"]},
+    {"name":"decompressTarGz","desc":"解压tar.gz文件","desc_en":"Extract a tar.gz file","params":["archivePath","outputDir"],"paramDesc":["tar.gz文件路径","输出目录"],"paramDesc_en":["tar.gz file path","Output directory"]},
+    {"name":"listContents","desc":"列出压缩包内容","desc_en":"List archive contents","params":["archivePath"],"paramDesc":["压缩包文件路径"],"paramDesc_en":["Archive file path"]}
+  ]
+}

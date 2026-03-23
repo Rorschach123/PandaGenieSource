@@ -1,0 +1,44 @@
+{
+  "id": "reminder",
+  "name": "提醒助手",
+  "name_en": "Reminder",
+  "description": "提醒助手模块，支持创建/查询/修改/删除日历事件、设置闹钟和倒计时、生日提醒、查看近期日程等",
+  "description_en": "Reminder assistant: create/query/update/delete calendar events, set alarms and timers, birthday reminders, view upcoming schedule",
+  "version": "1.0",
+  "icon": "notifications_active",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.reminder.ReminderPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [
+    {
+      "name": "android.permission.READ_CALENDAR",
+      "desc": "用于读取日历中的事件和提醒",
+      "desc_en": "Read calendar events and reminders"
+    },
+    {
+      "name": "android.permission.WRITE_CALENDAR",
+      "desc": "用于创建、修改和删除日历事件",
+      "desc_en": "Create, update and delete calendar events"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {"name":"createEvent","desc":"在日历中创建事件/提醒，支持设置标题、描述、开始/结束时间、地点、重复规则、提前提醒分钟数","desc_en":"Create a calendar event/reminder with title, description, start/end time, location, repeat rule, and reminder minutes","params":["title","description","startTime","endTime","location","rrule","reminderMinutes"],"paramDesc":["事件标题","事件描述(可为空)","开始时间，格式: yyyy-MM-dd HH:mm","结束时间，格式: yyyy-MM-dd HH:mm(可为空，默认开始后1小时)","地点(可为空)","重复规则: none/daily/weekly/monthly/yearly(默认none)","提前提醒分钟数(默认10)"],"paramDesc_en":["Event title","Event description (optional)","Start time, format: yyyy-MM-dd HH:mm","End time, format: yyyy-MM-dd HH:mm (optional, default 1 hour after start)","Location (optional)","Repeat rule: none/daily/weekly/monthly/yearly (default none)","Reminder minutes before event (default 10)"]},
+    {"name":"listEvents","desc":"查询指定日期范围内的日历事件列表","desc_en":"Query calendar events within a date range","params":["startDate","endDate"],"paramDesc":["开始日期，格式: yyyy-MM-dd","结束日期，格式: yyyy-MM-dd(可为空，默认startDate当天)"],"paramDesc_en":["Start date, format: yyyy-MM-dd","End date, format: yyyy-MM-dd (optional, defaults to same day)"]},
+    {"name":"updateEvent","desc":"修改已有的日历事件，可更新标题、描述、时间、地点等","desc_en":"Update an existing calendar event (title, description, time, location, etc.)","params":["eventId","title","description","startTime","endTime","location"],"paramDesc":["事件ID(从listEvents获取)","新标题(不修改传空)","新描述(不修改传空)","新开始时间(不修改传空)","新结束时间(不修改传空)","新地点(不修改传空)"],"paramDesc_en":["Event ID (from listEvents)","New title (empty to keep)","New description (empty to keep)","New start time (empty to keep)","New end time (empty to keep)","New location (empty to keep)"]},
+    {"name":"deleteEvent","desc":"删除指定的日历事件","desc_en":"Delete a calendar event","params":["eventId"],"paramDesc":["事件ID(从listEvents获取)"],"paramDesc_en":["Event ID (from listEvents)"]},
+    {"name":"getCalendars","desc":"列出设备上所有可用的日历账户，返回日历ID、名称、账户等信息","desc_en":"List all available calendar accounts on the device with ID, name, and account info","params":[],"paramDesc":[],"paramDesc_en":[]},
+    {"name":"setAlarm","desc":"设置系统闹钟，会打开系统闹钟设置界面","desc_en":"Set a system alarm clock, opens system alarm UI","params":["hour","minute","label","daysOfWeek"],"paramDesc":["小时(0-23)","分钟(0-59)","闹钟标签(可为空)","重复星期，逗号分隔: 1=周一...7=周日(可为空表示不重复)"],"paramDesc_en":["Hour (0-23)","Minute (0-59)","Alarm label (optional)","Repeat days, comma-separated: 1=Mon...7=Sun (empty for no repeat)"]},
+    {"name":"setTimer","desc":"设置倒计时，会打开系统倒计时界面","desc_en":"Set a countdown timer, opens system timer UI","params":["seconds","label"],"paramDesc":["倒计时秒数","倒计时标签(可为空)"],"paramDesc_en":["Countdown seconds","Timer label (optional)"]},
+    {"name":"createBirthdayReminder","desc":"创建每年重复的生日提醒事件，自动设置为全天事件并每年重复","desc_en":"Create a yearly recurring birthday reminder as an all-day event","params":["name","date","reminderMinutes"],"paramDesc":["姓名","生日日期，格式: MM-dd 或 yyyy-MM-dd","提前提醒分钟数(默认1440即1天前)"],"paramDesc_en":["Person name","Birthday date, format: MM-dd or yyyy-MM-dd","Reminder minutes before (default 1440 = 1 day)"]},
+    {"name":"openCalendar","desc":"打开系统日历应用，可指定跳转到某一天","desc_en":"Open the system calendar app, optionally jump to a specific date","params":["date"],"paramDesc":["要查看的日期，格式: yyyy-MM-dd(可为空，打开当天)"],"paramDesc_en":["Date to view, format: yyyy-MM-dd (optional, opens today)"]},
+    {"name":"getUpcoming","desc":"获取未来N天内的所有日历事件摘要","desc_en":"Get a summary of all calendar events in the next N days","params":["days"],"paramDesc":["查询未来几天的事件(默认7天)"],"paramDesc_en":["Number of days to look ahead (default 7)"]}
+  ]
+}

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>压缩解压</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('decompress')">解压</div>
+  <div class="tab" onclick="switchTab('compress')">压缩</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-decompress" class="tab-content active">
+  <div class="card">
+    <div class="input-group">
+      <label>压缩包路径</label>
+      <div style="display:flex;gap:8px">
+        <input id="decompressPath" placeholder="/sdcard/xxx.zip" style="flex:1" />
+        <button class="btn btn-outline btn-sm" onclick="browsePick('decompressPath')">浏览</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>解压目标目录</label>
+      <input id="decompressOutput" value="/sdcard/PandaGenie/extracted" />
+    </div>
+    <div class="input-group">
+      <label>密码 (可选)</label>
+      <input id="decompressPassword" type="password" />
+    </div>
+    <div class="row">
+      <button class="btn btn-outline" onclick="listArchive()">查看内容</button>
+      <button class="btn btn-primary" id="decompressBtn" onclick="doDecompress()">解压</button>
+    </div>
+  </div>
+  <div id="decompressResult"></div>
+</div>
+
+<div id="tab-compress" class="tab-content">
+  <div class="card">
+    <div class="input-group">
+      <label>要压缩的文件/目录 (多个用逗号分隔)</label>
+      <input id="compressInput" placeholder="/sdcard/folder1,/sdcard/file.txt" />
+    </div>
+    <div class="input-group">
+      <label>输出压缩包路径</label>
+      <input id="compressOutput" placeholder="/sdcard/output.zip" />
+    </div>
+    <div class="input-group">
+      <label>密码 (可选，仅ZIP)</label>
+      <input id="compressPassword" type="password" />
+    </div>
+    <button class="btn btn-primary" id="compressBtn" onclick="doCompress()">压缩</button>
+  </div>
+  <div id="compressResult"></div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3>模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v--</span></p>
+    <p>引擎: <span class="badge">libarchive_module.so</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)">
+      C++ native压缩解压引擎，支持ZIP(含密码加密)、TAR、GZ、TAR.GZ格式。
+    </p>
+  </div>
+  <div class="card">
+    <h3>接口列表</h3>
+    <table class="api-table">
+      <tr><th>接口</th><th>说明</th><th>参数</th></tr>
+      <tr><td><code>compressZip</code></td><td>ZIP压缩</td><td>inputPaths, outputPath, password</td></tr>
+      <tr><td><code>decompressZip</code></td><td>ZIP解压</td><td>archivePath, outputDir, password</td></tr>
+      <tr><td><code>compressTar</code></td><td>TAR打包</td><td>inputPaths, outputPath</td></tr>
+      <tr><td><code>decompressTar</code></td><td>TAR解压</td><td>archivePath, outputDir</td></tr>
+      <tr><td><code>compressGz</code></td><td>GZ压缩</td><td>inputPath, outputPath</td></tr>
+      <tr><td><code>decompressGz</code></td><td>GZ解压</td><td>archivePath, outputPath</td></tr>
+      <tr><td><code>compressTarGz</code></td><td>TAR.GZ压缩</td><td>inputPaths, outputPath</td></tr>
+      <tr><td><code>decompressTarGz</code></td><td>TAR.GZ解压</td><td>archivePath, outputDir</td></tr>
+      <tr><td><code>listContents</code></td><td>列出压缩包内容</td><td>archivePath</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['decompress','compress','api'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function browsePick(inputId) {
+  if (window.NativeBridge) NativeBridge.browseFile(inputId);
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return res.output;
+}
+
+function initModuleInfo() {
+  if (!window.NativeBridge || !NativeBridge.getModuleInfoJson) return;
+  try {
+    var info = JSON.parse(NativeBridge.getModuleInfoJson() || '{}');
+    if (info.version) {
+      document.getElementById('moduleVersion').textContent = 'v' + info.version;
+    }
+  } catch (e) {}
+}
+
+function onFilePicked(inputId, path) {
+  document.getElementById(inputId).value = path;
+}
+
+function listArchive() {
+  var path = document.getElementById('decompressPath').value.trim();
+  if (!path || !window.NativeBridge) return;
+  var result = invokeNative('listContents', { archivePath: path });
+  document.getElementById('decompressResult').innerHTML = '<div class="result-box">'+result+'</div>';
+}
+
+function doDecompress() {
+  var path = document.getElementById('decompressPath').value.trim();
+  var output = document.getElementById('decompressOutput').value.trim();
+  var password = document.getElementById('decompressPassword').value;
+  if (!path || !output) { alert(T('请填写路径','Please fill in path')); return; }
+  var el = document.getElementById('decompressResult');
+  el.innerHTML = '<div class="loading">'+T('解压中...','Extracting...')+'</div>';
+  try {
+    if (window.NativeBridge) {
+      var lp = path.toLowerCase();
+      var ok;
+      if (lp.endsWith('.tar.gz') || lp.endsWith('.tgz')) ok = invokeNative('decompressTarGz', { archivePath: path, outputDir: output });
+      else if (lp.endsWith('.tar')) ok = invokeNative('decompressTar', { archivePath: path, outputDir: output });
+      else if (lp.endsWith('.gz')) ok = invokeNative('decompressGz', { archivePath: path, outputPath: output+'/'+path.split('/').pop().replace('.gz','') });
+      else ok = invokeNative('decompressZip', { archivePath: path, outputDir: output, password: password });
+      el.innerHTML = ok === 'true' || ok === true ?
+        '<div class="result-box">'+T('✅ 解压成功 → ','✅ Extracted to ')+output+'</div>' :
+        '<div class="result-box error">'+T('❌ 解压失败','❌ Extraction failed')+'</div>';
+    }
+  } catch (e) {
+    el.innerHTML = '<div class="result-box error">'+T('❌ 解压失败: ','❌ Extraction failed: ')+e.message+'</div>';
+  }
+}
+
+function doCompress() {
+  var input = document.getElementById('compressInput').value.trim();
+  var output = document.getElementById('compressOutput').value.trim();
+  var password = document.getElementById('compressPassword').value;
+  if (!input || !output) { alert(T('请填写路径','Please fill in path')); return; }
+  var el = document.getElementById('compressResult');
+  el.innerHTML = '<div class="loading">'+T('压缩中...','Compressing...')+'</div>';
+  try {
+    if (window.NativeBridge) {
+      var lp = output.toLowerCase();
+      var ok;
+      if (lp.endsWith('.tar.gz') || lp.endsWith('.tgz')) ok = invokeNative('compressTarGz', { inputPaths: input, outputPath: output });
+      else if (lp.endsWith('.tar')) ok = invokeNative('compressTar', { inputPaths: input, outputPath: output });
+      else if (lp.endsWith('.gz')) ok = invokeNative('compressGz', { inputPath: input, outputPath: output });
+      else ok = invokeNative('compressZip', { inputPaths: input, outputPath: output, password: password });
+      el.innerHTML = ok === 'true' || ok === true ?
+        '<div class="result-box">'+T('✅ 压缩成功 → ','✅ Compressed to ')+output+'</div>' :
+        '<div class="result-box error">'+T('❌ 压缩失败','❌ Compression failed')+'</div>';
+    }
+  } catch (e) {
+    el.innerHTML = '<div class="result-box error">'+T('❌ 压缩失败: ','❌ Compression failed: ')+e.message+'</div>';
+  }
+}
+
+function applyI18n() {
+  document.title = T('压缩解压','Archive');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('解压','Extract');
+  if(tabs[1]) tabs[1].textContent = T('压缩','Compress');
+  if(tabs[2]) tabs[2].textContent = T('接口说明','API Docs');
+  var dLabels = document.querySelectorAll('#tab-decompress label');
+  if(dLabels[0]) dLabels[0].textContent = T('压缩包路径','Archive Path');
+  if(dLabels[1]) dLabels[1].textContent = T('解压目标目录','Output Directory');
+  if(dLabels[2]) dLabels[2].textContent = T('密码 (可选)','Password (optional)');
+  var browseBtn = document.querySelector('#tab-decompress .btn-outline.btn-sm');
+  if(browseBtn) browseBtn.textContent = T('浏览','Browse');
+  var dBtns = document.querySelectorAll('#tab-decompress .row button');
+  if(dBtns[0]) dBtns[0].textContent = T('查看内容','View Contents');
+  var decompressBtn = document.getElementById('decompressBtn');
+  if(decompressBtn) decompressBtn.textContent = T('解压','Extract');
+  var cLabels = document.querySelectorAll('#tab-compress label');
+  if(cLabels[0]) cLabels[0].textContent = T('要压缩的文件/目录 (多个用逗号分隔)','Files/dirs to compress (comma-separated)');
+  if(cLabels[1]) cLabels[1].textContent = T('输出压缩包路径','Output Archive Path');
+  if(cLabels[2]) cLabels[2].textContent = T('密码 (可选，仅ZIP)','Password (optional, ZIP only)');
+  var compressBtn = document.getElementById('compressBtn');
+  if(compressBtn) compressBtn.textContent = T('压缩','Compress');
+  var apiCards = document.querySelectorAll('#tab-api .card');
+  if(apiCards[0]) {
+    var h3 = apiCards[0].querySelector('h3');
+    if(h3) h3.textContent = T('模块信息','Module Info');
+    var ps = apiCards[0].querySelectorAll('p');
+    if(ps.length > 2) ps[2].textContent = T('C++ native压缩解压引擎，支持ZIP(含密码加密)、TAR、GZ、TAR.GZ格式。','C++ native archive engine supporting ZIP (with encryption), TAR, GZ, TAR.GZ.');
+  }
+  if(apiCards[1]) {
+    var h3 = apiCards[1].querySelector('h3');
+    if(h3) h3.textContent = T('接口列表','API List');
+    var apiData = [
+      ['compressZip',T('ZIP压缩','ZIP Compress'),'inputPaths, outputPath, password'],
+      ['decompressZip',T('ZIP解压','ZIP Extract'),'archivePath, outputDir, password'],
+      ['compressTar',T('TAR打包','TAR Pack'),'inputPaths, outputPath'],
+      ['decompressTar',T('TAR解压','TAR Extract'),'archivePath, outputDir'],
+      ['compressGz',T('GZ压缩','GZ Compress'),'inputPath, outputPath'],
+      ['decompressGz',T('GZ解压','GZ Extract'),'archivePath, outputPath'],
+      ['compressTarGz',T('TAR.GZ压缩','TAR.GZ Compress'),'inputPaths, outputPath'],
+      ['decompressTarGz',T('TAR.GZ解压','TAR.GZ Extract'),'archivePath, outputDir'],
+      ['listContents',T('列出压缩包内容','List archive contents'),'archivePath']
+    ];
+    var tb = '<tr><th>'+T('接口','API')+'</th><th>'+T('说明','Desc')+'</th><th>'+T('参数','Params')+'</th></tr>';
+    apiData.forEach(function(a){tb+='<tr><td><code>'+a[0]+'</code></td><td>'+a[1]+'</td><td>'+a[2]+'</td></tr>';});
+    var table = apiCards[1].querySelector('table');
+    if(table) table.innerHTML = tb;
+  }
+}
+applyI18n();
+initModuleInfo();
+</script>
+</body>
+</html>
