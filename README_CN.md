@@ -11,7 +11,7 @@
 
 <p>
   <a href="#下载体验">下载体验</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://github.com/user/PandaGenieModules">模块市场</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://github.com/Rorschach123/PandaGenieModules">模块市场</a> &nbsp;&#x2022;&nbsp;
   <a href="#创建你的模块">创建模块</a> &nbsp;&#x2022;&nbsp;
   <a href="README.md">&#x1F1EC;&#x1F1E7; English</a>
 </p>
@@ -202,18 +202,19 @@ public class MyPlugin implements ModulePlugin {
 adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 ```
 
-完整开发指南请参考 [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/user/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)。
+完整开发指南请参考 [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)。
 
 ---
 
 ## 项目结构
 
-本项目分为两个仓库：
+本项目分为三个仓库：
 
 | 仓库 | 用途 |
 |------|------|
 | **[PandaGenieSource](.)** （本仓库） | 模块源代码和构建工具 |
-| **[PandaGenieModules](https://github.com/user/PandaGenieModules)** | 编译后的 `.mod` 文件、模块市场索引、开发者工具包 |
+| **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | 编译后的 `.mod` 文件、模块市场索引、开发者工具包 |
+| **[PandaGenieServer](https://github.com/Rorschach123/PandaGenieServer)** | 后端 API：多 LLM 代理、模块市场、签名服务 |
 
 ```
 PandaGenieSource/

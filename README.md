@@ -11,7 +11,7 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 
 <p>
   <a href="#download">Download APK</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://github.com/user/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://github.com/Rorschach123/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="README_CN.md">&#x1F1E8;&#x1F1F3; 中文</a>
 </p>
@@ -201,18 +201,19 @@ public class MyPlugin implements ModulePlugin {
 adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 ```
 
-For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/user/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
+For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
 
 ---
 
 ## Project Structure
 
-This project is split into two repositories:
+This project is split into three repositories:
 
 | Repo | Purpose |
 |------|---------|
 | **[PandaGenieSource](.)** (this repo) | Module source code and build tools |
-| **[PandaGenieModules](https://github.com/user/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
+| **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
+| **[PandaGenieServer](https://github.com/Rorschach123/PandaGenieServer)** | Backend API: multi-LLM proxy, module marketplace, signing service |
 
 ```
 PandaGenieSource/
