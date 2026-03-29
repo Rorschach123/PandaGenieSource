@@ -56,7 +56,6 @@ PandaGenie 连接你选择的大模型（GPT、Claude、DeepSeek 或任何 OpenA
 - **热加载模块** — 放入 `.mod` 文件，重启 APP 即生效，无需重新编译 APK
 - **AI 自动发现能力** — 新模块的 API 自动注入 AI 提示词
 - **沙箱执行** — 文件访问、网络、权限按模块独立管控
-- **离线语音** — 内置 Vosk 语音识别，无需联网
 - **双重签名安全** — 防篡改模块验证机制
 
 ---
@@ -213,13 +212,12 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 ## 项目结构
 
-本项目分为三个仓库：
+本项目分为两个仓库：
 
 | 仓库 | 用途 |
 |------|------|
 | **[PandaGenieSource](.)** （本仓库） | 模块源代码和构建工具 |
 | **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | 编译后的 `.mod` 文件、模块市场索引、开发者工具包 |
-| **[PandaGenieServer](https://github.com/Rorschach123/PandaGenieServer)** | 后端 API：多 LLM 代理、模块市场、签名服务 |
 
 ```
 PandaGenieSource/
@@ -303,7 +301,6 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 |------|------|
 | APP | Kotlin、Jetpack Compose、Material 3 |
 | AI | 任意 OpenAI 兼容 / Claude API |
-| 语音 | Vosk（离线识别） |
 | 模块 | Java 插件、DEX ClassLoader、可选 JNI/C++ |
 | 签名 | PKCS12 密钥库、jarsigner、DPAPI |
 | 构建 | PowerShell、Android SDK（d8、javac） |

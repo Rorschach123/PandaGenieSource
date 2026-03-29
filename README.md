@@ -56,7 +56,6 @@ PandaGenie connects to your preferred LLM (GPT, Claude, DeepSeek, or any OpenAI-
 - **Hot-loadable modules** — drop a `.mod` file, restart, done. No APK rebuild needed
 - **AI auto-discovers** new capabilities from module manifests
 - **Sandboxed execution** — file access, network, and permission controls per module
-- **Offline voice** — built-in Vosk speech recognition
 - **Dual-signature security** — tamper-proof module verification
 
 ---
@@ -212,13 +211,12 @@ For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE
 
 ## Project Structure
 
-This project is split into three repositories:
+This project is split into two repositories:
 
 | Repo | Purpose |
 |------|---------|
 | **[PandaGenieSource](.)** (this repo) | Module source code and build tools |
 | **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
-| **[PandaGenieServer](https://github.com/Rorschach123/PandaGenieServer)** | Backend API: multi-LLM proxy, module marketplace, signing service |
 
 ```
 PandaGenieSource/
@@ -302,7 +300,6 @@ The module ecosystem is still young — there's **so much to build**:
 |-----------|-----------|
 | App | Kotlin, Jetpack Compose, Material 3 |
 | AI | Any OpenAI-compatible / Claude API |
-| Speech | Vosk (offline) |
 | Modules | Java plugins, DEX ClassLoader, optional JNI/C++ |
 | Signing | PKCS12 keystores, jarsigner, DPAPI |
 | Build | PowerShell, Android SDK (d8, javac) |
