@@ -3,6 +3,7 @@
 #include <zlib.h>
 #include <cstdio>
 #include <cstring>
+#include <cerrno>
 #include <ctime>
 #include <cinttypes>
 #include <sys/stat.h>
@@ -51,17 +52,38 @@ void ArchiveModule::encryptDecryptBuffer(std::vector<uint8_t>& data, const std::
 bool ArchiveModule::compressZip(const std::vector<std::string>& inputPaths,
                                 const std::string& outputPath,
                                 const std::string& password) {
+    if (inputPaths.empty()) {
+        LOGE("compressZip: no input paths provided");
+        return false;
+    }
+
+    // Auto-create output directory
+    std::string outDir = outputPath.substr(0, outputPath.find_last_of('/'));
+    if (!outDir.empty()) mkdirRecursive(outDir);
+
+    LOGI("compressZip: output=%s, %zu files", outputPath.c_str(), inputPaths.size());
+    for (size_t i = 0; i < inputPaths.size(); i++) {
+        LOGI("  input[%zu] = %s", i, inputPaths[i].c_str());
+        FILE* test = fopen(inputPaths[i].c_str(), "rb");
+        if (!test) {
+            LOGE("  -> CANNOT open for reading (errno=%d: %s)", errno, strerror(errno));
+            return false;
+        }
+        fclose(test);
+    }
+
     mz_zip_archive zip;
     if (!mz_zip_writer_init_file(&zip, outputPath.c_str())) {
-        LOGE("Failed to create zip: %s", outputPath.c_str());
+        LOGE("Failed to create zip file: %s (errno=%d: %s)", outputPath.c_str(), errno, strerror(errno));
         return false;
     }
 
     for (const auto& path : inputPaths) {
         std::string arcName = getBaseName(path);
         if (!mz_zip_writer_add_file(&zip, arcName.c_str(), path.c_str())) {
-            LOGE("Failed to add file: %s", path.c_str());
+            LOGE("Failed to add file to zip: %s (errno=%d: %s)", path.c_str(), errno, strerror(errno));
             mz_zip_writer_end(&zip);
+            unlink(outputPath.c_str());
             return false;
         }
     }

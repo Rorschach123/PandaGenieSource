@@ -5,6 +5,7 @@
 #include "miniz.h"
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <zlib.h>
 #include <sys/stat.h>
 
@@ -208,62 +209,113 @@ int mz_zip_writer_add_file(mz_zip_archive* pZip, const char* pArcName, const cha
     FILE* src = fopen(pSrcFile, "rb");
     if (!src) return 0;
 
-    /* Read source file */
     fseek(src, 0, SEEK_END);
     long srcSize = ftell(src);
     fseek(src, 0, SEEK_SET);
-    std::vector<uint8_t> srcData(srcSize);
-    if (srcSize > 0) fread(srcData.data(), 1, srcSize, src);
-    fclose(src);
 
-    uint32_t fileCrc = calc_crc32(srcData.data(), srcData.size());
+    uint16_t nameLen = (uint16_t)strlen(pArcName);
+    uint32_t localOffset = (uint32_t)ftell(pZip->file);
 
-    /* Compress with deflate */
-    uLongf compBound = compressBound(srcSize);
-    std::vector<uint8_t> compData(compBound);
-    z_stream strm = {};
-    strm.next_in = srcData.data();
-    strm.avail_in = srcData.size();
-    strm.next_out = compData.data();
-    strm.avail_out = compData.size();
-
-    uint32_t compSize = 0;
-    uint16_t method = COMPRESSION_STORE;
-
-    if (srcSize > 0 && deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -MAX_WBITS, 8, Z_DEFAULT_STRATEGY) == Z_OK) {
-        deflate(&strm, Z_FINISH);
-        deflateEnd(&strm);
-        compSize = strm.total_out;
-        if (compSize < (uint32_t)srcSize) {
-            compData.resize(compSize);
-            method = COMPRESSION_DEFLATE;
-        } else {
-            compData = srcData;
-            compSize = srcSize;
-            method = COMPRESSION_STORE;
+    /* CRC32 pass — stream through the file without loading it all */
+    uint32_t fileCrc = crc32(0L, Z_NULL, 0);
+    {
+        uint8_t buf[BUF_SIZE];
+        size_t n;
+        while ((n = fread(buf, 1, BUF_SIZE, src)) > 0) {
+            fileCrc = crc32(fileCrc, buf, (uInt)n);
         }
-    } else {
-        compData = srcData;
-        compSize = srcSize;
+        fseek(src, 0, SEEK_SET);
     }
 
-    uint16_t nameLen = strlen(pArcName);
-    uint32_t localOffset = (uint32_t)ftell(pZip->file);
+    /* Try deflate compression into a temp file to avoid large memory allocs */
+    uint32_t compSize = 0;
+    uint16_t method = COMPRESSION_STORE;
+    FILE* tmpFile = NULL;
+    char tmpPath[512];
+    snprintf(tmpPath, sizeof(tmpPath), "%s.tmp_deflate", pSrcFile);
+
+    if (srcSize > 0) {
+        tmpFile = fopen(tmpPath, "w+b");
+        if (tmpFile) {
+            z_stream strm = {};
+            if (deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -MAX_WBITS, 8, Z_DEFAULT_STRATEGY) == Z_OK) {
+                uint8_t inBuf[BUF_SIZE];
+                uint8_t outBuf[BUF_SIZE];
+                int flush;
+                do {
+                    size_t n = fread(inBuf, 1, BUF_SIZE, src);
+                    strm.next_in = inBuf;
+                    strm.avail_in = (uInt)n;
+                    flush = feof(src) ? Z_FINISH : Z_NO_FLUSH;
+                    do {
+                        strm.next_out = outBuf;
+                        strm.avail_out = BUF_SIZE;
+                        deflate(&strm, flush);
+                        size_t have = BUF_SIZE - strm.avail_out;
+                        if (have > 0) fwrite(outBuf, 1, have, tmpFile);
+                    } while (strm.avail_out == 0);
+                } while (flush != Z_FINISH);
+                compSize = (uint32_t)strm.total_out;
+                deflateEnd(&strm);
+
+                if (compSize < (uint32_t)srcSize) {
+                    method = COMPRESSION_DEFLATE;
+                } else {
+                    compSize = (uint32_t)srcSize;
+                    method = COMPRESSION_STORE;
+                }
+            } else {
+                compSize = (uint32_t)srcSize;
+            }
+        } else {
+            compSize = (uint32_t)srcSize;
+        }
+    }
 
     /* Write local file header */
     write_u32(pZip->file, ZIP_LOCAL_HEADER_SIG);
-    write_u16(pZip->file, 20);          /* version needed */
-    write_u16(pZip->file, 0);           /* flags */
+    write_u16(pZip->file, 20);
+    write_u16(pZip->file, 0);
     write_u16(pZip->file, method);
-    write_u16(pZip->file, 0);           /* mod time */
-    write_u16(pZip->file, 0);           /* mod date */
+    write_u16(pZip->file, 0);
+    write_u16(pZip->file, 0);
     write_u32(pZip->file, fileCrc);
     write_u32(pZip->file, compSize);
     write_u32(pZip->file, (uint32_t)srcSize);
     write_u16(pZip->file, nameLen);
-    write_u16(pZip->file, 0);           /* extra field len */
+    write_u16(pZip->file, 0);
     fwrite(pArcName, 1, nameLen, pZip->file);
-    fwrite(compData.data(), 1, compSize, pZip->file);
+
+    /* Write file data */
+    if (method == COMPRESSION_DEFLATE && tmpFile) {
+        fseek(tmpFile, 0, SEEK_SET);
+        uint8_t buf[BUF_SIZE];
+        uint32_t remaining = compSize;
+        while (remaining > 0) {
+            size_t toRead = remaining > BUF_SIZE ? BUF_SIZE : remaining;
+            size_t got = fread(buf, 1, toRead, tmpFile);
+            if (got == 0) break;
+            fwrite(buf, 1, got, pZip->file);
+            remaining -= (uint32_t)got;
+        }
+    } else {
+        fseek(src, 0, SEEK_SET);
+        uint8_t buf[BUF_SIZE];
+        long remaining = srcSize;
+        while (remaining > 0) {
+            size_t toRead = remaining > BUF_SIZE ? BUF_SIZE : (size_t)remaining;
+            size_t got = fread(buf, 1, toRead, src);
+            if (got == 0) break;
+            fwrite(buf, 1, got, pZip->file);
+            remaining -= (long)got;
+        }
+    }
+
+    fclose(src);
+    if (tmpFile) {
+        fclose(tmpFile);
+        unlink(tmpPath);
+    }
 
     /* Record entry for central directory */
     mz_zip_file_stat entry;
