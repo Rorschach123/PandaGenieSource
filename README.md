@@ -10,7 +10,8 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 </p>
 
 <p>
-  <a href="#download">Download APK</a> &nbsp;&#x2022;&nbsp;
+  <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai">Submit a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="https://github.com/Rorschach123/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="README_CN.md">&#x1F1E8;&#x1F1F3; 中文</a>
@@ -191,7 +192,7 @@ public class MyPlugin implements ModulePlugin {
 }
 ```
 
-### Build & Deploy
+### Build & Test Locally
 
 ```powershell
 # In PandaGenieModules/module-dev-toolkit/
@@ -200,6 +201,10 @@ public class MyPlugin implements ModulePlugin {
 
 adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 ```
+
+### Get Official Signature & Publish
+
+Once your module works, head to **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** to upload it. The system validates your module and applies the official signature — you can then publish it to the marketplace with one click.
 
 For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
 
@@ -233,13 +238,32 @@ PandaGenieSource/
 
 ---
 
-## Contributing
+## Join Us — Developers Welcome!
 
-PandaGenie is a **co-creation platform** — beyond the official modules, we sincerely invite more developers to join and build a richer module ecosystem together.
+> **We believe the best modules will come from the community, not just us.**
 
-The best part? You can **vibe code** the entire thing — describe what you want to an AI coding assistant like Cursor and it will generate the complete module for you. This entire project was built that way.
+PandaGenie is a **co-creation platform** — we sincerely invite developers of all levels to join and build a richer module ecosystem together. Whether you're a seasoned Android developer or someone who just learned to code last week with an AI assistant, **there's room for you here**.
 
-### How to Contribute
+### Why Build a PandaGenie Module?
+
+- **Incredibly low barrier** — 3 files, one Java interface, done. You can **vibe code** the entire thing with AI assistants like Cursor. This whole project was built that way.
+- **Instant distribution** — your module reaches all PandaGenie users through the built-in marketplace
+- **Revenue sharing** — if PandaGenie generates revenue in the future (premium features, donations, sponsorships, etc.), **module developers will receive a share of that revenue** proportional to their module's usage and impact. We are committed to making this a platform where contributors are fairly rewarded.
+
+### How to Submit Your Module
+
+There are **two ways** to get your module officially signed and published:
+
+#### Option A: Online Signing Portal (Recommended)
+
+Visit **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** — the official PandaGenie module signing service:
+
+1. Build your `.mod` file locally using the dev toolkit
+2. Upload it on the website — it will automatically validate the file format, developer signature, and security checks
+3. If everything passes, the official signature is applied and you can **download the signed `.mod`**
+4. You'll also be asked if you want to **publish it to the module marketplace** — one click and it's live!
+
+#### Option B: Pull Request
 
 1. **Fork** this repo
 2. Create your module in `source/<your_module_id>/`
@@ -256,6 +280,8 @@ The best part? You can **vibe code** the entire thing — describe what you want
 
 ### Ideas for New Modules
 
+The module ecosystem is still young — there's **so much to build**:
+
 - &#x1F3A8; **Image tools** — resize, convert, watermark
 - &#x1F4DD; **Note taking** — create/search notes
 - &#x1F4E7; **SMS manager** — search, export messages
@@ -265,6 +291,8 @@ The best part? You can **vibe code** the entire thing — describe what you want
 - &#x1F4CB; **Clipboard manager** — history, templates
 - &#x1F4CD; **Location tools** — nearby places, coordinates
 - ...and anything else you can imagine!
+
+> Every module you build makes PandaGenie smarter for everyone. **Let's build the future of AI-powered mobile together.**
 
 ---
 

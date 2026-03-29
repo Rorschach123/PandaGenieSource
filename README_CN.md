@@ -10,7 +10,8 @@
 </p>
 
 <p>
-  <a href="#下载体验">下载体验</a> &nbsp;&#x2022;&nbsp;
+  <a href="#加入我们--欢迎所有开发者">加入我们</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai">提交模块</a> &nbsp;&#x2022;&nbsp;
   <a href="https://github.com/Rorschach123/PandaGenieModules">模块市场</a> &nbsp;&#x2022;&nbsp;
   <a href="#创建你的模块">创建模块</a> &nbsp;&#x2022;&nbsp;
   <a href="README.md">&#x1F1EC;&#x1F1E7; English</a>
@@ -192,7 +193,7 @@ public class MyPlugin implements ModulePlugin {
 }
 ```
 
-### 构建与部署
+### 本地构建与测试
 
 ```powershell
 # 在 PandaGenieModules/module-dev-toolkit/ 下
@@ -201,6 +202,10 @@ public class MyPlugin implements ModulePlugin {
 
 adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 ```
+
+### 获取官方签名与发布
+
+模块开发完成后，前往 **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** 上传你的 `.mod` 文件。系统会自动验证模块并加盖官方签名 — 随后你可以一键发布到模块市场。
 
 完整开发指南请参考 [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)。
 
@@ -234,13 +239,32 @@ PandaGenieSource/
 
 ---
 
-## 参与贡献
+## 加入我们 — 欢迎所有开发者！
 
-PandaGenie 是一个**共创平台** — 除了作者提供的官方模块，我们真诚地期待更多开发者加入，共建更丰富的模块生态。
+> **我们相信最好的模块将来自社区，而不仅仅是我们自己。**
 
-最棒的是，你完全可以用 **vibe coding** 的方式完成开发 — 向 Cursor 等 AI 编程助手描述你想要的功能，它就能帮你生成完整的模块代码。整个项目本身就是这样构建的。
+PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开发者加入，共建更丰富的模块生态。无论你是经验丰富的 Android 开发者，还是上周才借助 AI 助手学会编程的新手，**这里都有你的位置**。
 
-### 贡献流程
+### 为什么要开发 PandaGenie 模块？
+
+- **门槛极低** — 3 个文件，一个 Java 接口，搞定。你完全可以用 **vibe coding** 的方式，让 Cursor 等 AI 编程助手帮你生成完整的模块代码。整个项目本身就是这样构建的。
+- **即刻分发** — 你的模块将通过内置模块市场触达所有 PandaGenie 用户
+- **收益共享** — 如果 PandaGenie 未来产生收益（付费功能、捐赠、赞助等），**模块开发者将按其模块的使用量和贡献度获得相应的收益分成**。我们承诺让这个平台成为贡献者能够得到公平回报的生态。
+
+### 如何提交你的模块
+
+有**两种方式**可以让你的模块获得官方签名并发布：
+
+#### 方式一：在线签名平台（推荐）
+
+访问 **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** — PandaGenie 官方模块签名服务：
+
+1. 使用开发者工具包在本地构建你的 `.mod` 文件
+2. 在网页上上传 — 系统将自动验证文件格式、开发者签名和安全检查
+3. 如果一切通过，官方签名将被自动应用，你可以**下载已签名的 `.mod` 文件**
+4. 系统还会询问你是否要**发布到模块市场** — 一键即可上架！
+
+#### 方式二：Pull Request
 
 1. **Fork** 本仓库
 2. 在 `source/<your_module_id>/` 下创建你的模块
@@ -257,6 +281,8 @@ PandaGenie 是一个**共创平台** — 除了作者提供的官方模块，我
 
 ### 模块灵感
 
+模块生态才刚刚起步 — 有**太多东西可以构建**：
+
 - &#x1F3A8; **图片工具** — 缩放、格式转换、加水印
 - &#x1F4DD; **笔记助手** — 创建和搜索笔记
 - &#x1F4E7; **短信管理** — 搜索、导出短信
@@ -266,6 +292,8 @@ PandaGenie 是一个**共创平台** — 除了作者提供的官方模块，我
 - &#x1F4CB; **剪贴板管理** — 历史记录、模板
 - &#x1F4CD; **位置工具** — 附近地点、坐标转换
 - ...以及任何你能想到的功能！
+
+> 你构建的每一个模块，都让 PandaGenie 对所有用户变得更智能。**让我们一起构建 AI 驱动移动端的未来。**
 
 ---
 
