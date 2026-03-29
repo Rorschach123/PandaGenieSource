@@ -4,7 +4,7 @@
   "name_en": "Archive",
   "description": "文件压缩解压模块，支持ZIP(含密码加密)、TAR、GZ、TAR.GZ格式",
   "description_en": "Archive module supporting ZIP (with password), TAR, GZ, TAR.GZ formats",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "archive",
   "soLibraries": ["libarchive_module.so"],
   "h5Page": "index.html",
