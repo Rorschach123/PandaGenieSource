@@ -10,6 +10,7 @@
 </p>
 
 <p>
+  <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#加入我们--欢迎所有开发者">加入我们</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai">提交模块</a> &nbsp;&#x2022;&nbsp;
   <a href="https://github.com/Rorschach123/PandaGenieModules">模块市场</a> &nbsp;&#x2022;&nbsp;
@@ -241,6 +242,10 @@ PandaGenieSource/
 
 > **我们相信最好的模块将来自社区，而不仅仅是我们自己。**
 
+[![Discord](https://img.shields.io/discord/1234567890?color=5865F2&logo=discord&logoColor=white&label=Discord)](https://discord.gg/Cfc7pjrjt2)
+
+**加入 Discord 社区：** [https://discord.gg/Cfc7pjrjt2](https://discord.gg/Cfc7pjrjt2) — 讨论想法、获取帮助、分享模块，与其他开发者协作。
+
 PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开发者加入，共建更丰富的模块生态。无论你是经验丰富的 Android 开发者，还是上周才借助 AI 助手学会编程的新手，**这里都有你的位置**。
 
 ### 为什么要开发 PandaGenie 模块？
@@ -293,6 +298,12 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 
 > 你构建的每一个模块，都让 PandaGenie 对所有用户变得更智能。**让我们一起构建 AI 驱动移动端的未来。**
 
+### 加入社区
+
+[![Discord](https://img.shields.io/badge/Discord-加入我们-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
+
+有问题？想展示你的模块？需要帮助？加入我们的 **[Discord 服务器](https://discord.gg/Cfc7pjrjt2)** — 期待与你交流。
+
 ---
 
 ## 技术栈
@@ -318,5 +329,7 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 **Built with &#x2764;&#xFE0F; and a lot of vibe coding**
 
 *PandaGenie — 让 AI 帮你处理手机上的琐事*
+
+[![Discord](https://img.shields.io/badge/Discord-加入社区-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
 
 </div>

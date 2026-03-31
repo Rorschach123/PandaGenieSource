@@ -10,7 +10,9 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 </p>
 
 <p>
+  <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai">Submit a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="https://github.com/Rorschach123/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
@@ -240,6 +242,10 @@ PandaGenieSource/
 
 > **We believe the best modules will come from the community, not just us.**
 
+[![Discord](https://img.shields.io/discord/1234567890?color=5865F2&logo=discord&logoColor=white&label=Discord)](https://discord.gg/Cfc7pjrjt2)
+
+**Join our Discord community:** [https://discord.gg/Cfc7pjrjt2](https://discord.gg/Cfc7pjrjt2) — discuss ideas, get help, share your modules, and collaborate with other developers.
+
 PandaGenie is a **co-creation platform** — we sincerely invite developers of all levels to join and build a richer module ecosystem together. Whether you're a seasoned Android developer or someone who just learned to code last week with an AI assistant, **there's room for you here**.
 
 ### Why Build a PandaGenie Module?
@@ -292,6 +298,12 @@ The module ecosystem is still young — there's **so much to build**:
 
 > Every module you build makes PandaGenie smarter for everyone. **Let's build the future of AI-powered mobile together.**
 
+### Join Our Community
+
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
+
+Have questions? Want to show off your module? Need help getting started? Join our **[Discord server](https://discord.gg/Cfc7pjrjt2)** — we'd love to meet you.
+
 ---
 
 ## Tech Stack
@@ -317,5 +329,7 @@ This project is licensed under the LGPL-3.0 License. See [LICENSE](LICENSE) for 
 **Built with &#x2764;&#xFE0F; and a lot of vibe coding**
 
 *PandaGenie — Let AI handle the boring stuff on your phone*
+
+[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
 
 </div>

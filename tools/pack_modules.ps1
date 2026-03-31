@@ -93,8 +93,22 @@ if ($mlkitJars.Count -gt 0) {
         if (Test-Path $javaxInjectJar) { $mlkitJars += $javaxInjectJar }
     }
 }
-$androidJar = "C:\Users\Administrator\AppData\Local\Android\Sdk\platforms\android-34\android.jar"
-$d8 = "C:\Users\Administrator\AppData\Local\Android\Sdk\build-tools\35.0.0\d8.bat"
+# SDK paths: prefer env vars, fall back to well-known defaults
+$androidSdkRoot = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT }
+    elseif ($env:ANDROID_HOME) { $env:ANDROID_HOME }
+    else { "$env:LOCALAPPDATA\Android\Sdk" }
+
+$androidPlatformVer = if ($env:ANDROID_PLATFORM) { $env:ANDROID_PLATFORM } else { "android-34" }
+$androidBuildTools = if ($env:ANDROID_BUILD_TOOLS) { $env:ANDROID_BUILD_TOOLS } else {
+    $btDir = Join-Path $androidSdkRoot "build-tools"
+    if (Test-Path $btDir) {
+        $latest = Get-ChildItem $btDir -Directory | Sort-Object Name -Descending | Select-Object -First 1
+        if ($latest) { $latest.Name } else { "35.0.0" }
+    } else { "35.0.0" }
+}
+
+$androidJar = Join-Path $androidSdkRoot "platforms\$androidPlatformVer\android.jar"
+$d8 = Join-Path $androidSdkRoot "build-tools\$androidBuildTools\d8.bat"
 $javac = "$env:JAVA_HOME\bin\javac.exe"
 $jarExe = "$env:JAVA_HOME\bin\jar.exe"
 $jarsigner = "$env:JAVA_HOME\bin\jarsigner.exe"
@@ -560,16 +574,62 @@ foreach ($modDir in $moduleDirs) {
     Write-Host ""
 }
 
-# Update PandaGenieModules modules.json (updated_at and module versions)
+# Update PandaGenieModules modules.json (updated_at, versions, auto-add new modules)
 if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
     try {
         $jsonText = [System.IO.File]::ReadAllText($modulesJsonPath, [System.Text.Encoding]::UTF8)
         $index = $jsonText | ConvertFrom-Json
         $index.updated_at = Get-Date -Format "yyyy-MM-dd"
+        $existingIds = @($index.modules | ForEach-Object { $_.id })
+
         foreach ($modId in $builtModules.Keys) {
             $ver = $builtModules[$modId]
             $modEntry = $index.modules | Where-Object { $_.id -eq $modId } | Select-Object -First 1
-            if ($modEntry) { $modEntry.version = $ver }
+            if ($modEntry) {
+                $modEntry.version = $ver
+            } else {
+                # Auto-add new module from manifest
+                $srcManifest = Join-Path $srcBase "$modId\manifest.json"
+                if (Test-Path $srcManifest) {
+                    $mText = [System.IO.File]::ReadAllText($srcManifest, [System.Text.Encoding]::UTF8)
+                    $m = $mText | ConvertFrom-Json
+                    $nameZh = if ($m.name) { [string]$m.name } else { $modId }
+                    $nameEn = if ($m.name_en) { [string]$m.name_en } else { $nameZh }
+                    $descZh = if ($m.description) { [string]$m.description } else { "" }
+                    $descEn = if ($m.description_en) { [string]$m.description_en } else { $descZh }
+                    $icon = if ($m.icon) { [string]$m.icon } else { "extension" }
+                    $devName = if ($m.developer -and $m.developer.name) { [string]$m.developer.name } else { "PandaGenie Official" }
+
+                    $perms = @()
+                    if ($m.permissions) { $perms = @($m.permissions) }
+                    $caps = @()
+                    if ($m.capabilities) { $caps = @($m.capabilities) }
+                    $apis = @()
+                    if ($m.apis) { $apis = @($m.apis) }
+
+                    $newEntry = [PSCustomObject]@{
+                        id = $modId
+                        name = [PSCustomObject]@{ zh = $nameZh; en = $nameEn }
+                        description = [PSCustomObject]@{ zh = $descZh; en = $descEn }
+                        version = $ver
+                        icon = $icon
+                        filename = "$modId.mod"
+                        download_url = @(
+                            "https://cf.pandagenie.ai/modules/download/$modId",
+                            "https://github.com/Rorschach123/PandaGenieModules/raw/main/modules/$modId.mod"
+                        )
+                        developer = [PSCustomObject]@{ name = $devName }
+                        permissions = $perms
+                        capabilities = $caps
+                        apis = $apis
+                        api_count = $apis.Count
+                    }
+                    $index.modules += $newEntry
+                    Write-Host "  + Auto-added $modId to modules.json" -ForegroundColor Green
+                } else {
+                    Write-Host "  ! Cannot auto-add $modId: no manifest at $srcManifest" -ForegroundColor Yellow
+                }
+            }
         }
         $index | ConvertTo-Json -Depth 20 | Set-Content $modulesJsonPath -Encoding UTF8
         Write-Host "  modules.json updated (updated_at, versions)." -ForegroundColor Cyan
