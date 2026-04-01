@@ -131,8 +131,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-<!-- TODO: 添加下载链接 -->
-> &#x1F4E5; **APK 下载**：*即将发布*
+> &#x1F4E5; **[下载 APK (v1.0.1)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260401/app-release.apk)**
 
 ---
 

@@ -12,7 +12,6 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 <p>
   <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai">Submit a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="https://github.com/Rorschach123/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
@@ -132,8 +131,7 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-<!-- TODO: Add download link -->
-> &#x1F4E5; **APK Download**: *Coming soon*
+> &#x1F4E5; **[Download APK (v1.0.1)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260401/app-release.apk)**
 
 ---
 
