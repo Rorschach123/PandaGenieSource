@@ -139,6 +139,20 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 开发 PandaGenie 模块**超级简单** — 特别适合用 AI 编程助手（如 Cursor）进行 vibe coding。
 
+### 使用模块模板快速开始（推荐）
+
+最快的起步方式 — 点击下方按钮，一键从模板创建你自己的模块仓库：
+
+[![Use this template](https://img.shields.io/badge/%E4%BD%BF%E7%94%A8%E6%A8%A1%E6%9D%BF-一键创建-6c5ce7?style=for-the-badge)](https://github.com/Rorschach123/PandaGenie-Module-Template/generate)
+
+或手动克隆：
+
+```bash
+git clone https://github.com/Rorschach123/PandaGenie-Module-Template.git my-awesome-module
+```
+
+模板包含一个可运行的示例模块（`manifest.json`、`MyModulePlugin.java`、`index.html`）— 重命名、修改、编译即可。
+
 ### 只需 3 个文件
 
 ```
@@ -212,12 +226,13 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 ## 项目结构
 
-本项目分为两个仓库：
+本项目分为三个仓库：
 
 | 仓库 | 用途 |
 |------|------|
 | **[PandaGenieSource](.)** （本仓库） | 模块源代码和构建工具 |
 | **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | 编译后的 `.mod` 文件、模块市场索引、开发者工具包 |
+| **[PandaGenie-Module-Template](https://github.com/Rorschach123/PandaGenie-Module-Template)** | GitHub 模板仓库 — 一键创建新模块项目 |
 
 ```
 PandaGenieSource/

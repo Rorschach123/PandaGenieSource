@@ -139,6 +139,20 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 Building a PandaGenie module is **incredibly simple** — perfect for vibe coding with AI assistants like Cursor.
 
+### Use the Module Template (Recommended)
+
+The fastest way to get started — click the button below to create your own module repo from our template:
+
+[![Use this template](https://img.shields.io/badge/Use%20this-Template-6c5ce7?style=for-the-badge)](https://github.com/Rorschach123/PandaGenie-Module-Template/generate)
+
+Or clone it manually:
+
+```bash
+git clone https://github.com/Rorschach123/PandaGenie-Module-Template.git my-awesome-module
+```
+
+The template includes a working example module with `manifest.json`, `MyModulePlugin.java`, and `index.html` — just rename, edit, and build.
+
 ### 3 Files. That's It.
 
 ```
@@ -211,12 +225,13 @@ For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE
 
 ## Project Structure
 
-This project is split into two repositories:
+This project is split across three repositories:
 
 | Repo | Purpose |
 |------|---------|
 | **[PandaGenieSource](.)** (this repo) | Module source code and build tools |
 | **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
+| **[PandaGenie-Module-Template](https://github.com/Rorschach123/PandaGenie-Module-Template)** | GitHub template repo — one-click starting point for new modules |
 
 ```
 PandaGenieSource/
