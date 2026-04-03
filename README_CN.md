@@ -305,6 +305,24 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 
 ---
 
+## 参与贡献
+
+欢迎各种形式的贡献！详见 **[CONTRIBUTING.md](CONTRIBUTING.md)** ：
+
+- 构建和提交新模块
+- 报告 Bug 和建议新功能
+- 代码规范和 PR 流程
+
+---
+
+## 贡献者
+
+<a href="https://github.com/Rorschach123/PandaGenieSource/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Rorschach123/PandaGenieSource" />
+</a>
+
+---
+
 ## 技术栈
 
 | 组件 | 技术 |

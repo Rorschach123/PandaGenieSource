@@ -304,6 +304,24 @@ Have questions? Want to show off your module? Need help getting started? Join ou
 
 ---
 
+## Contributing
+
+We welcome contributions of all kinds! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines on:
+
+- Building and submitting new modules
+- Reporting bugs and suggesting features
+- Code style and PR process
+
+---
+
+## Contributors
+
+<a href="https://github.com/Rorschach123/PandaGenieSource/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Rorschach123/PandaGenieSource" />
+</a>
+
+---
+
 ## Tech Stack
 
 | Component | Technology |
