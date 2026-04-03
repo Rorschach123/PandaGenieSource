@@ -6,6 +6,8 @@
 
 Whether you're building a new module, fixing a bug, improving docs, or just have an idea — you're welcome here.
 
+&#x1F1E8;&#x1F1F3; [中文版](CONTRIBUTING_CN.md)
+
 </div>
 
 ---

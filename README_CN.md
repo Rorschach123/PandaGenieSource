@@ -322,7 +322,7 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 
 ## 参与贡献
 
-欢迎各种形式的贡献！详见 **[CONTRIBUTING.md](CONTRIBUTING.md)** ：
+欢迎各种形式的贡献！详见 **[贡献指南](CONTRIBUTING_CN.md)** ：
 
 - 构建和提交新模块
 - 报告 Bug 和建议新功能
