@@ -78,8 +78,8 @@ public class LedBannerPlugin implements ModulePlugin {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "createBanner":
-                    return ok(createBanner(params));
+                case "generateBanner":
+                    return ok(generateBanner(params));
                 case "getTemplates":
                     return ok(getTemplates());
                 case "getStarTemplates":
@@ -95,7 +95,7 @@ public class LedBannerPlugin implements ModulePlugin {
         }
     }
 
-    private JSONObject createBanner(JSONObject params) throws Exception {
+    private JSONObject generateBanner(JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
         if (text.isEmpty()) {
             throw new IllegalArgumentException("text is required");
@@ -236,7 +236,7 @@ public class LedBannerPlugin implements ModulePlugin {
         fakeParams.put("speed", 10);
         fakeParams.put("effects", "glow");
 
-        JSONObject result = createBanner(fakeParams);
+        JSONObject result = generateBanner(fakeParams);
         result.put("templateName", templateName);
         return result;
     }
