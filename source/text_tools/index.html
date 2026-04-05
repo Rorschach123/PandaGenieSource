@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>文本工具 / Text Tools</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🔤</div>
+  <h2>文本工具 / Text Tools</h2>
+  <p>字数统计、Base64编解码、URL编解码、正则匹配、文本哈希</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">wordCount</span> — 统计文本的字符数、词数、行数、句数、段数；中文按字计词，英文按空白分词</li>
+    <li><span class="api-name">base64Encode</span> — 将文本按 UTF-8 编码为 Base64 字符串</li>
+    <li><span class="api-name">base64Decode</span> — 将 Base64 解码为 UTF-8 文本</li>
+    <li><span class="api-name">urlEncode</span> — URL 编码（application/x-www-form-urlencoded，空格为 +）</li>
+    <li><span class="api-name">urlDecode</span> — URL 解码</li>
+    <li><span class="api-name">regexMatch</span> — 在文本中查找正则表达式的全部匹配子串</li>
+    <li><span class="api-name">regexReplace</span> — 用 replacement 替换正则匹配（支持 $1、$2 等分组引用）</li>
+    <li><span class="api-name">textTransform</span> — 文本变换：upper/lower/capitalize/reverse/trim</li>
+    <li><span class="api-name">generateUUID</span> — 生成随机 UUID（RFC 4122 随机型）</li>
+    <li><span class="api-name">hashText</span> — 计算文本 UTF-8 字节的哈希，algorithm：MD5、SHA-1、SHA-256（大小写不敏感）</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

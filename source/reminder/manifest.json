@@ -11,7 +11,7 @@
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.reminder.ReminderPlugin",
   "soLoadMode": "skip",
-  "capabilities": [],
+  "capabilities": ["calendar"],
   "permissions": [
     {
       "name": "android.permission.READ_CALENDAR",

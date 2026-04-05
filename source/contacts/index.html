@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>联系人管理 / Contacts Manager</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">👥</div>
+  <h2>联系人管理 / Contacts Manager</h2>
+  <p>搜索、查看、导出联系人，查找重复联系人</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">searchContacts</span> — 按姓名或电话号码搜索联系人，返回 id、姓名、主号码；query 为关键词，limit 默认 20</li>
+    <li><span class="api-name">getContactDetail</span> — 按联系人 ID 返回完整信息：所有电话、邮箱、地址、公司职务等</li>
+    <li><span class="api-name">listContacts</span> — 分页列出联系人：id、姓名、主号码；limit 默认 50，offset 默认 0</li>
+    <li><span class="api-name">getContactCount</span> — 返回设备上联系人总数</li>
+    <li><span class="api-name">exportContacts</span> — 将全部联系人导出为 vCard 3.0（VCF）文件；outputPath 默认 /sdcard/PandaGenie/output/contacts_export.vcf</li>
+    <li><span class="api-name">findDuplicates</span> — 查找姓名相同或电话号码相同（规范化后）的重复联系人分组</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

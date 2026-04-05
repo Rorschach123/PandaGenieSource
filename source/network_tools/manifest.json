@@ -1,0 +1,82 @@
+{
+  "id": "network_tools",
+  "name": "网络工具",
+  "name_en": "Network Tools",
+  "description": "网络工具模块，支持Ping测试、DNS查询、获取本机IP和公网IP、检查网络连接状态、查看网络信息",
+  "description_en": "Network tools: ping, DNS lookup, local/public IP, connectivity check, network info",
+  "version": "1.0",
+  "icon": "wifi",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.network_tools.NetworkToolsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["network"],
+  "permissions": [
+    {
+      "name": "android.permission.ACCESS_NETWORK_STATE",
+      "desc": "用于检查网络连接状态",
+      "desc_en": "Check network connectivity status"
+    },
+    {
+      "name": "android.permission.ACCESS_WIFI_STATE",
+      "desc": "用于获取WiFi网络信息",
+      "desc_en": "Get WiFi network information"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "ping",
+      "desc": "Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码",
+      "desc_en": "Ping a host via system ping (4 packets); returns stdout and exit code",
+      "params": ["host"],
+      "paramDesc": ["目标主机名或 IP"],
+      "paramDesc_en": ["Hostname or IP address"]
+    },
+    {
+      "name": "dnsLookup",
+      "desc": "DNS 解析域名，返回解析到的所有 IP 地址",
+      "desc_en": "DNS lookup for a domain; returns all resolved IP addresses",
+      "params": ["domain"],
+      "paramDesc": ["要解析的域名"],
+      "paramDesc_en": ["Domain name to resolve"]
+    },
+    {
+      "name": "getLocalIp",
+      "desc": "枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表",
+      "desc_en": "List local non-loopback IPv4/IPv6 addresses from network interfaces",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getPublicIp",
+      "desc": "通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）",
+      "desc_en": "Fetch public egress IP from api.ipify.org over HTTPS (requires network)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "checkConnectivity",
+      "desc": "使用 ConnectivityManager 检查当前网络是否可用及是否已验证连通",
+      "desc_en": "Check active network connectivity and validation via ConnectivityManager",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getNetworkInfo",
+      "desc": "当前网络类型（WiFi/蜂窝/无等）、WiFi SSID（若系统允许）、链路速率等信息",
+      "desc_en": "Current network type, WiFi SSID when available, link speed, etc.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

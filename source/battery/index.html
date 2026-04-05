@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>电池管理 / Battery Manager</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🔋</div>
+  <h2>电池管理 / Battery Manager</h2>
+  <p>查看电池电量、充电状态、健康状况、温度等详细信息</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">getBatteryStatus</span> — 获取当前电池电量、状态(充电/放电/已满/未充电)、健康、温度、电压、技术类型、供电方式(USB/交流/无线)</li>
+    <li><span class="api-name">getBatteryHealth</span> — 电池健康报告：健康状态、温度提示、循环次数估算说明(系统通常不直接提供)</li>
+    <li><span class="api-name">getPowerSummary</span> — 汇总电池状态，便于在界面中向用户展示</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

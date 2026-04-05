@@ -1,0 +1,55 @@
+{
+  "id": "led_banner",
+  "name": "LED灯牌",
+  "name_en": "LED Banner",
+  "description": "LED应援灯牌模块，支持创建滚动/浮现/静止文字横幅，自定义颜色、渐变背景、字体大小、特效（荧光、闪烁、抖动），内置多种赛博风格和应援色模板",
+  "description_en": "LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates",
+  "version": "1.0",
+  "icon": "celebration",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.led_banner.LedBannerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "createBanner",
+      "desc": "创建LED灯牌配置，返回完整的显示参数（文字、颜色、背景、模式、特效等），可直接用于H5页面渲染",
+      "desc_en": "Create an LED banner config with full display parameters (text, colors, background, mode, effects) for H5 rendering",
+      "params": ["text", "fontColor", "bgColor", "mode", "fontSize", "speed", "effects"],
+      "paramDesc": ["显示文字", "字体颜色（十六进制，如 #FFFFFF）", "背景颜色（十六进制，如 #000000）", "显示模式：scroll（滚动）、fade（浮现）、static（静止），默认 scroll", "字体大小 12-200，默认 72", "滚动速度 1-50，默认 10", "特效，逗号分隔：glow（荧光）、flash（闪烁）、shake（抖动）、bold（加粗）、italic（斜体）"],
+      "paramDesc_en": ["Display text", "Font color hex (e.g. #FFFFFF)", "Background color hex (e.g. #000000)", "Display mode: scroll, fade, static. Default: scroll", "Font size 12-200, default 72", "Scroll speed 1-50, default 10", "Effects comma-separated: glow, flash, shake, bold, italic"]
+    },
+    {
+      "name": "getTemplates",
+      "desc": "获取所有内置赛博风格灯牌模板列表，每个模板含名称、字体颜色和背景颜色",
+      "desc_en": "Get all built-in cyber-style banner templates with name, font color and background color",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getStarTemplates",
+      "desc": "获取所有应援色模板（偶像/明星应援配色），每个模板含名称、字体颜色和背景颜色",
+      "desc_en": "Get all idol/star support color templates with name, font color and background color",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "applyTemplate",
+      "desc": "应用指定模板到灯牌，传入模板名称和显示文字，返回完整灯牌配置",
+      "desc_en": "Apply a template to banner by name with display text, returns full banner config",
+      "params": ["templateName", "text"],
+      "paramDesc": ["模板名称", "显示文字"],
+      "paramDesc_en": ["Template name", "Display text"]
+    }
+  ]
+}

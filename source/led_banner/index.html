@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>LED灯牌</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.banner-header { text-align: center; padding: 16px 0 10px; }
+.banner-header .icon { font-size: 48px; }
+.banner-header h2 { margin: 6px 0 0; font-size: 20px; }
+.banner-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+
+.preview-box {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.preview-text {
+  white-space: nowrap;
+  position: absolute;
+  user-select: none;
+}
+.preview-text.mode-scroll { animation: bannerScroll 6s linear infinite; }
+.preview-text.mode-fade { animation: bannerFade 4s ease-in-out infinite; }
+.preview-text.mode-static { position: relative; }
+.preview-text.eff-shake { animation: bannerShake 0.15s linear infinite; }
+.preview-text.eff-flash { animation: bannerFlash 0.5s step-end infinite; }
+@keyframes bannerScroll { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
+@keyframes bannerFade { 0%,100%{opacity:0} 30%,70%{opacity:1} }
+@keyframes bannerShake { 0%,100%{transform:translate(0)} 25%{transform:translate(-2px,2px)} 50%{transform:translate(2px,-2px)} 75%{transform:translate(-2px,-2px)} }
+@keyframes bannerFlash { 0%{opacity:1} 50%{opacity:0.2} }
+
+.fullscreen-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.fullscreen-overlay.active { display: flex; }
+.fullscreen-text {
+  white-space: nowrap;
+  user-select: none;
+  position: absolute;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ctrl-section { margin-bottom: 10px; }
+.ctrl-section label { font-size: 12px; color: var(--on-surface-variant); display: block; margin-bottom: 4px; }
+.ctrl-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctrl-row input[type=text], .ctrl-row input[type=number], .ctrl-row select {
+  padding: 8px 10px; border: 1px solid var(--outline); border-radius: 10px;
+  font-size: 13px; background: var(--surface); color: var(--on-surface); flex: 1; min-width: 60px;
+}
+.ctrl-row input[type=color] { width: 36px; height: 36px; border: none; border-radius: 8px; cursor: pointer; padding: 0; }
+.ctrl-row input[type=range] { flex: 1; }
+
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.chip {
+  padding: 4px 10px; border-radius: 14px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--outline); background: var(--surface); color: var(--on-surface);
+  transition: all 0.2s;
+}
+.chip.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+.tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; max-height: 200px; overflow-y: auto; }
+.tpl-item {
+  border-radius: 10px; padding: 8px 6px; text-align: center; font-size: 11px;
+  cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tpl-item:active { transform: scale(0.95); }
+.tpl-item.selected { border-color: var(--primary); }
+
+.launch-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 16px;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  background: linear-gradient(135deg, #6750A4, #BF00FF);
+  color: #fff; margin: 12px 0; transition: all 0.2s;
+}
+.launch-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('editor')">灯牌编辑</div>
+  <div class="tab" onclick="switchTab('templates')">模板</div>
+  <div class="tab" onclick="switchTab('api')">接口</div>
+</div>
+
+<div id="tab-editor" class="tab-content active">
+  <div class="banner-header">
+    <div class="icon">💡</div>
+    <h2 id="pageTitle">LED灯牌</h2>
+    <p id="pageDesc">编辑文字和样式，点击预览区全屏展示</p>
+  </div>
+
+  <div class="preview-box" id="previewBox" onclick="toggleFullscreen()">
+    <span class="preview-text mode-scroll" id="previewText">LED灯牌</span>
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelText">显示文字</label>
+    <textarea id="bannerText" rows="2" oninput="updatePreview()" style="width:100%">LED灯牌</textarea>
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelColors">颜色</label>
+    <div class="ctrl-row">
+      <span style="font-size:12px" id="labelFont">字色</span>
+      <input type="color" id="fontColor" value="#00FFFF" onchange="updatePreview()">
+      <span style="font-size:12px" id="labelBg">背景</span>
+      <input type="color" id="bgColor" value="#0A0A2E" onchange="updatePreview()">
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelMode">显示模式</label>
+    <div class="chip-row" id="modeChips">
+      <span class="chip" data-mode="scroll" onclick="setMode('scroll')">滚动</span>
+      <span class="chip active" data-mode="scroll" onclick="setMode('scroll')">滚动</span>
+      <span class="chip" data-mode="fade" onclick="setMode('fade')">浮现</span>
+      <span class="chip" data-mode="static" onclick="setMode('static')">静止</span>
+    </div>
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelSize">字体大小: <span id="sizeVal">72</span>px</label>
+    <input type="range" id="fontSize" min="12" max="200" value="72" oninput="updatePreview();document.getElementById('sizeVal').textContent=this.value">
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelSpeed">速度: <span id="speedVal">6</span>s</label>
+    <input type="range" id="speedRange" min="1" max="20" value="6" oninput="updatePreview();document.getElementById('speedVal').textContent=this.value">
+  </div>
+
+  <div class="ctrl-section">
+    <label id="labelEffects">特效</label>
+    <div class="chip-row">
+      <span class="chip" id="effGlow" onclick="toggleEff('glow')">荧光</span>
+      <span class="chip" id="effBold" onclick="toggleEff('bold')">加粗</span>
+      <span class="chip" id="effItalic" onclick="toggleEff('italic')">斜体</span>
+      <span class="chip" id="effShake" onclick="toggleEff('shake')">抖动</span>
+      <span class="chip" id="effFlash" onclick="toggleEff('flash')">闪烁</span>
+    </div>
+  </div>
+
+  <button class="launch-btn" onclick="toggleFullscreen()" id="launchBtn">🔦 全屏展示</button>
+</div>
+
+<div id="tab-templates" class="tab-content">
+  <div class="card">
+    <h3 id="cyberTitle">赛博风格</h3>
+    <div class="tpl-grid" id="cyberGrid"></div>
+  </div>
+  <div class="card" style="margin-top:10px;">
+    <h3 id="starTitle">应援色</h3>
+    <input type="text" id="starSearch" placeholder="搜索应援色..." oninput="filterStarTemplates()" style="margin-bottom:8px;">
+    <div class="tpl-grid" id="starGrid"></div>
+  </div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 id="apiModInfo">模块信息</h3>
+    <p>版本: <span class="badge">v1.0</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 id="apiListTitle">接口列表</h3>
+    <ul class="api-list">
+      <li><span class="api-name">createBanner</span> — <span class="api-i18n-cb">创建LED灯牌配置</span></li>
+      <li><span class="api-name">getTemplates</span> — <span class="api-i18n-gt">获取赛博风格模板</span></li>
+      <li><span class="api-name">getStarTemplates</span> — <span class="api-i18n-gst">获取应援色模板</span></li>
+      <li><span class="api-name">applyTemplate</span> — <span class="api-i18n-at">应用模板到灯牌</span></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 id="usageTitle">使用方式</h3>
+    <p id="usageDesc">在对话中描述你的需求。例如："帮我做一个粉色应援灯牌写上加油"、"用赛博朋克风格显示Hello"、"显示滚动文字我爱你"</p>
+  </div>
+</div>
+
+<div class="fullscreen-overlay" id="fullscreenOverlay" onclick="toggleFullscreen()">
+  <div id="fsStars"></div>
+  <span class="fullscreen-text" id="fullscreenText"></span>
+</div>
+
+<script>
+var _lang=(typeof NativeBridge!=='undefined'&&NativeBridge.getLanguage)?NativeBridge.getLanguage():((navigator.language||'zh').substring(0,2)==='zh'?'zh':'en');
+function T(zh,en){return _lang==='zh'?zh:en;}
+
+var state={mode:'scroll',effects:{glow:false,bold:false,italic:false,shake:false,flash:false}};
+
+var CYBER=[
+  ['霓虹粉蓝','#FF6EC7','#0A0A2E'],['赛博朋克','#00FFFF','#1A0033'],['激光绿','#39FF14','#0D0D0D'],
+  ['电子紫','#BF00FF','#0A0A0A'],['烈焰橙','#FF4500','#1A0A00'],['冰蓝光','#00BFFF','#000A14'],
+  ['暗夜金','#FFD700','#0A0A00'],['荧光黄','#CCFF00','#0D0D00'],['深海蓝光','#00CED1','#001A1A'],
+  ['血月红','#DC143C','#140000'],['极光绿','#7FFF00','#001400'],['星空紫','#9370DB','#0A0014'],
+  ['钛金银','#C0C0C0','#1A1A1A'],['玫瑰金','#FF69B4','#1A0A10'],['翡翠绿','#50C878','#001A0D'],
+  ['琥珀橙','#FFBF00','#1A1000'],['宝石蓝','#0F52BA','#000A1A'],['樱花粉','#FFB7C5','#1A0D12'],
+  ['经典黑白','#FFFFFF','#000000'],['经典红黑','#FF0000','#000000']
+];
+
+var STAR=[
+  ['TFBOYS-王俊凯','#FFA500','#000'],['TFBOYS-王源','#00BFFF','#000'],['TFBOYS-易烊千玺','#FF69B4','#000'],
+  ['蔡徐坤','#FF1493','#000'],['周杰伦','#FFD700','#1A0A00'],['邓紫棋','#FF6EB4','#0A0014'],
+  ['薛之谦','#00CED1','#000'],['华晨宇','#FF4500','#0A0A0A'],['张艺兴','#9400D3','#000'],
+  ['鹿晗','#FFD700','#000'],['朱一龙','#FF6347','#0A0000'],['肖战','#FF0000','#000'],
+  ['王一博','#00FF00','#000'],['龚俊','#FF8C00','#000'],['时代少年团','#00BFFF','#0A0014'],
+  ['刘耀文','#FF69B4','#000A14'],['丁程鑫','#7B68EE','#000'],['张真源','#00CED1','#0A0A0A'],
+  ['BLACKPINK','#FF1493','#000'],['BTS防弹少年团','#9370DB','#000'],['EXO','#C0C0C0','#0A0A0A'],
+  ['NCT','#00FF7F','#000'],['TWICE','#FF6EC7','#1A0033'],['IVE','#FFB6C1','#0A0014'],
+  ['aespa','#7F00FF','#000'],['NewJeans','#87CEEB','#000A14'],['SEVENTEEN','#FF8C69','#000'],
+  ['Stray Kids','#FF0000','#0D0D0D'],['(G)I-DLE','#9B59B6','#000'],['LE SSERAFIM','#FF69B4','#0A0A2E'],
+  ['红色应援','#FF0000','#000'],['粉色应援','#FF69B4','#000'],['蓝色应援','#00BFFF','#000'],
+  ['紫色应援','#9370DB','#000'],['绿色应援','#00FF7F','#000'],['橙色应援','#FFA500','#000'],
+  ['金色应援','#FFD700','#000'],['白色应援','#FFFFFF','#000']
+];
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['editor','templates','api'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function setMode(m){
+  state.mode=m;
+  document.querySelectorAll('#modeChips .chip').forEach(function(c){c.classList.toggle('active',c.getAttribute('data-mode')===m)});
+  updatePreview();
+}
+
+function toggleEff(e){
+  state.effects[e]=!state.effects[e];
+  document.getElementById('eff'+e.charAt(0).toUpperCase()+e.slice(1)).classList.toggle('active',state.effects[e]);
+  updatePreview();
+}
+
+function updatePreview(){
+  var text=document.getElementById('bannerText').value||'LED';
+  var fc=document.getElementById('fontColor').value;
+  var bg=document.getElementById('bgColor').value;
+  var sz=document.getElementById('fontSize').value;
+  var spd=document.getElementById('speedRange').value;
+
+  var box=document.getElementById('previewBox');
+  box.style.background=bg;
+
+  var pt=document.getElementById('previewText');
+  pt.textContent=text.replace(/\n/g,' ');
+  pt.style.color=fc;
+  pt.style.fontSize=sz+'px';
+  pt.style.fontWeight=state.effects.bold?'bold':'normal';
+  pt.style.fontStyle=state.effects.italic?'italic':'normal';
+  pt.style.textShadow=state.effects.glow?'0 0 10px '+fc+',0 0 20px '+fc+',0 0 40px '+fc:'none';
+
+  pt.className='preview-text';
+  if(state.effects.shake) pt.classList.add('eff-shake');
+  else if(state.effects.flash) pt.classList.add('eff-flash');
+  else pt.classList.add('mode-'+state.mode);
+
+  pt.style.animationDuration=spd+'s';
+}
+
+function toggleFullscreen(){
+  var overlay=document.getElementById('fullscreenOverlay');
+  if(overlay.classList.contains('active')){
+    overlay.classList.remove('active');
+    clearStars();
+    return;
+  }
+  var text=document.getElementById('bannerText').value||'LED';
+  var fc=document.getElementById('fontColor').value;
+  var bg=document.getElementById('bgColor').value;
+  var sz=document.getElementById('fontSize').value;
+  var spd=document.getElementById('speedRange').value;
+
+  overlay.style.background=bg;
+  var ft=document.getElementById('fullscreenText');
+  ft.textContent=text.replace(/\n/g,' ');
+  ft.style.color=fc;
+  ft.style.fontSize=Math.min(parseInt(sz)*1.5,200)+'px';
+  ft.style.fontWeight=state.effects.bold?'bold':'normal';
+  ft.style.fontStyle=state.effects.italic?'italic':'normal';
+  ft.style.textShadow=state.effects.glow?'0 0 15px '+fc+',0 0 30px '+fc+',0 0 60px '+fc:'none';
+
+  ft.className='fullscreen-text';
+  if(state.effects.shake) ft.classList.add('eff-shake');
+  else if(state.effects.flash) ft.classList.add('eff-flash');
+  else if(state.mode==='scroll'){ft.style.animation='bannerScroll '+spd+'s linear infinite';}
+  else if(state.mode==='fade'){ft.style.animation='bannerFade '+spd+'s ease-in-out infinite';}
+  else{ft.style.animation='none';}
+
+  overlay.classList.add('active');
+  spawnStars(fc);
+}
+
+var starTimers=[];
+function spawnStars(color){
+  clearStars();
+  var container=document.getElementById('fsStars');
+  container.innerHTML='';
+  for(var i=0;i<30;i++){
+    var s=document.createElement('div');
+    s.className='star';
+    s.style.left=Math.random()*100+'%';
+    s.style.top=Math.random()*100+'%';
+    var size=Math.random()*4+1;
+    s.style.width=size+'px';s.style.height=size+'px';
+    s.style.background='radial-gradient(circle,'+color+',transparent)';
+    s.style.opacity=Math.random();
+    container.appendChild(s);
+  }
+  var stars=container.children;
+  starTimers.push(setInterval(function(){
+    for(var j=0;j<stars.length;j++){
+      stars[j].style.opacity=(Math.sin(Date.now()*0.003+j)*0.5+0.5).toFixed(2);
+    }
+  },50));
+}
+function clearStars(){starTimers.forEach(clearInterval);starTimers=[];var c=document.getElementById('fsStars');if(c)c.innerHTML='';}
+
+function applyTpl(fc,bg,name){
+  document.getElementById('fontColor').value=fc;
+  document.getElementById('bgColor').value=bg.length===4?bg[0]+bg[1]+bg[1]+bg[2]+bg[2]+bg[3]+bg[3]:bg;
+  updatePreview();
+  switchTab('editor');
+}
+
+function renderTemplates(){
+  var g=document.getElementById('cyberGrid');
+  g.innerHTML=CYBER.map(function(t){
+    return '<div class="tpl-item" style="background:'+t[2]+';color:'+t[1]+'" onclick="applyTpl(\''+t[1]+'\',\''+t[2]+'\',\''+t[0]+'\')">'+t[0]+'</div>';
+  }).join('');
+  renderStarGrid(STAR);
+}
+
+function renderStarGrid(list){
+  var g=document.getElementById('starGrid');
+  g.innerHTML=list.map(function(t){
+    return '<div class="tpl-item" style="background:'+t[2]+';color:'+t[1]+'" onclick="applyTpl(\''+t[1]+'\',\''+t[2]+'\',\''+t[0]+'\')">'+t[0]+'</div>';
+  }).join('');
+}
+
+function filterStarTemplates(){
+  var q=document.getElementById('starSearch').value.trim().toLowerCase();
+  if(!q){renderStarGrid(STAR);return;}
+  renderStarGrid(STAR.filter(function(t){return t[0].toLowerCase().indexOf(q)>=0;}));
+}
+
+function initModeChips(){
+  var c=document.getElementById('modeChips');
+  c.innerHTML='<span class="chip active" data-mode="scroll" onclick="setMode(\'scroll\')">'+T('滚动','Scroll')+'</span>'+
+    '<span class="chip" data-mode="fade" onclick="setMode(\'fade\')">'+T('浮现','Fade')+'</span>'+
+    '<span class="chip" data-mode="static" onclick="setMode(\'static\')">'+T('静止','Static')+'</span>';
+}
+
+function applyI18n(){
+  document.title=T('LED灯牌','LED Banner');
+  var tabs=document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0])tabs[0].textContent=T('灯牌编辑','Editor');
+  if(tabs[1])tabs[1].textContent=T('模板','Templates');
+  if(tabs[2])tabs[2].textContent=T('接口','API');
+  document.getElementById('pageTitle').textContent=T('LED灯牌','LED Banner');
+  document.getElementById('pageDesc').textContent=T('编辑文字和样式，点击预览区全屏展示','Edit text and style, tap preview for fullscreen');
+  document.getElementById('labelText').textContent=T('显示文字','Display Text');
+  document.getElementById('labelColors').textContent=T('颜色','Colors');
+  document.getElementById('labelFont').textContent=T('字色','Font');
+  document.getElementById('labelBg').textContent=T('背景','BG');
+  document.getElementById('labelMode').textContent=T('显示模式','Display Mode');
+  document.getElementById('labelSize').innerHTML=T('字体大小','Font Size')+': <span id="sizeVal">72</span>px';
+  document.getElementById('labelSpeed').innerHTML=T('速度','Speed')+': <span id="speedVal">6</span>s';
+  document.getElementById('labelEffects').textContent=T('特效','Effects');
+  document.getElementById('effGlow').textContent=T('荧光','Glow');
+  document.getElementById('effBold').textContent=T('加粗','Bold');
+  document.getElementById('effItalic').textContent=T('斜体','Italic');
+  document.getElementById('effShake').textContent=T('抖动','Shake');
+  document.getElementById('effFlash').textContent=T('闪烁','Flash');
+  document.getElementById('launchBtn').textContent=T('🔦 全屏展示','🔦 Fullscreen');
+  document.getElementById('cyberTitle').textContent=T('赛博风格','Cyber Style');
+  document.getElementById('starTitle').textContent=T('应援色','Support Colors');
+  document.getElementById('starSearch').placeholder=T('搜索应援色...','Search support colors...');
+  document.getElementById('apiModInfo').textContent=T('模块信息','Module Info');
+  document.getElementById('apiListTitle').textContent=T('接口列表','API List');
+  document.getElementById('usageTitle').textContent=T('使用方式','Usage');
+  document.getElementById('moduleDesc').textContent=T('LED应援灯牌，支持滚动/浮现/静止文字、自定义颜色和特效、赛博风格和应援色模板。','LED support banner with scroll/fade/static text, custom colors, effects, cyber and idol templates.');
+  document.getElementById('usageDesc').textContent=T('在对话中描述你的需求。例如："帮我做一个粉色应援灯牌写上加油"、"用赛博朋克风格显示Hello"','Describe your needs in chat. E.g. "Make a pink support banner saying Go!", "Show Hello in cyberpunk style"');
+  document.getElementById('bannerText').placeholder=T('输入灯牌文字','Enter banner text');
+}
+
+initModeChips();
+applyI18n();
+renderTemplates();
+updatePreview();
+</script>
+</body>
+</html>

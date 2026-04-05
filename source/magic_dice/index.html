@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>骰子工具</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.dice-header { text-align: center; padding: 20px 0 12px; }
+.dice-header .icon { font-size: 52px; }
+.dice-header h2 { margin: 8px 0 0; font-size: 20px; }
+.dice-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.dice-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 100px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.die {
+  width: 60px;
+  height: 60px;
+  background: var(--surface-variant);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
+}
+.die.rolling { animation: diceRoll 0.4s ease-in-out; }
+@keyframes diceRoll {
+  0% { transform: rotateX(0deg) scale(1); }
+  25% { transform: rotateX(90deg) scale(0.8); }
+  50% { transform: rotateX(180deg) scale(1.1); }
+  75% { transform: rotateX(270deg) scale(0.9); }
+  100% { transform: rotateX(360deg) scale(1); }
+}
+.dice-faces { font-size: 0; }
+.result-bar {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.result-total {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.result-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-left: 8px;
+  font-weight: 600;
+}
+.tag-big { background: #FFCDD2; color: #C62828; }
+.tag-small { background: #C8E6C9; color: #2E7D32; }
+.tag-tie { background: var(--primary-container); color: var(--primary); }
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.controls select, .controls input[type=number] {
+  padding: 8px 12px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--on-surface);
+  min-width: 80px;
+}
+.roll-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--primary);
+  color: var(--on-primary);
+  transition: all 0.2s;
+  margin-bottom: 14px;
+}
+.roll-btn:active { transform: scale(0.97); opacity: 0.9; }
+.history-section { margin-top: 8px; }
+.history-item .dice-mini {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 6px;
+}
+.dice-mini-die {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--primary-container);
+  color: var(--primary);
+}
+.stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.stats-table th, .stats-table td { padding: 4px 6px; text-align: center; border-bottom: 1px solid var(--surface-variant); }
+.stats-table th { color: var(--on-surface-variant); font-weight: 500; }
+.prob-bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--primary); vertical-align: middle; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('dice')">骰子</div>
+  <div class="tab" onclick="switchTab('stats')">统计</div>
+  <div class="tab" onclick="switchTab('api')">接口</div>
+</div>
+
+<div id="tab-dice" class="tab-content active">
+  <div class="dice-header">
+    <div class="icon">🎲</div>
+    <h2 id="pageTitle">骰子工具</h2>
+    <p id="pageDesc">选择骰子数量，点击摇骰子</p>
+  </div>
+
+  <div class="controls">
+    <label style="font-size:13px;line-height:36px;" id="labelCount">数量：</label>
+    <select id="diceCount" onchange="onCountChange()">
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+  </div>
+
+  <div class="dice-area" id="diceArea">
+    <div class="die">?</div>
+    <div class="die">?</div>
+  </div>
+
+  <div class="result-bar" id="resultBar" style="display:none;">
+    <span class="result-total" id="resultTotal"></span>
+    <span class="result-tag" id="resultTag"></span>
+  </div>
+
+  <button class="roll-btn" id="rollBtn" onclick="doRoll()">🎲 摇骰子</button>
+
+  <div class="history-section">
+    <h3 id="historyTitle" style="font-size:14px;margin-bottom:8px;">历史记录</h3>
+    <div id="historyList"><div class="empty" id="historyEmpty">暂无记录</div></div>
+  </div>
+</div>
+
+<div id="tab-stats" class="tab-content">
+  <div class="card">
+    <h3 id="statsTitle">概率统计</h3>
+    <p style="font-size:13px;color:var(--on-surface-variant);margin-bottom:8px;" id="statsDesc">选择骰子数量查看概率分布</p>
+    <div style="margin-bottom:10px;">
+      <select id="statsCount" onchange="loadStats()">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+    <div id="statsResult"></div>
+  </div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 id="apiModInfo">模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v1.0</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 id="apiListTitle">接口列表</h3>
+    <ul class="api-list">
+      <li><span class="api-name">roll</span> — <span class="i18n-roll">掷骰子，返回每颗点数和总点数</span></li>
+      <li><span class="api-name">rollWithSum</span> — <span class="i18n-rws">掷骰子使结果等于指定总和</span></li>
+      <li><span class="api-name">rollBigOrSmall</span> — <span class="i18n-rbs">掷骰子并判定大小</span></li>
+      <li><span class="api-name">rollAllSame</span> — <span class="i18n-ras">掷出豹子（所有骰子相同）</span></li>
+      <li><span class="api-name">getCombinations</span> — <span class="i18n-gc">枚举骰子组合</span></li>
+      <li><span class="api-name">getStats</span> — <span class="i18n-gs">概率统计</span></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 id="usageTitle">使用方式</h3>
+    <p id="usageDesc">在对话中用自然语言描述你的需求。例如："帮我掷3个骰子"、"2个骰子总和为7有多少种组合"、"掷一个豹子"</p>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+var DICE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+var rollHistory = [];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['dice','stats','api'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name === 'stats') loadStats();
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return JSON.parse(res.output);
+}
+
+function onCountChange() {
+  var count = parseInt(document.getElementById('diceCount').value);
+  var area = document.getElementById('diceArea');
+  area.innerHTML = '';
+  for(var i = 0; i < count; i++) {
+    area.innerHTML += '<div class="die">?</div>';
+  }
+  document.getElementById('resultBar').style.display = 'none';
+}
+
+function doRoll() {
+  var count = parseInt(document.getElementById('diceCount').value);
+  try {
+    var data = invokeNative('rollBigOrSmall', { count: count });
+    showDice(data);
+  } catch(e) {
+    fallbackRoll(count);
+  }
+}
+
+function fallbackRoll(count) {
+  var dice = [], total = 0;
+  for(var i = 0; i < count; i++) {
+    var v = Math.floor(Math.random() * 6) + 1;
+    dice.push(v);
+    total += v;
+  }
+  var threshold = count * 3.5;
+  showDice({
+    dice: dice, total: total, count: count,
+    size: total > threshold ? '大' : (total < threshold ? '小' : '和'),
+    size_en: total > threshold ? 'big' : (total < threshold ? 'small' : 'tie')
+  });
+}
+
+function showDice(data) {
+  var area = document.getElementById('diceArea');
+  var dies = area.querySelectorAll('.die');
+  for(var i = 0; i < dies.length; i++) {
+    dies[i].classList.add('rolling');
+    dies[i].textContent = '';
+  }
+
+  setTimeout(function(){
+    for(var i = 0; i < dies.length && i < data.dice.length; i++) {
+      dies[i].classList.remove('rolling');
+      dies[i].textContent = DICE_FACES[data.dice[i]] || data.dice[i];
+    }
+    var bar = document.getElementById('resultBar');
+    bar.style.display = '';
+    document.getElementById('resultTotal').textContent = T('总计: ','Total: ') + data.total;
+    var tag = document.getElementById('resultTag');
+    if(data.size) {
+      var sizeText = _lang === 'zh' ? data.size : (data.size_en || data.size);
+      tag.textContent = sizeText;
+      tag.className = 'result-tag ' + (data.size === '大' ? 'tag-big' : (data.size === '小' ? 'tag-small' : 'tag-tie'));
+      tag.style.display = '';
+    } else {
+      tag.style.display = 'none';
+    }
+
+    rollHistory.unshift({ dice: data.dice.slice(), total: data.total, size: data.size, time: new Date().toLocaleTimeString() });
+    if(rollHistory.length > 20) rollHistory.pop();
+    renderHistory();
+  }, 450);
+}
+
+function renderHistory() {
+  var el = document.getElementById('historyList');
+  if(!rollHistory.length) { el.innerHTML = '<div class="empty">'+T('暂无记录','No records')+'</div>'; return; }
+  el.innerHTML = rollHistory.map(function(h){
+    var mini = h.dice.map(function(v){ return '<span class="dice-mini-die">'+(DICE_FACES[v]||v)+'</span>'; }).join('');
+    return '<div class="history-item"><span class="dice-mini">'+mini+'</span>= '+h.total+(h.size?' ('+h.size+')':'')+' <span class="time">'+h.time+'</span></div>';
+  }).join('');
+}
+
+function loadStats() {
+  var count = parseInt(document.getElementById('statsCount').value);
+  try {
+    var data = invokeNative('getStats', { count: count });
+    renderStats(data);
+  } catch(e) {
+    document.getElementById('statsResult').innerHTML = '<div class="empty">'+T('统计加载失败','Failed to load stats')+'</div>';
+  }
+}
+
+function renderStats(data) {
+  var html = '<div style="font-size:13px;margin-bottom:8px;">'+T('期望值: ','Expected: ')+data.expected+' | '+T('范围: ','Range: ')+data.min+'-'+data.max+' | '+T('总排列: ','Outcomes: ')+data.totalOutcomes+'</div>';
+  html += '<table class="stats-table"><tr><th>'+T('总和','Sum')+'</th><th>'+T('方式','Ways')+'</th><th>'+T('概率','Prob')+'</th><th></th></tr>';
+  var maxWays = 0;
+  if(data.distribution) {
+    for(var i = 0; i < data.distribution.length; i++) {
+      if(data.distribution[i].ways > maxWays) maxWays = data.distribution[i].ways;
+    }
+    for(var i = 0; i < data.distribution.length; i++) {
+      var d = data.distribution[i];
+      var barW = Math.max(2, Math.round(d.ways / maxWays * 80));
+      html += '<tr><td>'+d.sum+'</td><td>'+d.ways+'</td><td>'+d.probability+'</td><td><span class="prob-bar" style="width:'+barW+'px"></span></td></tr>';
+    }
+  }
+  html += '</table>';
+  document.getElementById('statsResult').innerHTML = html;
+}
+
+function applyI18n() {
+  document.title = T('骰子工具','Dice Tool');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('骰子','Dice');
+  if(tabs[1]) tabs[1].textContent = T('统计','Stats');
+  if(tabs[2]) tabs[2].textContent = T('接口','API');
+  document.getElementById('pageTitle').textContent = T('骰子工具','Dice Tool');
+  document.getElementById('pageDesc').textContent = T('选择骰子数量，点击摇骰子','Select dice count, tap to roll');
+  document.getElementById('labelCount').textContent = T('数量：','Count: ');
+  document.getElementById('rollBtn').textContent = T('🎲 摇骰子','🎲 Roll Dice');
+  document.getElementById('historyTitle').textContent = T('历史记录','History');
+  document.getElementById('historyEmpty').textContent = T('暂无记录','No records');
+  document.getElementById('statsTitle').textContent = T('概率统计','Statistics');
+  document.getElementById('statsDesc').textContent = T('选择骰子数量查看概率分布','Select dice count to view probability distribution');
+  document.getElementById('apiModInfo').textContent = T('模块信息','Module Info');
+  document.getElementById('apiListTitle').textContent = T('接口列表','API List');
+  document.getElementById('usageTitle').textContent = T('使用方式','Usage');
+  document.getElementById('moduleDesc').textContent = T('支持掷骰子、指定目标值、大小判定、豹子、组合枚举和概率统计。','Roll dice, target sum, big/small, leopard, combinations and statistics.');
+  document.getElementById('usageDesc').textContent = T(
+    '在对话中用自然语言描述你的需求。例如："帮我掷3个骰子"、"2个骰子总和为7有多少种组合"、"掷一个豹子"',
+    'Describe your needs in chat. E.g. "Roll 3 dice", "How many combos sum to 7 with 2 dice?", "Roll a leopard"'
+  );
+}
+applyI18n();
+</script>
+</body>
+</html>

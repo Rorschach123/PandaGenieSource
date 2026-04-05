@@ -11,7 +11,7 @@
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.app_manager.AppManagerPlugin",
   "soLoadMode": "skip",
-  "capabilities": [],
+  "capabilities": ["app_list"],
   "permissions": [
     {
       "name": "android.permission.REQUEST_DELETE_PACKAGES",

@@ -1,0 +1,71 @@
+{
+  "id": "device_info",
+  "name": "设备信息",
+  "name_en": "Device Info",
+  "description": "设备信息模块，提供机型与系统版本、CPU、内存、存储、屏幕参数及一键汇总，仅使用系统公开 API。",
+  "description_en": "Device information module: model/OS, CPU, RAM, storage, display metrics, and one-call summary using public Android APIs only.",
+  "version": "1.0",
+  "icon": "phone_android",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.device_info.DeviceInfoPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getDeviceInfo",
+      "desc": "获取品牌、型号、制造商、Android 版本、SDK 级别、构建号与系统指纹等基础信息，用户说【设备信息】【手机型号】【系统版本】时使用",
+      "desc_en": "Brand, model, manufacturer, Android version, SDK level, build number, and build fingerprint — use when the user asks for device or OS basics.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getCpuInfo",
+      "desc": "读取 /proc/cpuinfo 并返回处理器数量与架构等 CPU 信息，用户说【CPU】【处理器】【几核】时使用",
+      "desc_en": "Read /proc/cpuinfo plus processor count and architecture — use for CPU / core count questions.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getMemoryInfo",
+      "desc": "通过 ActivityManager 获取内存总量、可用、已用与占用比例，用户说【内存】【运存】【RAM】时使用",
+      "desc_en": "RAM total, available, used, and usage percent via ActivityManager.MemoryInfo.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getStorageInfo",
+      "desc": "使用 StatFs 与 Environment 获取内部存储与外部主存储的总空间、可用与已用，用户说【存储】【空间】【硬盘】时使用",
+      "desc_en": "Internal and primary external storage total, available, and used via StatFs and Environment.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getDisplayInfo",
+      "desc": "通过 WindowManager 与 DisplayMetrics 获取屏幕宽高、密度、densityDpi 与刷新率，用户说【屏幕】【分辨率】【刷新率】时使用",
+      "desc_en": "Screen width, height, density, densityDpi, and refresh rate via WindowManager and DisplayMetrics.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getSystemSummary",
+      "desc": "一次调用汇总设备、CPU、内存、存储与屏幕信息，用户说【设备概况】【整机信息】时使用",
+      "desc_en": "Single call combining device, CPU, memory, storage, and display summaries.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

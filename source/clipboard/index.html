@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>剪贴板管理 / Clipboard Manager</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">📋</div>
+  <h2>剪贴板管理 / Clipboard Manager</h2>
+  <p>读写剪贴板、管理剪贴板历史记录</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">getClipboard</span> — 获取当前剪贴板中的文本内容</li>
+    <li><span class="api-name">setClipboard</span> — 将指定文本写入系统剪贴板</li>
+    <li><span class="api-name">clearClipboard</span> — 清空系统剪贴板（写入空文本）</li>
+    <li><span class="api-name">getClipboardHistory</span> — 读取本地保存的剪贴板历史（/sdcard/PandaGenie/data/clipboard/history.json），按时间从新到旧返回，limit 默认 20</li>
+    <li><span class="api-name">saveToHistory</span> — 将当前剪贴板文本追加到历史文件（去重与条数上限由模块内部处理）</li>
+    <li><span class="api-name">searchHistory</span> — 按关键词在历史记录中搜索文本内容</li>
+    <li><span class="api-name">clearHistory</span> — 清空本地剪贴板历史文件</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

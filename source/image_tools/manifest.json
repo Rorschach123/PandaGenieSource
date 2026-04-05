@@ -1,0 +1,77 @@
+{
+  "id": "image_tools",
+  "name": "图片工具",
+  "name_en": "Image Tools",
+  "description": "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪等操作",
+  "description_en": "Image tools: view info, resize, compress, convert format, rotate, and crop images",
+  "version": "1.0",
+  "icon": "image",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.image_tools.ImageToolsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于读写图片文件",
+      "desc_en": "Read and write image files"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getImageInfo",
+      "desc": "获取图片信息：宽高、格式、文件大小、EXIF（方向、日期、GPS 等）",
+      "desc_en": "Get image info: dimensions, format, file size, EXIF (orientation, date, GPS if present)",
+      "params": ["path"],
+      "paramDesc": ["图片文件路径"],
+      "paramDesc_en": ["Path to the image file"]
+    },
+    {
+      "name": "resizeImage",
+      "desc": "将图片缩放到指定宽高并保存",
+      "desc_en": "Resize image to the given width and height and save",
+      "params": ["path", "width", "height", "outputPath"],
+      "paramDesc": ["源文件路径", "目标宽度（像素）", "目标高度（像素）", "输出路径（可选，默认在原文件名加后缀覆盖式保存）"],
+      "paramDesc_en": ["Source path", "Target width (px)", "Target height (px)", "Output path (optional; default adds suffix to filename)"]
+    },
+    {
+      "name": "compressImage",
+      "desc": "压缩图片以减小体积；quality 对 JPEG/WEBP 有效",
+      "desc_en": "Compress to reduce size; quality applies to JPEG/WEBP",
+      "params": ["path", "quality", "outputPath"],
+      "paramDesc": ["源文件路径", "质量 1-100，默认 80", "输出路径（可选）"],
+      "paramDesc_en": ["Source path", "Quality 1-100, default 80", "Output path (optional)"]
+    },
+    {
+      "name": "convertFormat",
+      "desc": "在 PNG、JPG、WEBP 之间转换格式",
+      "desc_en": "Convert image between PNG, JPG, and WEBP",
+      "params": ["path", "format", "outputPath"],
+      "paramDesc": ["源文件路径", "目标格式：jpg / png / webp", "输出路径（可选）"],
+      "paramDesc_en": ["Source path", "Target format: jpg, png, or webp", "Output path (optional)"]
+    },
+    {
+      "name": "rotateImage",
+      "desc": "按角度旋转图片（90/180/270）",
+      "desc_en": "Rotate image by degrees (90, 180, or 270)",
+      "params": ["path", "degrees", "outputPath"],
+      "paramDesc": ["源文件路径", "旋转角度：90、180 或 270", "输出路径（可选）"],
+      "paramDesc_en": ["Source path", "Rotation: 90, 180, or 270", "Output path (optional)"]
+    },
+    {
+      "name": "cropImage",
+      "desc": "按矩形区域裁剪图片（坐标相对原图）",
+      "desc_en": "Crop image to a rectangle (coordinates relative to original image)",
+      "params": ["path", "x", "y", "width", "height", "outputPath"],
+      "paramDesc": ["源文件路径", "裁剪起点 X", "裁剪起点 Y", "裁剪宽度", "裁剪高度", "输出路径（可选）"],
+      "paramDesc_en": ["Source path", "Left", "Top", "Crop width", "Crop height", "Output path (optional)"]
+    }
+  ]
+}

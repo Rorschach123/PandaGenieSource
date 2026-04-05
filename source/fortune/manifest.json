@@ -1,0 +1,55 @@
+{
+  "id": "fortune",
+  "name": "每日运势",
+  "name_en": "Daily Fortune",
+  "description": "每日运势模块，支持查询今日运势、指定日期运势、农历日期转换，基于日期和姓名生成个性化运势结果，含七个运势等级和丰富的运势词库",
+  "description_en": "Daily fortune module with personalized fortune by date and name, lunar calendar conversion, seven fortune levels and rich fortune vocabulary",
+  "version": "1.0",
+  "icon": "auto_awesome",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.fortune.FortunePlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getDailyFortune",
+      "desc": "获取今日运势，可传入姓名生成个性化结果，返回运势等级、运势词、幸运数字、幸运颜色、宜忌建议和农历日期",
+      "desc_en": "Get today's fortune. Pass a name for personalized result. Returns fortune level, keyword, lucky number, lucky color, advice and lunar date",
+      "params": ["name"],
+      "paramDesc": ["姓名（可选，用于个性化运势）"],
+      "paramDesc_en": ["Name (optional, for personalized fortune)"]
+    },
+    {
+      "name": "getFortuneByDate",
+      "desc": "获取指定日期的运势，返回运势等级、运势词、幸运数字、幸运颜色、宜忌建议和农历日期",
+      "desc_en": "Get fortune for a specific date. Returns fortune level, keyword, lucky number, lucky color, advice and lunar date",
+      "params": ["date", "name"],
+      "paramDesc": ["日期，格式 YYYY-MM-DD", "姓名（可选）"],
+      "paramDesc_en": ["Date in YYYY-MM-DD format", "Name (optional)"]
+    },
+    {
+      "name": "getLunarDate",
+      "desc": "将公历日期转换为农历日期，返回农历年月日、天干地支、生肖",
+      "desc_en": "Convert solar date to lunar date. Returns lunar year/month/day, heavenly stems and earthly branches, zodiac animal",
+      "params": ["date"],
+      "paramDesc": ["公历日期，格式 YYYY-MM-DD，不传则返回今天"],
+      "paramDesc_en": ["Solar date in YYYY-MM-DD format, defaults to today"]
+    },
+    {
+      "name": "getFortuneLevel",
+      "desc": "查询运势等级详情，等级 1-7 分别对应大吉、吉、中吉、小吉、末吉、凶、大凶",
+      "desc_en": "Get fortune level details. Level 1-7: Great luck, Good luck, Medium luck, Small luck, End luck, Bad luck, Terrible luck",
+      "params": ["level"],
+      "paramDesc": ["运势等级 1-7"],
+      "paramDesc_en": ["Fortune level 1-7"]
+    }
+  ]
+}

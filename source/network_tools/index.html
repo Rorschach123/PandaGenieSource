@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>网络工具 / Network Tools</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🌐</div>
+  <h2>网络工具 / Network Tools</h2>
+  <p>Ping测试、DNS查询、IP地址、网络连接状态</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">ping</span> — Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码</li>
+    <li><span class="api-name">dnsLookup</span> — DNS 解析域名，返回解析到的所有 IP 地址</li>
+    <li><span class="api-name">getLocalIp</span> — 枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表</li>
+    <li><span class="api-name">getPublicIp</span> — 通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）</li>
+    <li><span class="api-name">checkConnectivity</span> — 使用 ConnectivityManager 检查当前网络是否可用及是否已验证连通</li>
+    <li><span class="api-name">getNetworkInfo</span> — 当前网络类型（WiFi/蜂窝/无等）、WiFi SSID（若系统允许）、链路速率等信息</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

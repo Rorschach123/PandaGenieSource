@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>每日运势</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.fortune-header { text-align: center; padding: 20px 0 12px; }
+.fortune-header .icon { font-size: 52px; }
+.fortune-header h2 { margin: 8px 0 0; font-size: 20px; }
+.fortune-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.fortune-card {
+  background: linear-gradient(135deg, var(--primary-container), var(--tertiary-container));
+  border-radius: 16px;
+  padding: 24px 20px;
+  margin-bottom: 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.fortune-card::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -20%;
+  width: 150px;
+  height: 150px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+}
+.fortune-level {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+.fortune-symbol { font-size: 28px; }
+.fortune-word {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 8px 0;
+}
+.fortune-date {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-top: 8px;
+}
+.fortune-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.detail-item {
+  background: var(--surface-variant);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.detail-item .label {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-bottom: 4px;
+}
+.detail-item .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.advice-section { margin-bottom: 14px; }
+.advice-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.advice-box {
+  flex: 1;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+}
+.advice-do {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+.advice-dont {
+  background: var(--error-container);
+  color: var(--error);
+}
+.advice-box .tag {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: block;
+}
+.name-input-area {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.name-input-area input { flex: 1; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('fortune')">今日运势</div>
+  <div class="tab" onclick="switchTab('api')">接口说明</div>
+</div>
+
+<div id="tab-fortune" class="tab-content active">
+  <div class="fortune-header">
+    <div class="icon" id="fortuneIcon">🔮</div>
+    <h2 id="pageTitle">每日运势</h2>
+    <p id="pageDesc">输入姓名获取个性化运势</p>
+  </div>
+
+  <div class="name-input-area">
+    <input type="text" id="nameInput" placeholder="输入姓名（可选）" maxlength="20">
+    <button class="btn btn-primary" onclick="queryFortune()">查询</button>
+  </div>
+
+  <div id="fortuneResult" style="display:none;">
+    <div class="fortune-card">
+      <div class="fortune-symbol" id="fSymbol"></div>
+      <div class="fortune-level" id="fLevel"></div>
+      <div class="fortune-word" id="fWord"></div>
+      <div class="fortune-date" id="fDate"></div>
+    </div>
+    <div class="fortune-detail">
+      <div class="detail-item">
+        <div class="label" id="labelLucky">幸运数字</div>
+        <div class="value" id="fLuckyNum"></div>
+      </div>
+      <div class="detail-item">
+        <div class="label" id="labelColor">幸运颜色</div>
+        <div class="value" id="fLuckyColor"></div>
+      </div>
+    </div>
+    <div class="advice-row">
+      <div class="advice-box advice-do">
+        <span class="tag" id="tagDo">✅ 宜</span>
+        <span id="fDo"></span>
+      </div>
+      <div class="advice-box advice-dont">
+        <span class="tag" id="tagDont">❌ 忌</span>
+        <span id="fDont"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="fortuneEmpty" class="empty">点击「查询」获取今日运势</div>
+</div>
+
+<div id="tab-api" class="tab-content">
+  <div class="card">
+    <h3 id="apiModInfo">模块信息</h3>
+    <p>版本: <span class="badge" id="moduleVersion">v1.0</span></p>
+    <p style="margin-top:6px;font-size:13px;color:var(--on-surface-variant)" id="moduleDesc"></p>
+  </div>
+  <div class="card">
+    <h3 id="apiListTitle">接口列表</h3>
+    <ul class="api-list">
+      <li><span class="api-name">getDailyFortune</span> — <span class="api-desc">获取今日运势，可传入姓名生成个性化结果</span></li>
+      <li><span class="api-name">getFortuneByDate</span> — <span class="api-desc">获取指定日期的运势</span></li>
+      <li><span class="api-name">getLunarDate</span> — <span class="api-desc">将公历日期转换为农历日期</span></li>
+      <li><span class="api-name">getFortuneLevel</span> — <span class="api-desc">查询运势等级详情（1-7）</span></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 id="usageTitle">使用方式</h3>
+    <p id="usageDesc">在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。例如："今天运势怎么样"、"查一下2026年1月1日的运势"、"今天农历几号"</p>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : ((navigator.language || 'zh').substring(0,2) === 'zh' ? 'zh' : 'en');
+function T(zh, en) { return _lang === 'zh' ? zh : en; }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['fortune','api'][i]===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error('NativeBridge not ready');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('调用失败','Call failed'));
+  return JSON.parse(res.output);
+}
+
+function queryFortune() {
+  try {
+    var name = document.getElementById('nameInput').value.trim();
+    var data = invokeNative('getDailyFortune', { name: name });
+    showResult(data);
+  } catch(e) {
+    document.getElementById('fortuneEmpty').textContent = e.message || T('查询失败','Query failed');
+    document.getElementById('fortuneEmpty').style.display = '';
+    document.getElementById('fortuneResult').style.display = 'none';
+  }
+}
+
+function showResult(data) {
+  document.getElementById('fortuneEmpty').style.display = 'none';
+  document.getElementById('fortuneResult').style.display = '';
+  document.getElementById('fSymbol').textContent = data.symbol || '';
+  document.getElementById('fLevel').textContent = _lang === 'zh' ? data.levelName : data.levelName_en;
+  document.getElementById('fWord').textContent = data.fortuneWord || '';
+  var lunarStr = data.lunar ? data.lunar.lunarDateString : '';
+  document.getElementById('fDate').textContent = data.date + (lunarStr ? '  ' + lunarStr : '');
+  document.getElementById('fLuckyNum').textContent = data.luckyNumber || '';
+  document.getElementById('fLuckyColor').textContent = data.luckyColor || '';
+  document.getElementById('fDo').textContent = data.adviceDo || '';
+  document.getElementById('fDont').textContent = data.adviceDont || '';
+}
+
+function applyI18n() {
+  document.title = T('每日运势','Daily Fortune');
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  if(tabs[0]) tabs[0].textContent = T('今日运势','Today\'s Fortune');
+  if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
+  document.getElementById('pageTitle').textContent = T('每日运势','Daily Fortune');
+  document.getElementById('pageDesc').textContent = T('输入姓名获取个性化运势','Enter name for personalized fortune');
+  document.getElementById('nameInput').placeholder = T('输入姓名（可选）','Enter name (optional)');
+  document.getElementById('labelLucky').textContent = T('幸运数字','Lucky Number');
+  document.getElementById('labelColor').textContent = T('幸运颜色','Lucky Color');
+  document.getElementById('tagDo').textContent = T('✅ 宜','✅ Do');
+  document.getElementById('tagDont').textContent = T('❌ 忌','❌ Don\'t');
+  document.getElementById('fortuneEmpty').textContent = T('点击「查询」获取今日运势','Tap "Query" to get today\'s fortune');
+  document.getElementById('apiModInfo').textContent = T('模块信息','Module Info');
+  document.getElementById('apiListTitle').textContent = T('接口列表','API List');
+  document.getElementById('usageTitle').textContent = T('使用方式','Usage');
+  document.getElementById('moduleDesc').textContent = T(
+    '基于日期和姓名生成个性化运势，含七个运势等级、农历日期转换和丰富的运势词库。',
+    'Personalized fortune based on date and name, with 7 fortune levels, lunar calendar conversion and rich vocabulary.'
+  );
+  document.getElementById('usageDesc').textContent = T(
+    '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。例如："今天运势怎么样"、"查一下2026年1月1日的运势"、"今天农历几号"',
+    'Describe your needs in natural language. AI will call this module automatically. E.g. "What\'s my fortune today?", "Fortune for 2026-01-01", "What\'s today in lunar calendar?"'
+  );
+  var btn = document.querySelector('.btn-primary');
+  if(btn) btn.textContent = T('查询','Query');
+}
+applyI18n();
+</script>
+</body>
+</html>

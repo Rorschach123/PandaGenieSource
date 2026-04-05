@@ -627,7 +627,7 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                     $index.modules += $newEntry
                     Write-Host "  + Auto-added $modId to modules.json" -ForegroundColor Green
                 } else {
-                    Write-Host "  ! Cannot auto-add $modId: no manifest at $srcManifest" -ForegroundColor Yellow
+                    Write-Host "  ! Cannot auto-add ${modId}: no manifest at ${srcManifest}" -ForegroundColor Yellow
                 }
             }
         }

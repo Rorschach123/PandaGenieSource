@@ -1,0 +1,77 @@
+{
+  "id": "notes",
+  "name": "笔记助手",
+  "name_en": "Notes",
+  "description": "笔记助手模块，支持创建、查看、编辑、删除、搜索和导出笔记，数据本地存储",
+  "description_en": "Note-taking module: create, view, edit, delete, search and export notes with local file storage",
+  "version": "1.0",
+  "icon": "note",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.notes.NotesPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {"name": "android.permission.MANAGE_EXTERNAL_STORAGE", "desc": "用于在本地存储中读写笔记数据", "desc_en": "Read and write note data in local storage"}
+  ],
+  "developer": {"name": "PandaGenie Official", "email": "", "url": ""},
+  "apis": [
+    {
+      "name": "createNote",
+      "desc": "创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json",
+      "desc_en": "Create a note with a unique ID, saved as JSON under /sdcard/PandaGenie/data/notes/{id}.json",
+      "params": ["title", "content"],
+      "paramDesc": ["笔记标题", "笔记正文"],
+      "paramDesc_en": ["Note title", "Note body"]
+    },
+    {
+      "name": "listNotes",
+      "desc": "列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文",
+      "desc_en": "List all notes (id, title, created/updated time, content preview); optional keyword filter on title and body",
+      "params": ["keyword"],
+      "paramDesc": ["可选，过滤标题与正文，留空表示不过滤"],
+      "paramDesc_en": ["Optional; filters title and content; empty means no filter"]
+    },
+    {
+      "name": "getNote",
+      "desc": "按笔记 ID 读取完整 JSON 内容",
+      "desc_en": "Load full note JSON by note id",
+      "params": ["id"],
+      "paramDesc": ["笔记 ID"],
+      "paramDesc_en": ["Note id"]
+    },
+    {
+      "name": "updateNote",
+      "desc": "按 ID 更新笔记标题或正文；传入的字段才会被更新",
+      "desc_en": "Update note title and/or content by id; only provided fields are changed",
+      "params": ["id", "title", "content"],
+      "paramDesc": ["笔记 ID", "新标题，可不传", "新正文，可不传"],
+      "paramDesc_en": ["Note id", "New title, optional", "New body, optional"]
+    },
+    {
+      "name": "deleteNote",
+      "desc": "按 ID 删除对应 JSON 文件",
+      "desc_en": "Delete the note JSON file by id",
+      "params": ["id"],
+      "paramDesc": ["笔记 ID"],
+      "paramDesc_en": ["Note id"]
+    },
+    {
+      "name": "searchNotes",
+      "desc": "在标题与正文中按关键词搜索，返回匹配的笔记摘要列表",
+      "desc_en": "Search notes by keyword in title and content; returns matching summaries",
+      "params": ["keyword"],
+      "paramDesc": ["搜索关键词"],
+      "paramDesc_en": ["Search keyword"]
+    },
+    {
+      "name": "exportNote",
+      "desc": "将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）",
+      "desc_en": "Export a note to plain text; path may be a full .txt path or a directory ({id}.txt inside)",
+      "params": ["id", "path"],
+      "paramDesc": ["笔记 ID", "输出文件路径或目录"],
+      "paramDesc_en": ["Note id", "Output file path or directory"]
+    }
+  ]
+}

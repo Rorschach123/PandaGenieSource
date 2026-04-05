@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>设备信息 / Device Info</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">📱</div>
+  <h2>设备信息 / Device Info</h2>
+  <p>查看设备型号、CPU、内存、存储、屏幕等系统信息</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">getDeviceInfo</span> — 获取品牌、型号、制造商、Android 版本、SDK 级别、构建号与系统指纹等基础信息，用户说【设备信息】【手机型号】【系统版本】时使用</li>
+    <li><span class="api-name">getCpuInfo</span> — 读取 /proc/cpuinfo 并返回处理器数量与架构等 CPU 信息，用户说【CPU】【处理器】【几核】时使用</li>
+    <li><span class="api-name">getMemoryInfo</span> — 通过 ActivityManager 获取内存总量、可用、已用与占用比例，用户说【内存】【运存】【RAM】时使用</li>
+    <li><span class="api-name">getStorageInfo</span> — 使用 StatFs 与 Environment 获取内部存储与外部主存储的总空间、可用与已用，用户说【存储】【空间】【硬盘】时使用</li>
+    <li><span class="api-name">getDisplayInfo</span> — 通过 WindowManager 与 DisplayMetrics 获取屏幕宽高、密度、densityDpi 与刷新率，用户说【屏幕】【分辨率】【刷新率】时使用</li>
+    <li><span class="api-name">getSystemSummary</span> — 一次调用汇总设备、CPU、内存、存储与屏幕信息，用户说【设备概况】【整机信息】时使用</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>图片工具 / Image Tools</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🖼️</div>
+  <h2>图片工具 / Image Tools</h2>
+  <p>图片信息查看、缩放、压缩、格式转换、旋转、裁剪</p>
+</div>
+<div class="info-card">
+  <h3>功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">getImageInfo</span> — 获取图片信息：宽高、格式、文件大小、EXIF（方向、日期、GPS 等）</li>
+    <li><span class="api-name">resizeImage</span> — 将图片缩放到指定宽高并保存</li>
+    <li><span class="api-name">compressImage</span> — 压缩图片以减小体积；quality 对 JPEG/WEBP 有效</li>
+    <li><span class="api-name">convertFormat</span> — 在 PNG、JPG、WEBP 之间转换格式</li>
+    <li><span class="api-name">rotateImage</span> — 按角度旋转图片（90/180/270）</li>
+    <li><span class="api-name">cropImage</span> — 按矩形区域裁剪图片（坐标相对原图）</li>
+  </ul>
+</div>
+<div class="info-card">
+  <h3>使用方式</h3>
+  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+</div>
+</body>
+</html>

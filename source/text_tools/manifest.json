@@ -1,0 +1,103 @@
+{
+  "id": "text_tools",
+  "name": "文本工具",
+  "name_en": "Text Tools",
+  "description": "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希等",
+  "description_en": "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing",
+  "version": "1.0",
+  "icon": "text_fields",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.text_tools.TextToolsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "wordCount",
+      "desc": "统计文本的字符数、词数、行数、句数、段数；中文按字计词，英文按空白分词",
+      "desc_en": "Count characters, words, lines, sentences, paragraphs; CJK ideographs count as one word each, English words by whitespace",
+      "params": ["text"],
+      "paramDesc": ["待统计的文本"],
+      "paramDesc_en": ["Text to analyze"]
+    },
+    {
+      "name": "base64Encode",
+      "desc": "将文本按 UTF-8 编码为 Base64 字符串",
+      "desc_en": "Encode text to Base64 (UTF-8 bytes)",
+      "params": ["text"],
+      "paramDesc": ["原文"],
+      "paramDesc_en": ["Plain text"]
+    },
+    {
+      "name": "base64Decode",
+      "desc": "将 Base64 解码为 UTF-8 文本",
+      "desc_en": "Decode Base64 to UTF-8 text",
+      "params": ["text"],
+      "paramDesc": ["Base64 字符串"],
+      "paramDesc_en": ["Base64 string"]
+    },
+    {
+      "name": "urlEncode",
+      "desc": "URL 编码（application/x-www-form-urlencoded，空格为 +）",
+      "desc_en": "URL encode (application/x-www-form-urlencoded; space as +)",
+      "params": ["text"],
+      "paramDesc": ["待编码文本"],
+      "paramDesc_en": ["Text to encode"]
+    },
+    {
+      "name": "urlDecode",
+      "desc": "URL 解码",
+      "desc_en": "URL decode",
+      "params": ["text"],
+      "paramDesc": ["已编码文本"],
+      "paramDesc_en": ["Encoded text"]
+    },
+    {
+      "name": "regexMatch",
+      "desc": "在文本中查找正则表达式的全部匹配子串",
+      "desc_en": "Find all regex matches in text",
+      "params": ["text", "pattern"],
+      "paramDesc": ["文本", "正则表达式"],
+      "paramDesc_en": ["Text", "Regular expression pattern"]
+    },
+    {
+      "name": "regexReplace",
+      "desc": "用 replacement 替换正则匹配（支持 $1、$2 等分组引用）",
+      "desc_en": "Replace regex matches (supports $1, $2 group references)",
+      "params": ["text", "pattern", "replacement"],
+      "paramDesc": ["文本", "正则表达式", "替换为"],
+      "paramDesc_en": ["Text", "Pattern", "Replacement"]
+    },
+    {
+      "name": "textTransform",
+      "desc": "文本变换：upper/lower/capitalize/reverse/trim",
+      "desc_en": "Transform: upper, lower, capitalize, reverse, trim",
+      "params": ["text", "transform"],
+      "paramDesc": ["文本", "变换类型：upper、lower、capitalize、reverse、trim"],
+      "paramDesc_en": ["Text", "Transform: upper, lower, capitalize, reverse, trim"]
+    },
+    {
+      "name": "generateUUID",
+      "desc": "生成随机 UUID（RFC 4122 随机型）",
+      "desc_en": "Generate a random UUID (RFC 4122)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "hashText",
+      "desc": "计算文本 UTF-8 字节的哈希，algorithm：MD5、SHA-1、SHA-256（大小写不敏感）",
+      "desc_en": "Hash UTF-8 bytes of text; algorithm: MD5, SHA-1, SHA-256 (case-insensitive)",
+      "params": ["text", "algorithm"],
+      "paramDesc": ["文本", "算法名"],
+      "paramDesc_en": ["Text", "Algorithm name"]
+    }
+  ]
+}

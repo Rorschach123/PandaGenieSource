@@ -1,0 +1,47 @@
+{
+  "id": "battery",
+  "name": "电池管理",
+  "name_en": "Battery Manager",
+  "description": "电池管理模块，支持查看电池电量、充电状态、健康状况、温度、电压等详细信息",
+  "description_en": "Battery management module: view battery level, charging status, health, temperature, voltage and more",
+  "version": "1.0",
+  "icon": "battery_full",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.battery.BatteryPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getBatteryStatus",
+      "desc": "获取当前电池电量、状态(充电/放电/已满/未充电)、健康、温度、电压、技术类型、供电方式(USB/交流/无线)",
+      "desc_en": "Battery level, status (charging/discharging/full/not_charging), health, temperature, voltage, technology, plug type (USB/AC/wireless)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getBatteryHealth",
+      "desc": "电池健康报告：健康状态、温度提示、循环次数估算说明(系统通常不直接提供)",
+      "desc_en": "Health report: health status, temperature warning, cycle estimate note (often not exposed by the system)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getPowerSummary",
+      "desc": "汇总电池状态，便于在界面中向用户展示",
+      "desc_en": "Combined battery state summary suitable for user-facing display",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

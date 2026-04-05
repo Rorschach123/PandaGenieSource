@@ -1,0 +1,71 @@
+{
+  "id": "magic_dice",
+  "name": "骰子工具",
+  "name_en": "Dice Tool",
+  "description": "骰子工具模块，支持掷骰子（1-6颗）、指定目标总数掷骰、大小判定、豹子（全同）、组合枚举和概率统计",
+  "description_en": "Dice tool module: roll 1-6 dice, roll with target sum, big/small judgment, all-same (leopard), combination enumeration and probability statistics",
+  "version": "1.0",
+  "icon": "casino",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.magic_dice.MagicDicePlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "roll",
+      "desc": "掷骰子，指定骰子数量（1-6颗），返回每颗骰子的点数和总点数",
+      "desc_en": "Roll dice. Specify count (1-6). Returns each die value and total",
+      "params": ["count"],
+      "paramDesc": ["骰子数量，1-6，默认1"],
+      "paramDesc_en": ["Number of dice, 1-6, default 1"]
+    },
+    {
+      "name": "rollWithSum",
+      "desc": "掷骰子并使结果总和等于指定目标值（用于娱乐/魔术效果），如不可能则返回错误",
+      "desc_en": "Roll dice with result summing to a target value (for entertainment/magic effect). Returns error if impossible",
+      "params": ["count", "targetSum"],
+      "paramDesc": ["骰子数量 1-6", "目标总和"],
+      "paramDesc_en": ["Number of dice 1-6", "Target sum"]
+    },
+    {
+      "name": "rollBigOrSmall",
+      "desc": "掷骰子并判定大小：总和大于骰子数×3.5为大，否则为小",
+      "desc_en": "Roll dice and judge big/small: total > count*3.5 is big, otherwise small",
+      "params": ["count"],
+      "paramDesc": ["骰子数量 1-6，默认1"],
+      "paramDesc_en": ["Number of dice 1-6, default 1"]
+    },
+    {
+      "name": "rollAllSame",
+      "desc": "掷出豹子（所有骰子点数相同），可指定点数 1-6，不指定则随机选一个",
+      "desc_en": "Roll all dice showing the same value (leopard). Optionally specify value 1-6",
+      "params": ["count", "value"],
+      "paramDesc": ["骰子数量 1-6，默认2", "指定点数 1-6（可选，不传则随机）"],
+      "paramDesc_en": ["Number of dice 1-6, default 2", "Specific value 1-6 (optional, random if omitted)"]
+    },
+    {
+      "name": "getCombinations",
+      "desc": "枚举 N 颗骰子总和为指定值的所有组合及组合数量",
+      "desc_en": "Enumerate all combinations of N dice summing to a target value and count",
+      "params": ["count", "targetSum"],
+      "paramDesc": ["骰子数量 1-6", "目标总和"],
+      "paramDesc_en": ["Number of dice 1-6", "Target sum"]
+    },
+    {
+      "name": "getStats",
+      "desc": "获取 N 颗骰子的统计信息：最小值、最大值、期望值、各总和的概率分布",
+      "desc_en": "Get statistics for N dice: min, max, expected value, probability distribution for each possible sum",
+      "params": ["count"],
+      "paramDesc": ["骰子数量 1-6"],
+      "paramDesc_en": ["Number of dice 1-6"]
+    }
+  ]
+}
