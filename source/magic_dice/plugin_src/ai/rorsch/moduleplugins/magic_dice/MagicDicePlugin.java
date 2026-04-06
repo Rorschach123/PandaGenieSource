@@ -14,19 +14,30 @@ public class MagicDicePlugin implements ModulePlugin {
 
     private final Random random = new Random();
 
+    private static final String[] DICE_EMOJI = {"\u2680", "\u2681", "\u2682", "\u2683", "\u2684", "\u2685"};
+
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "roll":
-                    return ok(roll(params.optInt("count", 1)));
-                case "rollWithSum":
-                    return ok(rollWithSum(params.optInt("count", 1), params.optInt("targetSum", 0)));
-                case "rollBigOrSmall":
-                    return ok(rollBigOrSmall(params.optInt("count", 1)));
-                case "rollAllSame":
-                    return ok(rollAllSame(params.optInt("count", 2), params.optInt("value", 0)));
+                case "roll": {
+                    JSONObject r = roll(params.optInt("count", 1));
+                    return ok(r, formatDiceDisplay(r, null));
+                }
+                case "rollWithSum": {
+                    JSONObject r = rollWithSum(params.optInt("count", 1), params.optInt("targetSum", 0));
+                    return ok(r, formatDiceDisplay(r, null));
+                }
+                case "rollBigOrSmall": {
+                    JSONObject r = rollBigOrSmall(params.optInt("count", 1));
+                    return ok(r, formatDiceDisplay(r, r.optString("size", "") + " (" + r.optString("size_en", "") + ")"));
+                }
+                case "rollAllSame": {
+                    JSONObject r = rollAllSame(params.optInt("count", 2), params.optInt("value", 0));
+                    String extra = r.optBoolean("isLeopard", false) ? "\uD83C\uDFB0 豹子！" : null;
+                    return ok(r, formatDiceDisplay(r, extra));
+                }
                 case "getCombinations":
                     return ok(getCombinations(params.optInt("count", 1), params.optInt("targetSum", 0)));
                 case "getStats":
@@ -38,6 +49,29 @@ public class MagicDicePlugin implements ModulePlugin {
             String msg = e.getMessage();
             return error(msg != null && !msg.isEmpty() ? msg : e.getClass().getSimpleName());
         }
+    }
+
+    private String formatDiceDisplay(JSONObject result, String extraLine) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uD83C\uDFB2 骰子结果\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+
+        JSONArray dice = result.optJSONArray("dice");
+        if (dice != null) {
+            StringBuilder diceStr = new StringBuilder();
+            for (int i = 0; i < dice.length(); i++) {
+                int val = dice.getInt(i);
+                if (i > 0) diceStr.append("  ");
+                diceStr.append(DICE_EMOJI[val - 1]);
+            }
+            sb.append(diceStr).append("\n");
+        }
+
+        sb.append("总和: ").append(result.optInt("total", 0));
+        if (extraLine != null && !extraLine.isEmpty()) {
+            sb.append("\n").append(extraLine);
+        }
+        return sb.toString();
     }
 
     private JSONObject roll(int count) throws Exception {
@@ -261,10 +295,17 @@ public class MagicDicePlugin implements ModulePlugin {
     }
 
     private String ok(JSONObject output) throws Exception {
-        return new JSONObject()
+        return ok(output, null);
+    }
+
+    private String ok(JSONObject output, String displayText) throws Exception {
+        JSONObject result = new JSONObject()
                 .put("success", true)
-                .put("output", output.toString())
-                .toString();
+                .put("output", output.toString());
+        if (displayText != null && !displayText.isEmpty()) {
+            result.put("_displayText", displayText);
+        }
+        return result.toString();
     }
 
     private String error(String message) throws Exception {

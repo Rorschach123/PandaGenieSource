@@ -92,10 +92,14 @@ public class FortunePlugin implements ModulePlugin {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "getDailyFortune":
-                    return ok(getDailyFortune(params.optString("name", "")));
-                case "getFortuneByDate":
-                    return ok(getFortuneByDate(params.optString("date", ""), params.optString("name", "")));
+                case "getDailyFortune": {
+                    JSONObject r = getDailyFortune(params.optString("name", ""));
+                    return ok(r, formatFortuneDisplay(r));
+                }
+                case "getFortuneByDate": {
+                    JSONObject r = getFortuneByDate(params.optString("date", ""), params.optString("name", ""));
+                    return ok(r, formatFortuneDisplay(r));
+                }
                 case "getLunarDate":
                     return ok(getLunarDate(params.optString("date", "")));
                 case "getFortuneLevel":
@@ -107,6 +111,24 @@ public class FortunePlugin implements ModulePlugin {
             String msg = e.getMessage();
             return error(msg != null && !msg.isEmpty() ? msg : e.getClass().getSimpleName());
         }
+    }
+
+    private String formatFortuneDisplay(JSONObject r) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uD83D\uDD2E 每日运势 (").append(r.optString("date", "")).append(")\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━\n");
+        sb.append(r.optString("symbol", "")).append(" ").append(r.optString("levelName", ""));
+        sb.append(" \u2014 ").append(r.optString("fortuneWord", "")).append("\n\n");
+        sb.append("\uD83D\uDD22 幸运数字: ").append(r.optInt("luckyNumber", 0)).append("\n");
+        sb.append("\uD83C\uDFA8 幸运颜色: ").append(r.optString("luckyColor", "")).append("\n");
+        sb.append("\u2705 宜: ").append(r.optString("adviceDo", "")).append("\n");
+        sb.append("\u274C 忌: ").append(r.optString("adviceDont", "")).append("\n");
+
+        JSONObject lunar = r.optJSONObject("lunar");
+        if (lunar != null) {
+            sb.append("\n\uD83D\uDCC5 ").append(lunar.optString("lunarDateString", ""));
+        }
+        return sb.toString();
     }
 
     private JSONObject getDailyFortune(String name) throws Exception {
@@ -326,10 +348,17 @@ public class FortunePlugin implements ModulePlugin {
     }
 
     private String ok(JSONObject output) throws Exception {
-        return new JSONObject()
+        return ok(output, null);
+    }
+
+    private String ok(JSONObject output, String displayText) throws Exception {
+        JSONObject result = new JSONObject()
                 .put("success", true)
-                .put("output", output.toString())
-                .toString();
+                .put("output", output.toString());
+        if (displayText != null && !displayText.isEmpty()) {
+            result.put("_displayText", displayText);
+        }
+        return result.toString();
     }
 
     private String error(String message) throws Exception {

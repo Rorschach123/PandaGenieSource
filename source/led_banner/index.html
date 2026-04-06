@@ -409,6 +409,27 @@ function applyI18n(){
   document.getElementById('bannerText').placeholder=T('输入灯牌文字','Enter banner text');
 }
 
+function onPendingResult(jsonStr) {
+  try {
+    var config = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    if (config.text) document.getElementById('bannerText').value = config.text;
+    if (config.fontColor) document.getElementById('fontColor').value = config.fontColor;
+    if (config.bgColor) document.getElementById('bgColor').value = config.bgColor;
+    if (config.fontSize) document.getElementById('fontSize').value = config.fontSize;
+    if (config.speed) document.getElementById('speedRange').value = config.speed;
+    if (config.mode) setMode(config.mode);
+    if (config.effects) {
+      var eff = typeof config.effects === 'string' ? JSON.parse(config.effects) : config.effects;
+      ['glow','bold','italic','shake','flash'].forEach(function(e){
+        if (eff[e]) { state.effects[e] = true; document.getElementById('eff'+e.charAt(0).toUpperCase()+e.slice(1)).classList.add('active'); }
+      });
+    }
+    updatePreview();
+    switchTab('editor');
+    setTimeout(function(){ toggleFullscreen(); }, 300);
+  } catch(e) { console.log('onPendingResult error:', e); }
+}
+
 initModeChips();
 applyI18n();
 renderTemplates();

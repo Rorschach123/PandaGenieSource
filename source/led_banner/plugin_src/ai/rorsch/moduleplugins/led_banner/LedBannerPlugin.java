@@ -78,14 +78,18 @@ public class LedBannerPlugin implements ModulePlugin {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "generateBanner":
-                    return ok(generateBanner(params));
+                case "generateBanner": {
+                    JSONObject r = generateBanner(params);
+                    return okOpenModule(r, formatBannerDisplay(r));
+                }
                 case "getTemplates":
                     return ok(getTemplates());
                 case "getStarTemplates":
                     return ok(getStarTemplates());
-                case "applyTemplate":
-                    return ok(applyTemplate(params));
+                case "applyTemplate": {
+                    JSONObject r = applyTemplate(params);
+                    return okOpenModule(r, formatBannerDisplay(r));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -93,6 +97,18 @@ public class LedBannerPlugin implements ModulePlugin {
             String msg = e.getMessage();
             return error(msg != null && !msg.isEmpty() ? msg : e.getClass().getSimpleName());
         }
+    }
+
+    private String formatBannerDisplay(JSONObject r) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uD83D\uDCA1 灯牌已生成\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        sb.append("\uD83D\uDCDD 文字: ").append(r.optString("text", "")).append("\n");
+        sb.append("\uD83C\uDFA8 字色: ").append(r.optString("fontColor", ""));
+        sb.append(" | 背景: ").append(r.optString("bgColor", "")).append("\n");
+        sb.append("\uD83D\uDCFA 模式: ").append(r.optString("modeName", "")).append("\n");
+        sb.append("\uD83D\uDD26 点击下方按钮打开灯牌全屏展示");
+        return sb.toString();
     }
 
     private JSONObject generateBanner(JSONObject params) throws Exception {
@@ -292,6 +308,17 @@ public class LedBannerPlugin implements ModulePlugin {
                 .put("success", true)
                 .put("output", output.toString())
                 .toString();
+    }
+
+    private String okOpenModule(JSONObject output, String displayText) throws Exception {
+        JSONObject result = new JSONObject()
+                .put("success", true)
+                .put("output", output.toString())
+                .put("_openModule", true);
+        if (displayText != null && !displayText.isEmpty()) {
+            result.put("_displayText", displayText);
+        }
+        return result.toString();
     }
 
     private String error(String message) throws Exception {
