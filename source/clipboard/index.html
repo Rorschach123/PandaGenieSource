@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>剪贴板管理 / Clipboard Manager</title>
+<title>Clipboard Manager</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,24 +22,69 @@
 <body>
 <div class="mod-header">
   <div class="icon">📋</div>
-  <h2>剪贴板管理 / Clipboard Manager</h2>
-  <p>读写剪贴板、管理剪贴板历史记录</p>
+  <h2 data-i18n="title"></h2>
+  <p data-i18n="desc"></p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="api_title"></h3>
   <ul class="api-list">
-    <li><span class="api-name">getClipboard</span> — 获取当前剪贴板中的文本内容</li>
-    <li><span class="api-name">setClipboard</span> — 将指定文本写入系统剪贴板</li>
-    <li><span class="api-name">clearClipboard</span> — 清空系统剪贴板（写入空文本）</li>
-    <li><span class="api-name">getClipboardHistory</span> — 读取本地保存的剪贴板历史（/sdcard/PandaGenie/data/clipboard/history.json），按时间从新到旧返回，limit 默认 20</li>
-    <li><span class="api-name">saveToHistory</span> — 将当前剪贴板文本追加到历史文件（去重与条数上限由模块内部处理）</li>
-    <li><span class="api-name">searchHistory</span> — 按关键词在历史记录中搜索文本内容</li>
-    <li><span class="api-name">clearHistory</span> — 清空本地剪贴板历史文件</li>
+    <li><span class="api-name">getClipboard</span> — <span data-i18n="api_getClipboard"></span></li>
+    <li><span class="api-name">setClipboard</span> — <span data-i18n="api_setClipboard"></span></li>
+    <li><span class="api-name">clearClipboard</span> — <span data-i18n="api_clearClipboard"></span></li>
+    <li><span class="api-name">getClipboardHistory</span> — <span data-i18n="api_getClipboardHistory"></span></li>
+    <li><span class="api-name">saveToHistory</span> — <span data-i18n="api_saveToHistory"></span></li>
+    <li><span class="api-name">searchHistory</span> — <span data-i18n="api_searchHistory"></span></li>
+    <li><span class="api-name">clearHistory</span> — <span data-i18n="api_clearHistory"></span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="usage_title"></h3>
+  <p data-i18n="usage_desc"></p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    title: '剪贴板管理',
+    desc: '读写剪贴板、管理剪贴板历史记录',
+    api_title: '功能接口',
+    api_getClipboard: '获取当前剪贴板中的文本内容',
+    api_setClipboard: '将指定文本写入系统剪贴板',
+    api_clearClipboard: '清空系统剪贴板（写入空文本）',
+    api_getClipboardHistory: '读取本地保存的剪贴板历史（/sdcard/PandaGenie/data/clipboard/history.json），按时间从新到旧返回，limit 默认 20',
+    api_saveToHistory: '将当前剪贴板文本追加到历史文件（去重与条数上限由模块内部处理）',
+    api_searchHistory: '按关键词在历史记录中搜索文本内容',
+    api_clearHistory: '清空本地剪贴板历史文件',
+    usage_title: '使用方式',
+    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    title: 'Clipboard Manager',
+    desc: 'Read/write the clipboard and manage clipboard history',
+    api_title: 'API Reference',
+    api_getClipboard: 'Get the current text on the clipboard',
+    api_setClipboard: 'Write the given text to the system clipboard',
+    api_clearClipboard: 'Clear the system clipboard (write empty text)',
+    api_getClipboardHistory: 'Read locally saved clipboard history (/sdcard/PandaGenie/data/clipboard/history.json), newest first; limit defaults to 20',
+    api_saveToHistory: 'Append current clipboard text to the history file (dedup and max entries handled inside the module)',
+    api_searchHistory: 'Search history entries by keyword',
+    api_clearHistory: 'Clear the local clipboard history file',
+    usage_title: 'How to Use',
+    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

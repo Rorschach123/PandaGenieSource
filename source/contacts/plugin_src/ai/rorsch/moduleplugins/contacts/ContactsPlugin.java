@@ -26,13 +26,18 @@ import java.util.Map;
 public class ContactsPlugin implements ModulePlugin {
 
     private static final String DEFAULT_EXPORT_PATH = "/sdcard/PandaGenie/output/contacts_export.vcf";
+    private static final int DISPLAY_MAX_SEARCH_LINES = 50;
+    private static final int DISPLAY_MAX_LIST_LINES = 100;
+    private static final int DISPLAY_MAX_DUP_GROUPS = 40;
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "searchContacts":
-                return ok(searchContacts(context, params));
+            case "searchContacts": {
+                String out = searchContacts(context, params);
+                return ok(out, formatSearchContactsDisplay(new JSONObject(out)));
+            }
             case "getContactDetail": {
                 String contactId = params.optString("contactId", "").trim();
                 if (contactId.isEmpty()) {
@@ -43,22 +48,28 @@ public class ContactsPlugin implements ModulePlugin {
                 if (detailObj.has("error")) {
                     return error(detailObj.getString("error"));
                 }
-                return ok(detailJson);
+                return ok(detailJson, formatGetContactDetailDisplay(detailObj));
             }
-            case "listContacts":
-                return ok(listContacts(context, params));
-            case "getContactCount":
-                return ok(getContactCount(context));
+            case "listContacts": {
+                String out = listContacts(context, params);
+                return ok(out, formatListContactsDisplay(new JSONObject(out)));
+            }
+            case "getContactCount": {
+                String out = getContactCount(context);
+                return ok(out, formatGetContactCountDisplay(new JSONObject(out)));
+            }
             case "exportContacts": {
                 String exportJson = exportContacts(context, params);
                 JSONObject exportObj = new JSONObject(exportJson);
                 if (exportObj.has("error")) {
                     return error(exportObj.getString("error"));
                 }
-                return ok(exportJson);
+                return ok(exportJson, formatExportContactsDisplay(exportObj));
             }
-            case "findDuplicates":
-                return ok(findDuplicates(context));
+            case "findDuplicates": {
+                String out = findDuplicates(context);
+                return ok(out, formatFindDuplicatesDisplay(new JSONObject(out)));
+            }
             default:
                 return error("Unsupported action: " + action);
         }
@@ -843,6 +854,163 @@ public class ContactsPlugin implements ModulePlugin {
 
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        return new JSONObject()
+                .put("success", true)
+                .put("output", output)
+                .put("_displayText", displayText)
+                .toString();
+    }
+
+    private static String formatSearchContactsDisplay(JSONObject result) throws Exception {
+        JSONArray contacts = result.optJSONArray("contacts");
+        int total = result.optInt("total", contacts != null ? contacts.length() : 0);
+        if (contacts == null) {
+            contacts = new JSONArray();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔍 Contact Search\n━━━━━━━━━━━━━━\n");
+        sb.append("Found ").append(total).append(" contacts\n");
+        int show = Math.min(contacts.length(), DISPLAY_MAX_SEARCH_LINES);
+        for (int i = 0; i < show; i++) {
+            JSONObject c = contacts.getJSONObject(i);
+            String name = c.optString("name", "").trim();
+            if (name.isEmpty()) {
+                name = "(no name)";
+            }
+            String phone = c.optString("primaryPhone", "").trim();
+            if (phone.isEmpty()) {
+                sb.append("▸ Name: ").append(name).append("\n");
+            } else {
+                sb.append("▸ Name: ").append(name).append(" (Phone: ").append(phone).append(")\n");
+            }
+        }
+        if (contacts.length() > DISPLAY_MAX_SEARCH_LINES) {
+            sb.append("… (+").append(contacts.length() - DISPLAY_MAX_SEARCH_LINES).append(" more)\n");
+        }
+        return sb.toString().trim();
+    }
+
+    private static String formatGetContactDetailDisplay(JSONObject d) throws Exception {
+        String name = d.optString("displayName", "").trim();
+        if (name.isEmpty()) {
+            name = "(no name)";
+        }
+        String phone = firstPhoneNumberForDisplay(d.optJSONArray("phones"));
+        String email = firstEmailAddressForDisplay(d.optJSONArray("emails"));
+        StringBuilder sb = new StringBuilder();
+        sb.append("👤 Contact Detail\n━━━━━━━━━━━━━━\n");
+        sb.append("▸ Name: ").append(name).append("\n");
+        sb.append("▸ Phone: ").append(phone.isEmpty() ? "—" : phone).append("\n");
+        sb.append("▸ Email: ").append(email.isEmpty() ? "—" : email).append("\n");
+        return sb.toString().trim();
+    }
+
+    private static String firstPhoneNumberForDisplay(JSONArray phones) throws Exception {
+        if (phones == null || phones.length() == 0) {
+            return "";
+        }
+        int primaryIdx = -1;
+        for (int i = 0; i < phones.length(); i++) {
+            if (phones.getJSONObject(i).optBoolean("isPrimary")) {
+                primaryIdx = i;
+                break;
+            }
+        }
+        int idx = primaryIdx >= 0 ? primaryIdx : 0;
+        return phones.getJSONObject(idx).optString("number", "").trim();
+    }
+
+    private static String firstEmailAddressForDisplay(JSONArray emails) throws Exception {
+        if (emails == null || emails.length() == 0) {
+            return "";
+        }
+        int primaryIdx = -1;
+        for (int i = 0; i < emails.length(); i++) {
+            if (emails.getJSONObject(i).optBoolean("isPrimary")) {
+                primaryIdx = i;
+                break;
+            }
+        }
+        int idx = primaryIdx >= 0 ? primaryIdx : 0;
+        return emails.getJSONObject(idx).optString("address", "").trim();
+    }
+
+    private static String formatListContactsDisplay(JSONObject result) throws Exception {
+        JSONArray contacts = result.optJSONArray("contacts");
+        int total = result.optInt("total", 0);
+        if (contacts == null) {
+            contacts = new JSONArray();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("📇 Contact List\n━━━━━━━━━━━━━━\n");
+        sb.append("[").append(total).append("] contacts\n");
+        int show = Math.min(contacts.length(), DISPLAY_MAX_LIST_LINES);
+        for (int i = 0; i < show; i++) {
+            JSONObject c = contacts.getJSONObject(i);
+            String name = c.optString("name", "").trim();
+            if (name.isEmpty()) {
+                name = "(no name)";
+            }
+            sb.append(i + 1).append(". ").append(name).append("\n");
+        }
+        if (contacts.length() > DISPLAY_MAX_LIST_LINES) {
+            sb.append("… (+").append(contacts.length() - DISPLAY_MAX_LIST_LINES).append(" more in this page)\n");
+        }
+        return sb.toString().trim();
+    }
+
+    private static String formatGetContactCountDisplay(JSONObject result) {
+        int n = result.optInt("count", 0);
+        return "📇 Total contacts: " + n;
+    }
+
+    private static String formatExportContactsDisplay(JSONObject result) {
+        int exported = result.optInt("exported", 0);
+        String path = result.optString("path", "").trim();
+        StringBuilder sb = new StringBuilder();
+        sb.append("📤 Exported ").append(exported).append(" contacts\n");
+        sb.append("▸ File: ").append(path.isEmpty() ? "—" : path);
+        return sb.toString();
+    }
+
+    private static String formatFindDuplicatesDisplay(JSONObject result) throws Exception {
+        JSONArray nameGroups = result.optJSONArray("duplicateNameGroups");
+        JSONArray phoneGroups = result.optJSONArray("duplicatePhoneGroups");
+        if (nameGroups == null) {
+            nameGroups = new JSONArray();
+        }
+        if (phoneGroups == null) {
+            phoneGroups = new JSONArray();
+        }
+        int groupCount = nameGroups.length() + phoneGroups.length();
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔁 Duplicate Contacts\n━━━━━━━━━━━━━━\n");
+        sb.append("Found ").append(groupCount).append(" groups\n");
+        int lines = 0;
+        for (int i = 0; i < nameGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
+            JSONObject g = nameGroups.getJSONObject(i);
+            String norm = g.optString("normalizedName", "").trim();
+            int cnt = g.optInt("count", 0);
+            sb.append("▸ Name match: ").append(norm.isEmpty() ? "(unnamed)" : norm);
+            sb.append(" — ").append(cnt).append(" contacts\n");
+            lines++;
+        }
+        for (int i = 0; i < phoneGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
+            JSONObject g = phoneGroups.getJSONObject(i);
+            String norm = g.optString("normalizedPhone", "").trim();
+            int cnt = g.optInt("count", 0);
+            sb.append("▸ Phone match: ").append(norm.isEmpty() ? "—" : norm);
+            sb.append(" — ").append(cnt).append(" contacts\n");
+            lines++;
+        }
+        int totalLines = nameGroups.length() + phoneGroups.length();
+        if (totalLines > DISPLAY_MAX_DUP_GROUPS) {
+            sb.append("… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(" more groups)\n");
+        }
+        return sb.toString().trim();
     }
 
     private String error(String msg) throws Exception {

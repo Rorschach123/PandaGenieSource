@@ -17,12 +17,18 @@ public class BatteryPlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         try {
             switch (action) {
-                case "getBatteryStatus":
-                    return ok(buildStatusJson(context).toString());
-                case "getBatteryHealth":
-                    return ok(buildHealthReportJson(context).toString());
-                case "getPowerSummary":
-                    return ok(buildPowerSummaryJson(context).toString());
+                case "getBatteryStatus": {
+                    JSONObject r = buildStatusJson(context);
+                    return ok(r.toString(), formatBatteryStatus(r));
+                }
+                case "getBatteryHealth": {
+                    JSONObject r = buildHealthReportJson(context);
+                    return ok(r.toString(), formatHealthReport(r));
+                }
+                case "getPowerSummary": {
+                    JSONObject r = buildPowerSummaryJson(context);
+                    return ok(r.toString(), formatPowerSummary(r));
+                }
                 default:
                     return error("Unsupported action: " + action
                             + (params.length() > 0 ? " (unexpected params ignored)" : ""));
@@ -230,12 +236,72 @@ public class BatteryPlugin implements ModulePlugin {
         }
     }
 
+    private String formatBatteryStatus(JSONObject r) {
+        StringBuilder sb = new StringBuilder();
+        int pct = r.optInt("levelPercent", -1);
+        boolean charging = r.optBoolean("charging", false);
+        sb.append("🔋 ").append(pct >= 0 ? pct + "%" : "N/A");
+        sb.append(charging ? " ⚡ Charging" : "").append("\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        sb.append("▸ Status: ").append(r.optString("status", "unknown")).append("\n");
+        sb.append("▸ Plugged: ").append(r.optString("pluggedType", "none")).append("\n");
+        if (!r.isNull("temperatureC"))
+            sb.append("▸ Temp: ").append(String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))).append("\n");
+        if (!r.isNull("voltageMilliVolts"))
+            sb.append("▸ Voltage: ").append(r.optInt("voltageMilliVolts")).append(" mV\n");
+        sb.append("▸ Health: ").append(r.optString("health", "unknown")).append("\n");
+        String tech = r.optString("technology", "");
+        if (!tech.isEmpty()) sb.append("▸ Tech: ").append(tech).append("\n");
+        return sb.toString();
+    }
+
+    private String formatHealthReport(JSONObject r) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("🏥 Battery Health Report\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━\n");
+        sb.append("▸ Health: ").append(r.optString("healthStatus", "unknown")).append("\n");
+        sb.append("▸ Level: ").append(r.optInt("currentLevelPercent", -1)).append("%\n");
+        sb.append("▸ ").append(r.optString("temperatureWarning", "")).append("\n");
+        return sb.toString();
+    }
+
+    private String formatPowerSummary(JSONObject r) {
+        StringBuilder sb = new StringBuilder();
+        int pct = r.optInt("levelPercent", -1);
+        boolean charging = r.optBoolean("charging", false);
+        String bar = buildBar(pct);
+        sb.append("🔋 Power Summary\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━\n");
+        sb.append(bar).append(" ").append(pct >= 0 ? pct + "%" : "N/A");
+        sb.append(charging ? " ⚡" : "").append("\n");
+        sb.append("▸ Status: ").append(r.optString("status", "unknown")).append("\n");
+        if (!r.isNull("temperatureC"))
+            sb.append("▸ Temp: ").append(String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))).append("\n");
+        sb.append("▸ Health: ").append(r.optString("health", "unknown")).append("\n");
+        return sb.toString();
+    }
+
+    private String buildBar(int pct) {
+        if (pct < 0) return "[????]";
+        int filled = pct / 10;
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < 10; i++) sb.append(i < filled ? "█" : "░");
+        sb.append("]");
+        return sb.toString();
+    }
+
     private String emptyJson(String v) {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
+    }
+
     private String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
     }
 
     private String error(String msg) throws Exception {

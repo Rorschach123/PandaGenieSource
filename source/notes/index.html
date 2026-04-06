@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>笔记助手 / Notes</title>
+<title data-i18n="pageTitle">笔记助手 / Notes</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,24 +22,71 @@
 <body>
 <div class="mod-header">
   <div class="icon">📝</div>
-  <h2>笔记助手 / Notes</h2>
-  <p>创建、编辑、删除、搜索和导出笔记</p>
+  <h2 data-i18n="headerTitle">笔记助手 / Notes</h2>
+  <p data-i18n="headerDesc">创建、编辑、删除、搜索和导出笔记</p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="sectionApis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">createNote</span> — 创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json</li>
-    <li><span class="api-name">listNotes</span> — 列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文</li>
-    <li><span class="api-name">getNote</span> — 按笔记 ID 读取完整 JSON 内容</li>
-    <li><span class="api-name">updateNote</span> — 按 ID 更新笔记标题或正文；传入的字段才会被更新</li>
-    <li><span class="api-name">deleteNote</span> — 按 ID 删除对应 JSON 文件</li>
-    <li><span class="api-name">searchNotes</span> — 在标题与正文中按关键词搜索，返回匹配的笔记摘要列表</li>
-    <li><span class="api-name">exportNote</span> — 将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）</li>
+    <li><span class="api-name">createNote</span> — <span data-i18n="api_createNote">创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json</span></li>
+    <li><span class="api-name">listNotes</span> — <span data-i18n="api_listNotes">列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文</span></li>
+    <li><span class="api-name">getNote</span> — <span data-i18n="api_getNote">按笔记 ID 读取完整 JSON 内容</span></li>
+    <li><span class="api-name">updateNote</span> — <span data-i18n="api_updateNote">按 ID 更新笔记标题或正文；传入的字段才会被更新</span></li>
+    <li><span class="api-name">deleteNote</span> — <span data-i18n="api_deleteNote">按 ID 删除对应 JSON 文件</span></li>
+    <li><span class="api-name">searchNotes</span> — <span data-i18n="api_searchNotes">在标题与正文中按关键词搜索，返回匹配的笔记摘要列表</span></li>
+    <li><span class="api-name">exportNote</span> — <span data-i18n="api_exportNote">将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）</span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="sectionUsage">使用方式</h3>
+  <p data-i18n="usageDesc">在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '笔记助手 / Notes',
+    headerTitle: '笔记助手 / Notes',
+    headerDesc: '创建、编辑、删除、搜索和导出笔记',
+    sectionApis: '功能接口',
+    api_createNote: '创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json',
+    api_listNotes: '列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文',
+    api_getNote: '按笔记 ID 读取完整 JSON 内容',
+    api_updateNote: '按 ID 更新笔记标题或正文；传入的字段才会被更新',
+    api_deleteNote: '按 ID 删除对应 JSON 文件',
+    api_searchNotes: '在标题与正文中按关键词搜索，返回匹配的笔记摘要列表',
+    api_exportNote: '将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）',
+    sectionUsage: '使用方式',
+    usageDesc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    pageTitle: 'Notes',
+    headerTitle: 'Notes',
+    headerDesc: 'Create, edit, delete, search, and export notes',
+    sectionApis: 'APIs',
+    api_createNote: 'Create a note with a unique ID; saved as JSON at /sdcard/PandaGenie/data/notes/{id}.json',
+    api_listNotes: 'List note summaries (id, title, created/updated, body preview); optional keyword filter on title and body',
+    api_getNote: 'Load full JSON for a note by ID',
+    api_updateNote: 'Update title or body by ID; only provided fields are changed',
+    api_deleteNote: 'Delete the JSON file for a note by ID',
+    api_searchNotes: 'Search title and body by keyword; returns matching summaries',
+    api_exportNote: 'Export a note as plain text; path may be a full .txt path or a directory ({id}.txt under that folder)',
+    sectionUsage: 'How to use',
+    usageDesc: 'Describe what you need in chat; the AI will call this module automatically.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

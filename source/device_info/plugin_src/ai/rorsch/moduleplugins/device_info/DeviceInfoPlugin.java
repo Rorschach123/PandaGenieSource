@@ -19,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Locale;
 
 public class DeviceInfoPlugin implements ModulePlugin {
 
@@ -28,18 +29,30 @@ public class DeviceInfoPlugin implements ModulePlugin {
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "getDeviceInfo":
-                return ok(getDeviceInfo());
-            case "getCpuInfo":
-                return ok(getCpuInfo());
-            case "getMemoryInfo":
-                return ok(getMemoryInfo(context));
-            case "getStorageInfo":
-                return ok(getStorageInfo());
-            case "getDisplayInfo":
-                return ok(getDisplayInfo(context));
-            case "getSystemSummary":
-                return ok(getSystemSummary(context));
+            case "getDeviceInfo": {
+                String output = getDeviceInfo();
+                return ok(output, formatDeviceInfoDisplay(new JSONObject(output)));
+            }
+            case "getCpuInfo": {
+                String output = getCpuInfo();
+                return ok(output, formatCpuInfoDisplay(new JSONObject(output)));
+            }
+            case "getMemoryInfo": {
+                String output = getMemoryInfo(context);
+                return ok(output, formatMemoryInfoDisplay(new JSONObject(output)));
+            }
+            case "getStorageInfo": {
+                String output = getStorageInfo();
+                return ok(output, formatStorageInfoDisplay(new JSONObject(output)));
+            }
+            case "getDisplayInfo": {
+                String output = getDisplayInfo(context);
+                return ok(output, formatDisplayInfoDisplay(new JSONObject(output)));
+            }
+            case "getSystemSummary": {
+                String output = getSystemSummary(context);
+                return ok(output, formatSystemSummaryDisplay(new JSONObject(output)));
+            }
             default:
                 return error("Unsupported action: " + action
                         + (params.length() > 0 ? " (unexpected params ignored)" : ""));
@@ -211,8 +224,205 @@ public class DeviceInfoPlugin implements ModulePlugin {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    private static void appendDisplayLine(StringBuilder sb, String label, String value) {
+        sb.append("▸ ").append(label).append(": ").append(value).append('\n');
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 0) {
+            bytes = 0;
+        }
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        double kb = bytes / 1024.0;
+        if (kb < 1024) {
+            return String.format(Locale.US, "%.1f KB", kb);
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024) {
+            return String.format(Locale.US, "%.1f MB", mb);
+        }
+        double gb = mb / 1024.0;
+        if (gb < 1024) {
+            return String.format(Locale.US, "%.2f GB", gb);
+        }
+        return String.format(Locale.US, "%.2f TB", gb / 1024.0);
+    }
+
+    private static String formatDeviceInfoDisplay(JSONObject d) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("📱 Device Info\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        appendDisplayLine(sb, "Model", d.optString("model", "—"));
+        appendDisplayLine(sb, "Brand", d.optString("brand", "—"));
+        appendDisplayLine(sb, "Manufacturer", d.optString("manufacturer", "—"));
+        appendDisplayLine(sb, "Android", d.optString("androidVersion", "—"));
+        appendDisplayLine(sb, "SDK", String.valueOf(d.optInt("sdkInt", 0)));
+        appendDisplayLine(sb, "Build", d.optString("buildNumber", "—"));
+        appendDisplayLine(sb, "Incremental", d.optString("buildIncremental", "—"));
+        String fp = d.optString("fingerprint", "");
+        if (fp.length() > 96) {
+            fp = fp.substring(0, 93) + "...";
+        }
+        appendDisplayLine(sb, "Fingerprint", fp.isEmpty() ? "—" : fp);
+        return sb.toString();
+    }
+
+    private static String formatCpuInfoDisplay(JSONObject d) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("⚙️ CPU Info\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        appendDisplayLine(sb, "Cores", String.valueOf(d.optInt("processorCount", 0)));
+        appendDisplayLine(sb, "Architecture", d.optString("osArch", "—"));
+        JSONArray abis = d.optJSONArray("supportedAbis");
+        String abisStr = "—";
+        if (abis != null && abis.length() > 0) {
+            StringBuilder a = new StringBuilder();
+            for (int i = 0; i < abis.length(); i++) {
+                if (i > 0) {
+                    a.append(", ");
+                }
+                a.append(abis.optString(i, ""));
+            }
+            abisStr = a.toString();
+        }
+        appendDisplayLine(sb, "ABIs", abisStr);
+        appendDisplayLine(sb, "/proc/cpuinfo processors",
+                String.valueOf(d.optInt("processorEntriesInCpuinfo", 0)));
+        String cpuErr = d.optString("cpuinfoError", "");
+        if (!cpuErr.isEmpty()) {
+            appendDisplayLine(sb, "CPU info", cpuErr);
+        }
+        return sb.toString();
+    }
+
+    private static String formatMemoryInfoDisplay(JSONObject d) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("💾 Memory\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        if (d.has("error")) {
+            appendDisplayLine(sb, "Error", d.optString("error", "—"));
+            return sb.toString();
+        }
+        appendDisplayLine(sb, "Total", formatBytes(d.optLong("totalBytes", 0)));
+        appendDisplayLine(sb, "Available", formatBytes(d.optLong("availableBytes", 0)));
+        appendDisplayLine(sb, "Used", formatBytes(d.optLong("usedBytes", 0)));
+        appendDisplayLine(sb, "Used %", String.format(Locale.US, "%.2f%%", d.optDouble("usedPercent", 0)));
+        appendDisplayLine(sb, "Low memory", d.optBoolean("lowMemory", false) ? "Yes" : "No");
+        if (d.has("thresholdBytes")) {
+            appendDisplayLine(sb, "Threshold", formatBytes(d.optLong("thresholdBytes", 0)));
+        }
+        return sb.toString();
+    }
+
+    private static void appendStorageVolume(StringBuilder sb, String title, JSONObject vol) {
+        if (vol == null) {
+            appendDisplayLine(sb, title, "—");
+            return;
+        }
+        appendDisplayLine(sb, title + " path", vol.optString("path", "—"));
+        appendDisplayLine(sb, title + " total", formatBytes(vol.optLong("totalBytes", 0)));
+        appendDisplayLine(sb, title + " used", formatBytes(vol.optLong("usedBytes", 0)));
+        appendDisplayLine(sb, title + " available", formatBytes(vol.optLong("availableBytes", 0)));
+        appendDisplayLine(sb, title + " used %",
+                String.format(Locale.US, "%.2f%%", vol.optDouble("usedPercent", 0)));
+        String state = vol.optString("state", "");
+        if (!state.isEmpty()) {
+            appendDisplayLine(sb, title + " state", state);
+        }
+    }
+
+    private static String formatStorageInfoDisplay(JSONObject root) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("💿 Storage\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        appendStorageVolume(sb, "Internal", root.optJSONObject("internal"));
+        appendStorageVolume(sb, "External", root.optJSONObject("externalPrimary"));
+        return sb.toString();
+    }
+
+    private static String formatDisplayInfoDisplay(JSONObject d) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("🖥️ Display\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        if (d.has("error")) {
+            appendDisplayLine(sb, "Error", d.optString("error", "—"));
+            return sb.toString();
+        }
+        int w = d.optInt("widthPx", 0);
+        int h = d.optInt("heightPx", 0);
+        appendDisplayLine(sb, "Resolution", w + " × " + h);
+        appendDisplayLine(sb, "Density", String.format(Locale.US, "%.2f", d.optDouble("density", 0)));
+        appendDisplayLine(sb, "Density DPI", String.valueOf(d.optInt("densityDpi", 0)));
+        appendDisplayLine(sb, "Refresh rate",
+                String.format(Locale.US, "%.1f Hz", d.optDouble("refreshRateHz", 0)));
+        return sb.toString();
+    }
+
+    private static String formatSystemSummaryDisplay(JSONObject sum) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("📋 System Summary\n");
+        sb.append("━━━━━━━━━━━━━━\n");
+        JSONObject device = sum.optJSONObject("device");
+        if (device != null) {
+            String name = (device.optString("brand", "") + " " + device.optString("model", "")).trim();
+            appendDisplayLine(sb, "Device", name.isEmpty() ? "—" : name);
+            appendDisplayLine(sb, "Android",
+                    device.optString("androidVersion", "—") + " (API " + device.optInt("sdkInt", 0) + ")");
+        }
+        JSONObject cpu = sum.optJSONObject("cpu");
+        if (cpu != null) {
+            appendDisplayLine(sb, "CPU cores", String.valueOf(cpu.optInt("processorCount", 0)));
+            appendDisplayLine(sb, "CPU arch", cpu.optString("osArch", "—"));
+        }
+        JSONObject memory = sum.optJSONObject("memory");
+        if (memory != null) {
+            if (memory.has("error")) {
+                appendDisplayLine(sb, "Memory", memory.optString("error", "—"));
+            } else {
+                appendDisplayLine(sb, "RAM total", formatBytes(memory.optLong("totalBytes", 0)));
+                appendDisplayLine(sb, "RAM used",
+                        String.format(Locale.US, "%.2f%%", memory.optDouble("usedPercent", 0)));
+            }
+        }
+        JSONObject storage = sum.optJSONObject("storage");
+        if (storage != null) {
+            JSONObject internal = storage.optJSONObject("internal");
+            if (internal != null) {
+                appendDisplayLine(sb, "Storage (internal)",
+                        formatBytes(internal.optLong("usedBytes", 0))
+                                + " / " + formatBytes(internal.optLong("totalBytes", 0))
+                                + " (" + String.format(Locale.US, "%.1f%%",
+                                internal.optDouble("usedPercent", 0)) + " used)");
+            }
+        }
+        JSONObject display = sum.optJSONObject("display");
+        if (display != null) {
+            if (display.has("error")) {
+                appendDisplayLine(sb, "Display", display.optString("error", "—"));
+            } else {
+                appendDisplayLine(sb, "Display",
+                        display.optInt("widthPx", 0) + " × " + display.optInt("heightPx", 0)
+                                + " @ " + String.format(Locale.US, "%.0f Hz",
+                                display.optDouble("refreshRateHz", 0)));
+            }
+        }
+        return sb.toString();
+    }
+
     private String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject j = new JSONObject();
+        j.put("success", true);
+        j.put("output", output);
+        if (displayText != null) {
+            j.put("_displayText", displayText);
+        }
+        return j.toString();
     }
 
     private String error(String msg) throws Exception {

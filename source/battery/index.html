@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>电池管理 / Battery Manager</title>
+<title>Battery Manager</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,20 +22,57 @@
 <body>
 <div class="mod-header">
   <div class="icon">🔋</div>
-  <h2>电池管理 / Battery Manager</h2>
-  <p>查看电池电量、充电状态、健康状况、温度等详细信息</p>
+  <h2 data-i18n="title"></h2>
+  <p data-i18n="desc"></p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="api_title"></h3>
   <ul class="api-list">
-    <li><span class="api-name">getBatteryStatus</span> — 获取当前电池电量、状态(充电/放电/已满/未充电)、健康、温度、电压、技术类型、供电方式(USB/交流/无线)</li>
-    <li><span class="api-name">getBatteryHealth</span> — 电池健康报告：健康状态、温度提示、循环次数估算说明(系统通常不直接提供)</li>
-    <li><span class="api-name">getPowerSummary</span> — 汇总电池状态，便于在界面中向用户展示</li>
+    <li><span class="api-name">getBatteryStatus</span> — <span data-i18n="api_status"></span></li>
+    <li><span class="api-name">getBatteryHealth</span> — <span data-i18n="api_health"></span></li>
+    <li><span class="api-name">getPowerSummary</span> — <span data-i18n="api_summary"></span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="usage_title"></h3>
+  <p data-i18n="usage_desc"></p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    title: '电池管理',
+    desc: '查看电池电量、充电状态、健康状况、温度等详细信息',
+    api_title: '功能接口',
+    api_status: '获取当前电池电量、状态、健康、温度、电压、技术类型、供电方式',
+    api_health: '电池健康报告：健康状态、温度提示、循环次数估算说明',
+    api_summary: '汇总电池状态，便于查看',
+    usage_title: '使用方式',
+    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    title: 'Battery Manager',
+    desc: 'View battery level, charging status, health, temperature and more',
+    api_title: 'API Reference',
+    api_status: 'Get battery level, status, health, temperature, voltage, technology, power source',
+    api_health: 'Battery health report: health status, temperature warning, cycle count info',
+    api_summary: 'Power summary for quick overview',
+    usage_title: 'How to Use',
+    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

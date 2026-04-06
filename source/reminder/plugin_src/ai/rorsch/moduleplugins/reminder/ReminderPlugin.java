@@ -31,16 +31,37 @@ public class ReminderPlugin implements ModulePlugin {
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "createEvent":             return ok(createEvent(context, params));
-            case "listEvents":              return ok(listEvents(context, params));
+            case "createEvent": {
+                String out = createEvent(context, params);
+                return ok(out, formatCreateEventDisplay(out));
+            }
+            case "listEvents": {
+                String out = listEvents(context, params);
+                return ok(out, formatListEventsDisplay(out, "📅 Upcoming Events"));
+            }
             case "updateEvent":             return ok(updateEvent(context, params));
-            case "deleteEvent":             return ok(deleteEvent(context, params));
+            case "deleteEvent": {
+                String out = deleteEvent(context, params);
+                return ok(out, formatDeleteEventDisplay(out));
+            }
             case "getCalendars":            return ok(getCalendars(context));
-            case "setAlarm":                return ok(setAlarm(context, params));
-            case "setTimer":                return ok(setTimer(context, params));
-            case "createBirthdayReminder":  return ok(createBirthdayReminder(context, params));
+            case "setAlarm": {
+                String out = setAlarm(context, params);
+                return ok(out, formatSetAlarmDisplay(out));
+            }
+            case "setTimer": {
+                String out = setTimer(context, params);
+                return ok(out, formatSetTimerDisplay(out));
+            }
+            case "createBirthdayReminder": {
+                String out = createBirthdayReminder(context, params);
+                return ok(out, formatBirthdayReminderDisplay(out));
+            }
             case "openCalendar":            return ok(openCalendar(context, params));
-            case "getUpcoming":             return ok(getUpcoming(context, params));
+            case "getUpcoming": {
+                String out = getUpcoming(context, params);
+                return ok(out, formatListEventsDisplay(out, "📅 Next Events"));
+            }
             default:
                 return error("Unsupported action: " + action);
         }
@@ -476,7 +497,103 @@ public class ReminderPlugin implements ModulePlugin {
         return new JSONObject().put("success", true).put("output", output).toString();
     }
 
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
+    }
+
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
+    }
+
+    private String formatCreateEventDisplay(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            String title = o.optString("title", "");
+            String time = o.optString("startTime", "");
+            return "📅 Event Created\n━━━━━━━━━━━━━━\n▸ Title: " + title + "\n▸ Time: " + time;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** @param titlePrefix e.g. "📅 Upcoming Events" or "📅 Next Events" */
+    private String formatListEventsDisplay(String out, String titlePrefix) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            int count = o.optInt("count", 0);
+            JSONArray events = o.optJSONArray("events");
+            StringBuilder sb = new StringBuilder();
+            sb.append(titlePrefix).append(" (").append(count).append(")\n━━━━━━━━━━━━━━\n");
+            if (events != null) {
+                for (int i = 0; i < events.length(); i++) {
+                    JSONObject ev = events.getJSONObject(i);
+                    String t = ev.optString("title", "(no title)");
+                    String start = ev.optString("startTime", "");
+                    sb.append(i + 1).append(". ").append(t).append(" (").append(start).append(")\n");
+                }
+            }
+            String s = sb.toString();
+            return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatDeleteEventDisplay(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            if (o.optBoolean("deleted", false)) return "🗑️ Event deleted";
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatSetAlarmDisplay(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            int hour = o.optInt("hour", 0);
+            int minute = o.optInt("minute", 0);
+            return String.format(Locale.getDefault(), "⏰ Alarm Set\n▸ Time: %02d:%02d", hour, minute);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatSetTimerDisplay(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            int seconds = o.optInt("seconds", 0);
+            int mins = seconds / 60;
+            int secs = seconds % 60;
+            String duration;
+            if (secs == 0) {
+                duration = mins + (mins == 1 ? " minute" : " minutes");
+            } else if (mins == 0) {
+                duration = secs + (secs == 1 ? " second" : " seconds");
+            } else {
+                duration = mins + " min " + secs + " sec";
+            }
+            return "⏱️ Timer Set\n▸ Duration: " + duration;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatBirthdayReminderDisplay(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            return "🎂 Birthday Reminder Created";
+        } catch (Exception e) {
+            return "";
+        }
     }
 }

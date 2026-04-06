@@ -22,35 +22,57 @@ public class TextToolsPlugin implements ModulePlugin {
 
     private static final Pattern SENTENCE_SPLIT = Pattern.compile("(?<=[\\.\\!\\?。！？])(?=\\s|$)");
     private static final Pattern PARAGRAPH_SPLIT = Pattern.compile("\\R\\s*\\R");
+    private static final String DISPLAY_RULE = "━━━━━━━━━━━━━━";
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "wordCount":
-                    return ok(wordCountJson(params.optString("text", "")));
-                case "base64Encode":
-                    return ok(base64Encode(params.optString("text", "")));
-                case "base64Decode":
-                    return ok(base64Decode(params.optString("text", "")));
-                case "urlEncode":
-                    return ok(urlEncode(params.optString("text", "")));
-                case "urlDecode":
-                    return ok(urlDecode(params.optString("text", "")));
-                case "regexMatch":
-                    return ok(regexMatch(params.optString("text", ""), params.optString("pattern", "")));
-                case "regexReplace":
-                    return ok(regexReplace(
+                case "wordCount": {
+                    JSONObject out = wordCountJson(params.optString("text", ""));
+                    return ok(out, formatWordCountDisplay(out));
+                }
+                case "base64Encode": {
+                    JSONObject out = base64Encode(params.optString("text", ""));
+                    return ok(out, formatBase64BlockDisplay(out.optString("encoded")));
+                }
+                case "base64Decode": {
+                    JSONObject out = base64Decode(params.optString("text", ""));
+                    return ok(out, formatBase64BlockDisplay(out.optString("decoded")));
+                }
+                case "urlEncode": {
+                    JSONObject out = urlEncode(params.optString("text", ""));
+                    return ok(out, formatUrlBlockDisplay(out.optString("encoded")));
+                }
+                case "urlDecode": {
+                    JSONObject out = urlDecode(params.optString("text", ""));
+                    return ok(out, formatUrlBlockDisplay(out.optString("decoded")));
+                }
+                case "regexMatch": {
+                    JSONObject out = regexMatch(params.optString("text", ""), params.optString("pattern", ""));
+                    return ok(out, formatRegexMatchDisplay(out));
+                }
+                case "regexReplace": {
+                    JSONObject out = regexReplace(
                             params.optString("text", ""),
                             params.optString("pattern", ""),
-                            params.optString("replacement", "")));
-                case "textTransform":
-                    return ok(textTransform(params.optString("text", ""), params.optString("transform", "")));
-                case "generateUUID":
-                    return ok(generateUuidJson());
-                case "hashText":
-                    return ok(hashText(params.optString("text", ""), params.optString("algorithm", "")));
+                            params.optString("replacement", ""));
+                    return ok(out, formatRegexReplaceDisplay(out.optString("result")));
+                }
+                case "textTransform": {
+                    String transform = params.optString("transform", "");
+                    JSONObject out = textTransform(params.optString("text", ""), transform);
+                    return ok(out, formatTextTransformDisplay(transform, out.optString("result")));
+                }
+                case "generateUUID": {
+                    JSONObject out = generateUuidJson();
+                    return ok(out, formatUuidDisplay(out.optString("uuid")));
+                }
+                case "hashText": {
+                    JSONObject out = hashText(params.optString("text", ""), params.optString("algorithm", ""));
+                    return ok(out, formatHashDisplay(out));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -319,11 +341,66 @@ public class TextToolsPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private static String ok(JSONObject output) throws Exception {
-        return new JSONObject()
+    private static String formatWordCountDisplay(JSONObject o) {
+        return "📝 Text Stats\n" + DISPLAY_RULE + "\n"
+                + "▸ Words: " + o.optInt("words") + "\n"
+                + "▸ Chars: " + o.optInt("characters") + "\n"
+                + "▸ Lines: " + o.optInt("lines");
+    }
+
+    private static String formatBase64BlockDisplay(String resultText) {
+        return "🔄 Base64 Result\n" + DISPLAY_RULE + "\n" + resultText;
+    }
+
+    private static String formatUrlBlockDisplay(String resultText) {
+        return "🔗 URL Result\n" + DISPLAY_RULE + "\n" + resultText;
+    }
+
+    private static String formatRegexMatchDisplay(JSONObject o) {
+        int count = o.optInt("count", 0);
+        JSONArray matches = o.optJSONArray("matches");
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔍 Regex Match\n").append(DISPLAY_RULE).append("\n");
+        sb.append("Found ").append(count).append(" match").append(count == 1 ? "" : "es").append("\n");
+        if (matches != null) {
+            for (int i = 0; i < matches.length(); i++) {
+                sb.append(i + 1).append(". ").append(matches.optString(i)).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private static String formatRegexReplaceDisplay(String resultText) {
+        return "✏️ Regex Replace\n" + DISPLAY_RULE + "\n" + resultText;
+    }
+
+    private static String formatTextTransformDisplay(String transform, String resultText) {
+        String mode = transform == null ? "" : transform.trim();
+        return "🔤 Text Transform\n" + DISPLAY_RULE + "\n▸ Mode: " + mode + "\n\n" + resultText;
+    }
+
+    private static String formatUuidDisplay(String uuid) {
+        return "🔑 UUID Generated\n" + DISPLAY_RULE + "\n" + uuid;
+    }
+
+    private static String formatHashDisplay(JSONObject o) {
+        return "🔐 Hash Result\n" + DISPLAY_RULE + "\n"
+                + "▸ Algorithm: " + o.optString("algorithm") + "\n"
+                + "▸ Hash: " + o.optString("hex");
+    }
+
+    private static String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output.toString(), displayText);
+    }
+
+    private static String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject()
                 .put("success", true)
-                .put("output", output.toString())
-                .toString();
+                .put("output", output);
+        if (displayText != null && !displayText.isEmpty()) {
+            r.put("_displayText", displayText);
+        }
+        return r.toString();
     }
 
     private static String error(String message) throws Exception {

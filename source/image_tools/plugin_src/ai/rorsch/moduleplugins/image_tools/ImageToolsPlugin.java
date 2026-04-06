@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 public class ImageToolsPlugin implements ModulePlugin {
 
@@ -28,18 +29,30 @@ public class ImageToolsPlugin implements ModulePlugin {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "getImageInfo":
-                    return ok(getImageInfo(params.optString("path", "").trim()));
-                case "resizeImage":
-                    return ok(resizeImage(params));
-                case "compressImage":
-                    return ok(compressImage(params));
-                case "convertFormat":
-                    return ok(convertFormat(params));
-                case "rotateImage":
-                    return ok(rotateImage(params));
-                case "cropImage":
-                    return ok(cropImage(params));
+                case "getImageInfo": {
+                    String out = getImageInfo(params.optString("path", "").trim());
+                    return ok(out, formatGetImageInfoDisplay(out));
+                }
+                case "resizeImage": {
+                    String out = resizeImage(params);
+                    return ok(out, formatResizeImageDisplay(out));
+                }
+                case "compressImage": {
+                    String out = compressImage(params);
+                    return ok(out, formatCompressImageDisplay(out));
+                }
+                case "convertFormat": {
+                    String out = convertFormat(params);
+                    return ok(out, formatConvertFormatDisplay(out));
+                }
+                case "rotateImage": {
+                    String out = rotateImage(params);
+                    return ok(out, formatRotateImageDisplay(out));
+                }
+                case "cropImage": {
+                    String out = cropImage(params);
+                    return ok(out, formatCropImageDisplay(out));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -509,8 +522,121 @@ public class ImageToolsPlugin implements ModulePlugin {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    private static String formatGetImageInfoDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        int w = o.optInt("width");
+        int h = o.optInt("height");
+        String formatLabel;
+        if (o.isNull("mimeType")) {
+            formatLabel = "Unknown";
+        } else {
+            formatLabel = mimeTypeToDisplayFormat(o.optString("mimeType"));
+        }
+        long sizeBytes = o.optLong("fileSizeBytes");
+        return "🖼️ Image Info\n━━━━━━━━━━━━━━\n▸ Size: " + w + "×" + h + "\n▸ Format: " + formatLabel
+                + "\n▸ File: " + formatFileSizeMb(sizeBytes);
+    }
+
+    private static String formatResizeImageDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        int ow = o.optInt("outputWidth");
+        int oh = o.optInt("outputHeight");
+        String path = o.optString("outputPath");
+        return "✅ Resized to " + ow + "×" + oh + "\n▸ Output: " + path;
+    }
+
+    private static String formatCompressImageDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        String inPath = o.optString("inputPath");
+        long before = new File(inPath).length();
+        long after = o.optLong("outputSizeBytes");
+        String path = o.optString("outputPath");
+        return "✅ Compressed\n▸ Before: " + formatFileSizeMb(before) + " → After: " + formatFileSizeMb(after)
+                + "\n▸ Output: " + path;
+    }
+
+    private static String formatConvertFormatDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        String fmt = o.optString("format");
+        String label = formatKeyToUpperLabel(fmt);
+        String path = o.optString("outputPath");
+        return "✅ Converted to " + label + "\n▸ Output: " + path;
+    }
+
+    private static String formatRotateImageDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        int deg = o.optInt("degrees");
+        String path = o.optString("outputPath");
+        return "✅ Rotated " + deg + "°\n▸ Output: " + path;
+    }
+
+    private static String formatCropImageDisplay(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        String path = o.optString("outputPath");
+        return "✅ Cropped\n▸ Output: " + path;
+    }
+
+    private static String mimeTypeToDisplayFormat(String mime) {
+        if (mime == null || mime.isEmpty()) {
+            return "Unknown";
+        }
+        String m = mime.toLowerCase(Locale.US);
+        if (m.contains("jpeg") || m.endsWith("jpg")) {
+            return "JPEG";
+        }
+        if (m.contains("png")) {
+            return "PNG";
+        }
+        if (m.contains("webp")) {
+            return "WEBP";
+        }
+        if (m.contains("gif")) {
+            return "GIF";
+        }
+        if (m.contains("bmp") || m.contains("x-ms-bmp")) {
+            return "BMP";
+        }
+        if (m.startsWith("image/")) {
+            return m.substring(6).toUpperCase(Locale.US).replace('-', '_');
+        }
+        return mime;
+    }
+
+    private static String formatKeyToUpperLabel(String formatKey) {
+        if (formatKey == null || formatKey.isEmpty()) {
+            return "UNKNOWN";
+        }
+        switch (formatKey.toLowerCase(Locale.US)) {
+            case "jpeg":
+            case "jpg":
+                return "JPEG";
+            case "png":
+                return "PNG";
+            case "webp":
+                return "WEBP";
+            default:
+                return formatKey.toUpperCase(Locale.US);
+        }
+    }
+
+    private static String formatFileSizeMb(long bytes) {
+        if (bytes < 0) {
+            bytes = 0;
+        }
+        double mb = bytes / (1024.0 * 1024.0);
+        return String.format(Locale.US, "%.1f MB", mb);
+    }
+
+    private static String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) {
+            r.put("_displayText", displayText);
+        }
+        return r.toString();
+    }
+
     private static String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
     }
 
     private static String error(String msg) throws Exception {

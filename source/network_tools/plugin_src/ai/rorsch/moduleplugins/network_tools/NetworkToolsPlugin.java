@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class NetworkToolsPlugin implements ModulePlugin {
@@ -33,24 +34,41 @@ public class NetworkToolsPlugin implements ModulePlugin {
     private static final int PING_TIMEOUT_SEC = 20;
     private static final int PUBLIC_IP_TIMEOUT_MS = 5000;
     private static final Pattern SAFE_HOST = Pattern.compile("^[a-zA-Z0-9.:\\-_]+$");
+    private static final String DISPLAY_DIVIDER = "━━━━━━━━━━━━━━";
+    private static final Pattern PING_RTT_AVG =
+            Pattern.compile("rtt\\s+min/avg/max/(?:mdev|stddev)\\s*=\\s*[\\d.]+/([\\d.]+)/[\\d.]+/[\\d.]+\\s*ms");
+    private static final Pattern PING_TIME_MS = Pattern.compile("time=([\\d.]+)\\s*ms");
+    private static final Pattern PING_TIME_LT = Pattern.compile("time<([\\d.]+)\\s*ms");
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
             JSONObject params = new JSONObject(emptyJson(paramsJson));
             switch (action) {
-                case "ping":
-                    return ok(ping(params.optString("host", "").trim()));
-                case "dnsLookup":
-                    return ok(dnsLookup(params.optString("domain", "").trim()));
-                case "getLocalIp":
-                    return ok(getLocalIp());
-                case "getPublicIp":
-                    return ok(getPublicIp());
-                case "checkConnectivity":
-                    return ok(checkConnectivity(context));
-                case "getNetworkInfo":
-                    return ok(getNetworkInfo(context));
+                case "ping": {
+                    String out = ping(params.optString("host", "").trim());
+                    return ok(out, formatPingDisplay(out));
+                }
+                case "dnsLookup": {
+                    String out = dnsLookup(params.optString("domain", "").trim());
+                    return ok(out, formatDnsLookupDisplay(out));
+                }
+                case "getLocalIp": {
+                    String out = getLocalIp();
+                    return ok(out, formatLocalIpDisplay(out));
+                }
+                case "getPublicIp": {
+                    String out = getPublicIp();
+                    return ok(out, formatPublicIpDisplay(out));
+                }
+                case "checkConnectivity": {
+                    String out = checkConnectivity(context);
+                    return ok(out, formatConnectivityDisplay(out));
+                }
+                case "getNetworkInfo": {
+                    String out = getNetworkInfo(context);
+                    return ok(out, formatNetworkInfoDisplay(out));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -350,8 +368,211 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    private static String formatPingDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            String host = o.optString("host", "—");
+            boolean timedOut = o.optBoolean("timedOut", false);
+            int exit = o.optInt("exitCode", Integer.MIN_VALUE);
+            boolean reachable = !timedOut && exit == 0;
+            String timeVal = parsePingTimeMs(o.optString("stdout", ""));
+            String timeLine = timeVal.isEmpty()
+                    ? "▸ Time: —"
+                    : "▸ Time: " + timeVal + " ms";
+            return "🏓 Ping Results\n" + DISPLAY_DIVIDER + "\n▸ Host: " + host + "\n"
+                    + timeLine + "\n▸ Reachable: " + (reachable ? "✅" : "❌");
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String parsePingTimeMs(String stdout) {
+        if (stdout == null || stdout.isEmpty()) {
+            return "";
+        }
+        Matcher m = PING_RTT_AVG.matcher(stdout);
+        if (m.find()) {
+            return m.group(1);
+        }
+        m = PING_TIME_MS.matcher(stdout);
+        if (m.find()) {
+            return m.group(1);
+        }
+        m = PING_TIME_LT.matcher(stdout);
+        if (m.find()) {
+            return "<" + m.group(1);
+        }
+        return "";
+    }
+
+    private static String formatDnsLookupDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            String host = o.optString("domain", "—");
+            JSONArray arr = o.optJSONArray("addresses");
+            String ips = "—";
+            if (arr != null && arr.length() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < arr.length(); i++) {
+                    if (i > 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(arr.optString(i, ""));
+                }
+                ips = sb.toString();
+            }
+            return "🌐 DNS Lookup\n" + DISPLAY_DIVIDER + "\n▸ Host: " + host + "\n▸ IP: " + ips;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String formatLocalIpDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            JSONArray v4 = o.optJSONArray("ipv4");
+            if (v4 != null && v4.length() > 0) {
+                return "📡 Local IP: " + v4.optString(0, "—");
+            }
+            JSONArray v6 = o.optJSONArray("ipv6");
+            if (v6 != null && v6.length() > 0) {
+                return "📡 Local IP: " + v6.optString(0, "—");
+            }
+            return "📡 Local IP: —";
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String formatPublicIpDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            String ip = o.optString("ip", "");
+            if (ip.isEmpty()) {
+                ip = "—";
+            }
+            return "🌍 Public IP: " + ip;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String formatConnectivityDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            if (!o.optBoolean("hasConnectivityService", false)) {
+                return "📶 Network Status\n" + DISPLAY_DIVIDER + "\n▸ Connected: ❌\n▸ Type: —";
+            }
+            boolean active = o.optBoolean("activeNetwork", false);
+            JSONArray transports = o.optJSONArray("transports");
+            String typeStr = transportsToFriendly(transports);
+            return "📶 Network Status\n" + DISPLAY_DIVIDER + "\n▸ Connected: "
+                    + (active ? "✅" : "❌") + "\n▸ Type: " + (active ? typeStr : "—");
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String transportsToFriendly(JSONArray transports) {
+        if (transports == null || transports.length() == 0) {
+            return "—";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < transports.length(); i++) {
+            if (i > 0) {
+                sb.append("/");
+            }
+            sb.append(transportTokenToDisplay(transports.optString(i, "")));
+        }
+        return sb.toString();
+    }
+
+    private static String transportTokenToDisplay(String t) {
+        if (t == null || t.isEmpty()) {
+            return "—";
+        }
+        switch (t) {
+            case "wifi":
+                return "WiFi";
+            case "cellular":
+                return "Mobile";
+            case "ethernet":
+                return "Ethernet";
+            case "vpn":
+                return "VPN";
+            case "bluetooth":
+                return "Bluetooth";
+            case "lowpan":
+                return "LoWPAN";
+            case "wifi_aware":
+                return "Wi-Fi Aware";
+            default:
+                return t;
+        }
+    }
+
+    private static String formatNetworkInfoDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            String rawType = o.optString("networkType", "unknown");
+            String typeLine = networkTypeToDisplay(rawType);
+            StringBuilder sb = new StringBuilder();
+            sb.append("📶 Network Info\n").append(DISPLAY_DIVIDER).append("\n▸ Type: ").append(typeLine);
+            if ("wifi".equals(rawType)) {
+                String ssid = o.optString("wifiSsid", "");
+                sb.append("\n▸ SSID: ").append(ssid.isEmpty() ? "—" : ssid);
+            }
+            sb.append("\n▸ Connected: ").append(o.optBoolean("connected", false) ? "✅" : "❌");
+            if ("wifi".equals(rawType)) {
+                int link = o.optInt("linkSpeedMbps", -1);
+                if (link >= 0) {
+                    sb.append("\n▸ Link speed: ").append(link).append(" Mbps");
+                }
+                int freq = o.optInt("frequencyMhz", 0);
+                if (freq > 0) {
+                    sb.append("\n▸ Frequency: ").append(freq).append(" MHz");
+                }
+            }
+            return sb.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String networkTypeToDisplay(String type) {
+        if (type == null || type.isEmpty()) {
+            return "—";
+        }
+        switch (type) {
+            case "wifi":
+                return "WiFi";
+            case "mobile":
+                return "Mobile";
+            case "ethernet":
+                return "Ethernet";
+            case "vpn":
+                return "VPN";
+            case "none":
+                return "None";
+            case "unknown":
+                return "Unknown";
+            case "other":
+                return "Other";
+            default:
+                return type;
+        }
+    }
+
+    private static String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) {
+            r.put("_displayText", displayText);
+        }
+        return r.toString();
+    }
+
     private static String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
     }
 
     private static String error(String msg) throws Exception {

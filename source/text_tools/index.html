@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>文本工具 / Text Tools</title>
+<title data-i18n="pageTitle">文本工具 / Text Tools</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,27 +22,80 @@
 <body>
 <div class="mod-header">
   <div class="icon">🔤</div>
-  <h2>文本工具 / Text Tools</h2>
-  <p>字数统计、Base64编解码、URL编解码、正则匹配、文本哈希</p>
+  <h2 data-i18n="headerTitle">文本工具 / Text Tools</h2>
+  <p data-i18n="headerDesc">字数统计、Base64编解码、URL编解码、正则匹配、文本哈希</p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="sectionApis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">wordCount</span> — 统计文本的字符数、词数、行数、句数、段数；中文按字计词，英文按空白分词</li>
-    <li><span class="api-name">base64Encode</span> — 将文本按 UTF-8 编码为 Base64 字符串</li>
-    <li><span class="api-name">base64Decode</span> — 将 Base64 解码为 UTF-8 文本</li>
-    <li><span class="api-name">urlEncode</span> — URL 编码（application/x-www-form-urlencoded，空格为 +）</li>
-    <li><span class="api-name">urlDecode</span> — URL 解码</li>
-    <li><span class="api-name">regexMatch</span> — 在文本中查找正则表达式的全部匹配子串</li>
-    <li><span class="api-name">regexReplace</span> — 用 replacement 替换正则匹配（支持 $1、$2 等分组引用）</li>
-    <li><span class="api-name">textTransform</span> — 文本变换：upper/lower/capitalize/reverse/trim</li>
-    <li><span class="api-name">generateUUID</span> — 生成随机 UUID（RFC 4122 随机型）</li>
-    <li><span class="api-name">hashText</span> — 计算文本 UTF-8 字节的哈希，algorithm：MD5、SHA-1、SHA-256（大小写不敏感）</li>
+    <li><span class="api-name">wordCount</span> — <span data-i18n="api_wordCount">统计文本的字符数、词数、行数、句数、段数；中文按字计词，英文按空白分词</span></li>
+    <li><span class="api-name">base64Encode</span> — <span data-i18n="api_base64Encode">将文本按 UTF-8 编码为 Base64 字符串</span></li>
+    <li><span class="api-name">base64Decode</span> — <span data-i18n="api_base64Decode">将 Base64 解码为 UTF-8 文本</span></li>
+    <li><span class="api-name">urlEncode</span> — <span data-i18n="api_urlEncode">URL 编码（application/x-www-form-urlencoded，空格为 +）</span></li>
+    <li><span class="api-name">urlDecode</span> — <span data-i18n="api_urlDecode">URL 解码</span></li>
+    <li><span class="api-name">regexMatch</span> — <span data-i18n="api_regexMatch">在文本中查找正则表达式的全部匹配子串</span></li>
+    <li><span class="api-name">regexReplace</span> — <span data-i18n="api_regexReplace">用 replacement 替换正则匹配（支持 $1、$2 等分组引用）</span></li>
+    <li><span class="api-name">textTransform</span> — <span data-i18n="api_textTransform">文本变换：upper/lower/capitalize/reverse/trim</span></li>
+    <li><span class="api-name">generateUUID</span> — <span data-i18n="api_generateUUID">生成随机 UUID（RFC 4122 随机型）</span></li>
+    <li><span class="api-name">hashText</span> — <span data-i18n="api_hashText">计算文本 UTF-8 字节的哈希，algorithm：MD5、SHA-1、SHA-256（大小写不敏感）</span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="sectionUsage">使用方式</h3>
+  <p data-i18n="usageDesc">在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '文本工具 / Text Tools',
+    headerTitle: '文本工具 / Text Tools',
+    headerDesc: '字数统计、Base64编解码、URL编解码、正则匹配、文本哈希',
+    sectionApis: '功能接口',
+    api_wordCount: '统计文本的字符数、词数、行数、句数、段数；中文按字计词，英文按空白分词',
+    api_base64Encode: '将文本按 UTF-8 编码为 Base64 字符串',
+    api_base64Decode: '将 Base64 解码为 UTF-8 文本',
+    api_urlEncode: 'URL 编码（application/x-www-form-urlencoded，空格为 +）',
+    api_urlDecode: 'URL 解码',
+    api_regexMatch: '在文本中查找正则表达式的全部匹配子串',
+    api_regexReplace: '用 replacement 替换正则匹配（支持 $1、$2 等分组引用）',
+    api_textTransform: '文本变换：upper/lower/capitalize/reverse/trim',
+    api_generateUUID: '生成随机 UUID（RFC 4122 随机型）',
+    api_hashText: '计算文本 UTF-8 字节的哈希，algorithm：MD5、SHA-1、SHA-256（大小写不敏感）',
+    sectionUsage: '使用方式',
+    usageDesc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    pageTitle: 'Text Tools',
+    headerTitle: 'Text Tools',
+    headerDesc: 'Word count, Base64 encode/decode, URL encode/decode, regex, hashing',
+    sectionApis: 'APIs',
+    api_wordCount: 'Count characters, words, lines, sentences, paragraphs; CJK per-character “words”, English split on whitespace',
+    api_base64Encode: 'Encode text as UTF-8 Base64',
+    api_base64Decode: 'Decode Base64 to UTF-8 text',
+    api_urlEncode: 'URL encode (application/x-www-form-urlencoded; space as +)',
+    api_urlDecode: 'URL decode',
+    api_regexMatch: 'Find all regex matches in text',
+    api_regexReplace: 'Replace matches with replacement (supports $1, $2, …)',
+    api_textTransform: 'Transforms: upper / lower / capitalize / reverse / trim',
+    api_generateUUID: 'Generate a random UUID (RFC 4122 variant)',
+    api_hashText: 'Hash UTF-8 bytes of text; algorithm: MD5, SHA-1, SHA-256 (case-insensitive)',
+    sectionUsage: 'How to use',
+    usageDesc: 'Describe what you need in chat; the AI will call this module automatically.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

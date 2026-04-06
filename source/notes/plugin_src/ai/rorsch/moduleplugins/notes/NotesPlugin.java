@@ -30,20 +30,34 @@ public class NotesPlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         try {
             switch (action) {
-                case "createNote":
-                    return ok(createNote(params));
-                case "listNotes":
-                    return ok(listNotes(params));
-                case "getNote":
-                    return ok(getNote(params));
-                case "updateNote":
-                    return ok(updateNote(params));
-                case "deleteNote":
-                    return ok(deleteNote(params));
-                case "searchNotes":
-                    return ok(searchNotes(params));
-                case "exportNote":
-                    return ok(exportNote(params));
+                case "createNote": {
+                    String out = createNote(params);
+                    return ok(out, formatCreateNoteDisplay(out));
+                }
+                case "listNotes": {
+                    String out = listNotes(params);
+                    return ok(out, formatListNotesDisplay(out));
+                }
+                case "getNote": {
+                    String out = getNote(params);
+                    return ok(out, formatGetNoteDisplay(out));
+                }
+                case "updateNote": {
+                    String out = updateNote(params);
+                    return ok(out, formatUpdateNoteDisplay());
+                }
+                case "deleteNote": {
+                    String out = deleteNote(params);
+                    return ok(out, formatDeleteNoteDisplay());
+                }
+                case "searchNotes": {
+                    String out = searchNotes(params);
+                    return ok(out, formatSearchNotesDisplay(out, params.optString("keyword", "").trim()));
+                }
+                case "exportNote": {
+                    String out = exportNote(params);
+                    return ok(out, formatExportNoteDisplay(out));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -57,7 +71,78 @@ public class NotesPlugin implements ModulePlugin {
     }
 
     private String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject j = new JSONObject();
+        j.put("success", true);
+        j.put("output", output);
+        if (displayText != null) {
+            j.put("_displayText", displayText);
+        }
+        return j.toString();
+    }
+
+    private String formatCreateNoteDisplay(String noteJson) throws Exception {
+        JSONObject note = new JSONObject(noteJson);
+        String title = note.optString("title", "");
+        return "📝 Note Created\n━━━━━━━━━━━━━━\n▸ Title: " + title;
+    }
+
+    private String formatListNotesDisplay(String listJson) throws Exception {
+        JSONObject root = new JSONObject(listJson);
+        JSONArray notes = root.optJSONArray("notes");
+        int count = root.optInt("count", notes != null ? notes.length() : 0);
+        StringBuilder sb = new StringBuilder();
+        sb.append("📋 Notes (").append(count).append(" total)\n━━━━━━━━━━━━━━");
+        if (notes != null && notes.length() > 0) {
+            sb.append('\n');
+            for (int i = 0; i < notes.length(); i++) {
+                JSONObject row = notes.optJSONObject(i);
+                if (row == null) {
+                    continue;
+                }
+                String title = row.optString("title", "");
+                String pv = row.optString("preview", "");
+                if (i > 0) {
+                    sb.append('\n');
+                }
+                sb.append(i + 1).append(". ").append(title).append(" - ").append(pv);
+            }
+        }
+        return sb.toString();
+    }
+
+    private String formatGetNoteDisplay(String noteJson) throws Exception {
+        JSONObject note = new JSONObject(noteJson);
+        String title = note.optString("title", "");
+        String contentPreview = preview(note.optString("content", ""));
+        return "📝 Note\n━━━━━━━━━━━━━━\n▸ Title: " + title + "\n" + contentPreview;
+    }
+
+    private String formatUpdateNoteDisplay() {
+        return "✅ Note updated";
+    }
+
+    private String formatDeleteNoteDisplay() {
+        return "🗑️ Note deleted";
+    }
+
+    private String formatSearchNotesDisplay(String searchJson, String keyword) throws Exception {
+        JSONObject root = new JSONObject(searchJson);
+        int count = root.optInt("count", 0);
+        JSONArray notes = root.optJSONArray("notes");
+        if (notes != null && count == 0) {
+            count = notes.length();
+        }
+        return "🔍 Search Results\n━━━━━━━━━━━━━━\nFound " + count + " notes matching '" + keyword + "'";
+    }
+
+    private String formatExportNoteDisplay(String exportJson) throws Exception {
+        JSONObject root = new JSONObject(exportJson);
+        String path = root.optString("path", "");
+        return "📤 Note exported\n▸ File: " + path;
     }
 
     private String error(String msg) throws Exception {

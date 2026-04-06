@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>网络工具 / Network Tools</title>
+<title data-i18n="pageTitle">网络工具 / Network Tools</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,23 +22,68 @@
 <body>
 <div class="mod-header">
   <div class="icon">🌐</div>
-  <h2>网络工具 / Network Tools</h2>
-  <p>Ping测试、DNS查询、IP地址、网络连接状态</p>
+  <h2 data-i18n="headerTitle">网络工具 / Network Tools</h2>
+  <p data-i18n="headerDesc">Ping测试、DNS查询、IP地址、网络连接状态</p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="sectionApis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">ping</span> — Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码</li>
-    <li><span class="api-name">dnsLookup</span> — DNS 解析域名，返回解析到的所有 IP 地址</li>
-    <li><span class="api-name">getLocalIp</span> — 枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表</li>
-    <li><span class="api-name">getPublicIp</span> — 通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）</li>
-    <li><span class="api-name">checkConnectivity</span> — 使用 ConnectivityManager 检查当前网络是否可用及是否已验证连通</li>
-    <li><span class="api-name">getNetworkInfo</span> — 当前网络类型（WiFi/蜂窝/无等）、WiFi SSID（若系统允许）、链路速率等信息</li>
+    <li><span class="api-name">ping</span> — <span data-i18n="api_ping">Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码</span></li>
+    <li><span class="api-name">dnsLookup</span> — <span data-i18n="api_dnsLookup">DNS 解析域名，返回解析到的所有 IP 地址</span></li>
+    <li><span class="api-name">getLocalIp</span> — <span data-i18n="api_getLocalIp">枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表</span></li>
+    <li><span class="api-name">getPublicIp</span> — <span data-i18n="api_getPublicIp">通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）</span></li>
+    <li><span class="api-name">checkConnectivity</span> — <span data-i18n="api_checkConnectivity">使用 ConnectivityManager 检查当前网络是否可用及是否已验证连通</span></li>
+    <li><span class="api-name">getNetworkInfo</span> — <span data-i18n="api_getNetworkInfo">当前网络类型（WiFi/蜂窝/无等）、WiFi SSID（若系统允许）、链路速率等信息</span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="sectionUsage">使用方式</h3>
+  <p data-i18n="usageDesc">在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '网络工具 / Network Tools',
+    headerTitle: '网络工具 / Network Tools',
+    headerDesc: 'Ping测试、DNS查询、IP地址、网络连接状态',
+    sectionApis: '功能接口',
+    api_ping: 'Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码',
+    api_dnsLookup: 'DNS 解析域名，返回解析到的所有 IP 地址',
+    api_getLocalIp: '枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表',
+    api_getPublicIp: '通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）',
+    api_checkConnectivity: '使用 ConnectivityManager 检查当前网络是否可用及是否已验证连通',
+    api_getNetworkInfo: '当前网络类型（WiFi/蜂窝/无等）、WiFi SSID（若系统允许）、链路速率等信息',
+    sectionUsage: '使用方式',
+    usageDesc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    pageTitle: 'Network Tools',
+    headerTitle: 'Network Tools',
+    headerDesc: 'Ping test, DNS lookup, IP addresses, network connectivity status',
+    sectionApis: 'APIs',
+    api_ping: 'Ping a host (system ping, 4 packets by default); returns stdout and exit code',
+    api_dnsLookup: 'Resolve a hostname via DNS; returns all resolved IP addresses',
+    api_getLocalIp: 'Enumerate interfaces and list non-loopback IPv4/IPv6 addresses',
+    api_getPublicIp: 'Fetch current public IP via HTTPS to api.ipify.org (requires network)',
+    api_checkConnectivity: 'Use ConnectivityManager to check if the network is available and validated',
+    api_getNetworkInfo: 'Network type (Wi‑Fi/cellular/none), Wi‑Fi SSID (if allowed), link speed, etc.',
+    sectionUsage: 'How to use',
+    usageDesc: 'Describe what you need in chat; the AI will call this module automatically.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

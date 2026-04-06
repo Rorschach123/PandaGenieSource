@@ -26,6 +26,9 @@ public class ClipboardPlugin implements ModulePlugin {
     private static final int HISTORY_MAX = 100;
     private static final int DEFAULT_LIMIT = 20;
     private static final long CLIPBOARD_TIMEOUT_MS = 3000L;
+    private static final int DISPLAY_BODY_MAX = 2000;
+    private static final int DISPLAY_ITEM_MAX = 400;
+    private static final int DISPLAY_SEARCH_PREVIEW = 5;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -38,20 +41,34 @@ public class ClipboardPlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         try {
             switch (action) {
-                case "getClipboard":
-                    return ok(getClipboard(context));
-                case "setClipboard":
-                    return ok(setClipboard(context, params));
-                case "clearClipboard":
-                    return ok(clearClipboard(context));
-                case "getClipboardHistory":
-                    return ok(getClipboardHistory(params));
-                case "saveToHistory":
-                    return ok(saveToHistory(context));
-                case "searchHistory":
-                    return ok(searchHistory(params));
-                case "clearHistory":
-                    return ok(clearHistory());
+                case "getClipboard": {
+                    String out = getClipboard(context);
+                    return ok(out, formatGetClipboardDisplay(new JSONObject(out)));
+                }
+                case "setClipboard": {
+                    String out = setClipboard(context, params);
+                    return ok(out, formatSetClipboardDisplay());
+                }
+                case "clearClipboard": {
+                    String out = clearClipboard(context);
+                    return ok(out, formatClearClipboardDisplay());
+                }
+                case "getClipboardHistory": {
+                    String out = getClipboardHistory(params);
+                    return ok(out, formatGetClipboardHistoryDisplay(new JSONObject(out)));
+                }
+                case "saveToHistory": {
+                    String out = saveToHistory(context);
+                    return ok(out, formatSaveToHistoryDisplay(new JSONObject(out)));
+                }
+                case "searchHistory": {
+                    String out = searchHistory(params);
+                    return ok(out, formatSearchHistoryDisplay(new JSONObject(out)));
+                }
+                case "clearHistory": {
+                    String out = clearHistory();
+                    return ok(out, formatClearHistoryDisplay());
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -66,6 +83,92 @@ public class ClipboardPlugin implements ModulePlugin {
 
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        return new JSONObject()
+                .put("success", true)
+                .put("output", output)
+                .put("_displayText", displayText)
+                .toString();
+    }
+
+    private static String truncateForDisplay(String text, int maxChars) {
+        if (text == null) {
+            return "";
+        }
+        if (text.length() <= maxChars) {
+            return text;
+        }
+        return text.substring(0, maxChars) + "…";
+    }
+
+    private static String formatGetClipboardDisplay(JSONObject result) {
+        String text = result.optString("text", "");
+        String body = text.isEmpty() ? "(empty)" : truncateForDisplay(text, DISPLAY_BODY_MAX);
+        return "📋 Clipboard Content\n━━━━━━━━━━━━━━\n" + body;
+    }
+
+    private static String formatSetClipboardDisplay() {
+        return "✅ Copied to clipboard";
+    }
+
+    private static String formatClearClipboardDisplay() {
+        return "🗑️ Clipboard cleared";
+    }
+
+    private static String formatGetClipboardHistoryDisplay(JSONObject result) {
+        JSONArray items = result.optJSONArray("items");
+        if (items == null || items.length() == 0) {
+            return "📋 Clipboard History\n━━━━━━━━━━━━━━\n(no entries)";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("📋 Clipboard History\n━━━━━━━━━━━━━━\n");
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject row = items.optJSONObject(i);
+            String t = row != null ? row.optString("text", "") : "";
+            String line = t.isEmpty() ? "(empty)" : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            sb.append(i + 1).append(". ").append(line);
+            if (i < items.length() - 1) {
+                sb.append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String formatSaveToHistoryDisplay(JSONObject result) {
+        int len = result.optInt("textLength", 0);
+        return "✅ Saved to clipboard history\n(" + len + " characters)";
+    }
+
+    private static String formatSearchHistoryDisplay(JSONObject result) {
+        int count = result.optInt("count", 0);
+        JSONArray items = result.optJSONArray("items");
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔍 Search Results\n━━━━━━━━━━━━━━\n");
+        sb.append("Found ").append(count).append(" match").append(count == 1 ? "" : "es");
+        if (items == null || items.length() == 0) {
+            return sb.toString();
+        }
+        sb.append('\n');
+        int show = Math.min(items.length(), DISPLAY_SEARCH_PREVIEW);
+        for (int i = 0; i < show; i++) {
+            JSONObject row = items.optJSONObject(i);
+            String t = row != null ? row.optString("text", "") : "";
+            String line = t.isEmpty() ? "(empty)" : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            sb.append(i + 1).append(". ").append(line);
+            if (i < show - 1) {
+                sb.append('\n');
+            }
+        }
+        if (items.length() > DISPLAY_SEARCH_PREVIEW) {
+            sb.append("\n… ").append(items.length() - DISPLAY_SEARCH_PREVIEW).append(" more");
+        }
+        return sb.toString();
+    }
+
+    private static String formatClearHistoryDisplay() {
+        return "🗑️ History cleared";
     }
 
     private String error(String msg) throws Exception {

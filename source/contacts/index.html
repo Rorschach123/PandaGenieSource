@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>联系人管理 / Contacts Manager</title>
+<title>Contact Manager</title>
 <link rel="stylesheet" href="common.css">
 <style>
 .mod-header { text-align: center; padding: 24px 0 16px; }
@@ -22,23 +22,66 @@
 <body>
 <div class="mod-header">
   <div class="icon">👥</div>
-  <h2>联系人管理 / Contacts Manager</h2>
-  <p>搜索、查看、导出联系人，查找重复联系人</p>
+  <h2 data-i18n="title"></h2>
+  <p data-i18n="desc"></p>
 </div>
 <div class="info-card">
-  <h3>功能接口</h3>
+  <h3 data-i18n="api_title"></h3>
   <ul class="api-list">
-    <li><span class="api-name">searchContacts</span> — 按姓名或电话号码搜索联系人，返回 id、姓名、主号码；query 为关键词，limit 默认 20</li>
-    <li><span class="api-name">getContactDetail</span> — 按联系人 ID 返回完整信息：所有电话、邮箱、地址、公司职务等</li>
-    <li><span class="api-name">listContacts</span> — 分页列出联系人：id、姓名、主号码；limit 默认 50，offset 默认 0</li>
-    <li><span class="api-name">getContactCount</span> — 返回设备上联系人总数</li>
-    <li><span class="api-name">exportContacts</span> — 将全部联系人导出为 vCard 3.0（VCF）文件；outputPath 默认 /sdcard/PandaGenie/output/contacts_export.vcf</li>
-    <li><span class="api-name">findDuplicates</span> — 查找姓名相同或电话号码相同（规范化后）的重复联系人分组</li>
+    <li><span class="api-name">searchContacts</span> — <span data-i18n="api_searchContacts"></span></li>
+    <li><span class="api-name">getContactDetail</span> — <span data-i18n="api_getContactDetail"></span></li>
+    <li><span class="api-name">listContacts</span> — <span data-i18n="api_listContacts"></span></li>
+    <li><span class="api-name">getContactCount</span> — <span data-i18n="api_getContactCount"></span></li>
+    <li><span class="api-name">exportContacts</span> — <span data-i18n="api_exportContacts"></span></li>
+    <li><span class="api-name">findDuplicates</span> — <span data-i18n="api_findDuplicates"></span></li>
   </ul>
 </div>
 <div class="info-card">
-  <h3>使用方式</h3>
-  <p>在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
+  <h3 data-i18n="usage_title"></h3>
+  <p data-i18n="usage_desc"></p>
 </div>
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    title: '联系人管理',
+    desc: '搜索、查看、导出联系人，查找重复联系人',
+    api_title: '功能接口',
+    api_searchContacts: '按姓名或电话号码搜索联系人，返回 id、姓名、主号码；query 为关键词，limit 默认 20',
+    api_getContactDetail: '按联系人 ID 返回完整信息：所有电话、邮箱、地址、公司职务等',
+    api_listContacts: '分页列出联系人：id、姓名、主号码；limit 默认 50，offset 默认 0',
+    api_getContactCount: '返回设备上联系人总数',
+    api_exportContacts: '将全部联系人导出为 vCard 3.0（VCF）文件；outputPath 默认 /sdcard/PandaGenie/output/contacts_export.vcf',
+    api_findDuplicates: '查找姓名相同或电话号码相同（规范化后）的重复联系人分组',
+    usage_title: '使用方式',
+    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+  },
+  en: {
+    title: 'Contact Manager',
+    desc: 'Search, view, and export contacts; find duplicates',
+    api_title: 'API Reference',
+    api_searchContacts: 'Search by name or phone; returns id, name, primary number; query is the keyword, limit defaults to 20',
+    api_getContactDetail: 'By contact id, return full info: all phones, emails, addresses, organization, etc.',
+    api_listContacts: 'Paginated list: id, name, primary number; limit defaults to 50, offset defaults to 0',
+    api_getContactCount: 'Return total number of contacts on the device',
+    api_exportContacts: 'Export all contacts as vCard 3.0 (VCF); outputPath defaults to /sdcard/PandaGenie/output/contacts_export.vcf',
+    api_findDuplicates: 'Find duplicate groups by same name or same normalized phone number',
+    usage_title: 'How to Use',
+    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
+  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

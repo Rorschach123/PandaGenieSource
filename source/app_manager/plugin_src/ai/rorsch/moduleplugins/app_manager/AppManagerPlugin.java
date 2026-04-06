@@ -24,12 +24,18 @@ public class AppManagerPlugin implements ModulePlugin {
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "listApps":
-                return ok(listApps(context, params));
+            case "listApps": {
+                String out = listApps(context, params);
+                return ok(out, formatListAppsDisplay(new JSONObject(out)));
+            }
             case "openApp":
                 return openApp(context, params);
-            case "getAppInfo":
-                return ok(getAppInfo(context, params));
+            case "getAppInfo": {
+                String out = getAppInfo(context, params);
+                JSONObject probe = new JSONObject(out);
+                if (probe.has("success") && !probe.optBoolean("success", true)) return out;
+                return ok(out, formatGetAppInfoDisplay(probe));
+            }
             case "uninstallApp":
                 return uninstallApp(context, params);
             case "openAppSettings":
@@ -85,8 +91,9 @@ public class AppManagerPlugin implements ModulePlugin {
         JSONObject result = new JSONObject();
         result.put("launched", true);
         result.put("packageName", packageName);
-        result.put("appName", pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString());
-        return ok(result.toString());
+        String appName = pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString();
+        result.put("appName", appName);
+        return ok(result.toString(), "✅ Opening " + appName);
     }
 
     private String getAppInfo(Context context, JSONObject params) throws Exception {
@@ -140,11 +147,16 @@ public class AppManagerPlugin implements ModulePlugin {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
 
+        PackageManager pm = context.getPackageManager();
         JSONObject result = new JSONObject();
         result.put("requestSent", true);
         result.put("packageName", packageName);
         result.put("message", "Uninstall confirmation dialog has been shown to the user");
-        return ok(result.toString());
+        String appLabel = packageName;
+        try {
+            appLabel = pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString();
+        } catch (PackageManager.NameNotFoundException ignored) {}
+        return ok(result.toString(), "🗑️ Uninstall requested: " + appLabel);
     }
 
     private String openAppSettings(Context context, JSONObject params) throws Exception {
@@ -159,10 +171,12 @@ public class AppManagerPlugin implements ModulePlugin {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
 
+        PackageManager pm = context.getPackageManager();
         JSONObject result = new JSONObject();
         result.put("opened", true);
         result.put("packageName", packageName);
-        return ok(result.toString());
+        String appLabel = pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0)).toString();
+        return ok(result.toString(), "⚙️ Opening settings for " + appLabel);
     }
 
     /**
@@ -213,8 +227,38 @@ public class AppManagerPlugin implements ModulePlugin {
 
     private String emptyJson(String v) { return v == null || v.trim().isEmpty() ? "{}" : v; }
 
+    private String formatListAppsDisplay(JSONObject obj) throws Exception {
+        int count = obj.optInt("count", 0);
+        JSONArray apps = obj.optJSONArray("apps");
+        StringBuilder sb = new StringBuilder();
+        sb.append("📱 Installed Apps (").append(count).append(" total)\n━━━━━━━━━━━━━━\n");
+        if (apps != null) {
+            for (int i = 0; i < apps.length(); i++) {
+                JSONObject app = apps.getJSONObject(i);
+                String name = app.optString("appName", "");
+                String pkg = app.optString("packageName", "");
+                sb.append(i + 1).append(". ").append(name).append(" (").append(pkg).append(")\n");
+            }
+        }
+        String s = sb.toString();
+        return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
+    }
+
+    private String formatGetAppInfoDisplay(JSONObject info) {
+        String name = info.optString("appName", "");
+        String pkg = info.optString("packageName", "");
+        String ver = info.optString("versionName", "");
+        return "📱 App Info\n━━━━━━━━━━━━━━\n▸ Name: " + name + "\n▸ Package: " + pkg + "\n▸ Version: " + ver;
+    }
+
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
     }
 
     private String error(String message) throws Exception {

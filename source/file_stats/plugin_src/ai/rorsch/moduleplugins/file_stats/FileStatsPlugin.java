@@ -26,21 +26,52 @@ public class FileStatsPlugin implements ModulePlugin {
 
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
     private static final DecimalFormat SIZE_FMT = new DecimalFormat("#,##0.##");
+    private static final int DISPLAY_LIST_MAX = 20;
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "getFileInfo":     return ok(getFileInfo(params));
-            case "getFileHash":     return ok(getFileHash(params));
-            case "compareFiles":    return ok(compareFiles(params));
-            case "verifyChecksum":  return ok(verifyChecksum(params));
-            case "getDirStats":     return ok(getDirStats(params));
-            case "findDuplicates":  return ok(findDuplicates(params));
-            case "findLargeFiles":  return ok(findLargeFiles(params));
-            case "searchByName":    return ok(searchByName(params));
-            case "getTextStats":    return ok(getTextStats(params));
-            case "batchFileInfo":   return ok(batchFileInfo(params));
+            case "getFileInfo": {
+                String out = getFileInfo(params);
+                return ok(out, formatStatsGetFileInfoDisplay(out));
+            }
+            case "getFileHash": {
+                String out = getFileHash(params);
+                return ok(out, formatGetFileHashDisplay(out));
+            }
+            case "compareFiles": {
+                String out = compareFiles(params);
+                return ok(out, formatCompareFilesDisplay(out));
+            }
+            case "verifyChecksum": {
+                String out = verifyChecksum(params);
+                return ok(out, formatVerifyChecksumDisplay(out));
+            }
+            case "getDirStats": {
+                String out = getDirStats(params);
+                return ok(out, formatGetDirStatsDisplay(out));
+            }
+            case "findDuplicates": {
+                String out = findDuplicates(params);
+                return ok(out, formatFindDuplicatesDisplay(out));
+            }
+            case "findLargeFiles": {
+                String out = findLargeFiles(params);
+                return ok(out, formatFindLargeFilesDisplay(out));
+            }
+            case "searchByName": {
+                String out = searchByName(params);
+                return ok(out, formatSearchByNameDisplay(out));
+            }
+            case "getTextStats": {
+                String out = getTextStats(params);
+                return ok(out, formatGetTextStatsDisplay(out));
+            }
+            case "batchFileInfo": {
+                String out = batchFileInfo(params);
+                return ok(out, formatBatchFileInfoDisplay(out));
+            }
             default:
                 return error("Unsupported action: " + action);
         }
@@ -546,10 +577,143 @@ public class FileStatsPlugin implements ModulePlugin {
     }
 
     private String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null);
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
     }
 
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
+    }
+
+    private static JSONObject parseOutputJson(String output) {
+        try {
+            return new JSONObject(output);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String formatStatsGetFileInfoDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "📄 File Info\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        return "📄 File Info\n━━━━━━━━━━━━━━\n▸ Name: " + o.optString("name", "")
+                + "\n▸ Size: " + o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))
+                + "\n▸ Modified: " + o.optString("lastModified", "");
+    }
+
+    private static String formatGetFileHashDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "🔐 File Hash\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        return "🔐 File Hash\n━━━━━━━━━━━━━━\n▸ Algorithm: " + o.optString("algorithm", "")
+                + "\n▸ Hash: " + o.optString("hash", "");
+    }
+
+    private static String formatCompareFilesDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "🔍 File Comparison\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        boolean same = o.optBoolean("identical", false);
+        return "🔍 File Comparison\n━━━━━━━━━━━━━━\n▸ Identical: " + (same ? "✅" : "❌");
+    }
+
+    private static String formatVerifyChecksumDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        boolean ok = o.optBoolean("verified", false);
+        return ok ? "✅ Checksum verified" : "❌ Mismatch";
+    }
+
+    private static String formatGetDirStatsDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "📊 Directory Stats\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        return "📊 Directory Stats\n━━━━━━━━━━━━━━\n▸ Files: " + o.optLong("fileCount", 0)
+                + "\n▸ Total Size: " + o.optString("totalSizeFormatted", "");
+    }
+
+    private static String formatFindDuplicatesDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "🔁 Duplicate Files\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        int groups = o.optInt("duplicateGroups", 0);
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔁 Duplicate Files\n━━━━━━━━━━━━━━\nFound ").append(groups).append(" groups\n");
+        JSONArray dups = o.optJSONArray("duplicates");
+        if (dups == null) return sb.toString().trim();
+        int showG = Math.min(DISPLAY_LIST_MAX, dups.length());
+        for (int g = 0; g < showG; g++) {
+            JSONObject grp = dups.optJSONObject(g);
+            if (grp == null) continue;
+            int cnt = grp.optInt("count", 0);
+            String sz = grp.optString("fileSizeFormatted", "");
+            JSONArray files = grp.optJSONArray("files");
+            String first = (files != null && files.length() > 0) ? files.optString(0, "") : "";
+            sb.append("▸ ").append(cnt).append("× ").append(sz);
+            if (!first.isEmpty()) sb.append("\n   ").append(first);
+            sb.append("\n");
+        }
+        if (dups.length() > showG) sb.append("… (+").append(dups.length() - showG).append(" more groups)");
+        return sb.toString().trim();
+    }
+
+    private static String formatFindLargeFilesDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "📦 Large Files\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        JSONArray files = o.optJSONArray("files");
+        StringBuilder sb = new StringBuilder("📦 Large Files\n━━━━━━━━━━━━━━\n");
+        if (files == null) return sb.toString().trim();
+        int show = Math.min(DISPLAY_LIST_MAX, files.length());
+        for (int i = 0; i < show; i++) {
+            JSONObject f = files.optJSONObject(i);
+            if (f == null) continue;
+            sb.append(i + 1).append(". ").append(f.optString("name", "?"))
+                    .append(" (").append(f.optString("sizeFormatted", "")).append(")\n");
+        }
+        if (files.length() > show) sb.append("… (+").append(files.length() - show).append(" more)");
+        return sb.toString().trim();
+    }
+
+    private static String formatSearchByNameDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "🔍 Files Found\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        int found = o.optInt("found", 0);
+        JSONArray files = o.optJSONArray("files");
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔍 Files Found\n━━━━━━━━━━━━━━\n").append(found).append(" matches\n");
+        if (files == null) return sb.toString().trim();
+        int show = Math.min(DISPLAY_LIST_MAX, files.length());
+        for (int i = 0; i < show; i++) {
+            JSONObject f = files.optJSONObject(i);
+            String p = f != null ? f.optString("path", "?") : "?";
+            sb.append(i + 1).append(". ").append(p).append("\n");
+        }
+        if (files.length() > show) sb.append("… (+").append(files.length() - show).append(" more)");
+        return sb.toString().trim();
+    }
+
+    private static String formatGetTextStatsDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "📝 Text Stats\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        return "📝 Text Stats\n━━━━━━━━━━━━━━\n▸ Lines: " + o.optLong("totalLines", 0)
+                + "\n▸ Words: " + o.optLong("words", 0)
+                + "\n▸ Chars: " + o.optLong("characters", 0);
+    }
+
+    private static String formatBatchFileInfoDisplay(String output) {
+        JSONObject o = parseOutputJson(output);
+        if (o == null) return "📋 Batch File Info\n━━━━━━━━━━━━━━\n";
+        if (o.has("error")) return "❌ " + o.optString("error");
+        return "📋 Batch File Info\n━━━━━━━━━━━━━━\n" + o.optInt("count", 0) + " files analyzed";
     }
 }

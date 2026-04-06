@@ -5,6 +5,8 @@ import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.CalculatorLib;
 import org.json.JSONObject;
 
+import java.util.Locale;
+
 public class CalculatorPlugin implements ModulePlugin {
     private final CalculatorLib lib = new CalculatorLib();
 
@@ -12,40 +14,80 @@ public class CalculatorPlugin implements ModulePlugin {
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "evaluate":
-                return ok(formatNumber(lib.evaluate(params.optString("expression", ""))));
-            case "add":
-                return ok(String.valueOf(lib.add(params.optDouble("a"), params.optDouble("b"))));
-            case "subtract":
-                return ok(String.valueOf(lib.subtract(params.optDouble("a"), params.optDouble("b"))));
-            case "multiply":
-                return ok(String.valueOf(lib.multiply(params.optDouble("a"), params.optDouble("b"))));
-            case "divide":
-                return ok(String.valueOf(lib.divide(params.optDouble("a"), params.optDouble("b"))));
-            case "power":
-                return ok(String.valueOf(lib.power(params.optDouble("base"), params.optDouble("exp"))));
-            case "sqrt":
-                return ok(String.valueOf(lib.nSqrt(params.optDouble("x"))));
-            case "sin":
-                return ok(String.valueOf(lib.sin(params.optDouble("x"))));
-            case "cos":
-                return ok(String.valueOf(lib.cos(params.optDouble("x"))));
-            case "tan":
-                return ok(String.valueOf(lib.tan(params.optDouble("x"))));
-            case "ln":
-                return ok(String.valueOf(lib.ln(params.optDouble("x"))));
-            case "log10":
-                return ok(String.valueOf(lib.log10(params.optDouble("x"))));
-            case "factorial":
-                return ok(String.valueOf(lib.factorial(params.optInt("n"))));
-            case "combination":
-                return ok(String.valueOf(lib.combination(params.optInt("n"), params.optInt("r"))));
-            case "permutation":
-                return ok(String.valueOf(lib.permutation(params.optInt("n"), params.optInt("r"))));
-            case "degToRad":
-                return ok(String.valueOf(lib.degToRad(params.optDouble("deg"))));
-            case "radToDeg":
-                return ok(String.valueOf(lib.radToDeg(params.optDouble("rad"))));
+            case "evaluate": {
+                String out = formatNumber(lib.evaluate(params.optString("expression", "")));
+                return ok(out, "🔢 = " + out);
+            }
+            case "add": {
+                String out = String.valueOf(lib.add(params.optDouble("a"), params.optDouble("b")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "subtract": {
+                String out = String.valueOf(lib.subtract(params.optDouble("a"), params.optDouble("b")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "multiply": {
+                String out = String.valueOf(lib.multiply(params.optDouble("a"), params.optDouble("b")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "divide": {
+                String out = String.valueOf(lib.divide(params.optDouble("a"), params.optDouble("b")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "power": {
+                String out = String.valueOf(lib.power(params.optDouble("base"), params.optDouble("exp")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "sqrt": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.nSqrt(x));
+                return ok(out, String.format(Locale.US, "📐 sqrt(%s) = %s", formatParam(x), out));
+            }
+            case "sin": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.sin(x));
+                return ok(out, String.format(Locale.US, "📐 sin(%s) = %s", formatParam(x), out));
+            }
+            case "cos": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.cos(x));
+                return ok(out, String.format(Locale.US, "📐 cos(%s) = %s", formatParam(x), out));
+            }
+            case "tan": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.tan(x));
+                return ok(out, String.format(Locale.US, "📐 tan(%s) = %s", formatParam(x), out));
+            }
+            case "ln": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.ln(x));
+                return ok(out, String.format(Locale.US, "📐 ln(%s) = %s", formatParam(x), out));
+            }
+            case "log10": {
+                double x = params.optDouble("x");
+                String out = String.valueOf(lib.log10(x));
+                return ok(out, String.format(Locale.US, "📐 log10(%s) = %s", formatParam(x), out));
+            }
+            case "factorial": {
+                String out = String.valueOf(lib.factorial(params.optInt("n")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "combination": {
+                String out = String.valueOf(lib.combination(params.optInt("n"), params.optInt("r")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "permutation": {
+                String out = String.valueOf(lib.permutation(params.optInt("n"), params.optInt("r")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "degToRad": {
+                String out = String.valueOf(lib.degToRad(params.optDouble("deg")));
+                return ok(out, "🔢 Result: " + out);
+            }
+            case "radToDeg": {
+                String out = String.valueOf(lib.radToDeg(params.optDouble("rad")));
+                return ok(out, "🔢 Result: " + out);
+            }
             default:
                 return error("Unsupported action: " + action);
         }
@@ -55,6 +97,11 @@ public class CalculatorPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    private String formatParam(double value) {
+        long lv = (long) value;
+        return value == (double) lv ? String.valueOf(lv) : String.valueOf(value);
+    }
+
     private String formatNumber(double value) {
         long longValue = (long) value;
         return value == (double) longValue ? String.valueOf(longValue) : String.valueOf(value);
@@ -62,6 +109,12 @@ public class CalculatorPlugin implements ModulePlugin {
 
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
     }
 
     private String error(String message) throws Exception {

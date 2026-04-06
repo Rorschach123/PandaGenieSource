@@ -31,14 +31,26 @@ public class SignatureCheckerPlugin implements ModulePlugin {
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
-            case "verifyApk":
-                return ok(verifyApkSignature(context).toString());
-            case "verifyModule":
-                return ok(verifySingleModule(context, params).toString());
-            case "verifyAllModules":
-                return ok(verifyAllModules(context).toString());
-            case "verifyAll":
-                return ok(verifyAll(context).toString());
+            case "verifyApk": {
+                JSONObject apk = verifyApkSignature(context);
+                String out = apk.toString();
+                return ok(out, formatVerifyApkDisplay(apk));
+            }
+            case "verifyModule": {
+                JSONObject mod = verifySingleModule(context, params);
+                String out = mod.toString();
+                return ok(out, formatVerifyModuleDisplay(mod));
+            }
+            case "verifyAllModules": {
+                JSONArray arr = verifyAllModules(context);
+                String out = arr.toString();
+                return ok(out, formatVerifyAllModulesDisplay(arr));
+            }
+            case "verifyAll": {
+                JSONObject all = verifyAll(context);
+                String out = all.toString();
+                return ok(out, formatVerifyAllDisplay(all));
+            }
             default:
                 return error("Unsupported action: " + action);
         }
@@ -354,8 +366,47 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatVerifyApkDisplay(JSONObject apk) {
+        boolean v = apk.optBoolean("verified", false);
+        String status = v ? "✅ Valid" : "❌ Invalid";
+        String signer = v ? apk.optString("subject", "") : apk.optString("error", "");
+        if (signer.isEmpty()) signer = v ? apk.optString("fingerprint", "") : "";
+        return "🔐 APK Signature\n━━━━━━━━━━━━━━\n▸ Status: " + status + "\n▸ Signer: " + signer;
+    }
+
+    private String formatVerifyModuleDisplay(JSONObject mod) {
+        String moduleName = mod.optString("name", "");
+        if (moduleName.isEmpty()) moduleName = mod.optString("id", mod.optString("file", ""));
+        boolean v = mod.optBoolean("verified", false);
+        String status = v ? "✅ Valid" : "❌ Invalid";
+        return "🔐 Module Signature\n━━━━━━━━━━━━━━\n▸ Module: " + moduleName + "\n▸ Status: " + status;
+    }
+
+    private String formatVerifyAllModulesDisplay(JSONArray results) {
+        int valid = 0;
+        int invalid = 0;
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject o = results.optJSONObject(i);
+            if (o != null && o.optBoolean("verified", false)) valid++;
+            else invalid++;
+        }
+        return "🔐 All Modules Verified\n━━━━━━━━━━━━━━\n✅ " + valid + " valid / ❌ " + invalid + " invalid";
+    }
+
+    private String formatVerifyAllDisplay(JSONObject all) {
+        JSONArray modules = all.optJSONArray("modules");
+        if (modules != null) return formatVerifyAllModulesDisplay(modules);
+        return "🔐 All Modules Verified\n━━━━━━━━━━━━━━\n✅ 0 valid / ❌ 0 invalid";
+    }
+
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        JSONObject r = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        return r.toString();
     }
 
     private String error(String message) throws Exception {
