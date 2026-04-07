@@ -24,7 +24,7 @@ source/my_module/
 
 推荐使用 **[模块模板仓库](https://github.com/Rorschach123/PandaGenie-Module-Template)** 一键创建项目，开箱即用。
 
-**完整开发指南：** [MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)
+**完整开发指南：** [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)（[GitHub](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)）
 
 ---
 
@@ -53,7 +53,7 @@ source/my_module/
 ### 本地构建模块
 
 ```powershell
-cd PandaGenieModules/module-dev-toolkit/
+cd module-dev-toolkit/
 
 # 首次使用：生成开发者签名密钥
 .\mk_module.ps1 -Action init-dev-signing

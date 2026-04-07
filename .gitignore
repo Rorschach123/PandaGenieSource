@@ -4,8 +4,11 @@ logs/
 # Legacy build directory
 mk_module/
 
-# Compiled module files
-*.mod
+# Compiled module files (in source dirs only, not in modules/)
+source/**/*.mod
+
+# Module dev toolkit logs
+module-dev-toolkit/logs/
 
 # Native build outputs (CMake/Ninja artifacts)
 source/*/native/build/

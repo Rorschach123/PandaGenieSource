@@ -1,25 +1,25 @@
 # Build Tools
 
-- `pack_modules.ps1`: Pack modules (compile plugin DEX, collect native .so, dual-sign each .mod). Output to `PandaGenieModules/modules/`, logs in `logs/`
+- `pack_modules.ps1`: Pack modules (compile plugin DEX, collect native .so, dual-sign each .mod). Default output to `PandaGenieSource/modules/`, logs in `logs/`
 - `build_all_native.ps1`: Compile all native module libraries (calls each module's `build_native.ps1`)
 
-Signing initialization scripts are in **`PandaGenieModules/module-dev-toolkit/`**.
+Signing initialization scripts live in **`PandaGenieSource/module-dev-toolkit/`** (or **`module-dev-toolkit/`** relative to this repo root).
 
 ## Directory Layout
 
 ```text
-PandaGenie/
-├── PandaGenieSource/           ← this repo (module source code)
+PandaGenie/                     ← typical local workspace (example)
+├── PandaGenieSource/           ← this repo: module source, toolkit, packed .mod outputs
 │   ├── source/<moduleId>/      ← module source files
 │   │   ├── manifest.json
 │   │   ├── index.html
 │   │   └── plugin_src/
+│   ├── module-dev-toolkit/     ← signing init, mk_module.ps1, dev guide
+│   ├── modules/                ← compiled .mod files (pack output)
+│   ├── modules.json            ← module index (updated by pack)
 │   └── tools/                  ← build scripts (this dir)
 │       ├── pack_modules.ps1
 │       └── build_all_native.ps1
-├── PandaGenieModules/          ← module distribution repo
-│   ├── module-dev-toolkit/     ← signing init, mk_module.ps1, dev guide
-│   └── modules/                ← compiled .mod files
 └── Keystore/                   ← signing keys (outside repos)
     ├── module_signing/
     └── dev_signing/
@@ -37,7 +37,9 @@ The `pack_modules.ps1` reads signing keystores from `PandaGenie/Keystore/`:
 To initialize signing keys, use `mk_module.ps1` in `module-dev-toolkit/`:
 
 ```powershell
-cd PandaGenieModules\module-dev-toolkit
+cd PandaGenieSource\module-dev-toolkit
 .\mk_module.ps1 -Action init-dev-signing
 .\mk_module.ps1 -Action init-signing
 ```
+
+If your shell is already at the repo root, use `cd module-dev-toolkit` instead.

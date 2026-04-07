@@ -15,10 +15,9 @@ $rootDir = Split-Path $sourceRoot -Parent
 $srcBase = Join-Path $sourceRoot "source"
 $sharedApiDir = Join-Path $srcBase "shared_api"
 $logsDir = Join-Path $sourceRoot "logs"
-# Default output: PandaGenieModules repo (sibling of PandaGenieSource)
-$pandaGenieModulesRepo = Join-Path $rootDir "PandaGenieModules"
-$distDir = if ([string]::IsNullOrWhiteSpace($OutputDir)) { Join-Path $pandaGenieModulesRepo "modules" } else { $OutputDir }
-$modulesJsonPath = Join-Path $pandaGenieModulesRepo "modules.json"
+# Default output: modules/ directory inside PandaGenieSource
+$distDir = if ([string]::IsNullOrWhiteSpace($OutputDir)) { Join-Path $sourceRoot "modules" } else { $OutputDir }
+$modulesJsonPath = Join-Path $sourceRoot "modules.json"
 
 $abis = @("arm64-v8a", "armeabi-v7a")
 
@@ -574,7 +573,7 @@ foreach ($modDir in $moduleDirs) {
     Write-Host ""
 }
 
-# Update PandaGenieModules modules.json (updated_at, versions, auto-add new modules)
+# Update modules.json (updated_at, versions, auto-add new modules)
 if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
     try {
         $jsonText = [System.IO.File]::ReadAllText($modulesJsonPath, [System.Text.Encoding]::UTF8)
@@ -616,7 +615,7 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                         filename = "$modId.mod"
                         download_url = @(
                             "https://cf.pandagenie.ai/modules/download/$modId",
-                            "https://github.com/Rorschach123/PandaGenieModules/raw/main/modules/$modId.mod"
+                            "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/$modId.mod"
                         )
                         developer = [PSCustomObject]@{ name = $devName }
                         permissions = $perms

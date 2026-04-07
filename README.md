@@ -289,7 +289,7 @@ The `plugin.jar` inside the `.mod` contains DEX bytecode (not standard Java byte
 ### Build & Test Locally
 
 ```powershell
-# In PandaGenieModules/module-dev-toolkit/
+# In PandaGenieSource/module-dev-toolkit/ (or module-dev-toolkit/ from repo root)
 .\mk_module.ps1 -Action init-dev-signing    # First time only
 .\mk_module.ps1 -Action pack -Modules "my_module"
 
@@ -300,18 +300,17 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 Once your module works, head to **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** to upload it. The system validates your module and applies the official signature — you can then publish it to the marketplace with one click.
 
-For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
+For the full development guide, see [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md) (also on [GitHub](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)).
 
 ---
 
 ## Project Structure
 
-This project is split across three repositories:
+Module source, build tooling, compiled `.mod` outputs, `modules.json`, and `module-dev-toolkit/` all live in this repository. A separate template repo helps you bootstrap new modules:
 
 | Repo | Purpose |
 |------|---------|
-| **[PandaGenieSource](.)** (this repo) | Module source code and build tools |
-| **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | Compiled `.mod` files, marketplace index, dev toolkit |
+| **[PandaGenieSource](.)** (this repo) | Module source (`source/`), `tools/`, `module-dev-toolkit/`, built `.mod` files (`modules/`), and `modules.json` |
 | **[PandaGenie-Module-Template](https://github.com/Rorschach123/PandaGenie-Module-Template)** | GitHub template repo — one-click starting point for new modules |
 
 ```
@@ -325,6 +324,9 @@ PandaGenieSource/
 │   ├── file_stats/
 │   ├── reminder/
 │   └── signature_checker/
+├── module-dev-toolkit/        # mk_module.ps1, signing init, dev guide
+├── modules/                   # Packed .mod outputs (from pack scripts)
+├── modules.json               # Marketplace-style module index (updated by pack)
 └── tools/
     ├── pack_modules.ps1       # Pack & sign .mod files
     └── build_all_native.ps1   # Compile native libraries

@@ -24,7 +24,7 @@ source/my_module/
     └── .../MyPlugin.java  ← Your logic (one method)
 ```
 
-**Full guide:** [MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)
+**Full guide:** [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md) ([on GitHub](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md))
 
 ---
 
@@ -53,7 +53,7 @@ source/my_module/
 ### Building a Module Locally
 
 ```powershell
-cd PandaGenieModules/module-dev-toolkit/
+cd module-dev-toolkit/
 
 # First time: generate your developer signing key
 .\mk_module.ps1 -Action init-dev-signing

@@ -290,7 +290,7 @@ my_module.mod (ZIP)
 ### 本地构建与测试
 
 ```powershell
-# 在 PandaGenieModules/module-dev-toolkit/ 下
+# 在 PandaGenieSource/module-dev-toolkit/ 下（或仓库根目录下的 module-dev-toolkit/）
 .\mk_module.ps1 -Action init-dev-signing    # 仅首次需要
 .\mk_module.ps1 -Action pack -Modules "my_module"
 
@@ -301,18 +301,17 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 模块开发完成后，前往 **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** 上传你的 `.mod` 文件。系统会自动验证模块并加盖官方签名 — 随后你可以一键发布到模块市场。
 
-完整开发指南请参考 [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)。
+完整开发指南请参考 [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)（[GitHub 上的副本](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)）。
 
 ---
 
 ## 项目结构
 
-本项目分为三个仓库：
+模块源码、构建脚本、打包产物（`modules/`）、`modules.json` 与 `module-dev-toolkit/` 均在本仓库。另有一个独立的模板仓库用于快速新建模块项目：
 
 | 仓库 | 用途 |
 |------|------|
-| **[PandaGenieSource](.)** （本仓库） | 模块源代码和构建工具 |
-| **[PandaGenieModules](https://github.com/Rorschach123/PandaGenieModules)** | 编译后的 `.mod` 文件、模块市场索引、开发者工具包 |
+| **[PandaGenieSource](.)** （本仓库） | 模块源码（`source/`）、`tools/`、`module-dev-toolkit/`、构建输出的 `.mod`（`modules/`）及 `modules.json` |
 | **[PandaGenie-Module-Template](https://github.com/Rorschach123/PandaGenie-Module-Template)** | GitHub 模板仓库 — 一键创建新模块项目 |
 
 ```
@@ -326,6 +325,9 @@ PandaGenieSource/
 │   ├── file_stats/
 │   ├── reminder/
 │   └── signature_checker/
+├── module-dev-toolkit/        # mk_module.ps1、签名初始化、开发指南
+├── modules/                   # 打包输出的 .mod（由打包脚本生成）
+├── modules.json               # 类市场模块索引（打包时更新）
 └── tools/
     ├── pack_modules.ps1       # 打包签名 .mod 文件
     └── build_all_native.ps1   # 编译原生库
