@@ -32,7 +32,7 @@ source/my_module/
 
 | Type | Where | How |
 |------|-------|-----|
-| **New module** | `source/<module_id>/` | Create module, test locally, submit PR or upload to [cf.pandagenie.ai](https://cf.pandagenie.ai) |
+| **New module** | `source/<module_id>/` | Create module, test locally, submit PR or upload to [cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign) |
 | **Bug fix** | Existing module code | Fork → fix → PR |
 | **Documentation** | `*.md` files, code comments | Fork → edit → PR |
 | **Translation** | `manifest.json` `_en` fields, README | Add/improve English or Chinese translations |
@@ -127,7 +127,7 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 If you prefer not to use Git/PR:
 
 1. Build your `.mod` file locally
-2. Go to **[cf.pandagenie.ai](https://cf.pandagenie.ai)**
+2. Go to **[cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)**
 3. Upload → automatic validation → official signing → publish to marketplace
 
 This is the fastest path from code to distribution.

@@ -10,9 +10,10 @@
 </p>
 
 <p>
+  <a href="https://cf.pandagenie.ai">官方网站</a> &nbsp;&#x2022;&nbsp;
   <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#加入我们--欢迎所有开发者">加入我们</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://cf.pandagenie.ai">提交模块</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai/sign">提交模块</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai/marketplace">模块市场</a> &nbsp;&#x2022;&nbsp;
   <a href="#创建你的模块">创建模块</a> &nbsp;&#x2022;&nbsp;
   <a href="README.md">&#x1F1EC;&#x1F1E7; English</a>
@@ -298,7 +299,7 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 ### 获取官方签名与发布
 
-模块开发完成后，前往 **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** 上传你的 `.mod` 文件。系统会自动验证模块并加盖官方签名 — 随后你可以一键发布到模块市场。
+模块开发完成后，前往 **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** 上传你的 `.mod` 文件。系统会自动验证模块并加盖官方签名 — 随后你可以一键发布到模块市场。
 
 完整开发指南请参考 [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)。
 
@@ -354,7 +355,7 @@ PandaGenie 是一个**共创平台** — 我们真诚地邀请各种水平的开
 
 #### 方式一：在线签名平台（推荐）
 
-访问 **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** — PandaGenie 官方模块签名服务：
+访问 **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** — PandaGenie 官方模块签名服务：
 
 1. 使用开发者工具包在本地构建你的 `.mod` 文件
 2. 在网页上上传 — 系统将自动验证文件格式、开发者签名和安全检查

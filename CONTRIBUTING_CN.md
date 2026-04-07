@@ -32,7 +32,7 @@ source/my_module/
 
 | 类型 | 位置 | 方式 |
 |------|------|------|
-| **新模块** | `source/<module_id>/` | 创建模块，本地测试，提交 PR 或上传到 [cf.pandagenie.ai](https://cf.pandagenie.ai) |
+| **新模块** | `source/<module_id>/` | 创建模块，本地测试，提交 PR 或上传到 [cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign) |
 | **Bug 修复** | 现有模块代码 | Fork → 修复 → PR |
 | **文档改进** | `*.md` 文件、代码注释 | Fork → 编辑 → PR |
 | **翻译** | `manifest.json` 的 `_en` 字段、README | 添加或改进中英文翻译 |
@@ -127,7 +127,7 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 如果你不想使用 Git/PR：
 
 1. 在本地构建 `.mod` 文件
-2. 访问 **[cf.pandagenie.ai](https://cf.pandagenie.ai)**
+2. 访问 **[cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)**
 3. 上传 → 自动验证 → 官方签名 → 发布到模块市场
 
 这是从代码到上架最快的路径。

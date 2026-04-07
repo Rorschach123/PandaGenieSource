@@ -10,9 +10,10 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
 </p>
 
 <p>
+  <a href="https://cf.pandagenie.ai">Official Website</a> &nbsp;&#x2022;&nbsp;
   <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://cf.pandagenie.ai">Submit a Module</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai/sign">Submit a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai/marketplace">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="README_CN.md">&#x1F1E8;&#x1F1F3; 中文</a>
@@ -297,7 +298,7 @@ adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
 
 ### Get Official Signature & Publish
 
-Once your module works, head to **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** to upload it. The system validates your module and applies the official signature — you can then publish it to the marketplace with one click.
+Once your module works, head to **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** to upload it. The system validates your module and applies the official signature — you can then publish it to the marketplace with one click.
 
 For the full development guide, see [PandaGenieModules/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](https://github.com/Rorschach123/PandaGenieModules/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md).
 
@@ -353,7 +354,7 @@ There are **two ways** to get your module officially signed and published:
 
 #### Option A: Online Signing Portal (Recommended)
 
-Visit **[https://cf.pandagenie.ai](https://cf.pandagenie.ai)** — the official PandaGenie module signing service:
+Visit **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** — the official PandaGenie module signing service:
 
 1. Build your `.mod` file locally using the dev toolkit
 2. Upload it on the website — it will automatically validate the file format, developer signature, and security checks
