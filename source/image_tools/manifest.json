@@ -4,7 +4,7 @@
   "name_en": "Image Tools",
   "description": "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪等操作",
   "description_en": "Image tools: view info, resize, compress, convert format, rotate, and crop images",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "image",
   "soLibraries": [],
   "h5Page": "index.html",

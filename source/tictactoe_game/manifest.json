@@ -1,0 +1,55 @@
+{
+  "id": "tictactoe_game",
+  "name": "井字棋",
+  "name_en": "Tic-Tac-Toe",
+  "description": "经典井字棋游戏，玩家（X）与程序（O）对战，在3x3网格中率先形成三连即获胜",
+  "description_en": "Classic Tic-Tac-Toe game. Player (X) vs AI (O) on a 3x3 grid. First to get three in a row wins",
+  "version": "1.1",
+  "icon": "tag",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.tictactoe_game.TicTacToePlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "startGame",
+      "desc": "开始井字棋游戏，玩家执X先手，返回初始棋盘状态",
+      "desc_en": "Start a new Tic-Tac-Toe game. Player plays X and goes first. Returns initial board state",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "placeMark",
+      "desc": "玩家在指定位置下棋（行列从0开始），程序随后自动回应，返回更新后的棋盘状态",
+      "desc_en": "Player places mark at the specified position (row/col 0-based). AI responds automatically. Returns updated board state",
+      "params": ["row", "col"],
+      "paramDesc": ["行号 0-2", "列号 0-2"],
+      "paramDesc_en": ["Row 0-2", "Column 0-2"]
+    },
+    {
+      "name": "getState",
+      "desc": "获取当前游戏状态，包括棋盘、当前回合、胜负情况等",
+      "desc_en": "Get current game state including board, current turn, win/loss status",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "restart",
+      "desc": "重新开始游戏",
+      "desc_en": "Restart the game",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

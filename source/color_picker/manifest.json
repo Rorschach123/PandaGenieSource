@@ -1,0 +1,56 @@
+{
+  "id": "color_picker",
+  "name": "颜色工具",
+  "name_en": "Color Tools",
+  "description": "颜色拾取与转换：HEX、RGB、HSL、CMYK 互转；和谐色板（互补、类似、三角、分裂互补、四色）；随机色；CSS 命名色匹配",
+  "description_en": "Color picker and conversion across HEX, RGB, HSL, CMYK; harmonious palettes (complementary, analogous, triadic, split-complementary, tetradic); random colors; closest CSS named color lookup",
+  "version": "1.1",
+  "icon": "palette",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.color_picker.ColorPickerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "devCertFingerprint": "",
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "convertColor",
+      "desc": "在 HEX (#RRGGBB)、RGB、HSL、CMYK 之间转换；fromFormat/toFormat 为 hex|rgb|hsl|cmyk，toFormat 可为 all 返回全部",
+      "desc_en": "Convert between HEX (#RRGGBB), RGB, HSL, CMYK; fromFormat/toFormat: hex|rgb|hsl|cmyk; use toFormat=all for all formats",
+      "params": ["input", "fromFormat", "toFormat"],
+      "paramDesc": ["颜色字符串，如 #FF0000、255,0,0、0,100,50、0,100,100,0", "源格式：hex|rgb|hsl|cmyk|auto", "目标格式：hex|rgb|hsl|cmyk|all"],
+      "paramDesc_en": ["Color string e.g. #FF0000, 255,0,0, hsl triple, or CMYK quad", "Source format: hex|rgb|hsl|cmyk|auto", "Target: hex|rgb|hsl|cmyk|all"]
+    },
+    {
+      "name": "generatePalette",
+      "desc": "根据基色与和谐类型生成色板：complementary|analogous|triadic|split-complementary|tetradic",
+      "desc_en": "Generate a palette from a base color; harmony: complementary|analogous|triadic|split-complementary|tetradic",
+      "params": ["baseHex", "harmony"],
+      "paramDesc": ["基色 HEX，如 #FF5733", "和谐类型：complementary、analogous、triadic、split-complementary、tetradic"],
+      "paramDesc_en": ["Base color HEX e.g. #FF5733", "Harmony: complementary, analogous, triadic, split-complementary, tetradic"]
+    },
+    {
+      "name": "randomColor",
+      "desc": "生成随机颜色；可选 hueMin/hueMax（0–360）限制色相范围",
+      "desc_en": "Random color(s); optional hueMin/hueMax (0–360) to constrain hue",
+      "params": ["count", "hueMin", "hueMax"],
+      "paramDesc": ["生成数量（默认 1，最大 20）", "色相下限，默认 0", "色相上限，默认 360"],
+      "paramDesc_en": ["Count (default 1, max 20)", "Hue min, default 0", "Hue max, default 360"]
+    },
+    {
+      "name": "getColorInfo",
+      "desc": "根据 HEX 返回最接近的 CSS 命名颜色名称与距离",
+      "desc_en": "Closest CSS named color for a given HEX, with distance",
+      "params": ["hex"],
+      "paramDesc": ["HEX 颜色，如 #FF0000"],
+      "paramDesc_en": ["HEX color e.g. #FF0000"]
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "id": "sudoku_game",
+  "name": "数独",
+  "name_en": "Sudoku",
+  "description": "经典数独游戏，在9x9网格中填入1-9，使每行、每列和每个3x3子网格都不重复，支持设置难度自动生成题目",
+  "description_en": "Classic Sudoku game. Fill a 9x9 grid with digits 1-9 so each row, column and 3x3 box is unique. Supports difficulty-based puzzle generation",
+  "version": "1.1",
+  "icon": "grid_on",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.sudoku_game.SudokuPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "startGame",
+      "desc": "开始数独游戏，根据难度（1-3：简单/普通/困难）生成题目，返回初始棋盘",
+      "desc_en": "Start a new Sudoku game. Generate puzzle by difficulty (1-3: easy/normal/hard). Returns initial board",
+      "params": ["difficulty"],
+      "paramDesc": ["难度 1-3，默认2（普通）"],
+      "paramDesc_en": ["Difficulty 1-3, default 2 (normal)"]
+    },
+    {
+      "name": "placeNumber",
+      "desc": "在指定位置填入数字，返回更新后的棋盘状态和是否正确",
+      "desc_en": "Place a number at the specified position. Returns updated board and correctness",
+      "params": ["row", "col", "number"],
+      "paramDesc": ["行号 0-8", "列号 0-8", "数字 1-9"],
+      "paramDesc_en": ["Row 0-8", "Column 0-8", "Number 1-9"]
+    },
+    {
+      "name": "clearCell",
+      "desc": "清除指定位置的数字（仅可清除玩家填入的数字），返回更新后的棋盘",
+      "desc_en": "Clear the number at the specified position (only player-placed numbers). Returns updated board",
+      "params": ["row", "col"],
+      "paramDesc": ["行号 0-8", "列号 0-8"],
+      "paramDesc_en": ["Row 0-8", "Column 0-8"]
+    },
+    {
+      "name": "checkBoard",
+      "desc": "检查当前棋盘是否完成且正确，返回检查结果",
+      "desc_en": "Check if the current board is complete and correct. Returns check result",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getHint",
+      "desc": "获取一个提示，返回一个空格的正确答案",
+      "desc_en": "Get a hint for one empty cell. Returns the correct answer",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getState",
+      "desc": "获取当前游戏状态，包括棋盘、已填数量、是否完成等",
+      "desc_en": "Get current game state including board, filled count, completion status",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "restart",
+      "desc": "重新开始游戏，保持当前难度设置并生成新题目",
+      "desc_en": "Restart with current difficulty and generate a new puzzle",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

@@ -22,12 +22,38 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * PandaGenie 文件统计与校验模块插件。
+ * <p>
+ * <b>模块用途：</b>在本地文件系统上提供元信息读取、散列计算、两文件对比、校验和验证、目录体积累计与按扩展名分布、
+ * 重复文件（按大小预筛选再 SHA-256）、大文件扫描、按文件名关键字搜索、文本统计及批量路径信息/哈希等能力。
+ * </p>
+ * <p>
+ * <b>对外 API（{@code action}）：</b>{@code getFileInfo}、{@code getFileHash}、{@code compareFiles}、{@code verifyChecksum}、
+ * {@code getDirStats}、{@code findDuplicates}、{@code findLargeFiles}、{@code searchByName}、{@code getTextStats}、{@code batchFileInfo}。
+ * </p>
+ * <p>
+ * 实现 {@link ModulePlugin}，由 {@code ModuleRuntime} 反射加载；{@link Context} 当前未参与逻辑，为接口保留。
+ * </p>
+ */
 public class FileStatsPlugin implements ModulePlugin {
 
+    /** 展示用日期时间格式（默认 locale） */
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+    /** 文件大小 human-readable 小数格式 */
     private static final DecimalFormat SIZE_FMT = new DecimalFormat("#,##0.##");
+    /** 列表类 {@code _displayText} 最大条数 */
     private static final int DISPLAY_LIST_MAX = 20;
 
+    /**
+     * 根据 {@code action} 调用对应实现，统一包装为 {@code success/output/_displayText} 或错误 JSON。
+     *
+     * @param context    Android 上下文（本插件未使用）
+     * @param action     操作名
+     * @param paramsJson 各操作所需 JSON 参数
+     * @return 响应 JSON 字符串
+     * @throws Exception IO、摘要算法或 JSON 异常
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
@@ -79,6 +105,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== getFileInfo ====================
 
+    /**
+     * 返回单个文件或目录的路径、大小、时间、权限、扩展名、MIME 及目录子项数量等元信息。
+     *
+     * @param params {@code path} 必填，为绝对或相对路径
+     * @return 成功为信息 JSON；失败为带 {@code error} 的 JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String getFileInfo(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         if (path.isEmpty()) return errJson("Missing parameter: path");
@@ -89,6 +122,13 @@ public class FileStatsPlugin implements ModulePlugin {
         return info.toString();
     }
 
+    /**
+     * 由 {@link File} 对象组装标准信息字段。
+     *
+     * @param f 已存在的文件或目录
+     * @return JSON 对象
+     * @throws Exception JSON 异常
+     */
     private JSONObject buildFileInfo(File f) throws Exception {
         JSONObject info = new JSONObject();
         info.put("path", f.getAbsolutePath());
@@ -119,6 +159,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== getFileHash ====================
 
+    /**
+     * 计算单个文件的密码学散列（支持 MD5、SHA-1、SHA-256，默认 SHA-256）。
+     *
+     * @param params {@code path}、可选 {@code algorithm}
+     * @return 含 path、algorithm、hash、size 等字段的 JSON 字符串；目录或非文件报错
+     * @throws Exception 摘要或 IO 异常
+     */
     private String getFileHash(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         String algo = normalizeAlgo(params.optString("algorithm", "SHA-256"));
@@ -141,6 +188,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== compareFiles ====================
 
+    /**
+     * 比较两文件是否内容一致：先比长度，相同再计算 SHA-256 比对。
+     *
+     * @param params {@code path1}、{@code path2}
+     * @return JSON：{@code identical}、{@code reason}、长度与 hash 等
+     * @throws Exception 散列或 JSON 异常
+     */
     private String compareFiles(JSONObject params) throws Exception {
         String path1 = params.optString("path1", "").trim();
         String path2 = params.optString("path2", "").trim();
@@ -165,6 +219,7 @@ public class FileStatsPlugin implements ModulePlugin {
             return result.toString();
         }
 
+        // 长度相同仍可能内容不同，进一步用 SHA-256 确认
         String hash1 = computeHash(f1, "SHA-256");
         String hash2 = computeHash(f2, "SHA-256");
 
@@ -181,6 +236,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== verifyChecksum ====================
 
+    /**
+     * 计算文件散列并与期望值忽略大小写比较。
+     *
+     * @param params {@code path}、{@code expectedHash}、可选 {@code algorithm}
+     * @return JSON：{@code verified}、{@code actualHash}、{@code message}
+     * @throws Exception 摘要异常
+     */
     private String verifyChecksum(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         String expected = params.optString("expectedHash", "").trim();
@@ -206,6 +268,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== getDirStats ====================
 
+    /**
+     * 递归或仅当前层统计目录下文件总大小、文件数、子目录数，并按扩展名聚合占用（按总大小降序输出）。
+     *
+     * @param params {@code path}、{@code recursive} 默认 true
+     * @return JSON 统计结果
+     * @throws Exception JSON 异常
+     */
     private String getDirStats(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         boolean recursive = params.optBoolean("recursive", true);
@@ -247,6 +316,14 @@ public class FileStatsPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 深度优先遍历目录：累加 {@code counts}（总字节、文件数、目录数）与按扩展名聚合。
+     *
+     * @param dir       当前目录
+     * @param recursive 是否进入子目录
+     * @param counts    长度 3：totalSize, fileCount, dirCount
+     * @param extMap    扩展名 → [个数, 该扩展名总字节]
+     */
     private void collectDirStats(File dir, boolean recursive, long[] counts, Map<String, long[]> extMap) {
         File[] children = dir.listFiles();
         if (children == null) return;
@@ -269,6 +346,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== findDuplicates ====================
 
+    /**
+     * 在目录内查找内容完全相同的文件组：先按文件大小分组，仅对大小相同且数量≥2 的文件计算 SHA-256，再合并同 hash 路径。
+     *
+     * @param params {@code path}、{@code recursive}、{@code minSize} 默认 1024 字节，过滤极小文件
+     * @return JSON：重复组列表、扫描文件数、浪费空间估算等
+     * @throws Exception 散列或 JSON 异常
+     */
     private String findDuplicates(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         boolean recursive = params.optBoolean("recursive", true);
@@ -321,6 +405,14 @@ public class FileStatsPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 将满足最小大小的文件按「文件大小」分桶，为后续哈希去重做准备。
+     *
+     * @param dir       根目录
+     * @param recursive 是否递归
+     * @param minSize   最小字节数
+     * @param map       文件大小 → 该大小下所有 {@link File}
+     */
     private void collectFilesBySize(File dir, boolean recursive, long minSize, Map<Long, List<File>> map) {
         File[] children = dir.listFiles();
         if (children == null) return;
@@ -338,6 +430,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== findLargeFiles ====================
 
+    /**
+     * 在目录中找出不低于指定 MB 阈值的文件，按大小降序，返回前 {@code limit} 条。
+     *
+     * @param params {@code path}、{@code minSizeMB} 默认 100、{@code recursive}、{@code limit} 默认 50
+     * @return JSON：{@code files} 数组等
+     * @throws Exception JSON 异常
+     */
     private String findLargeFiles(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         double minSizeMB = params.optDouble("minSizeMB", 100);
@@ -379,6 +478,14 @@ public class FileStatsPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 收集所有不低于 {@code minBytes} 的文件路径（递归可选）。
+     *
+     * @param dir       目录
+     * @param recursive 是否递归
+     * @param minBytes  最小字节
+     * @param out       输出列表
+     */
     private void collectLargeFiles(File dir, boolean recursive, long minBytes, List<File> out) {
         File[] children = dir.listFiles();
         if (children == null) return;
@@ -390,6 +497,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== searchByName ====================
 
+    /**
+     * 在目录树中按「文件名包含任一关键字」搜索（关键字逗号分隔，大小写不敏感），结果数受 {@code limit} 限制。
+     *
+     * @param params {@code path}、{@code keywords}、{@code recursive}、{@code limit} 默认 100
+     * @return JSON：匹配文件列表
+     * @throws Exception JSON 异常
+     */
     private String searchByName(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         String keywordsStr = params.optString("keywords", "").trim();
@@ -427,6 +541,15 @@ public class FileStatsPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 递归遍历：子项文件名包含任一 keyword 则加入 {@code out}，达到 limit 提前停止。
+     *
+     * @param dir       当前目录
+     * @param keywords  已小写化的关键字数组
+     * @param recursive 是否进入子目录
+     * @param limit     最多收集条数
+     * @param out       结果列表
+     */
     private void searchByNameRecursive(File dir, String[] keywords, boolean recursive, int limit, List<File> out) {
         if (out.size() >= limit) return;
         File[] children = dir.listFiles();
@@ -445,6 +568,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== getTextStats ====================
 
+    /**
+     * 按 UTF-8 逐行读取文本文件，统计总行数、空行、词数（空白分隔）及字符数（含换行近似）。
+     *
+     * @param params {@code path} 指向普通文件
+     * @return JSON 统计字段
+     * @throws Exception IO 异常
+     */
     private String getTextStats(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         if (path.isEmpty()) return errJson("Missing parameter: path");
@@ -459,6 +589,7 @@ public class FileStatsPlugin implements ModulePlugin {
             String line;
             while ((line = reader.readLine()) != null) {
                 lines++;
+                // readLine 不含换行，这里 +1 近似计入换行符
                 chars += line.length() + 1;
                 if (line.trim().isEmpty()) {
                     blankLines++;
@@ -486,6 +617,13 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== batchFileInfo ====================
 
+    /**
+     * 批量处理逗号分隔的路径列表：存在则输出元信息，文件额外计算指定算法散列。
+     *
+     * @param params {@code paths} 逗号分隔；{@code algorithm} 默认 SHA-256
+     * @return JSON：{@code files} 数组、{@code count}
+     * @throws Exception 摘要异常
+     */
     private String batchFileInfo(JSONObject params) throws Exception {
         String pathsStr = params.optString("paths", "").trim();
         String algo = normalizeAlgo(params.optString("algorithm", "SHA-256"));
@@ -525,6 +663,14 @@ public class FileStatsPlugin implements ModulePlugin {
 
     // ==================== Utility methods ====================
 
+    /**
+     * 流式读取文件并更新 {@link MessageDigest}，返回小写十六进制字符串。
+     *
+     * @param f         待哈希文件
+     * @param algorithm 如 MD5、SHA-256
+     * @return 十六进制摘要
+     * @throws Exception 算法不支持或 IO 异常
+     */
     private String computeHash(File f, String algorithm) throws Exception {
         MessageDigest md = MessageDigest.getInstance(algorithm);
         FileInputStream fis = null;
@@ -544,6 +690,12 @@ public class FileStatsPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    /**
+     * 将调用方传入的算法名规范为 JVM 支持的 {@link MessageDigest} 名称。
+     *
+     * @param input 用户输入，如 sha256、SHA-1
+     * @return MD5、SHA-1 或 SHA-256
+     */
     private String normalizeAlgo(String input) {
         if (input == null) return "SHA-256";
         String upper = input.trim().toUpperCase(Locale.ROOT).replace(" ", "");
@@ -552,17 +704,29 @@ public class FileStatsPlugin implements ModulePlugin {
         return "SHA-256";
     }
 
+    /**
+     * @param name 文件名
+     * @return 不含点的扩展名，无扩展名返回空串
+     */
     private String getExtension(String name) {
         int dot = name.lastIndexOf('.');
         return (dot >= 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
     }
 
+    /**
+     * @param ext 扩展名（无点）
+     * @return MIME 类型，无法识别时为 {@code application/octet-stream}
+     */
     private String getMimeType(String ext) {
         if (ext.isEmpty()) return "application/octet-stream";
         String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase(Locale.ROOT));
         return mime != null ? mime : "application/octet-stream";
     }
 
+    /**
+     * @param bytes 字节数
+     * @return 带 KB/MB/GB 后缀的简短字符串
+     */
     private String formatSize(long bytes) {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return SIZE_FMT.format(bytes / 1024.0) + " KB";
@@ -570,26 +734,63 @@ public class FileStatsPlugin implements ModulePlugin {
         return SIZE_FMT.format(bytes / (1024.0 * 1024 * 1024)) + " GB";
     }
 
+    /**
+     * 将空参数规范为 {@code "{}"}（单行实现，供 {@link #invoke} 使用）。
+     *
+     * @param v 原始 JSON 字符串
+     * @return 非空则原样返回
+     */
     private String emptyJson(String v) { return v == null || v.trim().isEmpty() ? "{}" : v; }
 
+    /**
+     * 业务层局部错误：仅含 {@code error} 字段（再由 {@link #ok} 外层包装 success）。
+     *
+     * @param msg 错误说明
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String errJson(String msg) throws Exception {
         return new JSONObject().put("error", msg).toString();
     }
 
+    /**
+     * @param output 业务输出 JSON 字符串
+     * @return 成功包装，无展示文案
+     * @throws Exception JSON 异常
+     */
     private String ok(String output) throws Exception {
         return ok(output, null);
     }
 
+    /**
+     * @param output      业务输出
+     * @param displayText {@code _displayText}，null 或空则不写入
+     * @return 标准成功响应
+     * @throws Exception JSON 异常
+     */
     private String ok(String output, String displayText) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
         return r.toString();
     }
 
+    /**
+     * 顶层失败：{@code success=false}。
+     *
+     * @param message 错误信息（如未知 action）
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }
 
+    /**
+     * 将业务输出字符串安全解析为 {@link JSONObject}，供展示格式化使用。
+     *
+     * @param output {@code output} 字段内容
+     * @return 解析成功返回对象，失败返回 null
+     */
     private static JSONObject parseOutputJson(String output) {
         try {
             return new JSONObject(output);
@@ -598,122 +799,411 @@ public class FileStatsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将 {@code getFileInfo} 的 output 格式化为简短展示块。
+     *
+     * @param output 业务 JSON 字符串
+     * @return 展示文本
+     */
     private static String formatStatsGetFileInfoDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📄 File Info\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
-        return "📄 File Info\n━━━━━━━━━━━━━━\n▸ Name: " + o.optString("name", "")
-                + "\n▸ Size: " + o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))
-                + "\n▸ Modified: " + o.optString("lastModified", "");
+        if (o == null) {
+            return "📄 File Info\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "📄 File Info\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("📄 File Info\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
+        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
+        boolean isDir = o.optBoolean("isDirectory", false);
+        boolean isFile = o.optBoolean("isFile", false);
+        sb.append("| Type | ")
+                .append(isDir ? "Directory" : (isFile ? "File" : "—"))
+                .append(" |\n");
+        sb.append("| Size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
+        sb.append("| Modified | ").append(o.optString("lastModified", "—")).append(" |\n");
+        sb.append("| Readable | ").append(o.optBoolean("canRead", false) ? "Yes" : "No").append(" |\n");
+        sb.append("| Writable | ").append(o.optBoolean("canWrite", false) ? "Yes" : "No").append(" |\n");
+        sb.append("| Executable | ").append(o.optBoolean("canExecute", false) ? "Yes" : "No").append(" |\n");
+        sb.append("| Hidden | ").append(o.optBoolean("isHidden", false) ? "Yes" : "No").append(" |\n");
+        String parent = o.optString("parent", "");
+        sb.append("| Parent | ").append(parent.isEmpty() ? "—" : parent).append(" |\n");
+        String ext = o.optString("extension", "");
+        sb.append("| Extension | ").append(ext.isEmpty() ? "—" : ext).append(" |\n");
+        sb.append("| MIME | ").append(o.optString("mimeType", "—")).append(" |\n");
+        if (o.optBoolean("isDirectory", false) && o.has("childCount")) {
+            sb.append("| Child count | ").append(o.optInt("childCount", 0)).append(" |\n");
+        }
+        return sb.toString();
     }
 
+    /**
+     * 文件哈希结果展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatGetFileHashDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🔐 File Hash\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
-        return "🔐 File Hash\n━━━━━━━━━━━━━━\n▸ Algorithm: " + o.optString("algorithm", "")
-                + "\n▸ Hash: " + o.optString("hash", "");
+        if (o == null) {
+            return "🔐 File Hash\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "🔐 File Hash\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 File Hash\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
+        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
+        sb.append("| Algorithm | ").append(o.optString("algorithm", "—")).append(" |\n");
+        sb.append("| Hash | ").append(o.optString("hash", "—")).append(" |\n");
+        sb.append("| Size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
+        return sb.toString();
     }
 
+    /**
+     * 两文件是否一致的极简展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatCompareFilesDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🔍 File Comparison\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
+        if (o == null) {
+            return "🔍 File Comparison\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "🔍 File Comparison\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
         boolean same = o.optBoolean("identical", false);
-        return "🔍 File Comparison\n━━━━━━━━━━━━━━\n▸ Identical: " + (same ? "✅" : "❌");
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔍 File Comparison\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Identical | ").append(same ? "✅ Yes" : "❌ No").append(" |\n");
+        sb.append("| Reason | ").append(o.optString("reason", "—")).append(" |\n");
+        sb.append("| File 1 | ").append(o.optString("file1", "—")).append(" |\n");
+        sb.append("| File 2 | ").append(o.optString("file2", "—")).append(" |\n");
+        sb.append("| Size 1 | ").append(o.optString("size1Formatted", String.valueOf(o.optLong("size1", 0)))).append(" |\n");
+        sb.append("| Size 2 | ").append(o.optString("size2Formatted", String.valueOf(o.optLong("size2", 0)))).append(" |\n");
+        if (o.has("hash1")) {
+            sb.append("| SHA-256 (file 1) | ").append(o.optString("hash1", "—")).append(" |\n");
+        }
+        if (o.has("hash2")) {
+            sb.append("| SHA-256 (file 2) | ").append(o.optString("hash2", "—")).append(" |\n");
+        }
+        return sb.toString();
     }
 
+    /**
+     * 校验和验证结果一行展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatVerifyChecksumDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "";
-        if (o.has("error")) return "❌ " + o.optString("error");
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return "🔐 Verify Checksum\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
         boolean ok = o.optBoolean("verified", false);
-        return ok ? "✅ Checksum verified" : "❌ Mismatch";
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 Verify Checksum\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Verified | ").append(ok ? "✅ Yes" : "❌ No").append(" |\n");
+        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
+        sb.append("| Algorithm | ").append(o.optString("algorithm", "—")).append(" |\n");
+        sb.append("| Expected | ").append(o.optString("expectedHash", "—")).append(" |\n");
+        sb.append("| Actual | ").append(o.optString("actualHash", "—")).append(" |\n");
+        sb.append("| Message | ").append(o.optString("message", "—")).append(" |\n");
+        return sb.toString();
     }
 
+    /**
+     * 目录统计摘要展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatGetDirStatsDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📊 Directory Stats\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
-        return "📊 Directory Stats\n━━━━━━━━━━━━━━\n▸ Files: " + o.optLong("fileCount", 0)
-                + "\n▸ Total Size: " + o.optString("totalSizeFormatted", "");
+        if (o == null) {
+            return "📊 Directory Stats\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "📊 Directory Stats\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("📊 Directory Stats\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
+        sb.append("| Files | ").append(o.optLong("fileCount", 0)).append(" |\n");
+        sb.append("| Directories | ").append(o.optLong("directoryCount", 0)).append(" |\n");
+        sb.append("| Total size | ").append(o.optString("totalSizeFormatted", "—")).append(" |\n");
+        sb.append("\n");
+        sb.append("By extension\n\n");
+        sb.append("| Extension | Count | Total size |\n");
+        sb.append("|---|---|---|\n");
+        JSONArray breakdown = o.optJSONArray("extensionBreakdown");
+        if (breakdown != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, breakdown.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject row = breakdown.optJSONObject(i);
+                if (row == null) {
+                    continue;
+                }
+                sb.append("| ").append(row.optString("extension", "—"))
+                        .append(" | ").append(row.optLong("count", 0))
+                        .append(" | ").append(row.optString("totalSizeFormatted", "—")).append(" |\n");
+            }
+            if (breakdown.length() > show) {
+                sb.append("| … | +").append(breakdown.length() - show).append(" more | — |\n");
+            }
+        }
+        return sb.toString();
     }
 
+    /**
+     * 重复文件分组展示（组数与每组首条路径，条数受 {@link #DISPLAY_LIST_MAX} 限制）。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatFindDuplicatesDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🔁 Duplicate Files\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
+        if (o == null) {
+            return "🔁 Duplicate Files\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "🔁 Duplicate Files\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
         int groups = o.optInt("duplicateGroups", 0);
         StringBuilder sb = new StringBuilder();
-        sb.append("🔁 Duplicate Files\n━━━━━━━━━━━━━━\nFound ").append(groups).append(" groups\n");
+        sb.append("🔁 Duplicate Files\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
+        sb.append("| Duplicate groups | ").append(groups).append(" |\n");
+        sb.append("| Files scanned | ").append(o.optLong("filesScanned", 0)).append(" |\n");
+        sb.append("| Wasted space | ").append(o.optString("wastedSpaceFormatted", "—")).append(" |\n");
+        sb.append("\n");
+        sb.append("| # | Count | Size | Example path |\n");
+        sb.append("|---|---|---|---|\n");
         JSONArray dups = o.optJSONArray("duplicates");
-        if (dups == null) return sb.toString().trim();
+        if (dups == null) {
+            return sb.toString();
+        }
         int showG = Math.min(DISPLAY_LIST_MAX, dups.length());
         for (int g = 0; g < showG; g++) {
             JSONObject grp = dups.optJSONObject(g);
-            if (grp == null) continue;
+            if (grp == null) {
+                continue;
+            }
             int cnt = grp.optInt("count", 0);
-            String sz = grp.optString("fileSizeFormatted", "");
+            String sz = grp.optString("fileSizeFormatted", "—");
             JSONArray files = grp.optJSONArray("files");
-            String first = (files != null && files.length() > 0) ? files.optString(0, "") : "";
-            sb.append("▸ ").append(cnt).append("× ").append(sz);
-            if (!first.isEmpty()) sb.append("\n   ").append(first);
-            sb.append("\n");
+            String first = (files != null && files.length() > 0) ? files.optString(0, "") : "—";
+            sb.append("| ").append(g + 1).append(" | ").append(cnt).append(" | ").append(sz)
+                    .append(" | ").append(first).append(" |\n");
         }
-        if (dups.length() > showG) sb.append("… (+").append(dups.length() - showG).append(" more groups)");
-        return sb.toString().trim();
+        if (dups.length() > showG) {
+            sb.append("| … | +").append(dups.length() - showG).append(" groups | — | — |\n");
+        }
+        return sb.toString();
     }
 
+    /**
+     * 大文件列表展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatFindLargeFilesDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📦 Large Files\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
+        if (o == null) {
+            return "📦 Large Files\n\n| Name | Size | Modified |\n|---|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "📦 Large Files\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
         JSONArray files = o.optJSONArray("files");
-        StringBuilder sb = new StringBuilder("📦 Large Files\n━━━━━━━━━━━━━━\n");
-        if (files == null) return sb.toString().trim();
+        StringBuilder sb = new StringBuilder();
+        sb.append("📦 Large Files\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
+        sb.append("| Min size (MB) | ").append(o.optDouble("minSizeMB", 0)).append(" |\n");
+        sb.append("| Found | ").append(o.optLong("found", 0)).append(" |\n");
+        sb.append("| Showing | ").append(o.optLong("showing", 0)).append(" |\n");
+        sb.append("\n");
+        sb.append("| Name | Size | Modified |\n");
+        sb.append("|---|---|---|\n");
+        if (files == null) {
+            return sb.toString();
+        }
         int show = Math.min(DISPLAY_LIST_MAX, files.length());
         for (int i = 0; i < show; i++) {
             JSONObject f = files.optJSONObject(i);
-            if (f == null) continue;
-            sb.append(i + 1).append(". ").append(f.optString("name", "?"))
-                    .append(" (").append(f.optString("sizeFormatted", "")).append(")\n");
+            if (f == null) {
+                continue;
+            }
+            sb.append("| ").append(f.optString("name", "?")).append(" | ")
+                    .append(f.optString("sizeFormatted", "—")).append(" | ")
+                    .append(f.optString("lastModified", "—")).append(" |\n");
         }
-        if (files.length() > show) sb.append("… (+").append(files.length() - show).append(" more)");
-        return sb.toString().trim();
+        if (files.length() > show) {
+            sb.append("| … | +").append(files.length() - show).append(" more | — |\n");
+        }
+        return sb.toString();
     }
 
+    /**
+     * 按文件名搜索结果的展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatSearchByNameDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🔍 Files Found\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
+        if (o == null) {
+            return "🔍 Files Found\n\n| Name | Path | Type | Size | Modified |\n|---|---|---|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "🔍 Files Found\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
         int found = o.optInt("found", 0);
         JSONArray files = o.optJSONArray("files");
         StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Files Found\n━━━━━━━━━━━━━━\n").append(found).append(" matches\n");
-        if (files == null) return sb.toString().trim();
+        sb.append("🔍 Files Found\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
+        sb.append("| Keywords | ").append(o.optString("keywords", "—")).append(" |\n");
+        sb.append("| Matches | ").append(found).append(" |\n");
+        sb.append("\n");
+        sb.append("| Name | Path | Type | Size | Modified |\n");
+        sb.append("|---|---|---|---|---|\n");
+        if (files == null) {
+            return sb.toString();
+        }
         int show = Math.min(DISPLAY_LIST_MAX, files.length());
         for (int i = 0; i < show; i++) {
             JSONObject f = files.optJSONObject(i);
-            String p = f != null ? f.optString("path", "?") : "?";
-            sb.append(i + 1).append(". ").append(p).append("\n");
+            if (f == null) {
+                continue;
+            }
+            String type = f.optBoolean("isDirectory", false) ? "Dir" : "File";
+            sb.append("| ").append(f.optString("name", "?")).append(" | ")
+                    .append(f.optString("path", "—")).append(" | ")
+                    .append(type).append(" | ")
+                    .append(f.optString("sizeFormatted", "—")).append(" | ")
+                    .append(f.optString("lastModified", "—")).append(" |\n");
         }
-        if (files.length() > show) sb.append("… (+").append(files.length() - show).append(" more)");
-        return sb.toString().trim();
+        if (files.length() > show) {
+            sb.append("| … | +").append(files.length() - show).append(" more | — | — | — |\n");
+        }
+        return sb.toString();
     }
 
+    /**
+     * 文本统计结果展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatGetTextStatsDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📝 Text Stats\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
-        return "📝 Text Stats\n━━━━━━━━━━━━━━\n▸ Lines: " + o.optLong("totalLines", 0)
-                + "\n▸ Words: " + o.optLong("words", 0)
-                + "\n▸ Chars: " + o.optLong("characters", 0);
+        if (o == null) {
+            return "📝 Text Stats\n\n| Item | Value |\n|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "📝 Text Stats\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("📝 Text Stats\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
+        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
+        sb.append("| File size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
+        sb.append("| Total lines | ").append(o.optLong("totalLines", 0)).append(" |\n");
+        sb.append("| Non-blank lines | ").append(o.optLong("nonBlankLines", 0)).append(" |\n");
+        sb.append("| Blank lines | ").append(o.optLong("blankLines", 0)).append(" |\n");
+        sb.append("| Words | ").append(o.optLong("words", 0)).append(" |\n");
+        sb.append("| Characters | ").append(o.optLong("characters", 0)).append(" |\n");
+        return sb.toString();
     }
 
+    /**
+     * 批量文件信息处理结果的一句话摘要。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
     private static String formatBatchFileInfoDisplay(String output) {
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📋 Batch File Info\n━━━━━━━━━━━━━━\n";
-        if (o.has("error")) return "❌ " + o.optString("error");
-        return "📋 Batch File Info\n━━━━━━━━━━━━━━\n" + o.optInt("count", 0) + " files analyzed";
+        if (o == null) {
+            return "📋 Batch File Info\n\n| Path | Exists | Details |\n|---|---|---|\n";
+        }
+        if (o.has("error")) {
+            return "📋 Batch File Info\n\n| Item | Value |\n|---|---|\n| Error | "
+                    + o.optString("error", "—") + " |\n";
+        }
+        String algo = o.optString("algorithm", "—");
+        StringBuilder sb = new StringBuilder();
+        sb.append("📋 Batch File Info\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("|---|---|\n");
+        sb.append("| Count | ").append(o.optInt("count", 0)).append(" |\n");
+        sb.append("| Algorithm | ").append(algo).append(" |\n");
+        sb.append("\n");
+        sb.append("| Path | Exists | Name | Size | Modified | Hash |\n");
+        sb.append("|---|---|---|---|---|---|\n");
+        JSONArray files = o.optJSONArray("files");
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject it = files.optJSONObject(i);
+                if (it == null) {
+                    continue;
+                }
+                String path = it.optString("path", "—");
+                boolean ex = it.optBoolean("exists", false);
+                if (!ex) {
+                    sb.append("| ").append(path).append(" | No | — | — | — | — |\n");
+                    continue;
+                }
+                String name = it.optString("name", "—");
+                String size = it.optString("sizeFormatted", String.valueOf(it.optLong("size", 0)));
+                String mod = it.optString("lastModified", "—");
+                String hash = it.optBoolean("isDirectory", false) ? "—" : it.optString("hash", "—");
+                sb.append("| ").append(path).append(" | Yes | ").append(name).append(" | ")
+                        .append(size).append(" | ").append(mod).append(" | ").append(hash).append(" |\n");
+            }
+            if (files.length() > show) {
+                sb.append("| … | +").append(files.length() - show).append(" more | — | — | — | — |\n");
+            }
+        }
+        return sb.toString();
     }
 }

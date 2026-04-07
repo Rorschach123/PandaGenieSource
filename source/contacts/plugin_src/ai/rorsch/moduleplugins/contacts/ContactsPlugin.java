@@ -23,13 +23,40 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * PandaGenie 联系人模块插件。
+ * <p>
+ * <b>模块用途：</b>通过 {@link ContentResolver} 与 {@link ContactsContract} 读取系统通讯录，支持搜索、列表分页、
+ * 详情、数量统计、导出 VCard（{@code .vcf}）以及按姓名规范化或电话号码规范化查找可能重复联系人。
+ * </p>
+ * <p>
+ * <b>对外 API（{@code action}）：</b>{@code searchContacts}、{@code getContactDetail}、{@code listContacts}、
+ * {@code getContactCount}、{@code exportContacts}、{@code findDuplicates}。
+ * </p>
+ * <p>
+ * 实现 {@link ModulePlugin}，由宿主 {@code ModuleRuntime} 反射加载；需应用具备相应联系人读权限。
+ * </p>
+ */
 public class ContactsPlugin implements ModulePlugin {
 
+    /** 未指定 {@code outputPath} 时导出 VCard 的默认绝对路径 */
     private static final String DEFAULT_EXPORT_PATH = "/sdcard/PandaGenie/output/contacts_export.vcf";
+    /** 搜索结果 {@code _displayText} 最多列出的联系人行数 */
     private static final int DISPLAY_MAX_SEARCH_LINES = 50;
+    /** 列表结果展示的最大行数 */
     private static final int DISPLAY_MAX_LIST_LINES = 100;
+    /** 重复联系人分组在展示文本中的最大组数 */
     private static final int DISPLAY_MAX_DUP_GROUPS = 40;
 
+    /**
+     * 模块统一入口：解析 JSON 参数并分发；成功时 {@code output} 为业务 JSON 字符串，并常附带 {@code _displayText}。
+     *
+     * @param context    Android 上下文，用于 {@link Context#getContentResolver()}
+     * @param action     操作名，与各 case 对应
+     * @param paramsJson 各 action 所需字段见各私有方法实现（空则按 {@code {}}）
+     * @return 标准包装 JSON 字符串
+     * @throws Exception 查询或 JSON 处理异常
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
@@ -75,6 +102,14 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 按关键字搜索联系人：优先通过系统「姓名过滤」URI 匹配显示名；若关键字含数字且结果未满，再按电话号码 LIKE 补充。
+     *
+     * @param context 上下文
+     * @param params  {@code query} 关键字；{@code limit} 默认 20， clamp 到 [1,500]
+     * @return JSON：{@code contacts} 数组（每项含 id、name、primaryPhone），{@code total} 为本次返回条数
+     * @throws Exception 查询异常
+     */
     private String searchContacts(Context context, JSONObject params) throws Exception {
         String query = params.optString("query", "").trim();
         int limit = params.optInt("limit", 20);
@@ -89,6 +124,7 @@ public class ContactsPlugin implements ModulePlugin {
         }
 
         ContentResolver resolver = context.getContentResolver();
+        // 使用 LinkedHashSet 保持插入顺序并去重（姓名匹配与电话匹配可能指向同一联系人）
         LinkedHashSet<String> idOrder = new LinkedHashSet<>();
 
         Uri nameFilterUri = Uri.withAppendedPath(
@@ -151,6 +187,14 @@ public class ContactsPlugin implements ModulePlugin {
         return new JSONObject().put("contacts", arr).put("total", arr.length()).toString();
     }
 
+    /**
+     * 读取单个联系人的完整详情：显示名、lookupKey、电话/邮箱/地址/公司职务等结构化数组。
+     *
+     * @param context   上下文
+     * @param contactId {@link ContactsContract.Contacts#_ID}
+     * @return 成功为详情 JSON 字符串；找不到联系人时为 {@code {"error":"Contact not found"}}
+     * @throws Exception 查询异常
+     */
     private String getContactDetailJson(Context context, String contactId) throws Exception {
         ContentResolver resolver = context.getContentResolver();
         Cursor c = null;
@@ -185,6 +229,14 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 分页列出「可见分组」中的联系人，按显示名本地化排序；每条含主号码（若有）。
+     *
+     * @param context 上下文
+     * @param params  {@code limit} 默认 50、最大 2000；{@code offset} 默认 0
+     * @return JSON：{@code contacts} 当前页，{@code total} 为符合条件的总条数（游标 count）
+     * @throws Exception 查询异常
+     */
     private String listContacts(Context context, JSONObject params) throws Exception {
         int limit = params.optInt("limit", 50);
         int offset = params.optInt("offset", 0);
@@ -244,6 +296,13 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 统计可见分组中的联系人总数（与列表接口相同的可见性过滤）。
+     *
+     * @param context 上下文
+     * @return JSON：{@code count}
+     * @throws Exception 查询异常
+     */
     private String getContactCount(Context context) throws Exception {
         ContentResolver resolver = context.getContentResolver();
         Cursor c = null;
@@ -263,6 +322,14 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将所有可见联系人逐条写成 VCard 3.0 写入指定文件（UTF-8）。
+     *
+     * @param context 上下文
+     * @param params  {@code outputPath} 可选，默认 {@link #DEFAULT_EXPORT_PATH}
+     * @return 成功：{@code path}、{@code exported} 数量；失败：JSON 内含 {@code error}
+     * @throws Exception 一般被内部捕获并写入 error
+     */
     private String exportContacts(Context context, JSONObject params) throws Exception {
         String outputPath = params.optString("outputPath", "").trim();
         if (outputPath.isEmpty()) {
@@ -321,6 +388,13 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 查找重复联系人：一类为规范化显示名相同且人数&gt;1 的分组；一类为去掉非数字后电话号码相同且对应多个 contactId 的分组。
+     *
+     * @param context 上下文
+     * @return JSON：{@code duplicateNameGroups}、{@code duplicatePhoneGroups}，每组含规范化键、id 列表与 count
+     * @throws Exception 查询异常
+     */
     private String findDuplicates(Context context) throws Exception {
         ContentResolver resolver = context.getContentResolver();
 
@@ -387,6 +461,7 @@ public class ContactsPlugin implements ModulePlugin {
                     String cid = p.getString(0);
                     String num = p.getString(1);
                     String norm = digitsOnly(num);
+                    // 过短数字多为分机或片段，避免误聚类
                     if (norm.length() < 5) {
                         continue;
                     }
@@ -424,6 +499,15 @@ public class ContactsPlugin implements ModulePlugin {
                 .toString();
     }
 
+    /**
+     * 将单个联系人写成一段 VCard：FN、TEL、EMAIL、ADR、ORG/TITLE，字段值按 vCard 规则转义。
+     *
+     * @param w           输出 Writer（调用方负责换行与编码）
+     * @param resolver    用于查询电话、邮箱等 RawContact 数据
+     * @param contactId   联系人 ID
+     * @param displayName 显示名，写入 FN
+     * @throws Exception IO 或查询异常
+     */
     private static void writeVcard(Writer w, ContentResolver resolver, String contactId, String displayName)
             throws Exception {
         w.write("BEGIN:VCARD\r\n");
@@ -566,6 +650,13 @@ public class ContactsPlugin implements ModulePlugin {
         w.write("END:VCARD\r\n");
     }
 
+    /**
+     * 将 {@link ContactsContract.CommonDataKinds.Phone} 的 type 转为 vCard TEL 的 TYPE 参数片段。
+     *
+     * @param type  {@link ContactsContract.CommonDataKinds.Phone#TYPE_HOME} 等
+     * @param label 自定义类型时的标签
+     * @return 形如 {@code ;TYPE=CELL} 的字符串
+     */
     private static String phoneTypeToVcard(int type, String label) {
         switch (type) {
             case ContactsContract.CommonDataKinds.Phone.TYPE_HOME:
@@ -589,6 +680,13 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将邮箱类型转为 vCard EMAIL 的 TYPE 参数片段。
+     *
+     * @param type  系统预定义类型
+     * @param label 自定义标签
+     * @return {@code ;TYPE=...} 片段
+     */
     private static String emailTypeToVcard(int type, String label) {
         switch (type) {
             case ContactsContract.CommonDataKinds.Email.TYPE_HOME:
@@ -607,10 +705,22 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 转义 vCard 参数值中的特殊字符（用于 TYPE 自定义等）。
+     *
+     * @param s 原始参数
+     * @return 转义后字符串
+     */
     private static String escapeVcardParam(String s) {
         return s.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,");
     }
 
+    /**
+     * 转义 vCard 属性值中的反斜杠、换行、分号、逗号。
+     *
+     * @param s 原始值，可为 null
+     * @return 转义后；null 视为空串
+     */
     private static String escapeVcardValue(String s) {
         if (s == null) {
             return "";
@@ -623,6 +733,14 @@ public class ContactsPlugin implements ModulePlugin {
                 .replace(",", "\\,");
     }
 
+    /**
+     * 加载联系人全部电话号码，主号码优先（按 IS_PRIMARY DESC 排序）。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return JSON 数组，元素含 number、type、label、isPrimary
+     * @throws Exception 查询异常
+     */
     private static JSONArray loadPhones(ContentResolver resolver, String contactId) throws Exception {
         JSONArray arr = new JSONArray();
         Cursor c = null;
@@ -656,6 +774,14 @@ public class ContactsPlugin implements ModulePlugin {
         return arr;
     }
 
+    /**
+     * 加载联系人全部邮箱地址及类型信息。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return JSON 数组
+     * @throws Exception 查询异常
+     */
     private static JSONArray loadEmails(ContentResolver resolver, String contactId) throws Exception {
         JSONArray arr = new JSONArray();
         Cursor c = null;
@@ -689,6 +815,14 @@ public class ContactsPlugin implements ModulePlugin {
         return arr;
     }
 
+    /**
+     * 加载结构化邮政地址（格式化地址与各字段）。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return JSON 数组
+     * @throws Exception 查询异常
+     */
     private static JSONArray loadAddresses(ContentResolver resolver, String contactId) throws Exception {
         JSONArray arr = new JSONArray();
         Cursor c = null;
@@ -730,6 +864,14 @@ public class ContactsPlugin implements ModulePlugin {
         return arr;
     }
 
+    /**
+     * 加载组织信息：公司、职务、部门。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return JSON 数组
+     * @throws Exception 查询异常
+     */
     private static JSONArray loadOrganizations(ContentResolver resolver, String contactId) throws Exception {
         JSONArray arr = new JSONArray();
         Cursor c = null;
@@ -765,6 +907,14 @@ public class ContactsPlugin implements ModulePlugin {
         return arr;
     }
 
+    /**
+     * 构建搜索/列表用的单行摘要：id、显示名、主号码（若有）。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return JSON 对象；联系人不存在返回 null
+     * @throws Exception 查询异常
+     */
     private static JSONObject contactSummary(ContentResolver resolver, String contactId) throws Exception {
         Cursor c = null;
         try {
@@ -799,6 +949,13 @@ public class ContactsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 取该联系人「主号码」优先的第一条电话号码字符串。
+     *
+     * @param resolver  ContentResolver
+     * @param contactId 联系人 ID
+     * @return 号码文本，无则空串
+     */
     private static String getPrimaryPhone(ContentResolver resolver, String contactId) {
         Cursor c = null;
         try {
@@ -823,6 +980,12 @@ public class ContactsPlugin implements ModulePlugin {
         return "";
     }
 
+    /**
+     * 重复检测用姓名键：去空白并转小写，便于合并仅大小写/空格不同的条目。
+     *
+     * @param raw 原始显示名
+     * @return 规范化键，null 输入得到空串
+     */
     private static String normalizeName(String raw) {
         if (raw == null) {
             return "";
@@ -830,6 +993,12 @@ public class ContactsPlugin implements ModulePlugin {
         return raw.trim().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * 从字符串中提取连续数字，用于电话匹配与重复检测中的「规范化号码」。
+     *
+     * @param s 任意字符串，可为 null
+     * @return 仅含 0-9 的字符串
+     */
     private static String digitsOnly(String s) {
         if (s == null) {
             return "";
@@ -844,24 +1013,55 @@ public class ContactsPlugin implements ModulePlugin {
         return b.toString();
     }
 
+    /**
+     * @param s 可能为 null 的数据库字符串
+     * @return null 转为 ""，否则原样
+     */
     private static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }
 
+    /**
+     * @param v 参数字符串
+     * @return 空则 {@code "{}"}
+     */
     private String emptyJson(String v) {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    /**
+     * @param output 业务输出 JSON 字符串
+     * @return 成功包装，无 {@code _displayText}
+     * @throws Exception JSON 异常
+     */
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
     }
 
+    /**
+     * @param output      业务输出
+     * @param displayText 人类可读摘要
+     * @return 成功包装 JSON
+     * @throws Exception JSON 异常
+     */
     private String ok(String output, String displayText) throws Exception {
         return new JSONObject()
                 .put("success", true)
                 .put("output", output)
                 .put("_displayText", displayText)
                 .toString();
+    }
+
+    /**
+     * 格式化搜索结果用于 {@code _displayText}。
+     *
+     * @param result {@link #searchContacts} 返回解析后的对象
+     * @return 多行展示字符串
+     * @throws Exception JSON 异常
+     */
+    private static String mdCell(String s) {
+        if (s == null) return "";
+        return s.replace("\r", "").replace("\n", " ").replace("|", "\\|");
     }
 
     private static String formatSearchContactsDisplay(JSONObject result) throws Exception {
@@ -871,8 +1071,10 @@ public class ContactsPlugin implements ModulePlugin {
             contacts = new JSONArray();
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Contact Search\n━━━━━━━━━━━━━━\n");
-        sb.append("Found ").append(total).append(" contacts\n");
+        sb.append("🔍 Contact Search\n");
+        sb.append("Found ").append(total).append(" contacts\n\n");
+        sb.append("| Name | Phone |\n");
+        sb.append("| --- | --- |\n");
         int show = Math.min(contacts.length(), DISPLAY_MAX_SEARCH_LINES);
         for (int i = 0; i < show; i++) {
             JSONObject c = contacts.getJSONObject(i);
@@ -882,17 +1084,23 @@ public class ContactsPlugin implements ModulePlugin {
             }
             String phone = c.optString("primaryPhone", "").trim();
             if (phone.isEmpty()) {
-                sb.append("▸ Name: ").append(name).append("\n");
-            } else {
-                sb.append("▸ Name: ").append(name).append(" (Phone: ").append(phone).append(")\n");
+                phone = "—";
             }
+            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(phone)).append(" |\n");
         }
         if (contacts.length() > DISPLAY_MAX_SEARCH_LINES) {
-            sb.append("… (+").append(contacts.length() - DISPLAY_MAX_SEARCH_LINES).append(" more)\n");
+            sb.append("\n… (+").append(contacts.length() - DISPLAY_MAX_SEARCH_LINES).append(" more)");
         }
         return sb.toString().trim();
     }
 
+    /**
+     * 详情页式摘要：姓名、首选电话、首选邮箱。
+     *
+     * @param d {@link #getContactDetailJson} 解析后的对象
+     * @return 展示文本
+     * @throws Exception JSON 异常
+     */
     private static String formatGetContactDetailDisplay(JSONObject d) throws Exception {
         String name = d.optString("displayName", "").trim();
         if (name.isEmpty()) {
@@ -900,14 +1108,27 @@ public class ContactsPlugin implements ModulePlugin {
         }
         String phone = firstPhoneNumberForDisplay(d.optJSONArray("phones"));
         String email = firstEmailAddressForDisplay(d.optJSONArray("emails"));
+        String contactId = d.optString("contactId", "").trim();
+        String lookupKey = d.optString("lookupKey", "").trim();
         StringBuilder sb = new StringBuilder();
-        sb.append("👤 Contact Detail\n━━━━━━━━━━━━━━\n");
-        sb.append("▸ Name: ").append(name).append("\n");
-        sb.append("▸ Phone: ").append(phone.isEmpty() ? "—" : phone).append("\n");
-        sb.append("▸ Email: ").append(email.isEmpty() ? "—" : email).append("\n");
+        sb.append("👤 Contact Detail\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("| --- | --- |\n");
+        sb.append("| Contact ID | ").append(mdCell(contactId.isEmpty() ? "—" : contactId)).append(" |\n");
+        sb.append("| Name | ").append(mdCell(name)).append(" |\n");
+        sb.append("| Lookup key | ").append(mdCell(lookupKey.isEmpty() ? "—" : lookupKey)).append(" |\n");
+        sb.append("| Phone | ").append(mdCell(phone.isEmpty() ? "—" : phone)).append(" |\n");
+        sb.append("| Email | ").append(mdCell(email.isEmpty() ? "—" : email)).append(" |\n");
         return sb.toString().trim();
     }
 
+    /**
+     * 从电话数组中取主号码，若无标记主号码则取第一条。
+     *
+     * @param phones {@link #loadPhones} 生成的数组
+     * @return 号码字符串
+     * @throws Exception JSON 异常
+     */
     private static String firstPhoneNumberForDisplay(JSONArray phones) throws Exception {
         if (phones == null || phones.length() == 0) {
             return "";
@@ -923,6 +1144,13 @@ public class ContactsPlugin implements ModulePlugin {
         return phones.getJSONObject(idx).optString("number", "").trim();
     }
 
+    /**
+     * 从邮箱数组中取主邮箱，若无则取第一条。
+     *
+     * @param emails {@link #loadEmails} 生成的数组
+     * @return 邮箱地址
+     * @throws Exception JSON 异常
+     */
     private static String firstEmailAddressForDisplay(JSONArray emails) throws Exception {
         if (emails == null || emails.length() == 0) {
             return "";
@@ -938,6 +1166,13 @@ public class ContactsPlugin implements ModulePlugin {
         return emails.getJSONObject(idx).optString("address", "").trim();
     }
 
+    /**
+     * 列表结果展示：总人数与当前页姓名枚举（有行数上限）。
+     *
+     * @param result {@link #listContacts} 输出解析对象
+     * @return 展示文本
+     * @throws Exception JSON 异常
+     */
     private static String formatListContactsDisplay(JSONObject result) throws Exception {
         JSONArray contacts = result.optJSONArray("contacts");
         int total = result.optInt("total", 0);
@@ -945,8 +1180,10 @@ public class ContactsPlugin implements ModulePlugin {
             contacts = new JSONArray();
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("📇 Contact List\n━━━━━━━━━━━━━━\n");
-        sb.append("[").append(total).append("] contacts\n");
+        sb.append("📇 Contact List\n");
+        sb.append("[").append(total).append("] contacts total\n\n");
+        sb.append("| Name | Phone |\n");
+        sb.append("| --- | --- |\n");
         int show = Math.min(contacts.length(), DISPLAY_MAX_LIST_LINES);
         for (int i = 0; i < show; i++) {
             JSONObject c = contacts.getJSONObject(i);
@@ -954,28 +1191,49 @@ public class ContactsPlugin implements ModulePlugin {
             if (name.isEmpty()) {
                 name = "(no name)";
             }
-            sb.append(i + 1).append(". ").append(name).append("\n");
+            String phone = c.optString("primaryPhone", "").trim();
+            if (phone.isEmpty()) {
+                phone = "—";
+            }
+            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(phone)).append(" |\n");
         }
         if (contacts.length() > DISPLAY_MAX_LIST_LINES) {
-            sb.append("… (+").append(contacts.length() - DISPLAY_MAX_LIST_LINES).append(" more in this page)\n");
+            sb.append("\n… (+").append(contacts.length() - DISPLAY_MAX_LIST_LINES).append(" more in this page)");
         }
         return sb.toString().trim();
     }
 
+    /**
+     * @param result {@link #getContactCount} 输出
+     * @return 单行总人数展示
+     */
     private static String formatGetContactCountDisplay(JSONObject result) {
         int n = result.optInt("count", 0);
-        return "📇 Total contacts: " + n;
+        return "📇 Contact Count\n\n| Item | Value |\n| --- | --- |\n| Total contacts | " + n + " |";
     }
 
+    /**
+     * @param result 导出成功时的 JSON（path、exported）
+     * @return 导出摘要展示
+     */
     private static String formatExportContactsDisplay(JSONObject result) {
         int exported = result.optInt("exported", 0);
         String path = result.optString("path", "").trim();
         StringBuilder sb = new StringBuilder();
-        sb.append("📤 Exported ").append(exported).append(" contacts\n");
-        sb.append("▸ File: ").append(path.isEmpty() ? "—" : path);
-        return sb.toString();
+        sb.append("📤 Exported ").append(exported).append(" contacts\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("| --- | --- |\n");
+        sb.append("| File | ").append(mdCell(path.isEmpty() ? "—" : path)).append(" |\n");
+        return sb.toString().trim();
     }
 
+    /**
+     * 重复分组展示：分别列出姓名重复与电话重复的若干组（有组数上限）。
+     *
+     * @param result {@link #findDuplicates} 输出
+     * @return 展示文本
+     * @throws Exception JSON 异常
+     */
     private static String formatFindDuplicatesDisplay(JSONObject result) throws Exception {
         JSONArray nameGroups = result.optJSONArray("duplicateNameGroups");
         JSONArray phoneGroups = result.optJSONArray("duplicatePhoneGroups");
@@ -987,32 +1245,61 @@ public class ContactsPlugin implements ModulePlugin {
         }
         int groupCount = nameGroups.length() + phoneGroups.length();
         StringBuilder sb = new StringBuilder();
-        sb.append("🔁 Duplicate Contacts\n━━━━━━━━━━━━━━\n");
-        sb.append("Found ").append(groupCount).append(" groups\n");
+        sb.append("🔁 Duplicate Contacts\n");
+        sb.append("Found ").append(groupCount).append(" groups\n\n");
+        sb.append("| Type | Key | Count | Contact IDs |\n");
+        sb.append("| --- | --- | --- | --- |\n");
         int lines = 0;
         for (int i = 0; i < nameGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
             JSONObject g = nameGroups.getJSONObject(i);
             String norm = g.optString("normalizedName", "").trim();
+            if (norm.isEmpty()) {
+                norm = "(unnamed)";
+            }
             int cnt = g.optInt("count", 0);
-            sb.append("▸ Name match: ").append(norm.isEmpty() ? "(unnamed)" : norm);
-            sb.append(" — ").append(cnt).append(" contacts\n");
+            String ids = joinContactIds(g.optJSONArray("contactIds"));
+            sb.append("| Name | ").append(mdCell(norm)).append(" | ").append(cnt).append(" | ")
+                    .append(mdCell(ids)).append(" |\n");
             lines++;
         }
         for (int i = 0; i < phoneGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
             JSONObject g = phoneGroups.getJSONObject(i);
             String norm = g.optString("normalizedPhone", "").trim();
+            if (norm.isEmpty()) {
+                norm = "—";
+            }
             int cnt = g.optInt("count", 0);
-            sb.append("▸ Phone match: ").append(norm.isEmpty() ? "—" : norm);
-            sb.append(" — ").append(cnt).append(" contacts\n");
+            String ids = joinContactIds(g.optJSONArray("contactIds"));
+            sb.append("| Phone | ").append(mdCell(norm)).append(" | ").append(cnt).append(" | ")
+                    .append(mdCell(ids)).append(" |\n");
             lines++;
         }
         int totalLines = nameGroups.length() + phoneGroups.length();
         if (totalLines > DISPLAY_MAX_DUP_GROUPS) {
-            sb.append("… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(" more groups)\n");
+            sb.append("\n… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(" more groups)");
         }
         return sb.toString().trim();
     }
 
+    private static String joinContactIds(JSONArray ids) throws Exception {
+        if (ids == null || ids.length() == 0) {
+            return "—";
+        }
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < ids.length(); i++) {
+            if (i > 0) {
+                b.append(", ");
+            }
+            b.append(ids.get(i).toString());
+        }
+        return b.toString();
+    }
+
+    /**
+     * @param msg 错误信息
+     * @return {@code success=false} 的 JSON
+     * @throws Exception JSON 异常
+     */
     private String error(String msg) throws Exception {
         return new JSONObject().put("success", false).put("error", msg).toString();
     }

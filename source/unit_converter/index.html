@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title data-i18n="pageTitle">单位转换 / Unit Converter</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.uc-wrap { max-width: 520px; margin: 0 auto; padding: 12px 14px 24px; }
+.uc-header { text-align: center; padding: 16px 0 12px; }
+.uc-header .icon { font-size: 44px; margin-bottom: 6px; }
+.uc-header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.uc-header p { margin: 6px 0 0; font-size: 13px; color: var(--on-surface-variant); line-height: 1.45; }
+.uc-card {
+  background: var(--surface-container);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.uc-row { margin-bottom: 12px; }
+.uc-row:last-child { margin-bottom: 0; }
+.uc-label { display: block; font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; letter-spacing: .02em; }
+.uc-select, .uc-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--outline-variant);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 15px;
+}
+.uc-input { font-variant-numeric: tabular-nums; }
+.uc-unit-row { display: flex; align-items: flex-end; gap: 8px; }
+.uc-unit-row .uc-row { flex: 1; margin-bottom: 0; }
+.uc-swap {
+  flex: 0 0 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: var(--tertiary-container);
+  color: var(--tertiary);
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: transform .12s;
+}
+.uc-swap:active { transform: scale(0.92); }
+.uc-result {
+  margin-top: 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  word-break: break-all;
+  min-height: 28px;
+}
+.uc-result .sub { display: block; font-size: 12px; font-weight: 400; opacity: .85; margin-top: 6px; }
+.uc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.uc-tab {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--outline-variant);
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.uc-tab.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.uc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 8px; }
+table.uc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.uc-table th, .uc-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.uc-table th { color: var(--primary); font-weight: 600; }
+.uc-table tr:last-child td { border-bottom: none; }
+.uc-foot { font-size: 11px; color: var(--on-surface-variant); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="uc-wrap">
+  <div class="uc-header">
+    <div class="icon">📐</div>
+    <h1 data-i18n="headerTitle">单位转换</h1>
+    <p data-i18n="headerDesc">长度、重量、温度、面积、体积、速度、时间与数据存储互转</p>
+  </div>
+
+  <div class="uc-card">
+    <div class="uc-label" data-i18n="labelCategory">类别</div>
+    <div class="uc-tabs" id="categoryTabs"></div>
+  </div>
+
+  <div class="uc-card">
+    <div class="uc-row">
+      <label class="uc-label" for="valIn" data-i18n="labelValue">数值</label>
+      <input type="text" inputmode="decimal" class="uc-input" id="valIn" placeholder="1" autocomplete="off">
+    </div>
+    <div class="uc-unit-row">
+      <div class="uc-row">
+        <label class="uc-label" for="selFrom" data-i18n="labelFrom">从</label>
+        <select class="uc-select" id="selFrom"></select>
+      </div>
+      <button type="button" class="uc-swap" id="btnSwap" title="Swap" data-i18n-title="titleSwap">⇄</button>
+      <div class="uc-row">
+        <label class="uc-label" for="selTo" data-i18n="labelTo">到</label>
+        <select class="uc-select" id="selTo"></select>
+      </div>
+    </div>
+    <div class="uc-result" id="resultOut">
+      <span id="resultMain">—</span>
+      <span class="sub" id="resultSub"></span>
+    </div>
+  </div>
+
+  <div class="uc-card">
+    <div class="uc-label" data-i18n="labelQuickRef">当前类别速查（1 个基准单位）</div>
+    <div class="uc-table-wrap">
+      <table class="uc-table" id="refTable">
+        <thead><tr><th data-i18n="colUnit">单位</th><th data-i18n="colValue">值</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="uc-foot" data-i18n="footNote">换算与插件接口 convert 使用相同系数；月份按 30 天、年份按 365 天估算。</p>
+  </div>
+</div>
+
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '单位转换 / Unit Converter',
+    headerTitle: '单位转换',
+    headerDesc: '长度、重量、温度、面积、体积、速度、时间与数据存储互转',
+    labelCategory: '类别',
+    labelValue: '数值',
+    labelFrom: '从',
+    labelTo: '到',
+    titleSwap: '交换单位',
+    labelQuickRef: '当前类别速查（1 个基准单位）',
+    colUnit: '单位',
+    colValue: '数值',
+    footNote: '换算与插件接口 convert 使用相同系数；月份按 30 天、年份按 365 天估算。',
+    cat_length: '长度',
+    cat_weight: '重量',
+    cat_temperature: '温度',
+    cat_area: '面积',
+    cat_volume: '体积',
+    cat_speed: '速度',
+    cat_time: '时间',
+    cat_data: '数据',
+    errNumber: '请输入有效数字',
+    bridgeReady: 'NativeBridge 已连接',
+    bridgeOff: '离线预览（无 NativeBridge）'
+  },
+  en: {
+    pageTitle: 'Unit Converter',
+    headerTitle: 'Unit Converter',
+    headerDesc: 'Length, weight, temperature, area, volume, speed, time, and data storage',
+    labelCategory: 'Category',
+    labelValue: 'Value',
+    labelFrom: 'From',
+    labelTo: 'To',
+    titleSwap: 'Swap units',
+    labelQuickRef: 'Quick reference (1 anchor unit)',
+    colUnit: 'Unit',
+    colValue: 'Value',
+    footNote: 'Same factors as the convert API; month = 30 days, year = 365 days.',
+    cat_length: 'Length',
+    cat_weight: 'Weight',
+    cat_temperature: 'Temperature',
+    cat_area: 'Area',
+    cat_volume: 'Volume',
+    cat_speed: 'Speed',
+    cat_time: 'Time',
+    cat_data: 'Data',
+    errNumber: 'Enter a valid number',
+    bridgeReady: 'NativeBridge connected',
+    bridgeOff: 'Offline preview (no NativeBridge)'
+  }
+};
+
+var MONTH_S = 30 * 86400;
+var YEAR_S = 365 * 86400;
+
+var UNITS = {
+  length: [
+    { id: 'mm', label: 'mm' },
+    { id: 'cm', label: 'cm' },
+    { id: 'm', label: 'm' },
+    { id: 'km', label: 'km' },
+    { id: 'in', label: 'in' },
+    { id: 'ft', label: 'ft' },
+    { id: 'yd', label: 'yd' },
+    { id: 'mi', label: 'mi' },
+    { id: 'nm', label: 'nm (nautical mi)' }
+  ],
+  weight: [
+    { id: 'mg', label: 'mg' },
+    { id: 'g', label: 'g' },
+    { id: 'kg', label: 'kg' },
+    { id: 'oz', label: 'oz' },
+    { id: 'lb', label: 'lb' },
+    { id: 'ton', label: 't (metric ton)' },
+    { id: 'st', label: 'st (stone)' }
+  ],
+  temperature: [
+    { id: 'C', label: '°C' },
+    { id: 'F', label: '°F' },
+    { id: 'K', label: 'K' }
+  ],
+  area: [
+    { id: 'mm2', label: 'mm²' },
+    { id: 'cm2', label: 'cm²' },
+    { id: 'm2', label: 'm²' },
+    { id: 'km2', label: 'km²' },
+    { id: 'in2', label: 'in²' },
+    { id: 'ft2', label: 'ft²' },
+    { id: 'yd2', label: 'yd²' },
+    { id: 'mi2', label: 'mi²' },
+    { id: 'ha', label: 'ha' },
+    { id: 'acre', label: 'acre' }
+  ],
+  volume: [
+    { id: 'ml', label: 'ml' },
+    { id: 'l', label: 'l' },
+    { id: 'm3', label: 'm³' },
+    { id: 'gal_us', label: 'gal (US)' },
+    { id: 'gal_uk', label: 'gal (UK)' },
+    { id: 'floz_us', label: 'fl oz (US)' },
+    { id: 'cup_us', label: 'cup (US)' },
+    { id: 'pt_us', label: 'pt (US)' },
+    { id: 'qt_us', label: 'qt (US)' }
+  ],
+  speed: [
+    { id: 'm/s', label: 'm/s' },
+    { id: 'km/h', label: 'km/h' },
+    { id: 'mph', label: 'mph' },
+    { id: 'knot', label: 'knot' },
+    { id: 'ft/s', label: 'ft/s' }
+  ],
+  time: [
+    { id: 'ms', label: 'ms' },
+    { id: 's', label: 's' },
+    { id: 'min', label: 'min' },
+    { id: 'h', label: 'h' },
+    { id: 'day', label: 'day' },
+    { id: 'week', label: 'week' },
+    { id: 'month', label: 'month (30d)' },
+    { id: 'year', label: 'year (365d)' }
+  ],
+  data: [
+    { id: 'B', label: 'B' },
+    { id: 'KB', label: 'KB' },
+    { id: 'MB', label: 'MB' },
+    { id: 'GB', label: 'GB' },
+    { id: 'TB', label: 'TB' },
+    { id: 'PB', label: 'PB' },
+    { id: 'bit', label: 'bit' },
+    { id: 'Kbit', label: 'Kbit' },
+    { id: 'Mbit', label: 'Mbit' },
+    { id: 'Gbit', label: 'Gbit' }
+  ]
+};
+
+var CATEGORIES = ['length', 'weight', 'temperature', 'area', 'volume', 'speed', 'time', 'data'];
+
+var FACTORS = {
+  length: { mm: 0.001, cm: 0.01, m: 1, km: 1000, in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.344, nm: 1852 },
+  weight: { mg: 1e-6, g: 0.001, kg: 1, oz: 0.028349523125, lb: 0.45359237, ton: 1000, st: 6.35029318 },
+  area: { mm2: 1e-6, cm2: 1e-4, m2: 1, km2: 1e6, in2: 0.00064516, ft2: 0.09290304, yd2: 0.83612736, mi2: 2589988.110336, ha: 10000, acre: 4046.8564224 },
+  volume: { ml: 1e-6, l: 0.001, m3: 1, gal_us: 0.003785411784, gal_uk: 0.00454609, floz_us: 29.5735295625e-6, cup_us: 0.0002365882365, pt_us: 0.000473176473, qt_us: 0.000946352946 },
+  speed: { 'm/s': 1, 'km/h': 1 / 3.6, mph: 0.44704, knot: 1852 / 3600, 'ft/s': 0.3048 },
+  time: { ms: 0.001, s: 1, min: 60, h: 3600, day: 86400, week: 604800, month: MONTH_S, year: YEAR_S },
+  data: { B: 1, KB: 1024, MB: 1048576, GB: 1073741824, TB: 1099511627776, PB: 1125899906842624, bit: 0.125, Kbit: 128, Mbit: 131072, Gbit: 134217728 }
+};
+
+var state = { category: 'length' };
+
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n-title');
+    if (t[k]) el.setAttribute('title', t[k]);
+  });
+}
+
+try {
+  if (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) {
+    _lang = NativeBridge.getLanguage().substring(0, 2);
+  } else {
+    _lang = (navigator.language || 'zh').substring(0, 2) === 'zh' ? 'zh' : 'en';
+  }
+} catch (e) {
+  _lang = (navigator.language || 'zh').substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+
+function T(key) {
+  var l = i18n[_lang] ? _lang : 'en';
+  return (i18n[l] && i18n[l][key]) || (i18n.en[key] || key);
+}
+
+function formatNum(v) {
+  if (!isFinite(v)) return String(v);
+  var a = Math.abs(v);
+  if (a !== 0 && (a < 1e-6 || a >= 1e15)) return v.toExponential(6);
+  if (Math.abs(v - Math.round(v)) < 1e-12) return String(Math.round(v));
+  return String(parseFloat(v.toPrecision(10)));
+}
+
+function toCelsius(from, val) {
+  if (from === 'C') return val;
+  if (from === 'F') return (val - 32) * 5 / 9;
+  if (from === 'K') return val - 273.15;
+  return NaN;
+}
+
+function fromCelsius(to, c) {
+  if (to === 'C') return c;
+  if (to === 'F') return c * 9 / 5 + 32;
+  if (to === 'K') return c + 273.15;
+  return NaN;
+}
+
+function convert(cat, val, fromId, toId) {
+  if (cat === 'temperature') {
+    return fromCelsius(toId, toCelsius(fromId, val));
+  }
+  var f = FACTORS[cat];
+  var base = val * f[fromId];
+  return base / f[toId];
+}
+
+function parseInput(str) {
+  var s = (str || '').trim().replace(/,/g, '');
+  if (s === '' || s === '-' || s === '.' || s === '-.') return NaN;
+  return parseFloat(s);
+}
+
+function fillSelect(sel, cat) {
+  var list = UNITS[cat] || [];
+  sel.innerHTML = list.map(function(u) {
+    return '<option value="' + u.id.replace(/"/g, '&quot;') + '">' + u.label.replace(/</g, '&lt;') + '</option>';
+  }).join('');
+}
+
+function renderCategoryTabs() {
+  var host = document.getElementById('categoryTabs');
+  host.innerHTML = CATEGORIES.map(function(c) {
+    return '<button type="button" class="uc-tab' + (c === state.category ? ' active' : '') + '" data-cat="' + c + '">' + T('cat_' + c) + '</button>';
+  }).join('');
+  host.querySelectorAll('.uc-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      state.category = btn.getAttribute('data-cat');
+      host.querySelectorAll('.uc-tab').forEach(function(b) { b.classList.toggle('active', b === btn); });
+      onCategoryChange();
+    });
+  });
+}
+
+function onCategoryChange() {
+  var cat = state.category;
+  var sf = document.getElementById('selFrom');
+  var st = document.getElementById('selTo');
+  fillSelect(sf, cat);
+  fillSelect(st, cat);
+  if (cat === 'length') { sf.selectedIndex = 3; st.selectedIndex = 7; }
+  else if (cat === 'weight') { sf.selectedIndex = 2; st.selectedIndex = 4; }
+  else if (cat === 'temperature') { sf.selectedIndex = 0; st.selectedIndex = 1; }
+  else if (cat === 'area') { sf.selectedIndex = 2; st.selectedIndex = 3; }
+  else if (cat === 'volume') { sf.selectedIndex = 1; st.selectedIndex = 3; }
+  else if (cat === 'speed') { sf.selectedIndex = 1; st.selectedIndex = 2; }
+  else if (cat === 'time') { sf.selectedIndex = 3; st.selectedIndex = 4; }
+  else { sf.selectedIndex = 2; st.selectedIndex = 3; }
+  updateConversion();
+  renderRefTable();
+}
+
+function updateConversion() {
+  var cat = state.category;
+  var v = parseInput(document.getElementById('valIn').value);
+  var fromId = document.getElementById('selFrom').value;
+  var toId = document.getElementById('selTo').value;
+  var sub = document.getElementById('resultSub');
+  if (isNaN(v)) {
+    document.getElementById('resultMain').textContent = '—';
+    sub.textContent = '';
+    return;
+  }
+  var r = convert(cat, v, fromId, toId);
+  document.getElementById('resultMain').textContent = formatNum(r);
+  var fu = UNITS[cat].filter(function(x) { return x.id === fromId; })[0];
+  var tu = UNITS[cat].filter(function(x) { return x.id === toId; })[0];
+  sub.textContent = formatNum(v) + ' ' + (fu ? fu.label : fromId) + ' = ' + formatNum(r) + ' ' + (tu ? tu.label : toId);
+}
+
+function refAnchor(cat) {
+  if (cat === 'temperature') return { id: 'C', val: 1 };
+  if (cat === 'time') return { id: 'h', val: 1 };
+  if (cat === 'data') return { id: 'MB', val: 1 };
+  return { id: (UNITS[cat][2] ? UNITS[cat][2].id : UNITS[cat][0].id), val: 1 };
+}
+
+function renderRefTable() {
+  var cat = state.category;
+  var tb = document.querySelector('#refTable tbody');
+  var anchor = refAnchor(cat);
+  var rows = (UNITS[cat] || []).map(function(u) {
+    var x = convert(cat, anchor.val, anchor.id, u.id);
+    return '<tr><td>' + u.label.replace(/</g, '&lt;') + '</td><td>' + formatNum(x) + '</td></tr>';
+  });
+  tb.innerHTML = rows.join('');
+}
+
+function swapUnits() {
+  var sf = document.getElementById('selFrom');
+  var st = document.getElementById('selTo');
+  var a = sf.value;
+  sf.value = st.value;
+  st.value = a;
+  updateConversion();
+}
+
+document.getElementById('btnSwap').addEventListener('click', swapUnits);
+document.getElementById('valIn').addEventListener('input', updateConversion);
+document.getElementById('selFrom').addEventListener('change', updateConversion);
+document.getElementById('selTo').addEventListener('change', updateConversion);
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge || !NativeBridge.invoke) throw new Error('NativeBridge.invoke missing');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  return JSON.parse(raw);
+}
+
+function verifyNativeConvert() {
+  if (!window.NativeBridge || !NativeBridge.invoke) return;
+  try {
+    var res = invokeNative('convert', { value: 1, fromUnit: 'km', toUnit: 'mi', category: 'length' });
+    if (res.success) {
+      var inner = typeof res.output === 'string' ? JSON.parse(res.output) : res.output;
+      console.log('[unit_converter] ' + T('bridgeReady'), inner && inner.resultText ? inner.resultText : res.output, res._displayText || '');
+    }
+  } catch (e) {
+    console.warn('[unit_converter] native check', e);
+  }
+}
+
+renderCategoryTabs();
+onCategoryChange();
+verifyNativeConvert();
+</script>
+</body>
+</html>

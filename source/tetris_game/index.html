@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tetris</title>
+<link rel="stylesheet" href="common.css">
+<style>
+:root {
+  --tetris-i: #00acc1;
+  --tetris-o: #f9a825;
+  --tetris-t: #8e24aa;
+  --tetris-s: #43a047;
+  --tetris-z: #e53935;
+  --tetris-j: #1e88e5;
+  --tetris-l: #fb8c00;
+  --tetris-lock: #49454f;
+  --tetris-grid: rgba(28, 27, 31, 0.06);
+  --tetris-grid-line: rgba(28, 27, 31, 0.08);
+}
+body { touch-action: manipulation; }
+.game-header { text-align: center; padding: 12px 0 8px; }
+.game-header .icon { font-size: 44px; line-height: 1; }
+.game-header h2 { margin: 6px 0 0; font-size: 20px; color: var(--primary); }
+.bridge-banner {
+  display: none; text-align: center; font-size: 13px; color: var(--error);
+  background: var(--error-container); border-radius: 12px; padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.bridge-banner.visible { display: block; }
+.info-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  background: var(--surface-variant);
+  border-radius: 14px;
+}
+@media (min-width: 380px) {
+  .info-bar { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 480px) {
+  .info-bar { grid-template-columns: repeat(5, 1fr); }
+}
+.info-bar .stat { text-align: center; min-width: 0; }
+.info-bar .stat .lbl {
+  display: block; color: var(--on-surface-variant); font-size: 11px;
+  margin-bottom: 2px;
+}
+.info-bar .stat .val {
+  font-weight: 600; color: var(--primary); font-size: 17px; line-height: 1.2;
+  word-break: break-all;
+}
+.game-main {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; margin-bottom: 12px;
+}
+@media (min-width: 420px) {
+  .game-main {
+    flex-direction: row; align-items: flex-start; justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+.board-frame {
+  background: var(--surface-variant);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  width: min(100%, 340px);
+}
+.tetris-board {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  aspect-ratio: 10 / 20;
+  background: var(--tetris-grid-line);
+  padding: 2px;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+.tetris-cell {
+  min-width: 0; min-height: 0;
+  border-radius: 3px;
+  background: var(--tetris-grid);
+  transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+.tetris-cell.block {
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.18);
+}
+.tetris-cell.block:active { transform: scale(0.98); }
+.side-stack {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  width: min(100%, 200px);
+}
+.next-card {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 12px 14px;
+  width: 100%;
+  text-align: center;
+}
+.next-card .next-lbl {
+  font-size: 12px; color: var(--on-surface-variant); margin-bottom: 8px;
+}
+.next-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  width: 112px; height: 112px;
+  margin: 0 auto;
+}
+.next-preview .ncell {
+  border-radius: 3px;
+  background: var(--tetris-grid);
+  min-height: 0;
+}
+.next-preview .ncell.on {
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.18);
+}
+.controls {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-bottom: 14px; width: 100%; max-width: 360px; margin-left: auto; margin-right: auto;
+}
+.ctrl-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.ctrl-btn {
+  width: min(56px, 18vw); height: min(56px, 18vw); min-width: 48px; min-height: 48px;
+  border: none; border-radius: 14px;
+  font-size: 20px; cursor: pointer;
+  background: var(--primary); color: var(--on-primary);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(103, 80, 164, 0.25);
+}
+.ctrl-btn:hover { opacity: 0.95; }
+.ctrl-btn:active { transform: scale(0.92); opacity: 0.88; }
+.ctrl-btn.secondary { background: var(--surface-variant); color: var(--primary); box-shadow: none; border: 1px solid var(--outline); }
+.ctrl-btn.accent { background: var(--tertiary); color: #fff; box-shadow: 0 2px 4px rgba(125, 82, 96, 0.3); }
+.ctrl-hint {
+  font-size: 11px; color: var(--on-surface-variant); text-align: center;
+  margin-top: 4px; line-height: 1.4; max-width: 360px; margin-left: auto; margin-right: auto;
+}
+.diff-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.game-over-overlay {
+  text-align: center; padding: 22px 16px;
+  background: var(--primary-container); border-radius: 16px;
+  margin-bottom: 12px;
+}
+.game-over-overlay h3 { color: var(--primary); margin-bottom: 10px; font-size: 18px; }
+.game-over-overlay .final-score { font-size: 38px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+.game-over-overlay .go-sub { margin: 6px 0; font-size: 14px; color: var(--on-surface); }
+.game-over-overlay .go-lines { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 4px; }
+.go-actions { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.hidden { display: none !important; }
+.menu-lead { margin-bottom: 14px; color: var(--on-surface-variant); font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="bridgeBanner" class="bridge-banner" role="status"></div>
+
+<div class="game-header">
+  <div class="icon" aria-hidden="true">🧱</div>
+  <h2 data-i18n="title"></h2>
+</div>
+
+<div id="menuScreen">
+  <div class="card" style="text-align:center">
+    <p class="menu-lead" data-i18n="menuLead"></p>
+    <div class="diff-row">
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="1" data-i18n="diffEasy"></button>
+      <button type="button" class="btn btn-primary btn-sm diff-btn active" data-diff="2" data-i18n="diffNormal"></button>
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="3" data-i18n="diffHard"></button>
+    </div>
+    <button type="button" class="btn btn-primary" id="btnStart" data-i18n="startGame"></button>
+  </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <div class="info-bar">
+    <div class="stat"><span class="lbl" data-i18n="score"></span><span class="val" id="scoreLabel">0</span></div>
+    <div class="stat"><span class="lbl" data-i18n="level"></span><span class="val" id="levelLabel">1</span></div>
+    <div class="stat"><span class="lbl" data-i18n="lines"></span><span class="val" id="linesLabel">0</span></div>
+    <div class="stat"><span class="lbl" data-i18n="currentPiece"></span><span class="val" id="curPiece">-</span></div>
+    <div class="stat"><span class="lbl" data-i18n="nextPiece"></span><span class="val" id="nextPieceText">-</span></div>
+  </div>
+
+  <div class="game-main">
+    <div class="board-frame">
+      <div class="tetris-board" id="boardGrid" aria-label="Tetris playfield"></div>
+    </div>
+    <div class="side-stack">
+      <div class="next-card">
+        <div class="next-lbl" data-i18n="nextPreview"></div>
+        <div class="next-preview" id="nextGrid" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-row">
+      <button type="button" class="ctrl-btn" id="btnRotate" aria-label="">↻</button>
+    </div>
+    <div class="ctrl-row">
+      <button type="button" class="ctrl-btn" id="btnLeft" aria-label="">←</button>
+      <button type="button" class="ctrl-btn secondary" id="btnDown" aria-label="">↓</button>
+      <button type="button" class="ctrl-btn" id="btnRight" aria-label="">→</button>
+    </div>
+    <div class="ctrl-row">
+      <button type="button" class="ctrl-btn accent" id="btnDrop" aria-label="">⤓</button>
+    </div>
+  </div>
+  <p class="ctrl-hint" data-i18n="keyHint"></p>
+</div>
+
+<div id="gameOverScreen" class="hidden">
+  <div class="game-over-overlay">
+    <h3 data-i18n="gameOverTitle"></h3>
+    <div class="final-score" id="finalScore">0</div>
+    <p class="go-sub" data-i18n="finalScoreLabel"></p>
+    <p class="go-lines"><span data-i18n="linesClearedLabel"></span> <span id="finalLines">0</span></p>
+    <div class="go-actions">
+      <button type="button" class="btn btn-primary" id="btnRestart" data-i18n="restart"></button>
+      <button type="button" class="btn btn-outline" id="btnMenu" data-i18n="backMenu"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SPEEDS = [0, 1000, 600, 300];
+  var PIECE_COLORS = {
+    I: 'var(--tetris-i)',
+    O: 'var(--tetris-o)',
+    T: 'var(--tetris-t)',
+    S: 'var(--tetris-s)',
+    Z: 'var(--tetris-z)',
+    J: 'var(--tetris-j)',
+    L: 'var(--tetris-l)'
+  };
+  var LOCK_COLOR = 'var(--tetris-lock)';
+
+  var PREVIEW_CELLS = {
+    I: [[1,1],[2,1],[3,1],[4,1]],
+    O: [[2,0],[3,0],[2,1],[3,1]],
+    T: [[1,0],[2,0],[3,0],[2,1]],
+    S: [[2,0],[3,0],[1,1],[2,1]],
+    Z: [[1,0],[2,0],[2,1],[3,1]],
+    L: [[2,0],[2,1],[2,2],[3,2]],
+    J: [[3,0],[3,1],[2,2],[3,2]]
+  };
+
+  var STRINGS = {
+    en: {
+      title: 'Tetris',
+      menuLead: 'Choose difficulty and start',
+      diffEasy: 'Easy',
+      diffNormal: 'Normal',
+      diffHard: 'Hard',
+      startGame: 'Start game',
+      score: 'Score',
+      level: 'Level',
+      lines: 'Lines',
+      currentPiece: 'Piece',
+      nextPiece: 'Next',
+      nextPreview: 'Next piece',
+      keyHint: 'Keyboard: arrows to move, ↑ rotate, Space hard drop',
+      gameOverTitle: 'Game over',
+      finalScoreLabel: 'Final score',
+      linesClearedLabel: 'Lines cleared',
+      restart: 'Play again',
+      backMenu: 'Main menu',
+      bridgeOff: 'NativeBridge not available — start the module from the app to play.',
+      ariaRotate: 'Rotate',
+      ariaLeft: 'Move left',
+      ariaDown: 'Soft drop',
+      ariaRight: 'Move right',
+      ariaDrop: 'Hard drop'
+    },
+    zh: {
+      title: '俄罗斯方块',
+      menuLead: '选择难度开始游戏',
+      diffEasy: '简单',
+      diffNormal: '普通',
+      diffHard: '困难',
+      startGame: '开始游戏',
+      score: '得分',
+      level: '等级',
+      lines: '消行',
+      currentPiece: '当前',
+      nextPiece: '下个',
+      nextPreview: '下一个方块',
+      keyHint: '键盘：方向键移动，↑ 旋转，空格硬降',
+      gameOverTitle: '游戏结束',
+      finalScoreLabel: '得分',
+      linesClearedLabel: '消除行数',
+      restart: '重新开始',
+      backMenu: '返回菜单',
+      bridgeOff: '无法连接 NativeBridge — 请在应用内打开本模块进行游戏。',
+      ariaRotate: '旋转',
+      ariaLeft: '左移',
+      ariaDown: '软降',
+      ariaRight: '右移',
+      ariaDrop: '硬降'
+    }
+  };
+
+  var lang = 'en';
+  var difficulty = 2;
+  var tickTimer = null;
+  var boardCells = [];
+  var nextCells = [];
+
+  function detectLang() {
+    try {
+      if (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) {
+        var code = String(NativeBridge.getLanguage() || 'en').toLowerCase();
+        return code.indexOf('zh') === 0 ? 'zh' : 'en';
+      }
+    } catch (e) {}
+    var nav = (navigator.language || 'en').toLowerCase();
+    return nav.indexOf('zh') === 0 ? 'zh' : 'en';
+  }
+
+  function T(key) {
+    var pack = STRINGS[lang] || STRINGS.en;
+    return pack[key] != null ? pack[key] : (STRINGS.en[key] || key);
+  }
+
+  function applyI18n() {
+    lang = detectLang();
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
+    document.title = T('title');
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n');
+      if (k && STRINGS[lang] && STRINGS[lang][k] != null) el.textContent = STRINGS[lang][k];
+    });
+    document.getElementById('btnRotate').setAttribute('aria-label', T('ariaRotate'));
+    document.getElementById('btnLeft').setAttribute('aria-label', T('ariaLeft'));
+    document.getElementById('btnDown').setAttribute('aria-label', T('ariaDown'));
+    document.getElementById('btnRight').setAttribute('aria-label', T('ariaRight'));
+    document.getElementById('btnDrop').setAttribute('aria-label', T('ariaDrop'));
+    document.getElementById('boardGrid').setAttribute('aria-label', lang === 'zh' ? '游戏场地' : 'Tetris playfield');
+
+    var banner = document.getElementById('bridgeBanner');
+    if (!window.NativeBridge || !NativeBridge.invoke) {
+      banner.textContent = T('bridgeOff');
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  }
+
+  function callPlugin(action, params) {
+    if (window.NativeBridge && NativeBridge.invoke) {
+      try {
+        return JSON.parse(NativeBridge.invoke(action, JSON.stringify(params || {})));
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }
+    return null;
+  }
+
+  function parseBoardAscii(boardStr, w, h) {
+    if (!boardStr || typeof boardStr !== 'string') return null;
+    var lines = boardStr.split(/\r?\n/);
+    var rows = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (line.indexOf('│') === -1) continue;
+      var start = line.indexOf('│');
+      var end = line.lastIndexOf('│');
+      if (end <= start) continue;
+      var inner = line.slice(start + 1, end);
+      var row = [];
+      for (var x = 0; x < w; x++) {
+        var idx = x * 2;
+        var ch = inner.charAt(idx);
+        row.push(ch || '·');
+      }
+      if (row.length === w) rows.push(row);
+    }
+    if (rows.length < h) return null;
+    return rows.slice(0, h);
+  }
+
+  function pieceColorForChar(ch, currentLetter) {
+    if (ch === '·' || ch === '.' || ch === ' ') return null;
+    if (ch === '█') return LOCK_COLOR;
+    if (ch === '\u2593' || ch === '▓') return PIECE_COLORS[currentLetter] || LOCK_COLOR;
+    var u = ch.toUpperCase();
+    if (PIECE_COLORS[u]) return PIECE_COLORS[u];
+    return LOCK_COLOR;
+  }
+
+  function ensureBoardGrid(w, h) {
+    var grid = document.getElementById('boardGrid');
+    if (boardCells.length === w * h && grid.style.gridTemplateColumns) {
+      var cols = grid.style.gridTemplateColumns.split(' ').length;
+      if (cols === w) return;
+    }
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = 'repeat(' + w + ', 1fr)';
+    grid.style.gridTemplateRows = 'repeat(' + h + ', 1fr)';
+    boardCells = [];
+    for (var i = 0; i < w * h; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'tetris-cell';
+      cell.setAttribute('data-idx', String(i));
+      grid.appendChild(cell);
+      boardCells.push(cell);
+    }
+  }
+
+  function ensureNextGrid() {
+    var grid = document.getElementById('nextGrid');
+    if (nextCells.length === 16) return;
+    grid.innerHTML = '';
+    nextCells = [];
+    for (var i = 0; i < 16; i++) {
+      var c = document.createElement('div');
+      c.className = 'ncell';
+      grid.appendChild(c);
+      nextCells.push(c);
+    }
+  }
+
+  function renderBoard(state) {
+    var w = state.boardWidth || 10;
+    var h = state.boardHeight || 20;
+    var letter = String(state.currentPiece || 'I').toUpperCase().charAt(0);
+    var grid = parseBoardAscii(state.board, w, h);
+    ensureBoardGrid(w, h);
+    if (!grid) {
+      for (var i = 0; i < boardCells.length; i++) {
+        boardCells[i].className = 'tetris-cell';
+        boardCells[i].style.background = '';
+      }
+      return;
+    }
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var idx = y * w + x;
+        var ch = grid[y][x];
+        var color = pieceColorForChar(ch, letter);
+        var el = boardCells[idx];
+        if (!color) {
+          el.className = 'tetris-cell';
+          el.style.background = '';
+        } else {
+          el.className = 'tetris-cell block';
+          el.style.background = color;
+        }
+      }
+    }
+  }
+
+  function renderNextPreview(pieceChar) {
+    ensureNextGrid();
+    var letter = String(pieceChar || 'I').toUpperCase().charAt(0);
+    var pts = PREVIEW_CELLS[letter] || PREVIEW_CELLS.I;
+    var color = PIECE_COLORS[letter] || PIECE_COLORS.I;
+    for (var i = 0; i < 16; i++) {
+      nextCells[i].className = 'ncell';
+      nextCells[i].style.background = '';
+    }
+    for (var j = 0; j < pts.length; j++) {
+      var cx = pts[j][0] - 1;
+      var cy = pts[j][1];
+      var ni = cy * 4 + cx;
+      if (ni >= 0 && ni < 16) {
+        nextCells[ni].className = 'ncell on';
+        nextCells[ni].style.background = color;
+      }
+    }
+  }
+
+  function stopTick() {
+    if (tickTimer) {
+      clearInterval(tickTimer);
+      tickTimer = null;
+    }
+  }
+
+  function startTick(ms) {
+    stopTick();
+    if (!ms || ms < 50) ms = 600;
+    tickTimer = setInterval(function () {
+      var r = callPlugin('tick', {});
+      if (r && r.success) {
+        try {
+          updateDisplay(JSON.parse(r.output));
+        } catch (e) {}
+      }
+    }, ms);
+  }
+
+  function tickIntervalForDifficulty(d) {
+    d = parseInt(d, 10);
+    if (isNaN(d) || d < 1 || d > 3) d = difficulty;
+    return SPEEDS[d] || 600;
+  }
+
+  function updateDisplay(state) {
+    document.getElementById('scoreLabel').textContent = state.score != null ? state.score : 0;
+    document.getElementById('levelLabel').textContent = state.level != null ? state.level : 1;
+    document.getElementById('linesLabel').textContent = state.linesCleared != null ? state.linesCleared : 0;
+    document.getElementById('curPiece').textContent = state.currentPiece != null ? state.currentPiece : '-';
+    document.getElementById('nextPieceText').textContent = state.nextPiece != null ? state.nextPiece : '-';
+    renderBoard(state);
+    renderNextPreview(state.nextPiece);
+    if (state.difficulty != null) difficulty = Math.max(1, Math.min(3, parseInt(state.difficulty, 10) || difficulty));
+
+    if (state.gameOver) {
+      stopTick();
+      document.getElementById('finalScore').textContent = state.score != null ? state.score : 0;
+      document.getElementById('finalLines').textContent = state.linesCleared != null ? state.linesCleared : 0;
+      showScreen('gameOverScreen');
+    }
+  }
+
+  function showScreen(id) {
+    ['menuScreen', 'gameScreen', 'gameOverScreen'].forEach(function (s) {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+  }
+
+  function startGame() {
+    if (!window.NativeBridge || !NativeBridge.invoke) return;
+    var r = callPlugin('startGame', { difficulty: difficulty });
+    if (r && r.success) {
+      try {
+        var state = JSON.parse(r.output);
+        showScreen('gameScreen');
+        updateDisplay(state);
+        startTick(tickIntervalForDifficulty(state.difficulty != null ? state.difficulty : difficulty));
+      } catch (e) {}
+    }
+  }
+
+  function doMove(d) {
+    var r = callPlugin('move', { direction: d });
+    if (r && r.success) {
+      try { updateDisplay(JSON.parse(r.output)); } catch (e) {}
+    }
+  }
+
+  function doRotate() {
+    var r = callPlugin('rotate', {});
+    if (r && r.success) {
+      try { updateDisplay(JSON.parse(r.output)); } catch (e) {}
+    }
+  }
+
+  function doDrop() {
+    var r = callPlugin('drop', {});
+    if (r && r.success) {
+      try { updateDisplay(JSON.parse(r.output)); } catch (e) {}
+    }
+  }
+
+  function restartGame() {
+    var r = callPlugin('restart', {});
+    if (r && r.success) {
+      try {
+        var state = JSON.parse(r.output);
+        showScreen('gameScreen');
+        updateDisplay(state);
+        startTick(tickIntervalForDifficulty(state.difficulty != null ? state.difficulty : difficulty));
+      } catch (e) {}
+    }
+  }
+
+  function backToMenu() {
+    showScreen('menuScreen');
+    stopTick();
+  }
+
+  document.querySelectorAll('.diff-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.diff-btn').forEach(function (x) {
+        x.className = 'btn btn-outline btn-sm diff-btn';
+      });
+      this.className = 'btn btn-primary btn-sm diff-btn active';
+      difficulty = parseInt(this.dataset.diff, 10) || 2;
+    });
+  });
+
+  document.getElementById('btnStart').addEventListener('click', startGame);
+  document.getElementById('btnRestart').addEventListener('click', restartGame);
+  document.getElementById('btnMenu').addEventListener('click', backToMenu);
+  document.getElementById('btnRotate').addEventListener('click', function () { doRotate(); });
+  document.getElementById('btnLeft').addEventListener('click', function () { doMove('left'); });
+  document.getElementById('btnDown').addEventListener('click', function () { doMove('down'); });
+  document.getElementById('btnRight').addEventListener('click', function () { doMove('right'); });
+  document.getElementById('btnDrop').addEventListener('click', function () { doDrop(); });
+
+  document.addEventListener('keydown', function (e) {
+    if (document.getElementById('gameScreen').classList.contains('hidden')) return;
+    var map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down' };
+    if (map[e.key]) {
+      e.preventDefault();
+      doMove(map[e.key]);
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      doRotate();
+    }
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      doDrop();
+    }
+  });
+
+  applyI18n();
+})();
+</script>
+</body>
+</html>

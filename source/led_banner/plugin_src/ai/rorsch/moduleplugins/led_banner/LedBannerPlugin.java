@@ -7,8 +7,29 @@ import org.json.JSONObject;
 
 import java.util.Locale;
 
+/**
+ * PandaGenie「LED 灯牌」模块插件。
+ * <p>
+ * <b>模块用途：</b>根据文字、颜色、滚动模式与特效生成灯牌展示所需的 JSON/CSS 数据，
+ * 并可指示宿主打开模块 Web 界面全屏展示；同时提供赛博风与明星应援等预设配色模板。
+ * </p>
+ * <p>
+ * <b>对外 API（{@link #invoke} 的 {@code action}）：</b>
+ * </p>
+ * <ul>
+ *   <li>{@code generateBanner} — 从参数生成灯牌配置，响应中带 {@code _openModule} 打开展示</li>
+ *   <li>{@code getTemplates} — 返回赛博/霓虹类配色模板列表</li>
+ *   <li>{@code getStarTemplates} — 返回明星/应援类配色模板列表</li>
+ *   <li>{@code applyTemplate} — 按模板名套用字色/背景色并生成灯牌（支持模糊匹配模板名）</li>
+ * </ul>
+ * <p>
+ * 本类由宿主 {@code ModuleRuntime} 反射加载；{@code generateBanner} / {@code applyTemplate} 成功时
+ * 通过 {@code _openModule: true} 触发 UI 层打开对应模块页。
+ * </p>
+ */
 public class LedBannerPlugin implements ModulePlugin {
 
+    /** 赛博/霓虹风格预设：每项为 [显示名, 字色十六进制, 背景色十六进制]。 */
     private static final String[][] CYBER_TEMPLATES = {
         {"霓虹粉蓝", "#FF6EC7", "#0A0A2E"},
         {"赛博朋克", "#00FFFF", "#1A0033"},
@@ -32,6 +53,7 @@ public class LedBannerPlugin implements ModulePlugin {
         {"经典红黑", "#FF0000", "#000000"}
     };
 
+    /** 明星/应援主题预设：结构同 {@link #CYBER_TEMPLATES}。 */
     private static final String[][] STAR_TEMPLATES = {
         {"TFBOYS-王俊凯", "#FFA500", "#000000"},
         {"TFBOYS-王源", "#00BFFF", "#000000"},
@@ -73,6 +95,15 @@ public class LedBannerPlugin implements ModulePlugin {
         {"白色应援", "#FFFFFF", "#000000"}
     };
 
+    /**
+     * 模块入口：解析 JSON 参数并分发到各 action。
+     *
+     * @param context    Android 上下文
+     * @param action     操作名
+     * @param paramsJson JSON 参数字符串，空则按 {@code "{}"} 处理
+     * @return 成功为含 {@code success}、{@code output} 的 JSON；生成类 action 另含 {@code _openModule}、{@code _displayText}
+     * @throws Exception 构造 JSON 时可能抛出
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
@@ -99,6 +130,12 @@ public class LedBannerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将灯牌生成结果格式化为简短中文说明，供聊天或通知展示。
+     *
+     * @param r {@link #generateBanner} 或 {@link #applyTemplate} 产出的配置对象
+     * @return 多行展示字符串
+     */
     private String formatBannerDisplay(JSONObject r) {
         StringBuilder sb = new StringBuilder();
         sb.append("\uD83D\uDCA1 灯牌已生成\n");
@@ -111,6 +148,14 @@ public class LedBannerPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    /**
+     * 根据用户参数组装灯牌完整配置（含 CSS 片段、模式中文名、特效开关）。
+     *
+     * @param params 支持：{@code text}（必填）、{@code fontColor}/{@code bgColor}、{@code mode}（scroll/fade/static）、
+     *               {@code fontSize}（12–200）、{@code speed}（1–50）、{@code effects}（逗号/空格分隔关键字）
+     * @return 包含 text、颜色、mode、effects、cssStyle、bgStyle、textShadow 等字段的 JSON
+     * @throws Exception 缺少必填项等时抛出
+     */
     private JSONObject generateBanner(JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
         if (text.isEmpty()) {
@@ -125,7 +170,7 @@ public class LedBannerPlugin implements ModulePlugin {
         String effectsStr = params.optString("effects", "");
 
         if (!mode.equals("scroll") && !mode.equals("fade") && !mode.equals("static")) {
-            mode = "scroll";
+            mode = "scroll"; // 非法模式回退为滚动
         }
 
         JSONObject effects = parseEffects(effectsStr);
@@ -142,6 +187,7 @@ public class LedBannerPlugin implements ModulePlugin {
 
         String textShadow = "";
         if (effects.optBoolean("glow", false)) {
+            // 多层 text-shadow 模拟霓虹发光
             textShadow = "0 0 10px " + fontColor + ", 0 0 20px " + fontColor + ", 0 0 40px " + fontColor;
         }
         result.put("textShadow", textShadow);
@@ -159,6 +205,12 @@ public class LedBannerPlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 返回赛博风模板数组及数量。
+     *
+     * @return JSON：{@code templates} 为数组，每项含 name/fontColor/bgColor；{@code count} 为条数
+     * @throws Exception JSON 构造异常
+     */
     private JSONObject getTemplates() throws Exception {
         JSONArray arr = new JSONArray();
         for (String[] t : CYBER_TEMPLATES) {
@@ -174,6 +226,12 @@ public class LedBannerPlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 返回明星/应援类模板列表（结构同 {@link #getTemplates}）。
+     *
+     * @return 含 templates 与 count 的 JSON
+     * @throws Exception JSON 构造异常
+     */
     private JSONObject getStarTemplates() throws Exception {
         JSONArray arr = new JSONArray();
         for (String[] t : STAR_TEMPLATES) {
@@ -189,6 +247,13 @@ public class LedBannerPlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 根据模板名称查找配色，再调用 {@link #generateBanner} 生成灯牌；未提供 {@code text} 时用模板名作为显示文字。
+     *
+     * @param params 必填 {@code templateName}；可选 {@code text}
+     * @return 在 {@link #generateBanner} 结果上增加 {@code templateName} 字段
+     * @throws Exception 找不到模板时抛出
+     */
     private JSONObject applyTemplate(JSONObject params) throws Exception {
         String templateName = params.optString("templateName", "").trim();
         String text = params.optString("text", "").trim();
@@ -221,6 +286,7 @@ public class LedBannerPlugin implements ModulePlugin {
         }
         if (fontColor == null) {
             String nameLower = templateName.toLowerCase(Locale.ROOT);
+            // 模糊匹配：模板显示名包含用户输入子串
             for (String[] t : CYBER_TEMPLATES) {
                 if (t[0].toLowerCase(Locale.ROOT).contains(nameLower)) {
                     fontColor = t[1];
@@ -252,11 +318,18 @@ public class LedBannerPlugin implements ModulePlugin {
         fakeParams.put("speed", 10);
         fakeParams.put("effects", "glow");
 
-        JSONObject result = generateBanner(fakeParams);
+        JSONObject result = generateBanner(fakeParams); // 统一默认：滚动 + 中等字号 + 发光
         result.put("templateName", templateName);
         return result;
     }
 
+    /**
+     * 将逗号、分号或空白分隔的特效关键字解析为布尔开关 JSON。
+     *
+     * @param effectsStr 原始字符串，支持英文关键字及少量中文触发词（如「闪」「粗」）
+     * @return 含 glow、flash、shake、bold、italic 等字段的 JSONObject
+     * @throws Exception JSON 写入异常
+     */
     private JSONObject parseEffects(String effectsStr) throws Exception {
         JSONObject effects = new JSONObject();
         effects.put("glow", false);
@@ -279,6 +352,12 @@ public class LedBannerPlugin implements ModulePlugin {
         return effects;
     }
 
+    /**
+     * 将内部 mode 代码转为中文展示名。
+     *
+     * @param mode {@code scroll} / {@code fade} / {@code static} 等
+     * @return 中文模式名或原样返回
+     */
     private String getModeName(String mode) {
         switch (mode) {
             case "scroll": return "滚动";
@@ -288,6 +367,12 @@ public class LedBannerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 规范化十六进制颜色：补全 {@code #} 前缀并转大写。
+     *
+     * @param color 用户输入的颜色字符串
+     * @return 合法形式的 {@code #RRGGBB} 风格字符串；空则默认白字
+     */
     private String normalizeColor(String color) {
         if (color == null || color.trim().isEmpty()) return "#FFFFFF";
         color = color.trim();
@@ -295,14 +380,35 @@ public class LedBannerPlugin implements ModulePlugin {
         return color.toUpperCase(Locale.ROOT);
     }
 
+    /**
+     * 将整型限制在 [min, max] 闭区间内。
+     *
+     * @param value 待限制值
+     * @param min   下限
+     * @param max   上限
+     * @return 夹紧后的值
+     */
     private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * 空或空白参数转为 {@code "{}"}。
+     *
+     * @param value 原始 JSON 字符串
+     * @return 非空 JSON 对象字面量
+     */
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    /**
+     * 成功响应（不打开模块、无展示文案）。
+     *
+     * @param output 业务结果 JSON
+     * @return 包装后的响应字符串
+     * @throws Exception JSON 异常
+     */
     private String ok(JSONObject output) throws Exception {
         return new JSONObject()
                 .put("success", true)
@@ -310,6 +416,14 @@ public class LedBannerPlugin implements ModulePlugin {
                 .toString();
     }
 
+    /**
+     * 成功响应并请求宿主打开模块界面，同时可附带 {@code _displayText}。
+     *
+     * @param output      传给模块前端的配置 JSON（序列化在 {@code output} 字段内）
+     * @param displayText 可选用户可见摘要
+     * @return 完整响应 JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String okOpenModule(JSONObject output, String displayText) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
@@ -321,6 +435,13 @@ public class LedBannerPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 构造失败响应。
+     *
+     * @param message 错误说明
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject()
                 .put("success", false)

@@ -13,7 +13,7 @@ It plans, executes, and delivers — powered by <strong>any LLM</strong> and a g
   <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai">Submit a Module</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://github.com/Rorschach123/PandaGenieModules">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai/marketplace">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
   <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
   <a href="README_CN.md">&#x1F1E8;&#x1F1F3; 中文</a>
 </p>
@@ -124,8 +124,30 @@ Developer Mode allows loading DEV-only signed modules for testing.
 | &#x1F4CA; **File Stats** | Hash, compare, dir stats, duplicate finder | Java |
 | &#x23F0; **Reminder** | Calendar events, alarms, timers, birthday reminders | Java |
 | &#x1F50F; **Signature Checker** | Verify APK and module signatures | Java |
+| &#x1F4DD; **Text Tools** | Word count, encoding, hash, regex, diff | Java |
+| &#x1F4F1; **Device Info** | CPU, memory, storage, battery, sensors | Java |
+| &#x1F5BC;&#xFE0F; **Image Tools** | Resize, compress, rotate, metadata, convert | Java |
+| &#x1F4CB; **Clipboard** | Copy, paste, history, clear clipboard | Java |
+| &#x1F50B; **Battery** | Battery status, health, temperature, charging | Java |
+| &#x1F310; **Network Tools** | Ping, DNS lookup, port scan, speed test | Java |
+| &#x1F4C7; **Contacts** | Search, add, edit, delete contacts | Java |
+| &#x1F4D3; **Notes** | Create, edit, search, organize notes | Java |
+| &#x1F3B2; **Magic Dice** | Roll dice, random numbers, coin flip | Java |
+| &#x1F3AF; **Fortune** | Daily fortune, random quotes | Java |
+| &#x1F4A1; **LED Banner** | Scrolling text banner with landscape mode | H5 |
+| &#x1F9F9; **System Cleaner** | Scan and clean temp files, cache | Java |
+| &#x1F3A8; **Color Picker** | HEX/RGB/HSL conversion, palette generator | Java |
+| &#x1F4CF; **Unit Converter** | Length, weight, temperature, speed, data | Java |
+| &#x1F511; **Password Gen** | Secure password and passphrase generator | Java |
+| &#x1F4F7; **QR Code** | Generate and decode QR codes | H5+Java |
+| &#x1F40D; **Snake Game** | Classic Snake with difficulty settings | H5+Java |
+| &#x1FA86; **Tetris** | Classic Tetris with scoring | H5+Java |
+| &#x1F9E9; **Sudoku** | 9x9 Sudoku puzzle with hints | H5+Java |
+| &#x26AB; **Gomoku** | Five in a Row with AI opponent | H5+Java |
+| &#x274E; **Tic-Tac-Toe** | Classic Tic-Tac-Toe with AI | H5+Java |
+| &#x1F331; **Farming Game** | Plant, water, harvest simulation | H5+Java |
 
-> **Want more?** That's where **you** come in.
+> &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
 
 ---
 
@@ -195,15 +217,73 @@ public class MyPlugin implements ModulePlugin {
     public String invoke(Context ctx, String action, String params) throws Exception {
         JSONObject p = new JSONObject(params);
         if ("doSomething".equals(action)) {
+            JSONObject output = new JSONObject().put("result", "hello");
             return new JSONObject()
                 .put("success", true)
-                .put("output", "Done: " + p.optString("input"))
+                .put("output", output.toString())
+                .put("_displayText", "| Item | Value |\n|---|---|\n| Result | hello |")
                 .toString();
         }
         return new JSONObject().put("success", false).put("error", "Unknown action").toString();
     }
 }
 ```
+
+### Plugin Output Format
+
+Every `invoke()` call must return a JSON string with these fields:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `success` | boolean | Yes | Whether the operation succeeded |
+| `output` | string | Yes | Machine-readable result (JSON string for structured data) |
+| `error` | string | On failure | Human-readable error message |
+| `_displayText` | string | No | Rich formatted text for chat display (supports Markdown tables, links, bold) |
+| `_openModule` | boolean | No | If `true`, the app opens the module's HTML UI |
+
+**Rich Display Formats** — The `_displayText` field supports:
+
+- **Markdown tables** — `| Col1 | Col2 |\n|---|---|\n| val1 | val2 |` → rendered as Unicode box-drawing tables
+- **Bold** — `**text**` → rendered bold
+- **Links** — `[text](url)` or bare `https://...` → clickable
+- **Inline code** — `` `code` `` → monospace with accent color
+
+Example with table output:
+
+```java
+private String formatResult(JSONObject data) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("📊 Analysis Result\n\n");
+    sb.append("| Metric | Value |\n");
+    sb.append("|---|---|\n");
+    sb.append("| Files | ").append(data.optInt("count")).append(" |\n");
+    sb.append("| Total Size | ").append(data.optString("size")).append(" |\n");
+    return sb.toString();
+}
+```
+
+### The `.mod` File Format
+
+A `.mod` file is a signed ZIP archive with a specific structure:
+
+```
+my_module.mod (ZIP)
+├── manifest.json          # Module metadata, API definitions, permissions
+├── plugin.jar             # Compiled plugin (contains DEX bytecode)
+├── index.html             # Optional: module UI page
+├── common.css             # Optional: shared stylesheet
+├── META-INF/
+│   ├── MANIFEST.MF        # JAR manifest
+│   ├── DEV.SF / DEV.RSA   # Developer signature
+│   └── OFFICIAL.SF / ...  # Official signature (after review)
+└── libs/                  # Optional: native libraries
+    ├── arm64-v8a/
+    │   └── libmodule.so
+    └── armeabi-v7a/
+        └── libmodule.so
+```
+
+The `plugin.jar` inside the `.mod` contains DEX bytecode (not standard Java bytecode), produced by the Android `d8` tool. The pack script handles this conversion automatically.
 
 ### Build & Test Locally
 

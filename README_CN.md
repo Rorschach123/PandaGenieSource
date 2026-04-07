@@ -13,7 +13,7 @@
   <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
   <a href="#加入我们--欢迎所有开发者">加入我们</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai">提交模块</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://github.com/Rorschach123/PandaGenieModules">模块市场</a> &nbsp;&#x2022;&nbsp;
+  <a href="https://cf.pandagenie.ai/marketplace">模块市场</a> &nbsp;&#x2022;&nbsp;
   <a href="#创建你的模块">创建模块</a> &nbsp;&#x2022;&nbsp;
   <a href="README.md">&#x1F1EC;&#x1F1E7; English</a>
 </p>
@@ -124,8 +124,30 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F4CA; **文件统计** | 哈希计算、文件对比、目录统计、重复文件查找 | Java |
 | &#x23F0; **提醒助手** | 日历事件、闹钟、倒计时、生日提醒 | Java |
 | &#x1F50F; **签名校验** | 验证 APK 和模块签名信息 | Java |
+| &#x1F4DD; **文本工具** | 字数统计、编码转换、哈希、正则、文本对比 | Java |
+| &#x1F4F1; **设备信息** | CPU、内存、存储、电池、传感器信息 | Java |
+| &#x1F5BC;&#xFE0F; **图片工具** | 缩放、压缩、旋转、元数据、格式转换 | Java |
+| &#x1F4CB; **剪贴板** | 复制、粘贴、历史记录、清空剪贴板 | Java |
+| &#x1F50B; **电池管理** | 电池状态、健康度、温度、充电信息 | Java |
+| &#x1F310; **网络工具** | Ping、DNS查询、端口扫描、网速测试 | Java |
+| &#x1F4C7; **通讯录** | 搜索、添加、编辑、删除联系人 | Java |
+| &#x1F4D3; **备忘录** | 创建、编辑、搜索、整理笔记 | Java |
+| &#x1F3B2; **魔法骰子** | 掷骰子、随机数、抛硬币 | Java |
+| &#x1F3AF; **每日运势** | 每日运势、随机名言 | Java |
+| &#x1F4A1; **LED灯牌** | 滚动文字横幅，支持横屏播放 | H5 |
+| &#x1F9F9; **系统清理** | 扫描清理临时文件、缓存 | Java |
+| &#x1F3A8; **颜色工具** | HEX/RGB/HSL互转、调色板生成 | Java |
+| &#x1F4CF; **单位转换** | 长度、重量、温度、速度、数据单位 | Java |
+| &#x1F511; **密码生成** | 安全密码和助记短语生成器 | Java |
+| &#x1F4F7; **二维码** | 生成和识别二维码 | H5+Java |
+| &#x1F40D; **贪吃蛇** | 经典贪吃蛇，支持难度设置 | H5+Java |
+| &#x1FA86; **俄罗斯方块** | 经典俄罗斯方块 | H5+Java |
+| &#x1F9E9; **数独** | 9x9数独谜题，支持提示 | H5+Java |
+| &#x26AB; **五子棋** | 五子棋人机对弈 | H5+Java |
+| &#x274E; **井字棋** | 经典井字棋人机对弈 | H5+Java |
+| &#x1F331; **开心农场** | 种植、浇水、收获模拟经营 | H5+Java |
 
-> **想要更多模块？** 那就靠**你**了！
+> &#x1F4E6; **[在模块市场浏览所有模块](https://cf.pandagenie.ai/marketplace)** — 或在下方了解如何**创建你自己的模块**！
 
 ---
 
@@ -196,15 +218,73 @@ public class MyPlugin implements ModulePlugin {
     public String invoke(Context ctx, String action, String params) throws Exception {
         JSONObject p = new JSONObject(params);
         if ("doSomething".equals(action)) {
+            JSONObject output = new JSONObject().put("result", "hello");
             return new JSONObject()
                 .put("success", true)
-                .put("output", "完成: " + p.optString("input"))
+                .put("output", output.toString())
+                .put("_displayText", "| 项目 | 值 |\n|---|---|\n| 结果 | hello |")
                 .toString();
         }
         return new JSONObject().put("success", false).put("error", "Unknown action").toString();
     }
 }
 ```
+
+### 插件输出格式
+
+每次 `invoke()` 调用必须返回包含以下字段的 JSON 字符串：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `success` | boolean | 是 | 操作是否成功 |
+| `output` | string | 是 | 机器可读结果（结构化数据用 JSON 字符串） |
+| `error` | string | 失败时 | 人类可读的错误信息 |
+| `_displayText` | string | 否 | 聊天中展示的富文本（支持 Markdown 表格、链接、粗体） |
+| `_openModule` | boolean | 否 | 为 `true` 时 APP 会打开模块的 HTML 界面 |
+
+**富文本格式** — `_displayText` 字段支持：
+
+- **Markdown 表格** — `| 列1 | 列2 |\n|---|---|\n| 值1 | 值2 |` → 渲染为 Unicode 表格
+- **粗体** — `**文本**` → 加粗显示
+- **链接** — `[文本](url)` 或裸链接 `https://...` → 可点击
+- **行内代码** — `` `code` `` → 等宽字体高亮
+
+表格输出示例：
+
+```java
+private String formatResult(JSONObject data) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("📊 分析结果\n\n");
+    sb.append("| 指标 | 值 |\n");
+    sb.append("|---|---|\n");
+    sb.append("| 文件数 | ").append(data.optInt("count")).append(" |\n");
+    sb.append("| 总大小 | ").append(data.optString("size")).append(" |\n");
+    return sb.toString();
+}
+```
+
+### `.mod` 文件格式
+
+`.mod` 文件是一个签名的 ZIP 压缩包，结构如下：
+
+```
+my_module.mod (ZIP)
+├── manifest.json          # 模块元数据、API 定义、权限声明
+├── plugin.jar             # 编译后的插件（包含 DEX 字节码）
+├── index.html             # 可选：模块 UI 页面
+├── common.css             # 可选：共享样式表
+├── META-INF/
+│   ├── MANIFEST.MF        # JAR 清单
+│   ├── DEV.SF / DEV.RSA   # 开发者签名
+│   └── OFFICIAL.SF / ...  # 官方签名（审核通过后）
+└── libs/                  # 可选：原生库
+    ├── arm64-v8a/
+    │   └── libmodule.so
+    └── armeabi-v7a/
+        └── libmodule.so
+```
+
+`plugin.jar` 内部包含 DEX 字节码（非标准 Java 字节码），由 Android `d8` 工具转换生成。打包脚本会自动处理此转换。
 
 ### 本地构建与测试
 

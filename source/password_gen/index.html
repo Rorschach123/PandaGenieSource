@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title data-i18n="pageTitle">Password Generator</title>
+<link rel="stylesheet" href="common.css">
+<style>
+html[data-theme="dark"] {
+  --primary: #D0BCFF;
+  --primary-container: #4F378B;
+  --on-primary: #371E73;
+  --surface: #1C1B1F;
+  --surface-variant: #49454F;
+  --surface-container: #2B2930;
+  --on-surface: #E6E1E5;
+  --on-surface-variant: #CAC4D0;
+  --outline: #938F99;
+  --outline-variant: #49454F;
+  --error: #F2B8B5;
+  --error-container: #8C1D18;
+  --tertiary: #EFB8C8;
+  --tertiary-container: #633B48;
+}
+.theme-toggle {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 50;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--outline);
+  background: var(--surface-container, var(--surface-variant));
+  color: var(--on-surface);
+  font-size: 12px;
+  cursor: pointer;
+}
+.pg-header { text-align: center; padding: 20px 12px 14px; }
+.pg-header .icon { font-size: 48px; }
+.pg-header h2 { margin: 6px 0 0; font-size: 20px; }
+.pg-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+
+.slider-row { margin-bottom: 14px; }
+.slider-row label { display: block; font-size: 12px; color: var(--on-surface-variant); margin-bottom: 6px; }
+.slider-row input[type="range"] { width: 100%; }
+
+.toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-container, var(--surface-variant));
+  border: 1px solid var(--outline-variant, var(--outline));
+  font-size: 13px;
+}
+.toggle-item input { width: 40px; height: 22px; accent-color: var(--primary); cursor: pointer; }
+
+.gen-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6750A4, #7C4DFF);
+  color: #fff;
+  margin-bottom: 12px;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.gen-btn:active { transform: scale(0.98); opacity: 0.92; }
+
+.out-box {
+  background: var(--surface-container, var(--primary-container));
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 8px;
+  border: 1px solid var(--outline-variant, transparent);
+  word-break: break-all;
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  min-height: 52px;
+  position: relative;
+}
+.out-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn-copy {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-copy:active { opacity: 0.85; }
+
+.batch-list { max-height: 220px; overflow-y: auto; margin-top: 8px; }
+.batch-item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-container, var(--surface-variant));
+  margin-bottom: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.batch-item span { word-break: break-all; }
+
+.strength-meter-wrap { margin: 12px 0; }
+.strength-meter {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--surface-variant);
+  overflow: hidden;
+}
+.strength-meter-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.35s ease, background 0.35s;
+  width: 0%;
+}
+.strength-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.strength-score { font-weight: 700; color: var(--primary); }
+.check-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.check-list li {
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--outline-variant, var(--surface-variant));
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.check-list li:last-child { border-bottom: none; }
+
+.input-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--outline);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 14px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--on-surface);
+  color: var(--surface);
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-size: 13px;
+  opacity: 0;
+  transition: transform 0.25s, opacity 0.25s;
+  z-index: 100;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 0.95; }
+
+.card h3 { margin-top: 0; }
+</style>
+</head>
+<body>
+<button type="button" class="theme-toggle" id="themeToggle" data-i18n="themeToggle">Theme</button>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="gen" onclick="switchTab('gen')" data-i18n="tabGen">Generate</div>
+  <div class="tab" data-tab="batch" onclick="switchTab('batch')" data-i18n="tabBatch">Batch</div>
+  <div class="tab" data-tab="phrase" onclick="switchTab('phrase')" data-i18n="tabPhrase">Passphrase</div>
+  <div class="tab" data-tab="strength" onclick="switchTab('strength')" data-i18n="tabStrength">Strength</div>
+</div>
+
+<div id="tab-gen" class="tab-content active">
+  <div class="pg-header">
+    <div class="icon">🔐</div>
+    <h2 data-i18n="headerTitle">Password Generator</h2>
+    <p data-i18n="headerDesc">Secure random passwords with full control</p>
+  </div>
+  <div class="card">
+    <div class="slider-row">
+      <label><span data-i18n="labelLength">Length</span>: <strong id="lenVal">16</strong></label>
+      <input type="range" id="genLength" min="4" max="64" value="16" oninput="document.getElementById('lenVal').textContent=this.value">
+    </div>
+    <div class="toggle-grid">
+      <label class="toggle-item"><span data-i18n="optUpper">Uppercase</span><input type="checkbox" id="genUpper" checked></label>
+      <label class="toggle-item"><span data-i18n="optLower">Lowercase</span><input type="checkbox" id="genLower" checked></label>
+      <label class="toggle-item"><span data-i18n="optNum">Numbers</span><input type="checkbox" id="genNum" checked></label>
+      <label class="toggle-item"><span data-i18n="optSym">Symbols</span><input type="checkbox" id="genSym" checked></label>
+    </div>
+    <button type="button" class="gen-btn" onclick="doGenerate()" data-i18n="btnGenerate">Generate</button>
+    <div class="input-group">
+      <label data-i18n="labelOutput">Password</label>
+      <div class="out-box" id="genOut" data-i18n="placeholderPwd">Tap generate…</div>
+      <div class="out-actions">
+        <button type="button" class="btn-copy" onclick="copyText(lastGenPwd)" data-i18n="btnCopy">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-batch" class="tab-content">
+  <div class="pg-header">
+    <div class="icon">📋</div>
+    <h2 data-i18n="batchTitle">Batch</h2>
+    <p data-i18n="batchDesc">Generate several passwords at once</p>
+  </div>
+  <div class="card">
+    <div class="input-group">
+      <label data-i18n="labelCount">Count</label>
+      <select id="batchCount">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+      </select>
+    </div>
+    <div class="slider-row">
+      <label><span data-i18n="labelLength">Length</span>: <strong id="batchLenVal">16</strong></label>
+      <input type="range" id="batchLength" min="4" max="64" value="16" oninput="document.getElementById('batchLenVal').textContent=this.value">
+    </div>
+    <div class="toggle-grid">
+      <label class="toggle-item"><span data-i18n="optUpper">Uppercase</span><input type="checkbox" id="batUpper" checked></label>
+      <label class="toggle-item"><span data-i18n="optLower">Lowercase</span><input type="checkbox" id="batLower" checked></label>
+      <label class="toggle-item"><span data-i18n="optNum">Numbers</span><input type="checkbox" id="batNum" checked></label>
+      <label class="toggle-item"><span data-i18n="optSym">Symbols</span><input type="checkbox" id="batSym" checked></label>
+    </div>
+    <button type="button" class="gen-btn" onclick="doBatch()" data-i18n="btnGenBatch">Generate batch</button>
+    <div class="batch-list" id="batchList"></div>
+  </div>
+</div>
+
+<div id="tab-phrase" class="tab-content">
+  <div class="pg-header">
+    <div class="icon">💬</div>
+    <h2 data-i18n="phraseTitle">Passphrase</h2>
+    <p data-i18n="phraseDesc">Memorable words, strong length</p>
+  </div>
+  <div class="card">
+    <div class="input-group">
+      <label data-i18n="labelWords">Word count</label>
+      <select id="phraseWords">
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label data-i18n="labelSep">Separator</label>
+      <input type="text" id="phraseSep" value="-" maxlength="4">
+    </div>
+    <button type="button" class="gen-btn" onclick="doPhrase()" data-i18n="btnGenPhrase">Generate passphrase</button>
+    <div class="input-group">
+      <label data-i18n="labelOutput">Passphrase</label>
+      <div class="out-box" id="phraseOut" data-i18n="placeholderPhrase">…</div>
+      <div class="out-actions">
+        <button type="button" class="btn-copy" onclick="copyText(lastPhrase)" data-i18n="btnCopy">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-strength" class="tab-content">
+  <div class="pg-header">
+    <div class="icon">🔍</div>
+    <h2 data-i18n="strengthTitle">Strength check</h2>
+    <p data-i18n="strengthDesc">Score, rating, and tips</p>
+  </div>
+  <div class="card">
+    <div class="input-group">
+      <label data-i18n="labelPwdInput">Password</label>
+      <input type="text" id="strengthInput" autocomplete="off" oninput="debounceStrength()" placeholder="">
+    </div>
+    <div class="strength-meter-wrap">
+      <div class="strength-label-row">
+        <span id="strengthLabel" data-i18n="strengthIdle">Enter a password</span>
+        <span class="strength-score" id="strengthScore"></span>
+      </div>
+      <div class="strength-meter"><div class="strength-meter-fill" id="strengthFill"></div></div>
+    </div>
+    <ul class="check-list" id="strengthChecks"></ul>
+    <div id="strengthRec" style="font-size:13px;color:var(--on-surface-variant);margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+var _lang = 'en';
+var lastGenPwd = '';
+var lastPhrase = '';
+var strengthTimer = null;
+
+var i18n = {
+  zh: {
+    pageTitle: '密码生成器',
+    themeToggle: '主题',
+    tabGen: '生成',
+    tabBatch: '批量',
+    tabPhrase: '短语',
+    tabStrength: '强度',
+    headerTitle: '密码生成器',
+    headerDesc: '安全随机密码，参数可控',
+    labelLength: '长度',
+    optUpper: '大写 A-Z',
+    optLower: '小写 a-z',
+    optNum: '数字',
+    optSym: '符号',
+    btnGenerate: '生成密码',
+    labelOutput: '密码',
+    placeholderPwd: '点击生成…',
+    btnCopy: '复制',
+    batchTitle: '批量生成',
+    batchDesc: '一次生成多条密码',
+    labelCount: '数量',
+    btnGenBatch: '批量生成',
+    phraseTitle: '助记短语',
+    phraseDesc: '随机单词，易记且长',
+    labelWords: '单词数',
+    labelSep: '分隔符',
+    btnGenPhrase: '生成短语',
+    placeholderPhrase: '…',
+    strengthTitle: '强度检测',
+    strengthDesc: '分数、等级与建议',
+    labelPwdInput: '输入密码',
+    strengthIdle: '输入密码以分析',
+    toastCopied: '已复制',
+    toastFail: '复制失败',
+    errBridge: 'NativeBridge 不可用',
+    errCall: '调用失败'
+  },
+  en: {
+    pageTitle: 'Password Generator',
+    themeToggle: 'Theme',
+    tabGen: 'Generate',
+    tabBatch: 'Batch',
+    tabPhrase: 'Passphrase',
+    tabStrength: 'Strength',
+    headerTitle: 'Password Generator',
+    headerDesc: 'Secure random passwords with full control',
+    labelLength: 'Length',
+    optUpper: 'Uppercase A-Z',
+    optLower: 'Lowercase a-z',
+    optNum: 'Numbers',
+    optSym: 'Symbols',
+    btnGenerate: 'Generate',
+    labelOutput: 'Password',
+    placeholderPwd: 'Tap generate…',
+    btnCopy: 'Copy',
+    batchTitle: 'Batch',
+    batchDesc: 'Generate several passwords at once',
+    labelCount: 'Count',
+    btnGenBatch: 'Generate batch',
+    phraseTitle: 'Passphrase',
+    phraseDesc: 'Memorable words, strong length',
+    labelWords: 'Word count',
+    labelSep: 'Separator',
+    btnGenPhrase: 'Generate passphrase',
+    placeholderPhrase: '…',
+    strengthTitle: 'Strength check',
+    strengthDesc: 'Score, rating, and tips',
+    labelPwdInput: 'Password',
+    strengthIdle: 'Enter a password',
+    toastCopied: 'Copied',
+    toastFail: 'Copy failed',
+    errBridge: 'NativeBridge not available',
+    errCall: 'Call failed'
+  }
+};
+
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) {
+      if (el.tagName === 'INPUT' && el.getAttribute('placeholder') !== null) {
+        el.setAttribute('placeholder', t[k]);
+      } else {
+        el.textContent = t[k];
+      }
+    }
+  });
+  var si = document.getElementById('strengthInput');
+  if (si && !si.value) si.setAttribute('placeholder', t.labelPwdInput);
+}
+
+try {
+  _lang = NativeBridge.getLanguage().substring(0, 2);
+} catch (e) {
+  _lang = (navigator.language || 'en').substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+
+function T(k) {
+  var t = i18n[_lang] || i18n.en;
+  return t[k] || i18n.en[k] || k;
+}
+
+(function initTheme() {
+  var html = document.documentElement;
+  var pref = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  var saved = null;
+  try { saved = localStorage.getItem('pg_theme'); } catch (e) {}
+  html.setAttribute('data-theme', saved || pref);
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    try { localStorage.setItem('pg_theme', next); } catch (e) {}
+  });
+})();
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-bar .tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-tab') === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c) {
+    c.classList.remove('active');
+  });
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error(T('errBridge'));
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('errCall'));
+  return JSON.parse(res.output);
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 1800);
+}
+
+function copyText(text) {
+  if (!text) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast(T('toastCopied'));
+    }).catch(function() {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast(T('toastCopied'));
+  } catch (e) {
+    showToast(T('toastFail'));
+  }
+  document.body.removeChild(ta);
+}
+
+function doGenerate() {
+  try {
+    var len = parseInt(document.getElementById('genLength').value, 10);
+    var data = invokeNative('generate', {
+      length: len,
+      uppercase: document.getElementById('genUpper').checked,
+      lowercase: document.getElementById('genLower').checked,
+      numbers: document.getElementById('genNum').checked,
+      symbols: document.getElementById('genSym').checked
+    });
+    lastGenPwd = data.password || '';
+    document.getElementById('genOut').textContent = lastGenPwd;
+  } catch (e) {
+    document.getElementById('genOut').textContent = e.message || String(e);
+  }
+}
+
+function doBatch() {
+  var list = document.getElementById('batchList');
+  list.innerHTML = '';
+  try {
+    var n = parseInt(document.getElementById('batchCount').value, 10);
+    var len = parseInt(document.getElementById('batchLength').value, 10);
+    var data = invokeNative('generateMultiple', {
+      count: n,
+      length: len,
+      uppercase: document.getElementById('batUpper').checked,
+      lowercase: document.getElementById('batLower').checked,
+      numbers: document.getElementById('batNum').checked,
+      symbols: document.getElementById('batSym').checked
+    });
+    var arr = data.passwords || [];
+    arr.forEach(function(pwd, i) {
+      var row = document.createElement('div');
+      row.className = 'batch-item';
+      row.innerHTML = '<span>' + escapeHtml(pwd) + '</span><button type="button" class="btn-sm btn-outline" style="flex-shrink:0;padding:6px 10px;border-radius:8px;border:1px solid var(--outline);background:transparent;color:var(--primary);cursor:pointer">' + T('btnCopy') + '</button>';
+      row.querySelector('button').onclick = function() { copyText(pwd); };
+      list.appendChild(row);
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="empty">' + escapeHtml(e.message || String(e)) + '</div>';
+  }
+}
+
+function doPhrase() {
+  try {
+    var wc = parseInt(document.getElementById('phraseWords').value, 10);
+    var sep = document.getElementById('phraseSep').value;
+    var data = invokeNative('generatePassphrase', { wordCount: wc, separator: sep });
+    lastPhrase = data.passphrase || '';
+    document.getElementById('phraseOut').textContent = lastPhrase;
+  } catch (e) {
+    document.getElementById('phraseOut').textContent = e.message || String(e);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function debounceStrength() {
+  clearTimeout(strengthTimer);
+  strengthTimer = setTimeout(runStrength, 280);
+}
+
+function runStrength() {
+  var pwd = document.getElementById('strengthInput').value;
+  var labelEl = document.getElementById('strengthLabel');
+  var scoreEl = document.getElementById('strengthScore');
+  var fill = document.getElementById('strengthFill');
+  var checksEl = document.getElementById('strengthChecks');
+  var recEl = document.getElementById('strengthRec');
+  if (!pwd) {
+    labelEl.textContent = T('strengthIdle');
+    scoreEl.textContent = '';
+    fill.style.width = '0%';
+    checksEl.innerHTML = '';
+    recEl.innerHTML = '';
+    return;
+  }
+  try {
+    var data = invokeNative('checkStrength', { password: pwd });
+    var sc = data.score || 0;
+    labelEl.textContent = data.ratingLabel || data.rating || '';
+    scoreEl.textContent = sc + '/100';
+    fill.style.width = sc + '%';
+    var hue = sc < 40 ? 0 : sc < 75 ? 35 : 145;
+    fill.style.background = 'linear-gradient(90deg, hsl(' + hue + ',70%,45%), hsl(' + Math.min(hue + 20, 160) + ',75%,55%))';
+    var checks = data.checks || [];
+    checksEl.innerHTML = checks.map(function(c) {
+      var icon = c.pass ? '✅' : '⚠️';
+      return '<li>' + icon + ' <span>' + escapeHtml(c.message || '') + '</span></li>';
+    }).join('');
+    var rec = data.recommendations || [];
+    recEl.innerHTML = rec.length ? '<strong>' + (_lang === 'zh' ? '建议' : 'Tips') + '</strong><br>' + rec.map(function(r) {
+      return '• ' + escapeHtml(r);
+    }).join('<br>') : '';
+  } catch (e) {
+    labelEl.textContent = e.message || String(e);
+    scoreEl.textContent = '';
+    fill.style.width = '0%';
+  }
+}
+</script>
+</body>
+</html>

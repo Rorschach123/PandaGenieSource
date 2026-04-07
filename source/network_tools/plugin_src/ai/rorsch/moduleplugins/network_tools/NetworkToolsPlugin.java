@@ -26,20 +26,46 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * PandaGenie「网络工具」模块插件。
+ * <p>
+ * <b>模块用途：</b>在设备上执行常见网络诊断与信息查询：ping、DNS 解析、本机 IP 枚举、公网 IP 查询、
+ * 连通性能力检测以及当前网络类型与 Wi‑Fi 详情（在权限与系统允许范围内）。
+ * </p>
+ * <p>
+ * <b>对外 API（{@link #invoke} 的 {@code action}）：</b>
+ * </p>
+ * <ul>
+ *   <li>{@code ping} — 对 {@code host} 执行系统 ping（-c 4），返回标准输出/退出码/是否超时</li>
+ *   <li>{@code dnsLookup} — 解析域名到 IP 列表</li>
+ *   <li>{@code getLocalIp} — 枚举非回环、已启用的网卡 IPv4/IPv6</li>
+ *   <li>{@code getPublicIp} — 通过 ipify HTTP API 查询公网地址</li>
+ *   <li>{@code checkConnectivity} — {@link ConnectivityManager} 能力：是否计费、传输类型等</li>
+ *   <li>{@code getNetworkInfo} — 当前网络类型简况；Wi‑Fi 时附带 SSID、速率、频率等</li>
+ * </ul>
+ * <p>
+ * 由宿主 {@code ModuleRuntime} 反射加载；ping 依赖系统 {@code ping} 命令，主机名经 {@link #SAFE_HOST} 白名单校验。
+ * </p>
+ */
 public class NetworkToolsPlugin implements ModulePlugin {
 
+    /** ping 子进程最长等待秒数（超时则强制结束）。 */
     private static final int PING_TIMEOUT_SEC = 20;
+    /** 查询公网 IP 的 HTTP 连接/读取超时。 */
     private static final int PUBLIC_IP_TIMEOUT_MS = 5000;
+    /** 允许的 ping 目标字符集（防命令注入的简单校验）。 */
     private static final Pattern SAFE_HOST = Pattern.compile("^[a-zA-Z0-9.:\\-_]+$");
-    private static final String DISPLAY_DIVIDER = "━━━━━━━━━━━━━━";
-    private static final Pattern PING_RTT_AVG =
-            Pattern.compile("rtt\\s+min/avg/max/(?:mdev|stddev)\\s*=\\s*[\\d.]+/([\\d.]+)/[\\d.]+/[\\d.]+\\s*ms");
-    private static final Pattern PING_TIME_MS = Pattern.compile("time=([\\d.]+)\\s*ms");
-    private static final Pattern PING_TIME_LT = Pattern.compile("time<([\\d.]+)\\s*ms");
-
+    /**
+     * 模块入口：需要 {@link Context} 的 action 会传入用于获取系统服务。
+     *
+     * @param context    用于 {@code checkConnectivity}、{@code getNetworkInfo} 等
+     * @param action     操作名
+     * @param paramsJson JSON 参数（如 ping 的 host、dns 的 domain）
+     * @return 统一包装的成功/失败 JSON，多数成功结果带 {@code _displayText} 摘要
+     * @throws Exception 构造响应时可能抛出
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
@@ -78,6 +104,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 执行 {@code ping -c 4 host}，异步排空标准输出/错误，并在超时后销毁进程。
+     *
+     * @param host 主机名或 IP，须通过 {@link #SAFE_HOST}
+     * @return 含 stdout、stderr、exitCode、timedOut 等的 JSON 字符串
+     * @throws Exception 参数非法或线程中断等
+     */
     private static String ping(String host) throws Exception {
         if (TextUtils.isEmpty(host)) {
             throw new IllegalArgumentException("host is required");
@@ -88,6 +121,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
         Process process = Runtime.getRuntime().exec(new String[]{"ping", "-c", "4", host});
         StringBuilder stdout = new StringBuilder();
         StringBuilder stderr = new StringBuilder();
+        // 子进程输出必须在主线程 waitFor 同时被读取，避免缓冲区满导致死锁
         Thread drainOut = new Thread(() -> drainStream(process.getInputStream(), stdout));
         Thread drainErr = new Thread(() -> drainStream(process.getErrorStream(), stderr));
         drainOut.setDaemon(true);
@@ -127,7 +161,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
     }
 
     /**
-     * Poll until process exits or timeoutMs elapses. Returns true if exited normally.
+     * 轮询子进程直至退出或超出 {@code timeoutMs}；用于 API 26 以下无 {@code Process#waitFor(long, TimeUnit)} 的情况。
+     *
+     * @param process   子进程
+     * @param timeoutMs 最长等待毫秒数
+     * @return 若在时限内已退出则为 true，否则 false
+     * @throws InterruptedException 当前线程被中断
      */
     private static boolean waitForProcess(Process process, long timeoutMs) throws InterruptedException {
         long deadline = System.currentTimeMillis() + timeoutMs;
@@ -142,6 +181,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return false;
     }
 
+    /**
+     * 将输入流按行读入 StringBuilder（UTF-8）；流关闭时结束。
+     *
+     * @param in   进程输出流
+     * @param sink 聚合缓冲区
+     */
     private static void drainStream(InputStream in, StringBuilder sink) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
             String line;
@@ -153,6 +198,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 使用系统 DNS 将域名解析为所有 {@link InetAddress}。
+     *
+     * @param domain 域名
+     * @return JSON：domain、addresses 数组
+     * @throws Exception 域名为空或解析失败
+     */
     private static String dnsLookup(String domain) throws Exception {
         if (TextUtils.isEmpty(domain)) {
             throw new IllegalArgumentException("domain is required");
@@ -168,6 +220,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return o.toString();
     }
 
+    /**
+     * 遍历 {@link NetworkInterface}，收集已启用且非回环的 IPv4 与 IPv6 地址字符串。
+     *
+     * @return JSON：ipv4、ipv6 两个数组
+     * @throws Exception 枚举接口时异常
+     */
     private static String getLocalIp() throws Exception {
         JSONArray ipv4 = new JSONArray();
         JSONArray ipv6 = new JSONArray();
@@ -181,7 +239,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
         ArrayList<NetworkInterface> list = Collections.list(en);
         for (NetworkInterface nif : list) {
             if (!nif.isUp() || nif.isLoopback()) {
-                continue;
+                continue; // 跳过未启用与环回接口
             }
             Enumeration<InetAddress> addrs = nif.getInetAddresses();
             while (addrs.hasMoreElements()) {
@@ -206,6 +264,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return o.toString();
     }
 
+    /**
+     * 请求 {@code https://api.ipify.org?format=json} 获取公网 IPv4（或服务端返回的 IP 字符串）。
+     *
+     * @return JSON：httpStatus、body、成功时 ip 字段
+     * @throws Exception 网络或解析异常
+     */
     private static String getPublicIp() throws Exception {
         URL url = new URL("https://api.ipify.org?format=json");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -233,6 +297,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return o.toString();
     }
 
+    /**
+     * 将流完整读为单个字符串（按行拼接，无换行保留）。
+     *
+     * @param in 输入流，可为 null
+     * @return 文本内容
+     * @throws Exception IO 异常
+     */
     private static String readFully(InputStream in) throws Exception {
         if (in == null) {
             return "";
@@ -247,6 +318,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 查询当前活动网络的 {@link NetworkCapabilities}：是否有 INTERNET、是否已验证、是否计费、传输类型列表等。
+     *
+     * @param context 用于获取 {@link ConnectivityManager}
+     * @return 描述连通能力与传输介质的 JSON 字符串
+     * @throws Exception 获取服务失败等
+     */
     private static String checkConnectivity(Context context) throws Exception {
         ConnectivityManager cm =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -269,6 +347,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
         o.put("hasInternetCapability", nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET));
         o.put("validated", nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED));
+        // 未声明 NOT_METERED 则视为可能按流量计费
         o.put("metered", !nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED));
         JSONArray transports = new JSONArray();
         if (nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
@@ -298,6 +377,14 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return o.toString();
     }
 
+    /**
+     * 返回简化的网络类型（wifi/mobile/ethernet/vpn/none）及是否认为已连接；
+     * 在 Wi‑Fi 下尝试补充 SSID、BSSID、协商速率、频段等（受系统隐私策略影响可能为空）。
+     *
+     * @param context Android 上下文
+     * @return JSON 字符串
+     * @throws Exception 获取 Wi‑Fi 信息失败等
+     */
     private static String getNetworkInfo(Context context) throws Exception {
         ConnectivityManager cm =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -354,6 +441,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return o.toString();
     }
 
+    /**
+     * 处理 {@link WifiInfo#getSSID()} 返回值：去掉引号并隐藏 unknown 占位。
+     *
+     * @param raw 系统返回的 SSID 字符串
+     * @return 可读 SSID 或空串
+     */
     private static String safeSsid(String raw) {
         if (raw == null || "<unknown ssid>".equalsIgnoreCase(raw) || "\"<unknown ssid>\"".equals(raw)) {
             return "";
@@ -364,86 +457,100 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return raw;
     }
 
+    /**
+     * 规范空 JSON 参数。
+     *
+     * @param v 原始字符串
+     * @return {@code "{}"} 或原值
+     */
     private static String emptyJson(String v) {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    /**
+     * 从 ping 的 JSON 输出提取延迟与可达性，生成简短展示文案。
+     *
+     * @param outputJson {@link #ping} 返回的字符串
+     * @return 展示文本；解析失败返回空串
+     */
     private static String formatPingDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
-            String host = o.optString("host", "—");
-            boolean timedOut = o.optBoolean("timedOut", false);
-            int exit = o.optInt("exitCode", Integer.MIN_VALUE);
-            boolean reachable = !timedOut && exit == 0;
-            String timeVal = parsePingTimeMs(o.optString("stdout", ""));
-            String timeLine = timeVal.isEmpty()
-                    ? "▸ Time: —"
-                    : "▸ Time: " + timeVal + " ms";
-            return "🏓 Ping Results\n" + DISPLAY_DIVIDER + "\n▸ Host: " + host + "\n"
-                    + timeLine + "\n▸ Reachable: " + (reachable ? "✅" : "❌");
+            String stdout = o.optString("stdout", "");
+            return "🏓 Ping Results\n\n" + stdout;
         } catch (Exception ignored) {
             return "";
         }
     }
 
-    private static String parsePingTimeMs(String stdout) {
-        if (stdout == null || stdout.isEmpty()) {
-            return "";
-        }
-        Matcher m = PING_RTT_AVG.matcher(stdout);
-        if (m.find()) {
-            return m.group(1);
-        }
-        m = PING_TIME_MS.matcher(stdout);
-        if (m.find()) {
-            return m.group(1);
-        }
-        m = PING_TIME_LT.matcher(stdout);
-        if (m.find()) {
-            return "<" + m.group(1);
-        }
-        return "";
-    }
-
+    /**
+     * DNS 结果的用户可读摘要。
+     *
+     * @param outputJson {@link #dnsLookup} 输出
+     * @return 展示字符串
+     */
     private static String formatDnsLookupDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
             String host = o.optString("domain", "—");
             JSONArray arr = o.optJSONArray("addresses");
-            String ips = "—";
+            StringBuilder sb = new StringBuilder();
+            sb.append("🌐 DNS Lookup\n\n");
+            sb.append("| Domain | Address |\n");
+            sb.append("|---|---|\n");
             if (arr != null && arr.length() > 0) {
-                StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < arr.length(); i++) {
-                    if (i > 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(arr.optString(i, ""));
+                    sb.append("| ").append(host).append(" | ").append(arr.optString(i, "—")).append(" |\n");
                 }
-                ips = sb.toString();
+            } else {
+                sb.append("| ").append(host).append(" | — |\n");
             }
-            return "🌐 DNS Lookup\n" + DISPLAY_DIVIDER + "\n▸ Host: " + host + "\n▸ IP: " + ips;
+            return sb.toString();
         } catch (Exception ignored) {
             return "";
         }
     }
 
+    /**
+     * 展示本机首个 IPv4，若无则首个 IPv6。
+     *
+     * @param outputJson {@link #getLocalIp} 输出
+     * @return 单行展示
+     */
     private static String formatLocalIpDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
+            StringBuilder sb = new StringBuilder();
+            sb.append("📡 Local IP\n\n");
+            sb.append("| Family | Address |\n");
+            sb.append("|---|---|\n");
             JSONArray v4 = o.optJSONArray("ipv4");
-            if (v4 != null && v4.length() > 0) {
-                return "📡 Local IP: " + v4.optString(0, "—");
+            if (v4 != null) {
+                for (int i = 0; i < v4.length(); i++) {
+                    sb.append("| IPv4 | ").append(v4.optString(i, "—")).append(" |\n");
+                }
             }
             JSONArray v6 = o.optJSONArray("ipv6");
-            if (v6 != null && v6.length() > 0) {
-                return "📡 Local IP: " + v6.optString(0, "—");
+            if (v6 != null) {
+                for (int i = 0; i < v6.length(); i++) {
+                    sb.append("| IPv6 | ").append(v6.optString(i, "—")).append(" |\n");
+                }
             }
-            return "📡 Local IP: —";
+            if ((v4 == null || v4.length() == 0) && (v6 == null || v6.length() == 0)) {
+                sb.append("| — | — |\n");
+            }
+            return sb.toString();
         } catch (Exception ignored) {
             return "";
         }
     }
 
+    /**
+     * 展示公网 IP 或占位符。
+     *
+     * @param outputJson {@link #getPublicIp} 输出
+     * @return 单行展示
+     */
     private static String formatPublicIpDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
@@ -451,28 +558,53 @@ public class NetworkToolsPlugin implements ModulePlugin {
             if (ip.isEmpty()) {
                 ip = "—";
             }
-            return "🌍 Public IP: " + ip;
+            StringBuilder sb = new StringBuilder();
+            sb.append("🌍 Public IP\n\n");
+            sb.append("| Item | Value |\n");
+            sb.append("|---|---|\n");
+            sb.append("| IP | ").append(ip).append(" |\n");
+            sb.append("| HTTP status | ").append(o.optInt("httpStatus", 0)).append(" |\n");
+            return sb.toString();
         } catch (Exception ignored) {
             return "";
         }
     }
 
+    /**
+     * 将 {@link #checkConnectivity} 结果格式化为连接状态与传输类型。
+     *
+     * @param outputJson JSON 字符串
+     * @return 多行展示
+     */
     private static String formatConnectivityDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
+            StringBuilder sb = new StringBuilder();
+            sb.append("📶 Network Status\n\n");
+            sb.append("| Item | Value |\n");
+            sb.append("|---|---|\n");
             if (!o.optBoolean("hasConnectivityService", false)) {
-                return "📶 Network Status\n" + DISPLAY_DIVIDER + "\n▸ Connected: ❌\n▸ Type: —";
+                sb.append("| Connected | ❌ |\n");
+                sb.append("| Type | — |\n");
+                return sb.toString();
             }
             boolean active = o.optBoolean("activeNetwork", false);
             JSONArray transports = o.optJSONArray("transports");
             String typeStr = transportsToFriendly(transports);
-            return "📶 Network Status\n" + DISPLAY_DIVIDER + "\n▸ Connected: "
-                    + (active ? "✅" : "❌") + "\n▸ Type: " + (active ? typeStr : "—");
+            sb.append("| Connected | ").append(active ? "✅" : "❌").append(" |\n");
+            sb.append("| Type | ").append(active ? typeStr : "—").append(" |\n");
+            return sb.toString();
         } catch (Exception ignored) {
             return "";
         }
     }
 
+    /**
+     * 将 transports 数组拼成友好文案（如 WiFi/Mobile）。
+     *
+     * @param transports JSON 字符串数组
+     * @return 用 {@code /} 连接的标签
+     */
     private static String transportsToFriendly(JSONArray transports) {
         if (transports == null || transports.length() == 0) {
             return "—";
@@ -487,6 +619,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    /**
+     * 单个传输类型 token 的显示名映射。
+     *
+     * @param t 内部 token，如 wifi、cellular
+     * @return 展示名
+     */
     private static String transportTokenToDisplay(String t) {
         if (t == null || t.isEmpty()) {
             return "—";
@@ -511,26 +649,35 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 格式化 {@link #getNetworkInfo} 的输出为类型、SSID、连接状态、链路速率等。
+     *
+     * @param outputJson JSON 字符串
+     * @return 多行展示
+     */
     private static String formatNetworkInfoDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
             String rawType = o.optString("networkType", "unknown");
             String typeLine = networkTypeToDisplay(rawType);
             StringBuilder sb = new StringBuilder();
-            sb.append("📶 Network Info\n").append(DISPLAY_DIVIDER).append("\n▸ Type: ").append(typeLine);
+            sb.append("📶 Network Info\n\n");
+            sb.append("| Item | Value |\n");
+            sb.append("|---|---|\n");
+            sb.append("| Type | ").append(typeLine).append(" |\n");
             if ("wifi".equals(rawType)) {
                 String ssid = o.optString("wifiSsid", "");
-                sb.append("\n▸ SSID: ").append(ssid.isEmpty() ? "—" : ssid);
+                sb.append("| SSID | ").append(ssid.isEmpty() ? "—" : ssid).append(" |\n");
             }
-            sb.append("\n▸ Connected: ").append(o.optBoolean("connected", false) ? "✅" : "❌");
+            sb.append("| Connected | ").append(o.optBoolean("connected", false) ? "✅" : "❌").append(" |\n");
             if ("wifi".equals(rawType)) {
                 int link = o.optInt("linkSpeedMbps", -1);
                 if (link >= 0) {
-                    sb.append("\n▸ Link speed: ").append(link).append(" Mbps");
+                    sb.append("| Link speed | ").append(link).append(" Mbps |\n");
                 }
                 int freq = o.optInt("frequencyMhz", 0);
                 if (freq > 0) {
-                    sb.append("\n▸ Frequency: ").append(freq).append(" MHz");
+                    sb.append("| Frequency | ").append(freq).append(" MHz |\n");
                 }
             }
             return sb.toString();
@@ -539,6 +686,12 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 网络类型代码到展示文案。
+     *
+     * @param type 如 wifi、mobile、none
+     * @return 展示标签
+     */
     private static String networkTypeToDisplay(String type) {
         if (type == null || type.isEmpty()) {
             return "—";
@@ -563,6 +716,14 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 成功响应包装。
+     *
+     * @param output      业务 JSON 字符串
+     * @param displayText 可选 {@code _displayText}
+     * @return 完整响应
+     * @throws Exception JSON 异常
+     */
     private static String ok(String output, String displayText) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
@@ -571,10 +732,24 @@ public class NetworkToolsPlugin implements ModulePlugin {
         return r.toString();
     }
 
+    /**
+     * 成功响应，不含展示文案。
+     *
+     * @param output 业务输出
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private static String ok(String output) throws Exception {
         return ok(output, null);
     }
 
+    /**
+     * 失败响应。
+     *
+     * @param msg 错误信息
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private static String error(String msg) throws Exception {
         return new JSONObject().put("success", false).put("error", msg).toString();
     }

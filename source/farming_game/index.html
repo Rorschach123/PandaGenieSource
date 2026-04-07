@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>种菜游戏</title>
+<link rel="stylesheet" href="common.css">
+<script>
+var _lang = (window.NativeBridge && NativeBridge.getLanguage()) || 'zh';
+var isEn = _lang.startsWith('en');
+function t(zhText, enText) { return isEn ? enText : zhText; }
+var cropNameEn = {
+  '番茄': 'Tomato', '胡萝卜': 'Carrot', '白菜': 'Cabbage', '玉米': 'Corn', '西瓜': 'Watermelon', '草莓': 'Strawberry'
+};
+function localizeCropName(name) {
+  if (!name) return name;
+  return isEn ? (cropNameEn[name] || name) : name;
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.title = t('种菜游戏', 'Farming Game');
+  var el;
+  if ((el = document.getElementById('headerTitle'))) el.textContent = t('种菜游戏', 'Farming Game');
+  if ((el = document.getElementById('menuDesc'))) el.textContent = t('种植蔬菜水果，享受田园生活', 'Grow vegetables and fruits, enjoy farm life');
+  if ((el = document.getElementById('btnContinue'))) el.textContent = t('继续游戏', 'Continue');
+  if ((el = document.getElementById('btnNewGame'))) el.textContent = t('新游戏', 'New Game');
+  if ((el = document.getElementById('tabFarm'))) el.textContent = '🌾 ' + t('农场', 'Farm');
+  if ((el = document.getElementById('tabHistory'))) el.textContent = '📋 ' + t('记录', 'History');
+  if ((el = document.getElementById('harvestPrefix'))) el.textContent = t('收获', 'Harvests') + ': ';
+  if ((el = document.getElementById('harvestSuffix'))) el.textContent = t(' 次', '');
+  if ((el = document.getElementById('actionTitle'))) el.textContent = t('选择地块进行操作', 'Select a plot');
+  if ((el = document.getElementById('seedPanelTitle'))) el.textContent = t('选择种子', 'Choose seed');
+  if ((el = document.getElementById('btnSave'))) el.textContent = '💾 ' + t('保存', 'Save');
+  if ((el = document.getElementById('btnExit'))) el.textContent = t('退出', 'Exit');
+});
+</script>
+<style>
+.game-header { text-align: center; padding: 16px 0 12px; }
+.game-header .icon { font-size: 48px; }
+.game-header h2 { margin: 6px 0 0; font-size: 20px; }
+.info-bar {
+  display: flex; justify-content: center; gap: 16px;
+  padding: 8px; margin-bottom: 10px; font-size: 13px;
+}
+.info-bar span { font-weight: 600; color: var(--primary); }
+.plots-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px; margin-bottom: 14px;
+}
+.plot-card {
+  background: var(--surface-variant); border-radius: 14px;
+  padding: 14px; position: relative; min-height: 120px;
+  transition: all 0.2s; cursor: pointer;
+}
+.plot-card.selected { border: 2px solid var(--primary); }
+.plot-card.empty { border: 2px dashed var(--outline); background: var(--surface); }
+.plot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.plot-index { font-size: 11px; color: var(--on-surface-variant); }
+.crop-emoji { font-size: 32px; text-align: center; margin: 8px 0; }
+.crop-name { text-align: center; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.progress-bar {
+  height: 6px; background: var(--outline); border-radius: 3px;
+  margin-bottom: 6px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: #4CAF50; border-radius: 3px; transition: width 0.3s; }
+.status-icons { display: flex; gap: 8px; font-size: 12px; justify-content: center; }
+.mature-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: #4CAF50; color: #fff; font-size: 11px;
+  padding: 2px 8px; border-radius: 8px;
+}
+.empty-text { text-align: center; color: var(--on-surface-variant); font-size: 13px; margin-top: 20px; }
+.action-panel {
+  background: var(--surface-variant); border-radius: 14px;
+  padding: 14px; margin-bottom: 14px;
+}
+.action-panel h3 { font-size: 14px; margin-bottom: 10px; }
+.action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.action-btn {
+  padding: 8px 14px; border: none; border-radius: 12px;
+  font-size: 13px; cursor: pointer; transition: all 0.15s;
+  background: var(--primary); color: var(--on-primary);
+  user-select: none;
+}
+.action-btn:active { opacity: 0.8; transform: scale(0.95); }
+.action-btn.secondary { background: var(--surface); color: var(--primary); border: 1px solid var(--outline); }
+.seed-panel {
+  background: var(--primary-container); border-radius: 14px;
+  padding: 14px; margin-bottom: 14px;
+}
+.seed-panel h3 { font-size: 14px; margin-bottom: 10px; color: var(--primary); }
+.seed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seed-item {
+  text-align: center; padding: 10px 6px; border-radius: 10px;
+  cursor: pointer; transition: all 0.15s; user-select: none;
+  background: var(--surface); border: 1px solid transparent;
+}
+.seed-item:active { border-color: var(--primary); }
+.seed-item .emoji { font-size: 24px; }
+.seed-item .name { font-size: 12px; margin-top: 4px; }
+.msg-toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--on-surface); color: var(--surface);
+  padding: 10px 20px; border-radius: 20px; font-size: 14px;
+  z-index: 100; transition: opacity 0.3s; opacity: 0;
+  pointer-events: none;
+}
+.msg-toast.show { opacity: 1; }
+.tab-bar { display: flex; margin-bottom: 14px; }
+.tab-bar .tab {
+  flex: 1; text-align: center; padding: 10px; cursor: pointer;
+  font-size: 14px; color: var(--on-surface-variant);
+  border-bottom: 2px solid transparent;
+}
+.tab-bar .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+.history-list { max-height: 300px; overflow-y: auto; }
+.history-item { font-size: 13px; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="game-header">
+  <div class="icon">🌾</div>
+  <h2 id="headerTitle">种菜游戏</h2>
+</div>
+
+<div id="menuScreen">
+  <div class="card" style="text-align:center">
+    <p id="menuDesc" style="margin-bottom:14px">种植蔬菜水果，享受田园生活</p>
+    <button id="btnContinue" class="btn btn-primary" style="margin-bottom:8px" onclick="enterGame()">继续游戏</button>
+    <br>
+    <button id="btnNewGame" class="btn btn-outline" onclick="newGame()">新游戏</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <div class="tab-bar">
+    <div id="tabFarm" class="tab active" onclick="switchTab('farm')">🌾 农场</div>
+    <div id="tabHistory" class="tab" onclick="switchTab('history')">📋 记录</div>
+  </div>
+
+  <div id="farmTab">
+    <div class="info-bar">
+      <div><span id="harvestPrefix">收获: </span><span id="harvestCount">0</span><span id="harvestSuffix"> 次</span></div>
+    </div>
+
+    <div class="plots-grid" id="plotsGrid"></div>
+
+    <div class="action-panel" id="actionPanel">
+      <h3 id="actionTitle">选择地块进行操作</h3>
+      <div class="action-btns" id="actionBtns"></div>
+    </div>
+
+    <div class="seed-panel hidden" id="seedPanel">
+      <h3 id="seedPanelTitle">选择种子</h3>
+      <div class="seed-grid" id="seedGrid"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:10px">
+      <button id="btnSave" class="btn btn-outline btn-sm" onclick="saveGame()">💾 保存</button>
+      <button id="btnExit" class="btn btn-outline btn-sm" style="margin-left:8px" onclick="backToMenu()">退出</button>
+    </div>
+  </div>
+
+  <div id="historyTab" class="hidden">
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<div class="msg-toast" id="msgToast"></div>
+
+<script>
+var selectedPlot = -1;
+var currentState = null;
+var seeds = [
+  {type:'tomato',name:'番茄',emoji:'🍅'},
+  {type:'carrot',name:'胡萝卜',emoji:'🥕'},
+  {type:'cabbage',name:'白菜',emoji:'🥬'},
+  {type:'corn',name:'玉米',emoji:'🌽'},
+  {type:'watermelon',name:'西瓜',emoji:'🍉'},
+  {type:'strawberry',name:'草莓',emoji:'🍓'}
+];
+var growEmojis = ['🌱','🌿','☘️','🪴','🌳','🌸','🌾'];
+
+function callPlugin(a,p){
+  if(window.NativeBridge) return JSON.parse(NativeBridge.invoke(a,JSON.stringify(p||{})));
+  return null;
+}
+
+function newGame(){
+  var r = callPlugin('startGame',{});
+  if(r&&r.success){showScreen('gameScreen');updateDisplay(JSON.parse(r.output));}
+}
+
+function enterGame(){
+  var r = callPlugin('enterGame',{});
+  if(r&&r.success){showScreen('gameScreen');updateDisplay(JSON.parse(r.output));}
+}
+
+function updateDisplay(s){
+  currentState = s;
+  document.getElementById('harvestCount').textContent = s.totalHarvests;
+  var hp = document.getElementById('harvestPrefix');
+  var hs = document.getElementById('harvestSuffix');
+  if (hp) hp.textContent = t('收获', 'Harvests') + ': ';
+  if (hs) hs.textContent = t(' 次', '');
+
+  var grid = document.getElementById('plotsGrid');
+  grid.innerHTML = '';
+  var plots = s.plots;
+
+  for(var i=0;i<plots.length;i++){
+    var p = plots[i];
+    var card = document.createElement('div');
+    card.className = 'plot-card' + (p.empty?' empty':'') + (i===selectedPlot?' selected':'');
+    card.dataset.index = i;
+    card.addEventListener('click', function(){ selectPlot(parseInt(this.dataset.index)); });
+
+    var html = '<div class="plot-header"><span class="plot-index">' + t('地块', 'Plot') + ' '+i+'</span></div>';
+    if(p.empty){
+      html += '<div class="empty-text">' + t('空地', 'Empty') + '<br>' + t('点击种植', 'Tap to plant') + '</div>';
+    } else {
+      var stage = p.currentStage||0;
+      var maxStage = p.maxStages||4;
+      var emoji = p.mature ? p.cropEmoji : (stage<growEmojis.length?growEmojis[stage]:'🌾');
+      html += '<div class="crop-emoji">'+emoji+'</div>';
+      html += '<div class="crop-name">'+localizeCropName(p.cropName)+'</div>';
+      var pct = Math.min(100, (stage/maxStage)*100);
+      html += '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>';
+      html += '<div class="status-icons">💧'+p.waterLevel+' 🧪'+p.fertilizerLevel+' 🌿'+(p.weedLevel>0?p.weedLevel:'0')+'</div>';
+      if(p.mature) html += '<div class="mature-badge">' + t('可收获', 'Ready') + '</div>';
+    }
+    card.innerHTML = html;
+    grid.appendChild(card);
+  }
+
+  updateActions();
+}
+
+function selectPlot(idx){
+  selectedPlot = idx;
+  updateDisplay(currentState);
+}
+
+function updateActions(){
+  var title = document.getElementById('actionTitle');
+  var btns = document.getElementById('actionBtns');
+  var seedPanel = document.getElementById('seedPanel');
+  var seedTitle = document.getElementById('seedPanelTitle');
+  btns.innerHTML = '';
+  seedPanel.classList.add('hidden');
+  if (seedTitle) seedTitle.textContent = t('选择种子', 'Choose seed');
+
+  if(selectedPlot < 0){
+    title.textContent = t('选择地块进行操作', 'Select a plot');
+    return;
+  }
+
+  var p = currentState.plots[selectedPlot];
+  title.textContent = t('地块', 'Plot') + ' '+selectedPlot+' ' + t('操作', 'actions');
+
+  if(p.empty){
+    seedPanel.classList.remove('hidden');
+    var seedGrid = document.getElementById('seedGrid');
+    seedGrid.innerHTML = '';
+    for(var i=0;i<seeds.length;i++){
+      var sd = seeds[i];
+      var item = document.createElement('div');
+      item.className = 'seed-item';
+      item.dataset.type = sd.type;
+      item.innerHTML = '<div class="emoji">'+sd.emoji+'</div><div class="name">'+t(sd.name, cropNameEn[sd.name] || sd.name)+'</div>';
+      item.addEventListener('click', function(){ doPlant(this.dataset.type); });
+      seedGrid.appendChild(item);
+    }
+  } else {
+    addBtn('💧 ' + t('浇水', 'Water'), function(){ doAction('water'); });
+    addBtn('🧪 ' + t('施肥', 'Fertilize'), function(){ doAction('fertilize'); });
+    addBtn('🌿 ' + t('除草', 'Weed'), function(){ doAction('weed'); });
+    if(p.mature) addBtn('🎁 ' + t('收获', 'Harvest'), function(){ doAction('harvest'); });
+  }
+
+  function addBtn(text, fn){
+    var b = document.createElement('button');
+    b.className = 'action-btn';
+    b.textContent = text;
+    b.addEventListener('click', fn);
+    btns.appendChild(b);
+  }
+}
+
+function doPlant(type){
+  var r = callPlugin('plant',{plotIndex:selectedPlot,seedType:type});
+  if(r&&r.success){
+    updateDisplay(JSON.parse(r.output));
+    showMsg(t('种植成功！', 'Planted!'));
+  } else if(r) showMsg(r.error);
+}
+
+function doAction(action){
+  var r = callPlugin(action,{plotIndex:selectedPlot});
+  if(r&&r.success){
+    var st = JSON.parse(r.output);
+    if(st.message) showMsg(st.message);
+    updateDisplay(st);
+  } else if(r) showMsg(r.error);
+}
+
+function saveGame(){
+  var r = callPlugin('saveGame',{});
+  if(r&&r.success) showMsg(t('保存成功！', 'Saved!'));
+}
+
+function switchTab(tab){
+  var tabs = document.querySelectorAll('.tab-bar .tab');
+  tabs.forEach(function(tEl, i){
+    tEl.classList.toggle('active', (i===0&&tab==='farm')||(i===1&&tab==='history'));
+    if (i === 0) tEl.textContent = '🌾 ' + t('农场', 'Farm');
+    if (i === 1) tEl.textContent = '📋 ' + t('记录', 'History');
+  });
+  document.getElementById('farmTab').classList.toggle('hidden', tab!=='farm');
+  document.getElementById('historyTab').classList.toggle('hidden', tab!=='history');
+  if(tab==='history') loadHistory();
+}
+
+function loadHistory(){
+  var r = callPlugin('getHarvestHistory',{});
+  var list = document.getElementById('historyList');
+  if(r&&r.success){
+    var st = JSON.parse(r.output);
+    var h = st.harvestHistory;
+    if(!h||h.length===0){
+      list.innerHTML = '<div class="empty">' + t('暂无收获记录', 'No harvest records yet') + '</div>';
+    } else {
+      var html = '';
+      for(var i=h.length-1;i>=0;i--){
+        var item = h[i];
+        html += '<div class="history-item">'+item.cropEmoji+' '+localizeCropName(item.cropName)+' x'+item.yield+' ['+item.quality+']</div>';
+      }
+      list.innerHTML = html;
+    }
+  }
+}
+
+function showMsg(msg){
+  var toast = document.getElementById('msgToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function(){ toast.classList.remove('show'); }, 2000);
+}
+
+function backToMenu(){
+  saveGame();
+  showScreen('menuScreen');
+}
+
+function showScreen(id){
+  ['menuScreen','gameScreen'].forEach(function(s){
+    document.getElementById(s).classList.toggle('hidden',s!==id);
+  });
+}
+
+setInterval(function(){
+  if(!document.getElementById('gameScreen').classList.contains('hidden')){
+    var r = callPlugin('getState',{});
+    if(r&&r.success) updateDisplay(JSON.parse(r.output));
+  }
+}, 30000);
+</script>
+</body>
+</html>

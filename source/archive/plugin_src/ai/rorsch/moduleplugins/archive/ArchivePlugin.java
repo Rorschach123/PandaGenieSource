@@ -8,14 +8,41 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.Locale;
 
+/**
+ * 压缩与解压模块插件：对 ZIP、TAR、TAR.GZ、GZ 等格式进行打包、解包及列出归档内容。
+ * <p>
+ * <b>模块用途：</b>在沙箱/模块运行时中提供文件归档相关能力，底层通过 {@link ArchiveLib} 调用 Native 实现。
+ * </p>
+ * <p>
+ * <b>提供的 API（{@code action}）：</b>
+ * {@code decompressZip}、{@code decompressTar}、{@code decompressTarGz}、{@code decompressGz}、
+ * {@code compressZip}、{@code compressTar}、{@code compressTarGz}、{@code compressGz}、{@code listContents}。
+ * 参数与路径均通过 {@code paramsJson} 传递（如 {@code archivePath}/{@code path}、{@code outputDir}、{@code password} 等）。
+ * </p>
+ * <p>
+ * <b>加载方式：</b>由 {@code ModuleRuntime} 通过反射加载本类并实现 {@link ModulePlugin} 后调用 {@link #invoke}。
+ * </p>
+ */
 public class ArchivePlugin implements ModulePlugin {
+    /** 原生归档库封装，执行实际的压缩/解压/列举逻辑 */
     private final ArchiveLib lib = new ArchiveLib();
 
+    /**
+     * 根据 {@code action} 分发到对应的压缩或解压操作。
+     *
+     * @param context    Android 上下文（本模块主要使用文件路径，部分场景保留接口一致性）
+     * @param action     操作名，见类说明中的 API 列表
+     * @param paramsJson JSON 参数字符串；空则按 {@code {}} 解析
+     * @return JSON 字符串：通常含 {@code success}、{@code output}，失败时含 {@code error}；成功时可能含 {@code _displayText}
+     * @throws Exception JSON 解析或序列化等异常
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
+        // 将参数解析为 JSONObject，空字符串视为空对象避免解析异常
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "decompressZip": {
+                // 解压 ZIP：支持可选密码
                 String outDir = params.optString("outputDir", "");
                 boolean ok = lib.decompressZip(
                         params.optString("archivePath", params.optString("path", "")),
@@ -25,6 +52,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "decompressZip", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressTar": {
+                // 解压纯 TAR 归档到指定目录
                 String outDir = params.optString("outputDir", "");
                 boolean ok = lib.decompressTar(
                         params.optString("archivePath", params.optString("path", "")),
@@ -33,6 +61,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "decompressTar", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressTarGz": {
+                // 解压 .tar.gz / .tgz 到目录
                 String outDir = params.optString("outputDir", "");
                 boolean ok = lib.decompressTarGz(
                         params.optString("archivePath", params.optString("path", "")),
@@ -41,6 +70,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "decompressTarGz", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressGz": {
+                // 解压单个 .gz 流为单个输出文件
                 String outPath = params.optString("outputPath", "");
                 boolean ok = lib.decompressGz(
                         params.optString("archivePath", params.optString("path", "")),
@@ -49,6 +79,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null);
             }
             case "compressZip": {
+                // 将多个输入路径打包为 ZIP，可选密码
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
                 String output = params.optString("outputPath", params.optString("output", ""));
                 String pwd = params.optString("password", "");
@@ -59,6 +90,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null);
             }
             case "compressTar": {
+                // 打包为未压缩的 TAR
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
                 String output = params.optString("outputPath", params.optString("output", ""));
                 String preCheck = validateCompressArgs(inputs, output);
@@ -68,6 +100,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null);
             }
             case "compressTarGz": {
+                // 打包为 gzip 压缩的 TAR（.tar.gz）
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
                 String output = params.optString("outputPath", params.optString("output", ""));
                 String preCheck = validateCompressArgs(inputs, output);
@@ -77,6 +110,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null);
             }
             case "compressGz": {
+                // 将单个文件 gzip 压缩为输出路径
                 String input = params.optString("inputPath", params.optString("input", ""));
                 String output = params.optString("outputPath", params.optString("output", ""));
                 if (input.isEmpty()) return error("inputPath is empty");
@@ -87,6 +121,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null);
             }
             case "listContents": {
+                // 列出归档内文件条目，返回原始 JSON 字符串并由展示格式化
                 String raw = lib.listContents(params.optString("archivePath", params.optString("path", "")));
                 return ok(raw, formatListContentsDisplay(raw));
             }
@@ -95,21 +130,40 @@ public class ArchivePlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 校验压缩操作的输入文件列表与输出路径是否合法。
+     *
+     * @param inputs 待打包的本地文件路径数组
+     * @param output 输出归档文件路径
+     * @return 若校验失败返回英文错误说明字符串；全部通过返回 {@code null}
+     */
     private String validateCompressArgs(String[] inputs, String output) {
         if (inputs.length == 0) return "inputPaths is empty";
         if (output.isEmpty()) return "outputPath is empty";
         for (String p : inputs) {
+            // 每个待打包路径必须存在且可读，避免原生层出现难排查错误
             if (!new File(p).exists()) return "File not found: " + p;
             if (!new File(p).canRead()) return "Cannot read file: " + p;
         }
         return null;
     }
 
+    /**
+     * 确保输出文件父目录存在，不存在则递归创建。
+     *
+     * @param path 文件完整路径（将取其父目录）
+     */
     private void ensureParentDir(String path) {
         File parent = new File(path).getParentFile();
         if (parent != null && !parent.exists()) parent.mkdirs();
     }
 
+    /**
+     * 将逗号分隔的路径字符串拆分为去首尾空格的数组。
+     *
+     * @param raw 多个路径，英文逗号分隔；null 或空白视为无路径
+     * @return 路径片段数组；无有效内容时返回长度为 0 的数组
+     */
     private String[] splitPaths(String raw) {
         if (raw == null || raw.trim().isEmpty()) return new String[0];
         String[] parts = raw.split(",");
@@ -119,22 +173,53 @@ public class ArchivePlugin implements ModulePlugin {
         return parts;
     }
 
+    /**
+     * 将 null 或空白参数字符串规范为 JSON 空对象字面量，便于 {@link JSONObject} 构造。
+     *
+     * @param value 调用方传入的 paramsJson
+     * @return 非空则原样返回，否则返回 {@code "{}"}
+     */
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    /** 列表类展示时最多展示的条目数，超出部分以省略提示 */
     private static final int DISPLAY_LIST_MAX = 20;
 
+    /**
+     * 构造仅含成功标志与输出字段的 JSON（无展示文案）。
+     *
+     * @param output 放入 {@code output} 字段的字符串
+     * @return JSON 字符串
+     * @throws Exception JSON 构造异常
+     */
     private String ok(String output) throws Exception {
         return ok(output, null);
     }
 
+    /**
+     * 构造成功响应 JSON，可选附带界面展示用 {@code _displayText}。
+     *
+     * @param output       业务输出字符串
+     * @param displayText  可选的人类可读摘要；null 或空则不写入
+     * @return JSON 字符串
+     * @throws Exception JSON 构造异常
+     */
     private String ok(String output, String displayText) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) j.put("_displayText", displayText);
         return j.toString();
     }
 
+    /**
+     * 根据布尔结果构造 JSON：成功时可带展示文案，失败时写入原生层失败提示。
+     *
+     * @param value               原生调用是否成功
+     * @param action              当前操作名，用于失败时的错误信息前缀
+     * @param successDisplayText  成功时的展示文案；失败时忽略
+     * @return JSON 字符串，含 {@code success} 与 {@code output}（布尔字符串形式）
+     * @throws Exception JSON 构造异常
+     */
     private String boolResult(boolean value, String action, String successDisplayText) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
         if (!value) {
@@ -145,6 +230,13 @@ public class ArchivePlugin implements ModulePlugin {
         return json.toString();
     }
 
+    /**
+     * 统计解压结果路径下的文件数量（目录递归或单文件）。
+     *
+     * @param root              解压输出根路径（目录或文件）
+     * @param singleOutputFile  是否为“单文件输出”（如 gzip 解压）
+     * @return 识别到的文件个数
+     */
     private static int countExtractedFiles(File root, boolean singleOutputFile) {
         if (singleOutputFile) {
             return root.exists() && root.isFile() ? 1 : 0;
@@ -152,6 +244,12 @@ public class ArchivePlugin implements ModulePlugin {
         return countFilesUnderDir(root);
     }
 
+    /**
+     * 递归统计目录下所有文件（不含目录本身）数量。
+     *
+     * @param dir 目录
+     * @return 文件总数；目录无效时返回 0
+     */
     private static int countFilesUnderDir(File dir) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return 0;
         int n = 0;
@@ -164,11 +262,24 @@ public class ArchivePlugin implements ModulePlugin {
         return n;
     }
 
+    /**
+     * 格式化解压成功的界面展示文案。
+     *
+     * @param outputPath 输出目录或输出文件路径
+     * @param singleFile 是否为单文件输出模式
+     * @return 多行文本，含提取文件数与路径
+     */
     private static String formatDecompressDisplay(String outputPath, boolean singleFile) {
         int n = countExtractedFiles(new File(outputPath), singleFile);
         return "📦 Extracted\n━━━━━━━━━━━━━━\n▸ Files: " + n + " extracted\n▸ Output: " + outputPath;
     }
 
+    /**
+     * 格式化压缩成功的界面展示文案（含输出路径与人类可读大小）。
+     *
+     * @param outputPath 生成的归档文件路径
+     * @return 多行展示文本
+     */
     private static String formatCompressDisplay(String outputPath) {
         long len = new File(outputPath).length();
         double mb = len / (1024.0 * 1024.0);
@@ -178,6 +289,12 @@ public class ArchivePlugin implements ModulePlugin {
         return "📦 Compressed\n━━━━━━━━━━━━━━\n▸ Output: " + outputPath + "\n▸ Size: " + sizeStr;
     }
 
+    /**
+     * 将 {@code listContents} 返回的 JSON 数组解析为人类可读的归档内容列表（截断展示）。
+     *
+     * @param rawJson 原生层返回的 JSON 数组字符串
+     * @return 格式化后的展示文本；解析失败时返回简短标题
+     */
     private static String formatListContentsDisplay(String rawJson) {
         try {
             JSONArray arr = new JSONArray(rawJson);
@@ -197,6 +314,13 @@ public class ArchivePlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 构造标准失败响应 JSON。
+     *
+     * @param message 错误说明
+     * @return 含 {@code success:false} 与 {@code error} 的 JSON 字符串
+     * @throws Exception JSON 构造异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }

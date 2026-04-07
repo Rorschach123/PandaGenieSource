@@ -22,11 +22,36 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.Enumeration;
 
+/**
+ * PandaGenie 签名检查模块插件。
+ * <p>
+ * <b>模块用途：</b>校验宿主 APK 的签名信息（指纹、主题、颁发者）；校验外部存储 {@code PandaGenie/modules} 下 {@code .mod} 模块包
+ * 的 JAR 条目签名是否与内置「官方证书」一致，并汇总开发者证书指纹等元数据（读取 {@code manifest.json}）。
+ * </p>
+ * <p>
+ * <b>对外 API：</b>{@code verifyApk}（当前应用签名）、{@code verifyModule}（按 {@code moduleId} 查单个模块）、
+ * {@code verifyAllModules}（目录内全部 {@code .mod}）、{@code verifyAll}（APK + 全部模块）。
+ * 返回 JSON 字符串嵌套于标准 {@code success/output/_displayText} 响应中。
+ * </p>
+ * <p>
+ * 实现 {@link ModulePlugin}，由 {@code ModuleRuntime} 反射加载；官方公钥 PEM 位于 assets 路径 {@code module_signing/official_cert.pem}。
+ * </p>
+ */
 public class SignatureCheckerPlugin implements ModulePlugin {
 
+    /** Assets 中内置的官方 X.509 证书（PEM），用于判断模块是否由官方链签署。 */
     private static final String APK_CERT_ASSET = "module_signing/official_cert.pem";
+    /** 外部存储上存放已下载模块包的相对目录名（相对 {@link Environment#getExternalStorageDirectory()}）。 */
     private static final String MODULES_DIR = "PandaGenie/modules";
 
+    /**
+     * 按 {@code action} 执行 APK/模块签名相关校验。
+     *
+     * @param context    用于 {@link PackageManager}、assets 与外部存储路径
+     * @param action     {@code verifyApk|verifyModule|verifyAllModules|verifyAll}
+     * @param paramsJson {@code verifyModule} 时需 {@code moduleId}；其它动作可为 {@code {}}
+     * @return 标准成功/失败 JSON
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
@@ -56,10 +81,24 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将空参数规范化为 {@code "{}"}。
+     *
+     * @param value {@code paramsJson}
+     * @return 非空原样，否则空对象字面量
+     */
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    /**
+     * 在模块目录中按 {@code moduleId} 匹配单个 {@code .mod} 文件并校验其签名与清单。
+     * <p>匹配规则：manifest 的 {@code id}、文件名（忽略大小写）、或 {@code moduleId-} 前缀。</p>
+     *
+     * @param context 上下文
+     * @param params  JSON：{@code moduleId} 必填
+     * @return 单模块结果对象（含 {@code verified}、{@code error}、指纹等）
+     */
     private JSONObject verifySingleModule(Context context, JSONObject params) throws Exception {
         String moduleId = params.optString("moduleId", "").trim();
         if (moduleId.isEmpty()) {
@@ -90,6 +129,7 @@ public class SignatureCheckerPlugin implements ModulePlugin {
             JSONObject manifest = readManifestFromMod(modFile);
             String id = manifest != null ? manifest.optString("id", "") : "";
             String fileName = modFile.getName();
+            // 兼容：清单 id、完整文件名、或「id-版本」形式文件名
             boolean match = moduleId.equals(id)
                     || moduleId.equalsIgnoreCase(fileName)
                     || fileName.toLowerCase().startsWith(moduleId.toLowerCase() + "-");
@@ -122,6 +162,12 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return r;
     }
 
+    /**
+     * 组合校验：当前 APK 签名 + 模块目录内全部模块。
+     *
+     * @param context 上下文
+     * @return JSON：{@code apk} 对象与 {@code modules} 数组
+     */
     private JSONObject verifyAll(Context context) throws Exception {
         JSONObject result = new JSONObject();
         result.put("apk", verifyApkSignature(context));
@@ -129,9 +175,16 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 读取当前包第一个 {@link Signature}，解析为 {@link X509Certificate} 并输出 SHA-256 指纹等字段。
+     *
+     * @param context 上下文
+     * @return {@code verified=true} 时含 {@code fingerprint}、{@code subject}、{@code issuer}；失败时 {@code verified=false} 与 {@code error}
+     */
     private JSONObject verifyApkSignature(Context context) throws Exception {
         JSONObject apkResult = new JSONObject();
         try {
+            // GET_SIGNATURES：兼容旧 API；取 signatures[0] 作为应用签名证书
             PackageInfo pkgInfo = context.getPackageManager().getPackageInfo(
                     context.getPackageName(), PackageManager.GET_SIGNATURES);
 
@@ -163,6 +216,12 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return apkResult;
     }
 
+    /**
+     * 遍历模块目录下每个 {@code .mod}，读取清单并校验 JAR 签名。
+     *
+     * @param context 上下文
+     * @return 每个文件对应一个 JSON 对象的数组（顺序为目录枚举顺序）
+     */
     private JSONArray verifyAllModules(Context context) throws Exception {
         JSONArray results = new JSONArray();
 
@@ -215,9 +274,18 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return results;
     }
 
+    /**
+     * 以 {@link JarFile#JarFile(File, boolean)} 开启校验模式，逐条读取非 META-INF 条目以触发签名验证；
+     * 收集每条目证书指纹，判断是否与 {@code trustedCert} 匹配（{@code isOfficial}），并记录开发者证书指纹。
+     *
+     * @param modFile    模块包文件
+     * @param trustedCert 官方可信证书；可为 null（上层已处理），此处仍防御性判断
+     * @param modResult  输出写入此 JSON（会被修改）
+     */
     private void verifyModSignature(File modFile, X509Certificate trustedCert, JSONObject modResult) throws Exception {
         JarFile jarFile = null;
         try {
+            // true：读取条目时校验 manifest 中记录的摘要与签名
             jarFile = new JarFile(modFile, true);
             Enumeration<JarEntry> entries = jarFile.entries();
             byte[] buffer = new byte[8192];
@@ -230,6 +298,7 @@ public class SignatureCheckerPlugin implements ModulePlugin {
                 if (entry.getName().startsWith("META-INF/")) continue;
 
                 InputStream is = jarFile.getInputStream(entry);
+                // 必须读完流，JAR 校验才会在该条目上完成摘要验证
                 while (is.read(buffer) != -1) { }
                 is.close();
 
@@ -304,6 +373,12 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 从 assets 加载 PEM，去掉头尾行后 Base64 解码并生成 {@link X509Certificate}。
+     *
+     * @param context 上下文
+     * @return 成功返回证书；任一步失败返回 null
+     */
     private X509Certificate loadTrustedCert(Context context) {
         try {
             InputStream is = context.getAssets().open(APK_CERT_ASSET);
@@ -326,6 +401,12 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 从模块 JAR/ZIP 中读取 {@code manifest.json} 并解析为 {@link JSONObject}。
+     *
+     * @param modFile 模块文件
+     * @return 解析成功返回对象；无条目或解析失败返回 null
+     */
     private JSONObject readManifestFromMod(File modFile) {
         JarFile jarFile = null;
         try {
@@ -344,7 +425,7 @@ public class SignatureCheckerPlugin implements ModulePlugin {
             is.close();
 
             String text = sb.toString();
-            if (text.startsWith("\uFEFF")) text = text.substring(1);
+            if (text.startsWith("\uFEFF")) text = text.substring(1); // 去 BOM
             return new JSONObject(text);
         } catch (Exception e) {
             return null;
@@ -355,6 +436,12 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 计算证书 DER 编码字节的 SHA-256，格式为十六进制大写、冒号分隔（类似 keytool）。
+     *
+     * @param data 原始字节（通常为 {@code X509Certificate#getEncoded()}）
+     * @return 指纹字符串
+     */
     private String sha256Fingerprint(byte[] data) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] digest = md.digest(data);
@@ -366,23 +453,74 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    /**
+     * 格式化 APK 校验结果供 {@code _displayText} 展示。
+     *
+     * @param apk {@link #verifyApkSignature} 的返回对象
+     * @return 简短多行文本
+     */
+    private static String mdCell(String s) {
+        if (s == null) return "";
+        return s.replace("\r", "").replace("\n", " ").replace("|", "\\|");
+    }
+
     private String formatVerifyApkDisplay(JSONObject apk) {
         boolean v = apk.optBoolean("verified", false);
         String status = v ? "✅ Valid" : "❌ Invalid";
-        String signer = v ? apk.optString("subject", "") : apk.optString("error", "");
-        if (signer.isEmpty()) signer = v ? apk.optString("fingerprint", "") : "";
-        return "🔐 APK Signature\n━━━━━━━━━━━━━━\n▸ Status: " + status + "\n▸ Signer: " + signer;
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 APK Signature\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("| --- | --- |\n");
+        sb.append("| Status | ").append(mdCell(status)).append(" |\n");
+        if (v) {
+            sb.append("| Package | ").append(mdCell(apk.optString("packageName", ""))).append(" |\n");
+            sb.append("| Fingerprint | ").append(mdCell(apk.optString("fingerprint", ""))).append(" |\n");
+            sb.append("| Subject | ").append(mdCell(apk.optString("subject", ""))).append(" |\n");
+            sb.append("| Issuer | ").append(mdCell(apk.optString("issuer", ""))).append(" |\n");
+        } else {
+            sb.append("| Error | ").append(mdCell(apk.optString("error", ""))).append(" |\n");
+        }
+        return sb.toString().trim();
     }
 
+    /**
+     * 格式化单模块校验摘要。
+     *
+     * @param mod {@link #verifySingleModule} 返回对象
+     */
     private String formatVerifyModuleDisplay(JSONObject mod) {
         String moduleName = mod.optString("name", "");
         if (moduleName.isEmpty()) moduleName = mod.optString("id", mod.optString("file", ""));
         boolean v = mod.optBoolean("verified", false);
         String status = v ? "✅ Valid" : "❌ Invalid";
-        return "🔐 Module Signature\n━━━━━━━━━━━━━━\n▸ Module: " + moduleName + "\n▸ Status: " + status;
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 Module Signature\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("| --- | --- |\n");
+        sb.append("| Module | ").append(mdCell(moduleName)).append(" |\n");
+        sb.append("| File | ").append(mdCell(mod.optString("file", ""))).append(" |\n");
+        sb.append("| ID | ").append(mdCell(mod.optString("id", ""))).append(" |\n");
+        sb.append("| Version | ").append(mdCell(mod.optString("version", ""))).append(" |\n");
+        sb.append("| Status | ").append(mdCell(status)).append(" |\n");
+        if (v) {
+            sb.append("| Official | ").append(mdCell(String.valueOf(mod.optBoolean("isOfficial", false)))).append(" |\n");
+            sb.append("| Signer count | ").append(mod.optInt("signerCount", 0)).append(" |\n");
+            sb.append("| Official fingerprint | ").append(mdCell(mod.optString("officialFingerprint", ""))).append(" |\n");
+            sb.append("| Official subject | ").append(mdCell(mod.optString("officialSubject", ""))).append(" |\n");
+            sb.append("| Dev fingerprint | ").append(mdCell(mod.optString("devFingerprint", ""))).append(" |\n");
+            sb.append("| Dev subject | ").append(mdCell(mod.optString("devSubject", ""))).append(" |\n");
+        } else {
+            sb.append("| Error | ").append(mdCell(mod.optString("error", ""))).append(" |\n");
+        }
+        return sb.toString().trim();
     }
 
-    private String formatVerifyAllModulesDisplay(JSONArray results) {
+    /**
+     * 统计模块数组中通过/失败数量并生成一行摘要。
+     *
+     * @param results {@link #verifyAllModules} 的返回值
+     */
+    private static void appendModulesSummaryAndTable(StringBuilder sb, JSONArray results) {
         int valid = 0;
         int invalid = 0;
         for (int i = 0; i < results.length(); i++) {
@@ -390,25 +528,76 @@ public class SignatureCheckerPlugin implements ModulePlugin {
             if (o != null && o.optBoolean("verified", false)) valid++;
             else invalid++;
         }
-        return "🔐 All Modules Verified\n━━━━━━━━━━━━━━\n✅ " + valid + " valid / ❌ " + invalid + " invalid";
+        sb.append("✅ ").append(valid).append(" valid / ❌ ").append(invalid).append(" invalid\n\n");
+        sb.append("| Module | File | Status | Details |\n");
+        sb.append("| --- | --- | --- | --- |\n");
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject o = results.optJSONObject(i);
+            if (o == null) continue;
+            String name = o.optString("name", "");
+            if (name.isEmpty()) name = o.optString("id", o.optString("file", "?"));
+            boolean v = o.optBoolean("verified", false);
+            String st = v ? "✅ Valid" : "❌ Invalid";
+            String details;
+            if (v) {
+                details = o.optBoolean("isOfficial", false) ? "Official" : "Verified";
+            } else {
+                details = o.optString("error", "—");
+            }
+            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(o.optString("file", "")))
+                    .append(" | ").append(mdCell(st)).append(" | ").append(mdCell(details)).append(" |\n");
+        }
     }
 
+    private String formatVerifyAllModulesDisplay(JSONArray results) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 All Modules Verified\n");
+        appendModulesSummaryAndTable(sb, results);
+        return sb.toString().trim();
+    }
+
+    /**
+     * {@code verifyAll} 的展示：复用模块列表统计逻辑。
+     *
+     * @param all {@link #verifyAll} 返回对象
+     */
     private String formatVerifyAllDisplay(JSONObject all) {
         JSONArray modules = all.optJSONArray("modules");
-        if (modules != null) return formatVerifyAllModulesDisplay(modules);
-        return "🔐 All Modules Verified\n━━━━━━━━━━━━━━\n✅ 0 valid / ❌ 0 invalid";
+        if (modules != null) {
+            return formatVerifyAllModulesDisplay(modules);
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("🔐 All Modules Verified\n");
+        appendModulesSummaryAndTable(sb, new JSONArray());
+        return sb.toString().trim();
     }
 
+    /**
+     * 成功响应（无展示文案）。
+     *
+     * @param output 业务 JSON 字符串
+     */
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
     }
 
+    /**
+     * 成功响应并附带 {@code _displayText}。
+     *
+     * @param output      业务 JSON 字符串
+     * @param displayText 界面展示用短文本
+     */
     private String ok(String output, String displayText) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
         return r.toString();
     }
 
+    /**
+     * 顶层错误响应。
+     *
+     * @param message 错误描述
+     */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }

@@ -1,0 +1,105 @@
+{
+  "id": "farming_game",
+  "name": "种菜游戏",
+  "name_en": "Farming Game",
+  "description": "种菜模拟游戏，选择种子种植，浇水、施肥、除草帮助植物生长，收获结果可保存记录，支持定时任务，只有一个存档",
+  "description_en": "Farming simulation game. Plant seeds, water, fertilize and weed to help plants grow. Save harvest records. Supports scheduled tasks. Single save slot",
+  "version": "1.1",
+  "icon": "eco",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.farming_game.FarmingPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {"name": "android.permission.MANAGE_EXTERNAL_STORAGE", "desc": "用于保存游戏进度和收获记录", "desc_en": "Save game progress and harvest records"}
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "startGame",
+      "desc": "开始新的种菜游戏（如已有存档将被覆盖），初始化空田地",
+      "desc_en": "Start a new farming game (overwrites existing save). Initialize empty farm plots",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "enterGame",
+      "desc": "进入已有的种菜游戏（加载存档），如无存档则自动创建新游戏",
+      "desc_en": "Enter existing farming game (load save). Auto-creates new game if no save exists",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "plant",
+      "desc": "在指定地块种植作物，可选种子类型：tomato/carrot/cabbage/corn/watermelon/strawberry",
+      "desc_en": "Plant a crop on the specified plot. Seed types: tomato/carrot/cabbage/corn/watermelon/strawberry",
+      "params": ["plotIndex", "seedType"],
+      "paramDesc": ["地块编号 0-5", "种子类型"],
+      "paramDesc_en": ["Plot index 0-5", "Seed type"]
+    },
+    {
+      "name": "water",
+      "desc": "给指定地块浇水，促进植物生长",
+      "desc_en": "Water the specified plot to promote growth",
+      "params": ["plotIndex"],
+      "paramDesc": ["地块编号 0-5"],
+      "paramDesc_en": ["Plot index 0-5"]
+    },
+    {
+      "name": "fertilize",
+      "desc": "给指定地块施肥，加速植物生长",
+      "desc_en": "Fertilize the specified plot to accelerate growth",
+      "params": ["plotIndex"],
+      "paramDesc": ["地块编号 0-5"],
+      "paramDesc_en": ["Plot index 0-5"]
+    },
+    {
+      "name": "weed",
+      "desc": "给指定地块除草，防止杂草影响植物生长",
+      "desc_en": "Weed the specified plot to prevent weeds from affecting growth",
+      "params": ["plotIndex"],
+      "paramDesc": ["地块编号 0-5"],
+      "paramDesc_en": ["Plot index 0-5"]
+    },
+    {
+      "name": "harvest",
+      "desc": "收获指定地块的成熟作物，记录到收获历史",
+      "desc_en": "Harvest mature crop from the specified plot. Records to harvest history",
+      "params": ["plotIndex"],
+      "paramDesc": ["地块编号 0-5"],
+      "paramDesc_en": ["Plot index 0-5"]
+    },
+    {
+      "name": "getState",
+      "desc": "获取当前游戏状态，包括所有地块、作物状态、收获记录等",
+      "desc_en": "Get current game state including all plots, crop status, harvest records",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getHarvestHistory",
+      "desc": "查看收获历史记录",
+      "desc_en": "View harvest history records",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "saveGame",
+      "desc": "手动保存当前游戏进度",
+      "desc_en": "Manually save current game progress",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

@@ -9,8 +9,23 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * PandaGenie「运势」娱乐模块插件。
+ * <p>
+ * <b>模块用途：</b>基于公历日期与可选姓名生成<strong>确定性伪随机</strong>的每日运势文案（吉凶等级、吉语、宜忌、幸运数字/颜色），
+ * 并提供公历到农历（1900–2100 年范围）的换算，仅供互动展示，无占卜或预测科学依据。
+ * </p>
+ * <p>
+ * <b>对外 API（{@code action}）：</b>{@code getDailyFortune}（今日运势）、{@code getFortuneByDate}（指定日）、
+ * {@code getLunarDate}（农历信息）、{@code getFortuneLevel}（按等级查询词库）。
+ * </p>
+ * <p>
+ * 实现 {@link ModulePlugin}，由 {@code ModuleRuntime} 反射实例化并调用 {@link #invoke}。
+ * </p>
+ */
 public class FortunePlugin implements ModulePlugin {
 
+    /** 七个等级的中文名称，与 {@link #FORTUNE_WORDS} 等数组下标一一对应（1-based level 时需减 1） */
     private static final String[] LEVEL_NAMES_ZH = {"大吉", "吉", "中吉", "小吉", "末吉", "凶", "大凶"};
     private static final String[] LEVEL_NAMES_EN = {"Great Luck", "Good Luck", "Medium Luck", "Small Luck", "End Luck", "Bad Luck", "Terrible Luck"};
     private static final String[] LEVEL_SYMBOLS = {"☀", "🌤", "⛅", "🌥", "☁", "🌧", "⛈"};
@@ -63,6 +78,10 @@ public class FortunePlugin implements ModulePlugin {
                                                         "一", "二", "三", "四", "五", "六", "七", "八", "九", ""};
 
     private static final int[] LUNAR_MONTH_DAYS = {29, 30};
+    /**
+     * 农历压缩编码表：每年一条整型位图，用于 {@link #lunarYearDays}、{@link #leapMonth}、{@link #monthDays} 等推算。
+     * 数据覆盖 1900 年起若干年的朔望月与闰月信息（常见开源农历算法数据源）。
+     */
     private static final int[] LUNAR_INFO = {
         0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
         0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
@@ -87,6 +106,15 @@ public class FortunePlugin implements ModulePlugin {
         0x0d520
     };
 
+    /**
+     * 模块入口：解析 JSON 参数并分发到具体运势或农历计算逻辑。
+     *
+     * @param context    Android 上下文（当前实现未使用，为接口统一保留）
+     * @param action     操作名称
+     * @param paramsJson JSON 参数字符串，空则按 {@code {}}
+     * @return 含 {@code success} 与 {@code output} 的 JSON；部分成功结果附带 {@code _displayText}
+     * @throws Exception 内部已捕获一般异常并转为 {@code error} 响应；JSON 构造仍可能抛出
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         try {
@@ -113,6 +141,13 @@ public class FortunePlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将运势结果 JSON 格式化为适合聊天窗口展示的多行文本（含农历摘要）。
+     *
+     * @param r {@link #buildFortune} 等生成的结果对象
+     * @return 展示字符串
+     * @throws Exception 一般不会；为与调用链签名一致保留
+     */
     private String formatFortuneDisplay(JSONObject r) throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("\uD83D\uDD2E 每日运势 (").append(r.optString("date", "")).append(")\n");
@@ -131,6 +166,13 @@ public class FortunePlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    /**
+     * 使用设备默认时区的「今天」公历日期生成运势。
+     *
+     * @param name 可选昵称，参与种子计算使每人同日结果可不同；空则仅按日期
+     * @return 完整运势 JSON（含 {@code lunar} 子对象）
+     * @throws Exception 日期或农历计算异常
+     */
     private JSONObject getDailyFortune(String name) throws Exception {
         Calendar cal = Calendar.getInstance(TimeZone.getDefault());
         String date = String.format(Locale.ROOT, "%04d-%02d-%02d",
@@ -138,6 +180,14 @@ public class FortunePlugin implements ModulePlugin {
         return buildFortune(date, name, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH));
     }
 
+    /**
+     * 按指定公历日期（{@code YYYY-MM-DD}）生成运势；日期为空则回退为 {@link #getDailyFortune}。
+     *
+     * @param date 公历日期字符串；空或 null 表示使用今天
+     * @param name 可选姓名种子
+     * @return 运势 JSON
+     * @throws Exception 日期格式非法或超出农历支持范围时
+     */
     private JSONObject getFortuneByDate(String date, String name) throws Exception {
         if (date == null || date.trim().isEmpty()) {
             return getDailyFortune(name);
@@ -146,7 +196,19 @@ public class FortunePlugin implements ModulePlugin {
         return buildFortune(date.trim(), name, parsed[0], parsed[1], parsed[2]);
     }
 
+    /**
+     * 核心组装：用日期与姓名混合种子，在固定词库中选取等级、吉语、宜忌与幸运项，并附上农历。
+     *
+     * @param dateStr 展示用日期字符串（已与 year/month/day 一致）
+     * @param name    用户昵称，影响伪随机序列
+     * @param year    公历年
+     * @param month   公历月 1–12
+     * @param day     公历日
+     * @return 包含 level、文案、lucky*、advice*、lunar 等字段的 {@link JSONObject}
+     * @throws Exception 农历计算可能抛出
+     */
     private JSONObject buildFortune(String dateStr, String name, int year, int month, int day) throws Exception {
+        // 种子 = 日期数值 + 姓名散列，保证同一用户同一天结果稳定、不同天或不同名可变化
         long seed = dateSeed(year, month, day) + nameHash(name);
         int level = seededInt(seed, 7, 1) + 1;
         int wordIdx = seededInt(seed, FORTUNE_WORDS[level - 1].length, 2);
@@ -172,6 +234,13 @@ public class FortunePlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 仅查询公历日期对应的农历信息；{@code date} 为空则取本机当天。
+     *
+     * @param date {@code YYYY-MM-DD} 或空
+     * @return {@link #computeLunar} 的结果
+     * @throws Exception 年份或日期非法
+     */
     private JSONObject getLunarDate(String date) throws Exception {
         int year, month, day;
         if (date == null || date.trim().isEmpty()) {
@@ -188,6 +257,13 @@ public class FortunePlugin implements ModulePlugin {
         return computeLunar(year, month, day);
     }
 
+    /**
+     * 按 1–7 的运势等级返回该等级下全部吉语、宜、忌及中英文名称、符号。
+     *
+     * @param level 1（大吉）到 7（大凶）
+     * @return 词库汇总 JSON
+     * @throws IllegalArgumentException level 越界
+     */
     private JSONObject getFortuneLevel(int level) throws Exception {
         if (level < 1 || level > 7) {
             throw new IllegalArgumentException("level must be 1-7");
@@ -215,6 +291,15 @@ public class FortunePlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 公历转农历：以 1900-01-31 为农历正月初一基准，按 {@link #LUNAR_INFO} 逐月累加推算年月日及闰月、干支、生肖。
+     *
+     * @param solarYear  公历年，支持约 1900–2100（与数据表一致）
+     * @param solarMonth 公历月 1–12
+     * @param solarDay   公历日
+     * @return 含 lunarYear/Month/Day、是否闰月、干支年、生肖、可读 {@code lunarDateString} 等
+     * @throws Exception 年份越界或早于基准日
+     */
     private JSONObject computeLunar(int solarYear, int solarMonth, int solarDay) throws Exception {
         if (solarYear < 1900 || solarYear > 2100) {
             throw new IllegalArgumentException("Year must be 1900-2100");
@@ -227,6 +312,7 @@ public class FortunePlugin implements ModulePlugin {
         targetDate.set(solarYear, solarMonth - 1, solarDay, 0, 0, 0);
         targetDate.set(Calendar.MILLISECOND, 0);
 
+        // 与基准日的天数差，用于在农历年中逐月扣减定位月日
         int offset = (int) ((targetDate.getTimeInMillis() - baseDate.getTimeInMillis()) / 86400000L);
         if (offset < 0) {
             throw new IllegalArgumentException("Date before 1900-01-31 is not supported");
@@ -283,6 +369,12 @@ public class FortunePlugin implements ModulePlugin {
         return result;
     }
 
+    /**
+     * 农历日期的传统读法（初十、二十、三十等）。
+     *
+     * @param day 农历日 1–30
+     * @return 中文日名
+     */
     private String lunarDayName(int day) {
         if (day == 10) return "初十";
         if (day == 20) return "二十";
@@ -290,6 +382,12 @@ public class FortunePlugin implements ModulePlugin {
         return LUNAR_DAYS_PREFIX[day - 1] + LUNAR_DAYS_SUFFIX[day];
     }
 
+    /**
+     * 计算农历年第 {@code y} 条记录对应年的总天数（含闰月天数）。
+     *
+     * @param y {@link #LUNAR_INFO} 下标，0 表示 1900 年
+     * @return 该农历年天数
+     */
     private int lunarYearDays(int y) {
         int sum = 348;
         for (int i = 0x8000; i > 0x8; i >>= 1) {
@@ -298,23 +396,56 @@ public class FortunePlugin implements ModulePlugin {
         return sum + leapDays(y);
     }
 
+    /**
+     * 从压缩数据中取闰月月份：低 4 位为闰几月，0 表示无闰月。
+     *
+     * @param y 农历数据行下标
+     * @return 闰月月份，0 表示无
+     */
     private int leapMonth(int y) {
         return LUNAR_INFO[y] & 0xf;
     }
 
+    /**
+     * 闰月天数：由高位标志决定 29 或 30 天。
+     *
+     * @param y 农历数据行下标
+     * @return 闰月天数，无闰月为 0
+     */
     private int leapDays(int y) {
         if (leapMonth(y) == 0) return 0;
         return (LUNAR_INFO[y] & 0x10000) != 0 ? 30 : 29;
     }
 
+    /**
+     * 平月天数：根据位图判断该月 29 或 30 天。
+     *
+     * @param y 年下标
+     * @param m 农历月 1–12
+     * @return 该月天数
+     */
     private int monthDays(int y, int m) {
         return (LUNAR_INFO[y] & (0x10000 >> m)) != 0 ? 30 : 29;
     }
 
+    /**
+     * 将公历日期压成单一长整型，作为运势伪随机的主种子分量。
+     *
+     * @param year  年
+     * @param month 月
+     * @param day   日
+     * @return 形如 {@code yyyymmdd} 的数值
+     */
     private long dateSeed(int year, int month, int day) {
         return year * 10000L + month * 100L + day;
     }
 
+    /**
+     * 简单字符串散列（类似乘法哈希），空名返回 0。
+     *
+     * @param name 用户输入姓名
+     * @return 非负偏移量，加在日期种子上
+     */
     private long nameHash(String name) {
         if (name == null || name.trim().isEmpty()) return 0;
         long hash = 0;
@@ -324,11 +455,26 @@ public class FortunePlugin implements ModulePlugin {
         return Math.abs(hash);
     }
 
+    /**
+     * 线性同余混合后取模，从同一种子得到不同维度的伪随机整数（依赖 {@code salt} 区分用途）。
+     *
+     * @param seed  基础种子
+     * @param bound 上界（结果范围为 {@code [0, bound)}）
+     * @param salt  盐值，避免不同字段取到相同序列
+     * @return {@code [0, bound)} 的整数
+     */
     private int seededInt(long seed, int bound, int salt) {
         long mixed = seed * 6364136223846793005L + salt * 1442695040888963407L;
         return (int) (Math.abs(mixed) % bound);
     }
 
+    /**
+     * 解析 {@code YYYY-MM-DD} 格式的公历日期字符串。
+     *
+     * @param date 输入字符串
+     * @return 长度为 3 的数组 {@code [year, month, day]}
+     * @throws IllegalArgumentException 格式或数值非法
+     */
     private int[] parseDate(String date) {
         String[] parts = date.split("-");
         if (parts.length != 3) {
@@ -343,14 +489,33 @@ public class FortunePlugin implements ModulePlugin {
         return new int[]{y, m, d};
     }
 
+    /**
+     * @param value 原始 JSON 字符串
+     * @return 空则 {@code "{}"}，否则原样
+     */
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    /**
+     * 成功响应：{@code output} 为对象序列化字符串，无展示文案。
+     *
+     * @param output 业务 JSON 对象
+     * @return 包装后的响应 JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String ok(JSONObject output) throws Exception {
         return ok(output, null);
     }
 
+    /**
+     * 成功响应：{@code output} 字段存 {@code output.toString()}，可选 {@code _displayText}。
+     *
+     * @param output      业务结果
+     * @param displayText 展示用文本，可 null
+     * @return 响应 JSON 字符串
+     * @throws Exception JSON 异常
+     */
     private String ok(JSONObject output, String displayText) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
@@ -361,6 +526,11 @@ public class FortunePlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * @param message 错误描述
+     * @return {@code success=false} 的 JSON
+     * @throws Exception JSON 异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject()
                 .put("success", false)

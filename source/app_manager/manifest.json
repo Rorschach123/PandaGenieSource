@@ -4,7 +4,7 @@
   "name_en": "App Manager",
   "description": "已安装应用管理模块，支持获取应用列表、打开应用、查看应用详情（包名、版本、安装时间、来源等）、卸载应用、跳转系统设置应用信息页",
   "description_en": "Manage installed apps: list, launch, view details (package name, version, install time, source), uninstall, and open system app info page",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "apps",
   "soLibraries": [],
   "h5Page": "index.html",

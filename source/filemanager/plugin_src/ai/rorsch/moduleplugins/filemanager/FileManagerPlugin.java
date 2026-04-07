@@ -10,13 +10,42 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+/**
+ * PandaGenie 文件管理器模块插件。
+ * <p>
+ * <b>模块用途：</b>通过 JNI 封装的原生库 {@link FileManagerLib} 对本地文件系统进行列举、创建、删除、复制、移动、重命名、
+ * 搜索、读写文本及查询元数据等操作，供宿主应用中的 AI/任务流程调用。
+ * </p>
+ * <p>
+ * <b>对外 API（通过 {@code action} 名称区分）：</b>
+ * {@code listDirectory}、{@code createDirectory}、{@code deleteFile}、{@code deleteDirectory}、
+ * {@code copyFile}、{@code moveFile}、{@code renameFile}、{@code getFileInfo}、{@code searchFiles}、
+ * {@code readTextFile}、{@code writeTextFile}、{@code fileExists}、{@code getFileSize}。
+ * </p>
+ * <p>
+ * 本类实现 {@link ModulePlugin}，由应用侧 {@code ModuleRuntime} 通过反射加载并调用 {@link #invoke}。
+ * </p>
+ */
 public class FileManagerPlugin implements ModulePlugin {
+    /** 列表类结果在 {@code _displayText} 中最多展示的行数，避免过长输出 */
     private static final int DISPLAY_LIST_MAX = 20;
+    /** 读取文本文件时，展示内容截断的最大字符数 */
     private static final int READ_TEXT_DISPLAY_MAX = 2000;
+    /** 文件修改时间等展示用日期格式 */
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
+    /** 与 native 层绑定的文件操作库实例，实际 IO 在 C/C++ 中完成 */
     private final FileManagerLib lib = new FileManagerLib();
 
+    /**
+     * 模块统一入口：根据 {@code action} 分发到对应原生方法，并包装为 JSON 字符串返回。
+     *
+     * @param context    Android 上下文（部分 action 未使用，为接口统一保留）
+     * @param action     操作名，与 switch 分支一一对应
+     * @param paramsJson 该操作的 JSON 参数字符串；空或非法时按空对象 {@code {}} 解析
+     * @return JSON 字符串，通常含 {@code success}、{@code output}，成功时可选 {@code _displayText} 供 UI 展示
+     * @throws Exception 解析参数或构建 JSON 时的异常
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
@@ -85,12 +114,27 @@ public class FileManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 从 JSON 中解析布尔值：支持 {@link Boolean} 或字符串 {@code "true"/"false"}。
+     *
+     * @param value    {@code JSONObject.opt(...)} 等得到的原始值，可为 null
+     * @param fallback 无法解析时使用的默认值
+     * @return 解析后的布尔结果
+     */
     private boolean parseBoolean(Object value, boolean fallback) {
         if (value == null) return fallback;
         if (value instanceof Boolean) return (Boolean) value;
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
+    /**
+     * 处理复制或移动：校验路径、若目标为目录则自动拼接源文件名、必要时创建父目录，再调用原生 {@code copy/move}。
+     *
+     * @param params JSON，需含源路径与目标路径（支持多组键名别名，见实现）
+     * @param isMove {@code true} 为移动，{@code false} 为复制
+     * @return 成功时 {@code success=true} 且带展示文案；失败时 {@code success=false} 与 {@code error} 说明原因
+     * @throws Exception 构建响应 JSON 时可能抛出
+     */
     private String handleCopyOrMove(JSONObject params, boolean isMove) throws Exception {
         String src = params.optString("src", params.optString("source", params.optString("path", "")));
         String dst = params.optString("dst", params.optString("destination", params.optString("target", "")));
@@ -103,12 +147,14 @@ public class FileManagerPlugin implements ModulePlugin {
         if (!srcFile.exists()) return error(op + ": source not found: " + src);
 
         File dstFile = new File(dst);
+        // 若目标是目录，则在目录下使用与源文件相同的文件名
         if (dstFile.isDirectory()) {
             dstFile = new File(dstFile, srcFile.getName());
             dst = dstFile.getAbsolutePath();
         }
 
         File dstParent = dstFile.getParentFile();
+        // 目标父目录不存在时尝试递归创建，避免原生调用因目录缺失失败
         if (dstParent != null && !dstParent.exists()) {
             dstParent.mkdirs();
         }
@@ -132,20 +178,50 @@ public class FileManagerPlugin implements ModulePlugin {
         return ok(String.valueOf(result), disp);
     }
 
+    /**
+     * 将空或仅空白参数的 JSON 规范化为 {@code "{}"}，避免 {@link JSONObject} 构造异常。
+     *
+     * @param value 调用方传入的 {@code paramsJson}
+     * @return 非空则原样返回，否则返回 {@code "{}"}
+     */
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    /**
+     * 构造仅含业务输出的成功响应（无 {@code _displayText}）。
+     *
+     * @param output 写入 {@code output} 字段的字符串，多为 JSON 或简单标量
+     * @return 完整响应 JSON 字符串
+     * @throws Exception JSON 构建异常
+     */
     private String ok(String output) throws Exception {
         return ok(output, null);
     }
 
+    /**
+     * 构造成功响应：{@code success=true}，业务数据在 {@code output}，可选人类可读 {@code _displayText}。
+     *
+     * @param output      业务结果字符串
+     * @param displayText 供界面展示的摘要，可为 null 或空（此时不写该字段）
+     * @return JSON 字符串
+     * @throws Exception JSON 构建异常
+     */
     private String ok(String output, String displayText) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) j.put("_displayText", displayText);
         return j.toString();
     }
 
+    /**
+     * 布尔型操作统一响应：成功时可选附带展示文案；失败时写入 {@code error}。
+     *
+     * @param value               操作是否成功
+     * @param errorMsg            失败时的错误信息
+     * @param successDisplayText  成功时的展示文案，失败忽略
+     * @return JSON 字符串
+     * @throws Exception JSON 构建异常
+     */
     private String boolResult(boolean value, String errorMsg, String successDisplayText) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
         if (!value) json.put("error", errorMsg);
@@ -153,6 +229,12 @@ public class FileManagerPlugin implements ModulePlugin {
         return json.toString();
     }
 
+    /**
+     * 将字节数格式化为 B/KB/MB/GB 便于阅读的字符串（用于目录列表等展示）。
+     *
+     * @param size 字节数
+     * @return 本地化数字格式的体积字符串
+     */
     private static String formatSizeBytes(long size) {
         if (size < 1024) return size + " B";
         if (size < 1024 * 1024) return String.format(Locale.US, "%.1f KB", size / 1024.0);
@@ -160,6 +242,13 @@ public class FileManagerPlugin implements ModulePlugin {
         return String.format(Locale.US, "%.2f GB", size / (1024.0 * 1024 * 1024));
     }
 
+    /**
+     * 将 {@code nativeListDirectory} 返回的 JSON 数组格式化为带图标与条数限制的展示文本。
+     *
+     * @param dirPath 被列举的目录路径
+     * @param rawJson 原生返回的 JSON 数组字符串
+     * @return 多行展示字符串；解析失败时返回仅含标题的占位文本
+     */
     private static String formatListDirectoryDisplay(String dirPath, String rawJson) {
         try {
             JSONArray arr = new JSONArray(rawJson);
@@ -183,18 +272,45 @@ public class FileManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 重命名成功后的简短展示文案。
+     *
+     * @param oldPath 原路径
+     * @param newPath 新路径
+     * @return 多行展示字符串
+     */
     private static String formatRenameDisplay(String oldPath, String newPath) {
         return "✏️ Renamed\n▸ From: " + oldPath + "\n▸ To: " + newPath;
     }
 
+    /**
+     * 复制成功后的展示文案。
+     *
+     * @param src 源路径
+     * @param dst 目标路径
+     * @return 多行展示字符串
+     */
     private static String formatCopyDisplay(String src, String dst) {
         return "📋 Copied\n▸ From: " + src + "\n▸ To: " + dst;
     }
 
+    /**
+     * 移动成功后的展示文案。
+     *
+     * @param src 源路径
+     * @param dst 目标路径
+     * @return 多行展示字符串
+     */
     private static String formatMoveDisplay(String src, String dst) {
         return "📦 Moved\n▸ From: " + src + "\n▸ To: " + dst;
     }
 
+    /**
+     * 解析 {@code nativeGetFileInfo} 返回的 JSON，生成名称、大小、修改时间的摘要。
+     *
+     * @param rawJson 原生返回的 JSON 对象字符串
+     * @return 展示用多行文本
+     */
     private static String formatGetFileInfoDisplay(String rawJson) {
         try {
             JSONObject o = new JSONObject(rawJson);
@@ -210,6 +326,12 @@ public class FileManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 将搜索结果 JSON 数组格式化为带序号的文件路径列表（条数受限）。
+     *
+     * @param rawJson 原生返回的路径 JSON 数组字符串
+     * @return 展示文本
+     */
     private static String formatSearchFilesDisplay(String rawJson) {
         try {
             JSONArray arr = new JSONArray(rawJson);
@@ -227,6 +349,12 @@ public class FileManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 读取文本内容展示：超长时截断并加省略号，避免聊天/UI 刷屏。
+     *
+     * @param content 文件全文或 null
+     * @return 带标题的展示块
+     */
     private static String formatReadTextFileDisplay(String content) {
         String body = content == null ? "" : content;
         if (body.length() > READ_TEXT_DISPLAY_MAX) {
@@ -235,6 +363,13 @@ public class FileManagerPlugin implements ModulePlugin {
         return "📄 File Content\n━━━━━━━━━━━━━━\n" + body;
     }
 
+    /**
+     * 统一错误响应格式。
+     *
+     * @param message 错误说明
+     * @return {@code success=false} 的 JSON 字符串
+     * @throws Exception JSON 构建异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }

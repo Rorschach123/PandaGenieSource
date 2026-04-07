@@ -1,0 +1,48 @@
+{
+  "id": "unit_converter",
+  "name": "单位转换",
+  "name_en": "Unit Converter",
+  "description": "万能单位转换模块，支持长度、重量、温度、面积、体积、速度、时间、数据存储等多种单位互转",
+  "description_en": "Universal unit converter: length, weight, temperature, area, volume, speed, time, data storage, and more",
+  "version": "1.0",
+  "icon": "straighten",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.unit_converter.UnitConverterPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "devCertFingerprint": "",
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "convert",
+      "desc": "在指定类别下将数值从源单位转换为目标单位；类别：length|weight|temperature|area|volume|speed|time|data",
+      "desc_en": "Convert a value between units; category: length|weight|temperature|area|volume|speed|time|data",
+      "params": ["value", "fromUnit", "toUnit", "category"],
+      "paramDesc": ["要转换的数值", "源单位（如 km、lb、°C）", "目标单位（如 mi、kg、°F）", "类别：length|weight|temperature|area|volume|speed|time|data"],
+      "paramDesc_en": ["Numeric value to convert", "Source unit (e.g. km, lb, °C)", "Target unit (e.g. mi, kg, °F)", "Category: length|weight|temperature|area|volume|speed|time|data"]
+    },
+    {
+      "name": "listUnits",
+      "desc": "列出某类别下所有可用单位标识",
+      "desc_en": "List all available units in a category",
+      "params": ["category"],
+      "paramDesc": ["类别：length|weight|temperature|area|volume|speed|time|data"],
+      "paramDesc_en": ["Category: length|weight|temperature|area|volume|speed|time|data"]
+    },
+    {
+      "name": "listCategories",
+      "desc": "列出所有支持的转换类别",
+      "desc_en": "List all supported conversion categories",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

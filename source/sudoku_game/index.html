@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>数独</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.game-header { text-align: center; padding: 16px 0 12px; }
+.game-header .icon { font-size: 48px; }
+.game-header h2 { margin: 6px 0 0; font-size: 20px; }
+.info-bar {
+  display: flex; justify-content: center; gap: 16px;
+  padding: 8px; margin-bottom: 10px; font-size: 13px;
+}
+.info-bar span { font-weight: 600; color: var(--primary); }
+.sudoku-grid {
+  display: grid; grid-template-columns: repeat(9, 1fr);
+  gap: 1px; max-width: 360px; margin: 0 auto 14px;
+  background: var(--outline); border: 2px solid var(--on-surface);
+  border-radius: 4px;
+}
+.sudoku-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 500; cursor: pointer;
+  background: var(--surface); user-select: none; transition: all 0.15s;
+  position: relative;
+}
+.sudoku-cell.fixed { font-weight: 700; color: var(--on-surface); background: var(--surface-variant); }
+.sudoku-cell.player { color: var(--primary); }
+.sudoku-cell.wrong { color: var(--error); background: var(--error-container); }
+.sudoku-cell.selected { background: var(--primary-container); }
+.sudoku-cell.hint { background: #C8E6C9; }
+.sudoku-cell:nth-child(3n) { border-right: 2px solid var(--on-surface); }
+.sudoku-cell:nth-child(n+19):nth-child(-n+27),
+.sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 2px solid var(--on-surface);
+}
+.num-pad {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 6px; max-width: 300px; margin: 0 auto 14px;
+}
+.num-btn {
+  padding: 12px; border: 1px solid var(--outline); border-radius: 10px;
+  font-size: 18px; font-weight: 600; cursor: pointer;
+  background: var(--surface); color: var(--primary);
+  text-align: center; transition: all 0.15s; user-select: none;
+}
+.num-btn:active { background: var(--primary); color: var(--on-primary); }
+.num-btn.clear-btn { color: var(--error); font-size: 14px; }
+.actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.result-card {
+  text-align: center; padding: 20px;
+  background: var(--primary-container); border-radius: 14px;
+  margin-bottom: 12px;
+}
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="game-header">
+  <div class="icon">🔢</div>
+  <h2 id="appTitle">数独</h2>
+</div>
+
+<div id="menuScreen">
+  <div class="card" style="text-align:center">
+    <p id="menuPrompt" style="margin-bottom:12px">选择难度开始数独</p>
+    <div class="settings" style="display:flex;gap:8px;justify-content:center;margin-bottom:14px">
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="1" data-i18n="easy">简单</button>
+      <button type="button" class="btn btn-primary btn-sm diff-btn active" data-diff="2" data-i18n="normal">普通</button>
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="3" data-i18n="hard">困难</button>
+    </div>
+    <button type="button" class="btn btn-primary" id="btnStart" onclick="startGame()">开始游戏</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <div class="info-bar">
+    <div><span id="i18nDifficulty">难度</span>: <span id="diffLabel">普通</span></div>
+    <div><span id="i18nFilled">已填</span>: <span id="filledLabel">0</span>/81</div>
+  </div>
+  <div class="sudoku-grid" id="grid"></div>
+  <div class="num-pad" id="numPad">
+    <div class="num-btn" onclick="placeNum(1)">1</div>
+    <div class="num-btn" onclick="placeNum(2)">2</div>
+    <div class="num-btn" onclick="placeNum(3)">3</div>
+    <div class="num-btn" onclick="placeNum(4)">4</div>
+    <div class="num-btn" onclick="placeNum(5)">5</div>
+    <div class="num-btn" onclick="placeNum(6)">6</div>
+    <div class="num-btn" onclick="placeNum(7)">7</div>
+    <div class="num-btn" onclick="placeNum(8)">8</div>
+    <div class="num-btn" onclick="placeNum(9)">9</div>
+    <div class="num-btn clear-btn" id="btnClear" onclick="clearCell()">清除</div>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-outline btn-sm" id="btnHint" onclick="getHint()">💡 提示</button>
+    <button type="button" class="btn btn-outline btn-sm" id="btnCheck" onclick="checkBoard()">✅ 检查</button>
+    <button type="button" class="btn btn-primary btn-sm" id="btnNew" onclick="restartGame()">🔄 新题</button>
+    <button type="button" class="btn btn-outline btn-sm" id="btnBack" onclick="backToMenu()">返回</button>
+  </div>
+  <div id="resultCard" class="result-card hidden"></div>
+</div>
+
+<script>
+var difficulty = 2, selectedRow = -1, selectedCol = -1;
+var currentState = null;
+
+var I18N = {
+  en: {
+    appTitle: 'Sudoku',
+    menuPrompt: 'Select difficulty to start',
+    easy: 'Easy',
+    normal: 'Normal',
+    hard: 'Hard',
+    startGame: 'Start Game',
+    difficulty: 'Difficulty',
+    filled: 'Filled',
+    clear: 'Clear',
+    hint: '💡 Hint',
+    check: '✅ Check',
+    newPuzzle: '🔄 New Puzzle',
+    back: 'Back',
+    congratsComplete: '🎉 Congratulations! Sudoku completed!',
+    allCorrect: '🎉 All correct!',
+    errorsEmpty: 'Errors: {errors} | Empty: {empty}'
+  },
+  zh: {
+    appTitle: '数独',
+    menuPrompt: '选择难度开始数独',
+    easy: '简单',
+    normal: '普通',
+    hard: '困难',
+    startGame: '开始游戏',
+    difficulty: '难度',
+    filled: '已填',
+    clear: '清除',
+    hint: '💡 提示',
+    check: '✅ 检查',
+    newPuzzle: '🔄 新题',
+    back: '返回',
+    congratsComplete: '🎉 恭喜！数独已完成！',
+    allCorrect: '🎉 完全正确！',
+    errorsEmpty: '错误: {errors} 个 | 空格: {empty} 个'
+  }
+};
+
+function detectLanguage() {
+  try {
+    if (window.NativeBridge && typeof NativeBridge.getLanguage === 'function') {
+      var l = String(NativeBridge.getLanguage() || '').toLowerCase();
+      if (l === 'en' || l.indexOf('en') === 0) return 'en';
+      if (l === 'zh' || l.indexOf('zh') === 0) return 'zh';
+    }
+  } catch (e) {}
+  return 'zh';
+}
+
+var lang = detectLanguage();
+
+function t(key) {
+  var pack = I18N[lang] || I18N.zh;
+  return (pack && pack[key]) != null ? pack[key] : key;
+}
+
+function formatErrorsEmpty(errors, empty) {
+  return t('errorsEmpty').replace('{errors}', String(errors)).replace('{empty}', String(empty));
+}
+
+function diffName(d) {
+  var names = { 1: t('easy'), 2: t('normal'), 3: t('hard') };
+  return names[d] || t('normal');
+}
+
+function applyStaticI18n() {
+  document.title = t('appTitle');
+  var el;
+  if ((el = document.getElementById('appTitle'))) el.textContent = t('appTitle');
+  if ((el = document.getElementById('menuPrompt'))) el.textContent = t('menuPrompt');
+  if ((el = document.getElementById('btnStart'))) el.textContent = t('startGame');
+  if ((el = document.getElementById('i18nDifficulty'))) el.textContent = t('difficulty');
+  if ((el = document.getElementById('i18nFilled'))) el.textContent = t('filled');
+  if ((el = document.getElementById('btnClear'))) el.textContent = t('clear');
+  if ((el = document.getElementById('btnHint'))) el.textContent = t('hint');
+  if ((el = document.getElementById('btnCheck'))) el.textContent = t('check');
+  if ((el = document.getElementById('btnNew'))) el.textContent = t('newPuzzle');
+  if ((el = document.getElementById('btnBack'))) el.textContent = t('back');
+
+  document.querySelectorAll('.diff-btn[data-i18n]').forEach(function (b) {
+    var k = b.getAttribute('data-i18n');
+    if (k) b.textContent = t(k);
+  });
+
+  if (currentState) updateDisplay(currentState);
+  else {
+    var dl = document.getElementById('diffLabel');
+    if (dl) dl.textContent = diffName(difficulty);
+  }
+}
+
+document.querySelectorAll('.diff-btn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('.diff-btn').forEach(function (x) {
+      x.className = 'btn btn-outline btn-sm diff-btn';
+    });
+    this.className = 'btn btn-primary btn-sm diff-btn active';
+    difficulty = parseInt(this.dataset.diff, 10);
+  });
+});
+
+function callPlugin(a, p) {
+  if (window.NativeBridge) return JSON.parse(NativeBridge.invoke(a, JSON.stringify(p || {})));
+  return null;
+}
+
+function startGame() {
+  var r = callPlugin('startGame', { difficulty: difficulty });
+  if (r && r.success) {
+    showScreen('gameScreen');
+    updateDisplay(JSON.parse(r.output));
+  }
+}
+
+function updateDisplay(s) {
+  currentState = s;
+  var diffEl = document.getElementById('diffLabel');
+  if (diffEl) diffEl.textContent = diffName(s.difficulty);
+  document.getElementById('filledLabel').textContent = s.filledCount;
+
+  var grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  var board = s.playerBoard;
+  var fixed = s.fixedCells;
+
+  for (var r = 0; r < 9; r++) {
+    for (var c = 0; c < 9; c++) {
+      var cell = document.createElement('div');
+      cell.className = 'sudoku-cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      if (fixed[r][c]) {
+        cell.classList.add('fixed');
+        cell.textContent = board[r][c];
+      } else if (board[r][c] !== 0) {
+        cell.classList.add('player');
+        cell.textContent = board[r][c];
+      }
+      if (r === selectedRow && c === selectedCol) cell.classList.add('selected');
+      cell.addEventListener('click', function () {
+        selectedRow = parseInt(this.dataset.row, 10);
+        selectedCol = parseInt(this.dataset.col, 10);
+        updateDisplay(currentState);
+      });
+      grid.appendChild(cell);
+    }
+  }
+
+  var resultCard = document.getElementById('resultCard');
+  if (s.gameOver) {
+    resultCard.classList.remove('hidden');
+    resultCard.innerHTML = '<h3>' + escapeHtml(t('congratsComplete')) + '</h3>';
+  } else {
+    resultCard.classList.add('hidden');
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function placeNum(n) {
+  if (selectedRow < 0 || selectedCol < 0) return;
+  var r = callPlugin('placeNumber', { row: selectedRow, col: selectedCol, number: n });
+  if (r && r.success) updateDisplay(JSON.parse(r.output));
+}
+
+function clearCell() {
+  if (selectedRow < 0 || selectedCol < 0) return;
+  var r = callPlugin('clearCell', { row: selectedRow, col: selectedCol });
+  if (r && r.success) updateDisplay(JSON.parse(r.output));
+}
+
+function getHint() {
+  var r = callPlugin('getHint', {});
+  if (r && r.success) updateDisplay(JSON.parse(r.output));
+}
+
+function checkBoard() {
+  var r = callPlugin('checkBoard', {});
+  if (r && r.success) {
+    var s = JSON.parse(r.output);
+    updateDisplay(s);
+    var card = document.getElementById('resultCard');
+    card.classList.remove('hidden');
+    if (s.complete && s.correct) {
+      card.innerHTML = '<h3>' + escapeHtml(t('allCorrect')) + '</h3>';
+    } else {
+      card.innerHTML = '<p>' + escapeHtml(formatErrorsEmpty(s.errors, s.emptyCells)) + '</p>';
+    }
+  }
+}
+
+function restartGame() {
+  selectedRow = selectedCol = -1;
+  var r = callPlugin('restart', {});
+  if (r && r.success) updateDisplay(JSON.parse(r.output));
+}
+
+function backToMenu() {
+  showScreen('menuScreen');
+}
+
+function showScreen(id) {
+  ['menuScreen', 'gameScreen'].forEach(function (s) {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+
+applyStaticI18n();
+</script>
+</body>
+</html>

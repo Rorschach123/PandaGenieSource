@@ -18,8 +18,32 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * 已安装应用管理模块插件：列举应用、启动应用、查询详情、发起卸载与打开应用设置页。
+ * <p>
+ * <b>模块用途：</b>基于 {@link PackageManager} 与 {@link Intent} 提供常见应用管理操作，供 Agent/任务在授权环境下调用。
+ * </p>
+ * <p>
+ * <b>提供的 API（{@code action}）：</b>
+ * {@code listApps}（参数可含 {@code includeSystem}）、{@code openApp}（{@code nameOrPackage}）、
+ * {@code getAppInfo}、{@code uninstallApp}（{@code packageName} 或 {@code nameOrPackage}）、
+ * {@code openAppSettings}。
+ * </p>
+ * <p>
+ * <b>加载方式：</b>由 {@code ModuleRuntime} 通过反射实例化并实现 {@link ModulePlugin} 后调用 {@link #invoke}。
+ * </p>
+ */
 public class AppManagerPlugin implements ModulePlugin {
 
+    /**
+     * 根据 {@code action} 分发到列举、启动、查询、卸载或设置页等逻辑。
+     *
+     * @param context    Android 上下文，用于 {@link PackageManager} 与启动 Activity
+     * @param action     操作名称，见类说明
+     * @param paramsJson JSON 参数；空则按 {@code {}} 解析
+     * @return 各操作约定的 JSON 字符串；多数字段包含 {@code success}，部分内含 {@code output}、{@code _displayText}
+     * @throws Exception JSON 或系统服务异常
+     */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
@@ -45,6 +69,14 @@ public class AppManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 列出设备上已安装的应用基本信息（包名、显示名、版本名）。
+     *
+     * @param context 用于获取 {@link PackageManager}
+     * @param params  {@code includeSystem} 为 true 时包含系统应用，默认 false
+     * @return 纯数据 JSON 字符串（含 {@code count} 与 {@code apps} 数组），尚未包装外层 {@code success}
+     * @throws Exception JSON 构造异常
+     */
     private String listApps(Context context, JSONObject params) throws Exception {
         boolean includeSystem = params.optBoolean("includeSystem", false);
         PackageManager pm = context.getPackageManager();
@@ -52,6 +84,7 @@ public class AppManagerPlugin implements ModulePlugin {
         List<JSONObject> apps = new ArrayList<>();
 
         for (PackageInfo pi : packages) {
+            // 默认跳过系统应用，除非调用方显式要求包含
             if (!includeSystem && isSystemApp(pi)) continue;
             JSONObject app = new JSONObject();
             app.put("packageName", pi.packageName);
@@ -74,6 +107,14 @@ public class AppManagerPlugin implements ModulePlugin {
         return result.toString();
     }
 
+    /**
+     * 根据应用名或包名解析目标包并启动其启动 Activity（LAUNCHER）。
+     *
+     * @param context 用于启动 Activity，需 {@code FLAG_ACTIVITY_NEW_TASK}
+     * @param params    必须提供 {@code nameOrPackage}（显示名或完整包名）
+     * @return 成功时包装为带 {@code _displayText} 的 JSON；失败为 {@code success:false}
+     * @throws Exception JSON 或启动过程异常
+     */
     private String openApp(Context context, JSONObject params) throws Exception {
         String nameOrPkg = params.optString("nameOrPackage", "").trim();
         if (nameOrPkg.isEmpty()) return error("Missing parameter: nameOrPackage");
@@ -85,6 +126,7 @@ public class AppManagerPlugin implements ModulePlugin {
         Intent intent = pm.getLaunchIntentForPackage(packageName);
         if (intent == null) return error("Cannot launch app (no launch activity): " + packageName);
 
+        // 从非 Activity 上下文启动时必须带此标志，否则部分系统会抛异常
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
 
@@ -96,6 +138,14 @@ public class AppManagerPlugin implements ModulePlugin {
         return ok(result.toString(), "✅ Opening " + appName);
     }
 
+    /**
+     * 查询指定应用的详细元数据（版本、SDK、安装时间、安装来源、路径等）。
+     *
+     * @param context 用于 {@link PackageManager#getPackageInfo}
+     * @param params    {@code nameOrPackage} 必填
+     * @return 成功时为应用信息 JSON 字符串（由 {@link #invoke} 再包装）；解析失败时可能已是错误 JSON
+     * @throws Exception 包不存在等异常
+     */
     private String getAppInfo(Context context, JSONObject params) throws Exception {
         String nameOrPkg = params.optString("nameOrPackage", "").trim();
         if (nameOrPkg.isEmpty()) return error("Missing parameter: nameOrPackage");
@@ -122,6 +172,7 @@ public class AppManagerPlugin implements ModulePlugin {
         info.put("dataDir", ai.dataDir != null ? ai.dataDir : "");
         info.put("sourceDir", ai.sourceDir != null ? ai.sourceDir : "");
 
+        // 部分系统/版本上可能不可用或返回 null，需兜底
         String installer = "";
         try {
             installer = pm.getInstallerPackageName(packageName);
@@ -134,6 +185,14 @@ public class AppManagerPlugin implements ModulePlugin {
         return info.toString();
     }
 
+    /**
+     * 向系统发起卸载请求：弹出系统卸载确认界面（不会静默卸载）。
+     *
+     * @param context 用于启动 {@link Intent#ACTION_DELETE}
+     * @param params    优先 {@code packageName}；若为空则尝试 {@code nameOrPackage} 解析
+     * @return 表示已发起请求的 JSON，并附带展示文案
+     * @throws Exception JSON 构造异常
+     */
     private String uninstallApp(Context context, JSONObject params) throws Exception {
         String packageName = params.optString("packageName", "").trim();
         if (packageName.isEmpty()) {
@@ -159,6 +218,14 @@ public class AppManagerPlugin implements ModulePlugin {
         return ok(result.toString(), "🗑️ Uninstall requested: " + appLabel);
     }
 
+    /**
+     * 打开指定应用的系统「应用信息」设置页。
+     *
+     * @param context 用于启动 {@link Settings#ACTION_APPLICATION_DETAILS_SETTINGS}
+     * @param params    {@code nameOrPackage} 必填
+     * @return 成功响应 JSON 与展示文案
+     * @throws Exception 包不存在等异常
+     */
     private String openAppSettings(Context context, JSONObject params) throws Exception {
         String nameOrPkg = params.optString("nameOrPackage", "").trim();
         if (nameOrPkg.isEmpty()) return error("Missing parameter: nameOrPackage");
@@ -180,8 +247,13 @@ public class AppManagerPlugin implements ModulePlugin {
     }
 
     /**
-     * Resolve user input (app name or package name) to an actual package name.
-     * First tries exact package name match, then searches by app label (case-insensitive).
+     * 将用户输入的应用显示名或包名解析为确定的包名字符串。
+     * <p>先尝试按完整包名精确匹配；失败则遍历已安装应用：优先忽略大小写完全匹配显示名，
+     * 否则取第一个显示名包含输入（小写）的应用作为模糊匹配。</p>
+     *
+     * @param context   用于枚举已安装包
+     * @param nameOrPkg 用户输入的包名或应用名
+     * @return 解析到的包名；无法匹配时返回 {@code null}
      */
     private String resolvePackageName(Context context, String nameOrPkg) {
         PackageManager pm = context.getPackageManager();
@@ -203,10 +275,22 @@ public class AppManagerPlugin implements ModulePlugin {
         return bestMatch;
     }
 
+    /**
+     * 判断安装包是否带有系统应用标记。
+     *
+     * @param pi {@link PackageInfo}
+     * @return {@code true} 表示 {@link ApplicationInfo#FLAG_SYSTEM}
+     */
     private boolean isSystemApp(PackageInfo pi) {
         return pi.applicationInfo != null && (pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
     }
 
+    /**
+     * 将安装器包名转换为可读的应用商店/渠道名称（常见厂商与商店映射）。
+     *
+     * @param installerPkg {@link PackageManager#getInstallerPackageName} 返回值，可为 null
+     * @return 展示用标签；未知时返回包名本身或 "Unknown"
+     */
     private String resolveInstallerLabel(String installerPkg) {
         if (installerPkg == null || installerPkg.isEmpty()) return "Unknown";
         switch (installerPkg) {
@@ -225,42 +309,112 @@ public class AppManagerPlugin implements ModulePlugin {
         }
     }
 
+    /**
+     * 规范化 JSON 参数字符串，空输入视为空对象。
+     *
+     * @param v 原始 paramsJson
+     * @return 非空串原样返回，否则 "{}"
+     */
     private String emptyJson(String v) { return v == null || v.trim().isEmpty() ? "{}" : v; }
+
+    /**
+     * 将 {@code listApps} 的 JSON 结果格式化为多行可读列表（用于 {@code _displayText}）。
+     *
+     * @param obj 含 {@code count} 与 {@code apps} 的 JSONObject
+     * @return 展示文本
+     * @throws Exception 数组访问异常
+     */
+    private static String mdCell(String s) {
+        if (s == null) return "";
+        return s.replace("\r", "").replace("\n", " ").replace("|", "\\|");
+    }
 
     private String formatListAppsDisplay(JSONObject obj) throws Exception {
         int count = obj.optInt("count", 0);
         JSONArray apps = obj.optJSONArray("apps");
         StringBuilder sb = new StringBuilder();
-        sb.append("📱 Installed Apps (").append(count).append(" total)\n━━━━━━━━━━━━━━\n");
+        sb.append("📱 Installed Apps (").append(count).append(" total)\n\n");
+        sb.append("| Name | Package | Version |\n");
+        sb.append("| --- | --- | --- |\n");
         if (apps != null) {
             for (int i = 0; i < apps.length(); i++) {
                 JSONObject app = apps.getJSONObject(i);
                 String name = app.optString("appName", "");
                 String pkg = app.optString("packageName", "");
-                sb.append(i + 1).append(". ").append(name).append(" (").append(pkg).append(")\n");
+                String ver = app.optString("versionName", "");
+                sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(pkg)).append(" | ")
+                        .append(mdCell(ver)).append(" |\n");
             }
         }
         String s = sb.toString();
         return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
     }
 
+    /**
+     * 从 {@code getAppInfo} 的 JSON 中提取名称、包名、版本生成简短展示块。
+     *
+     * @param info 应用信息 JSON
+     * @return 多行展示字符串
+     */
     private String formatGetAppInfoDisplay(JSONObject info) {
-        String name = info.optString("appName", "");
-        String pkg = info.optString("packageName", "");
-        String ver = info.optString("versionName", "");
-        return "📱 App Info\n━━━━━━━━━━━━━━\n▸ Name: " + name + "\n▸ Package: " + pkg + "\n▸ Version: " + ver;
+        StringBuilder sb = new StringBuilder();
+        sb.append("📱 App Info\n\n");
+        sb.append("| Item | Value |\n");
+        sb.append("| --- | --- |\n");
+        appendRow(sb, "Name", info.optString("appName", ""));
+        appendRow(sb, "Package", info.optString("packageName", ""));
+        appendRow(sb, "Version", info.optString("versionName", ""));
+        appendRow(sb, "Version code", String.valueOf(info.optInt("versionCode", 0)));
+        appendRow(sb, "First install", info.optString("firstInstallTime", ""));
+        appendRow(sb, "Last update", info.optString("lastUpdateTime", ""));
+        appendRow(sb, "Target SDK", String.valueOf(info.optInt("targetSdkVersion", 0)));
+        appendRow(sb, "Min SDK", String.valueOf(info.optInt("minSdkVersion", 0)));
+        appendRow(sb, "System app", String.valueOf(info.optBoolean("isSystemApp", false)));
+        appendRow(sb, "Enabled", String.valueOf(info.optBoolean("enabled", true)));
+        appendRow(sb, "Data dir", info.optString("dataDir", ""));
+        appendRow(sb, "Source dir", info.optString("sourceDir", ""));
+        appendRow(sb, "Installer package", info.optString("installerPackage", ""));
+        appendRow(sb, "Installer label", info.optString("installerLabel", ""));
+        String s = sb.toString();
+        return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
     }
 
+    private static void appendRow(StringBuilder sb, String item, String value) {
+        sb.append("| ").append(mdCell(item)).append(" | ").append(mdCell(value)).append(" |\n");
+    }
+
+    /**
+     * 包装成功响应（无额外展示字段）。
+     *
+     * @param output 写入 {@code output} 的字符串
+     * @return JSON
+     * @throws Exception JSON 异常
+     */
     private String ok(String output) throws Exception {
         return new JSONObject().put("success", true).put("output", output).toString();
     }
 
+    /**
+     * 包装成功响应并可选附加 {@code _displayText}。
+     *
+     * @param output      业务输出 JSON 字符串或其它文本
+     * @param displayText 界面展示用摘要
+     * @return JSON
+     * @throws Exception JSON 异常
+     */
     private String ok(String output, String displayText) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
         return r.toString();
     }
 
+    /**
+     * 构造失败响应 JSON。
+     *
+     * @param message 错误信息
+     * @return 含 {@code success:false} 与 {@code error}
+     * @throws Exception JSON 异常
+     */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }

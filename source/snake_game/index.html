@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Snake</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.game-header { text-align: center; padding: 16px 0 8px; }
+.game-header .icon { font-size: 48px; line-height: 1; }
+.game-header h2 { margin: 6px 0 0; font-size: 20px; }
+.score-bar {
+  display: flex; justify-content: center; gap: 16px;
+  padding: 8px; margin-bottom: 10px; font-size: 13px;
+  flex-wrap: wrap;
+}
+.score-bar > div { text-align: center; }
+.score-bar span { font-weight: 600; color: var(--primary); display: block; font-size: 15px; margin-top: 2px; }
+.board-wrap {
+  width: 100%; max-width: 420px; margin: 0 auto 14px;
+  border-radius: 14px; overflow: hidden;
+  background: var(--surface-variant);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+  aspect-ratio: 20 / 15;
+}
+#boardCanvas {
+  display: block; width: 100%; height: 100%;
+  touch-action: none;
+}
+.controls {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-bottom: 14px; user-select: none;
+}
+.ctrl-row { display: flex; gap: 8px; align-items: center; }
+.ctrl-btn {
+  min-width: 56px; min-height: 56px; width: 15vw; height: 15vw;
+  max-width: 72px; max-height: 72px;
+  border: none; border-radius: 16px;
+  font-size: 22px; cursor: pointer;
+  background: var(--primary); color: var(--on-primary);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  touch-action: manipulation;
+}
+.ctrl-btn:active { transform: scale(0.92); opacity: 0.85; }
+.ctrl-btn.secondary { background: var(--surface-variant); color: var(--primary); box-shadow: inset 0 0 0 1px var(--outline); }
+.settings { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
+.game-over-overlay {
+  text-align: center; padding: 20px;
+  background: var(--primary-container); border-radius: 14px;
+  margin-bottom: 12px;
+}
+.game-over-overlay h3 { color: var(--primary); font-size: 18px; margin-bottom: 8px; }
+.game-over-overlay .final-score { font-size: 36px; font-weight: 700; color: var(--primary); line-height: 1.2; }
+.hidden { display: none !important; }
+.menu-hint { margin-bottom: 12px; color: var(--on-surface-variant); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="game-header">
+  <div class="icon" aria-hidden="true">🐍</div>
+  <h2 id="titleHeading" data-i18n="title">Snake</h2>
+</div>
+
+<div id="menuScreen">
+  <div class="card" style="text-align:center">
+    <p class="menu-hint" data-i18n="menuSubtitle">Choose difficulty and start</p>
+    <div class="settings">
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="1" data-i18n="diffEasy">Easy</button>
+      <button type="button" class="btn btn-primary btn-sm diff-btn active" data-diff="2" data-i18n="diffNormal">Normal</button>
+      <button type="button" class="btn btn-outline btn-sm diff-btn" data-diff="3" data-i18n="diffHard">Hard</button>
+    </div>
+    <button type="button" class="btn btn-primary" id="btnStart" data-i18n="startGame">Start game</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <div class="score-bar">
+    <div><span data-i18n="labelDifficulty">Difficulty</span><span id="diffLabel">—</span></div>
+    <div><span data-i18n="labelScore">Score</span><span id="scoreLabel">0</span></div>
+    <div><span data-i18n="labelLength">Length</span><span id="lengthLabel">3</span></div>
+  </div>
+  <div class="board-wrap" id="boardWrap">
+    <canvas id="boardCanvas" width="400" height="300" aria-label="Snake game board"></canvas>
+  </div>
+  <div class="controls">
+    <div class="ctrl-row">
+      <button type="button" class="ctrl-btn" data-dir="up" aria-label="Up">↑</button>
+    </div>
+    <div class="ctrl-row">
+      <button type="button" class="ctrl-btn" data-dir="left" aria-label="Left">←</button>
+      <button type="button" class="ctrl-btn secondary" data-dir="down" aria-label="Down">↓</button>
+      <button type="button" class="ctrl-btn" data-dir="right" aria-label="Right">→</button>
+    </div>
+  </div>
+</div>
+
+<div id="gameOverScreen" class="hidden">
+  <div class="game-over-overlay">
+    <h3 data-i18n="gameOver">Game over</h3>
+    <div class="final-score" id="finalScore">0</div>
+    <p style="margin:8px 0" data-i18n="finalScoreLabel">Final score</p>
+    <button type="button" class="btn btn-primary" id="btnRestart" data-i18n="restart">Play again</button>
+    <button type="button" class="btn btn-outline" style="margin-left:8px" id="btnBackMenu" data-i18n="backToMenu">Back to menu</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var STRINGS = {
+    en: {
+      title: 'Snake',
+      menuSubtitle: 'Choose difficulty and start',
+      diffEasy: 'Easy',
+      diffNormal: 'Normal',
+      diffHard: 'Hard',
+      startGame: 'Start game',
+      labelDifficulty: 'Difficulty',
+      labelScore: 'Score',
+      labelLength: 'Length',
+      gameOver: 'Game over',
+      finalScoreLabel: 'Final score',
+      restart: 'Play again',
+      backToMenu: 'Back to menu',
+      errStart: 'Could not start game. Check NativeBridge.',
+      errMove: 'Move failed',
+      boardAria: 'Snake game board'
+    },
+    zh: {
+      title: '贪吃蛇',
+      menuSubtitle: '选择难度开始游戏',
+      diffEasy: '简单',
+      diffNormal: '普通',
+      diffHard: '困难',
+      startGame: '开始游戏',
+      labelDifficulty: '难度',
+      labelScore: '得分',
+      labelLength: '长度',
+      gameOver: '游戏结束',
+      finalScoreLabel: '最终得分',
+      restart: '重新开始',
+      backToMenu: '返回菜单',
+      errStart: '无法开始游戏，请检查 NativeBridge。',
+      errMove: '移动失败',
+      boardAria: '贪吃蛇游戏区域'
+    }
+  };
+
+  var lang = 'en';
+  if (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) {
+    try {
+      lang = (NativeBridge.getLanguage() || 'en').substring(0, 2).toLowerCase();
+    } catch (e) {}
+  }
+  if (lang !== 'zh') lang = 'en';
+
+  function T(key) {
+    return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.en[key] || key;
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
+    document.title = T('title');
+    var heading = document.getElementById('titleHeading');
+    if (heading) heading.textContent = T('title');
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n');
+      if (k) el.textContent = T(k);
+    });
+    var canvas = document.getElementById('boardCanvas');
+    if (canvas) canvas.setAttribute('aria-label', T('boardAria'));
+    document.querySelectorAll('.ctrl-btn[data-dir]').forEach(function (btn) {
+      var d = btn.getAttribute('data-dir');
+      var map = lang === 'zh'
+        ? { up: '向上', down: '向下', left: '向左', right: '向右' }
+        : { up: 'Up', down: 'Down', left: 'Left', right: 'Right' };
+      btn.setAttribute('aria-label', map[d] || d);
+    });
+  }
+
+  applyI18n();
+
+  var difficulty = 2;
+  var gameInterval = null;
+  var currentDirection = 'right';
+  var gameState = null;
+  var boardResizeObs = null;
+  var windowResizeHooked = false;
+
+  var SPEEDS_MS = [0, 500, 300, 150];
+
+  function diffLabel(d) {
+    var keys = ['', 'diffEasy', 'diffNormal', 'diffHard'];
+    return T(keys[Math.max(1, Math.min(3, d))] || 'diffNormal');
+  }
+
+  document.querySelectorAll('.diff-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.diff-btn').forEach(function (b) {
+        b.className = 'btn btn-outline btn-sm diff-btn';
+      });
+      this.className = 'btn btn-primary btn-sm diff-btn active';
+      difficulty = parseInt(this.getAttribute('data-diff'), 10) || 2;
+    });
+  });
+
+  document.getElementById('btnStart').addEventListener('click', startGame);
+  document.getElementById('btnRestart').addEventListener('click', restartGame);
+  document.getElementById('btnBackMenu').addEventListener('click', backToMenu);
+
+  document.querySelectorAll('.ctrl-btn[data-dir]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var d = this.getAttribute('data-dir');
+      if (d) doMove(d);
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (document.getElementById('gameScreen').classList.contains('hidden')) return;
+    var map = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+      w: 'up', W: 'up', s: 'down', S: 'down', a: 'left', A: 'left', d: 'right', D: 'right'
+    };
+    var dir = map[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    doMove(dir);
+  });
+
+  function callPlugin(action, params) {
+    if (window.NativeBridge && NativeBridge.invoke) {
+      try {
+        return JSON.parse(NativeBridge.invoke(action, JSON.stringify(params || {})));
+      } catch (err) {
+        return { success: false, error: String(err) };
+      }
+    }
+    return null;
+  }
+
+  function parseOutput(r) {
+    if (!r || !r.success || r.output == null) return null;
+    try {
+      return typeof r.output === 'string' ? JSON.parse(r.output) : r.output;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function showScreen(id) {
+    ['menuScreen', 'gameScreen', 'gameOverScreen'].forEach(function (s) {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+    if (id === 'gameScreen') {
+      requestAnimationFrame(function () { drawBoard(); });
+    }
+  }
+
+  function stopAutoMove() {
+    if (gameInterval) {
+      clearInterval(gameInterval);
+      gameInterval = null;
+    }
+  }
+
+  function startAutoMove() {
+    stopAutoMove();
+    var ms = SPEEDS_MS[difficulty] || 300;
+    gameInterval = setInterval(function () {
+      var r = callPlugin('move', { direction: currentDirection });
+      var state = parseOutput(r);
+      if (state) {
+        applyState(state);
+      }
+    }, ms);
+  }
+
+  function getThemeColors() {
+    var root = getComputedStyle(document.documentElement);
+    return {
+      primary: (root.getPropertyValue('--primary') || '#6750A4').trim(),
+      primaryContainer: (root.getPropertyValue('--primary-container') || '#EADDFF').trim(),
+      surface: (root.getPropertyValue('--surface') || '#FFFBFE').trim(),
+      surfaceVariant: (root.getPropertyValue('--surface-variant') || '#E7E0EC').trim(),
+      error: (root.getPropertyValue('--error') || '#B3261E').trim()
+    };
+  }
+
+  function hexToRgb(hex) {
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 103, g: 80, b: 164 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+  }
+
+  function mixRgb(a, b, t) {
+    return {
+      r: Math.round(a.r + (b.r - a.r) * t),
+      g: Math.round(a.g + (b.g - a.g) * t),
+      b: Math.round(a.b + (b.b - a.b) * t)
+    };
+  }
+
+  function rgbStr(rgb) {
+    return 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+  }
+
+  function drawBoard() {
+    var canvas = document.getElementById('boardCanvas');
+    if (!canvas || !gameState) return;
+    var bw = gameState.boardWidth;
+    var bh = gameState.boardHeight;
+    if (!bw || !bh) return;
+
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    var cw = canvas.clientWidth;
+    var ch = canvas.clientHeight;
+    if (cw < 2 || ch < 2) return;
+
+    canvas.width = Math.round(cw * dpr);
+    canvas.height = Math.round(ch * dpr);
+
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var cellW = cw / bw;
+    var cellH = ch / bh;
+    var gap = Math.max(1, Math.min(cellW, cellH) * 0.07);
+    var c = getThemeColors();
+    var surf = hexToRgb(c.surfaceVariant);
+    var surfHi = mixRgb(surf, hexToRgb(c.surface), 0.35);
+
+    var food = gameState.food;
+    var snake = gameState.snake || [];
+
+    for (var y = 0; y < bh; y++) {
+      for (var x = 0; x < bw; x++) {
+        var px = x * cellW + gap / 2;
+        var py = y * cellH + gap / 2;
+        var pw = cellW - gap;
+        var ph = cellH - gap;
+        var alt = ((x + y) & 1) === 0;
+        ctx.fillStyle = rgbStr(alt ? surf : surfHi);
+        var r = Math.min(6, pw * 0.2);
+        ctx.beginPath();
+        ctx.roundRect(px, py, pw, ph, r);
+        ctx.fill();
+      }
+    }
+
+    for (var i = snake.length - 1; i >= 0; i--) {
+      var seg = snake[i];
+      if (!seg) continue;
+      var sx = seg.x;
+      var sy = seg.y;
+      if (sx < 0 || sx >= bw || sy < 0 || sy >= bh) continue;
+      var px = sx * cellW + gap / 2;
+      var py = sy * cellH + gap / 2;
+      var pw = cellW - gap;
+      var ph = cellH - gap;
+      var rr = Math.min(8, pw * 0.35);
+      var headRgb = hexToRgb(c.primary);
+      var bodyRgb = mixRgb(headRgb, hexToRgb(c.primaryContainer), 0.45);
+      var fill = i === 0 ? headRgb : bodyRgb;
+      ctx.fillStyle = rgbStr(fill);
+      ctx.beginPath();
+      ctx.roundRect(px, py, pw, ph, rr);
+      ctx.fill();
+      if (i === 0) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = Math.max(1, Math.min(pw, ph) * 0.06);
+        ctx.stroke();
+      }
+    }
+
+    if (food && typeof food.x === 'number' && typeof food.y === 'number') {
+      var fx = food.x;
+      var fy = food.y;
+      if (fx >= 0 && fx < bw && fy >= 0 && fy < bh) {
+        var fpx = fx * cellW + gap / 2;
+        var fpy = fy * cellH + gap / 2;
+        var fpw = cellW - gap;
+        var fph = cellH - gap;
+        var fr = Math.min(fpw, fph) / 2 * 0.85;
+        var cx = fpx + fpw / 2;
+        var cy = fpy + fph / 2;
+        var foodRgb = hexToRgb(c.error);
+        var g = ctx.createRadialGradient(cx - fr * 0.2, cy - fr * 0.2, fr * 0.1, cx, cy, fr);
+        g.addColorStop(0, rgbStr(mixRgb(foodRgb, { r: 255, g: 255, b: 255 }, 0.25)));
+        g.addColorStop(1, rgbStr(foodRgb));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, fr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radius) {
+      var r = radius;
+      if (width < 2 * r) r = width / 2;
+      if (height < 2 * r) r = height / 2;
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.arcTo(x + width, y, x + width, y + height, r);
+      this.arcTo(x + width, y + height, x, y + height, r);
+      this.arcTo(x, y + height, x, y, r);
+      this.arcTo(x, y, x + width, y, r);
+      this.closePath();
+      return this;
+    };
+  }
+
+  function applyState(state) {
+    if (!state) return;
+    gameState = state;
+    if (state.direction) currentDirection = state.direction;
+
+    document.getElementById('diffLabel').textContent = diffLabel(state.difficulty);
+    document.getElementById('scoreLabel').textContent = state.score;
+    document.getElementById('lengthLabel').textContent = state.snakeLength != null ? state.snakeLength : (state.snake && state.snake.length) || 0;
+
+    drawBoard();
+
+    if (state.gameOver) {
+      stopAutoMove();
+      document.getElementById('finalScore').textContent = state.score;
+      showScreen('gameOverScreen');
+    }
+  }
+
+  function startGame() {
+    var r = callPlugin('startGame', { difficulty: difficulty });
+    var state = parseOutput(r);
+    if (state) {
+      currentDirection = state.direction || 'right';
+      showScreen('gameScreen');
+      applyState(state);
+      setupBoardResize();
+      startAutoMove();
+    } else {
+      alert(T('errStart'));
+    }
+  }
+
+  function doMove(dir) {
+    stopAutoMove();
+    var r = callPlugin('move', { direction: dir });
+    var state = parseOutput(r);
+    if (state) {
+      applyState(state);
+      if (!state.gameOver) startAutoMove();
+    } else {
+      alert(T('errMove'));
+    }
+  }
+
+  function restartGame() {
+    var r = callPlugin('restart', {});
+    var state = parseOutput(r);
+    if (state) {
+      currentDirection = state.direction || 'right';
+      showScreen('gameScreen');
+      applyState(state);
+      setupBoardResize();
+      startAutoMove();
+    }
+  }
+
+  function backToMenu() {
+    stopAutoMove();
+    gameState = null;
+    showScreen('menuScreen');
+    if (boardResizeObs) {
+      boardResizeObs.disconnect();
+      boardResizeObs = null;
+    }
+  }
+
+  function setupBoardResize() {
+    var wrap = document.getElementById('boardWrap');
+    if (!wrap) return;
+    if (boardResizeObs) boardResizeObs.disconnect();
+    if (typeof ResizeObserver !== 'undefined') {
+      boardResizeObs = new ResizeObserver(function () {
+        drawBoard();
+      });
+      boardResizeObs.observe(wrap);
+    }
+    if (!windowResizeHooked) {
+      window.addEventListener('resize', onBoardResize);
+      windowResizeHooked = true;
+    }
+  }
+
+  function onBoardResize() {
+    drawBoard();
+  }
+})();
+</script>
+</body>
+</html>

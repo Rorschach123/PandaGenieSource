@@ -1,0 +1,63 @@
+{
+    "id": "password_gen",
+    "name": "密码生成器",
+    "name_en": "Password Generator",
+    "name_zh": "密码生成器",
+    "version": "1.1",
+    "icon": "vpn_key",
+    "soLibraries": [],
+    "description": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测",
+    "description_en": "Secure password generator: create strong passwords with customizable length, complexity, and character types. Also includes passphrase generation and password strength checker.",
+    "description_zh": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测",
+    "h5Page": "index.html",
+    "pluginJar": "plugin.jar",
+    "pluginFile": "plugin.dex",
+    "pluginClass": "ai.rorsch.moduleplugins.password_gen.PasswordGenPlugin",
+    "soLoadMode": "skip",
+    "permissions": [],
+    "capabilities": ["clipboard"],
+    "devCertFingerprint": "",
+    "developer": {
+        "name": "PandaGenie Official",
+        "email": "",
+        "url": ""
+    },
+    "apis": [
+        {
+            "name": "generate",
+            "desc": "生成加密安全的随机密码，可配置长度与字符类型",
+            "desc_en": "Generate a random secure password",
+            "description": "Generate a random secure password",
+            "params": ["length", "uppercase", "lowercase", "numbers", "symbols"],
+            "paramDesc": ["密码长度（默认 16）", "包含大写字母（默认 true）", "包含小写字母（默认 true）", "包含数字（默认 true）", "包含符号（默认 true）"],
+            "paramDesc_en": ["Password length (default 16)", "Include uppercase letters (default true)", "Include lowercase letters (default true)", "Include numbers (default true)", "Include symbols (default true)"]
+        },
+        {
+            "name": "generateMultiple",
+            "desc": "一次生成多条随机密码",
+            "desc_en": "Generate multiple random passwords at once",
+            "description": "Generate multiple random passwords at once",
+            "params": ["count", "length", "uppercase", "lowercase", "numbers", "symbols"],
+            "paramDesc": ["生成条数（默认 5）", "密码长度", "包含大写", "包含小写", "包含数字", "包含符号"],
+            "paramDesc_en": ["Number of passwords to generate (default 5)", "Password length", "Include uppercase", "Include lowercase", "Include numbers", "Include symbols"]
+        },
+        {
+            "name": "generatePassphrase",
+            "desc": "从词表随机选词生成易记短语密码",
+            "desc_en": "Generate a memorable passphrase from random words",
+            "description": "Generate a memorable passphrase from random words",
+            "params": ["wordCount", "separator"],
+            "paramDesc": ["单词数量（默认 4）", "分隔符（默认 -）"],
+            "paramDesc_en": ["Number of words (default 4)", "Word separator (default -)"]
+        },
+        {
+            "name": "checkStrength",
+            "desc": "分析密码强度并给出建议",
+            "desc_en": "Analyze the strength of a given password",
+            "description": "Analyze the strength of a given password",
+            "params": ["password"],
+            "paramDesc": ["要检测强度的密码"],
+            "paramDesc_en": ["Password to check strength of"]
+        }
+    ]
+}

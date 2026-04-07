@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title data-i18n="pageTitle">System Cleaner</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.sc-root { padding-bottom: 24px; }
+.sc-header {
+  text-align: center;
+  padding: 20px 0 8px;
+}
+.sc-header .icon { font-size: 48px; margin-bottom: 6px; }
+.sc-header h2 { margin: 0; font-size: 20px; }
+.sc-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+
+.storage-card {
+  background: var(--surface-variant);
+  border-radius: 18px;
+  padding: 20px 16px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.storage-ring-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+.storage-ring-wrap svg { transform: rotate(-90deg); width: 160px; height: 160px; }
+.ring-bg { fill: none; stroke: var(--outline-variant); stroke-width: 12; }
+.ring-fill {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.ring-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100px;
+}
+.ring-pct { font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.1; }
+.ring-label { font-size: 11px; color: var(--on-surface-variant); margin-top: 2px; }
+.storage-lines {
+  width: 100%;
+  font-size: 13px;
+  color: var(--on-surface);
+}
+.storage-lines .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(128,128,128,0.12);
+}
+.storage-lines .row:last-child { border-bottom: none; }
+.storage-lines .k { color: var(--on-surface-variant); }
+
+.compare-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.compare-pill {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 12px;
+}
+.compare-pill .v { font-size: 15px; font-weight: 600; color: var(--primary); margin-top: 4px; }
+.compare-pill.before .v { color: var(--on-surface-variant); }
+.compare-pill.after .v { color: #2E7D32; }
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 18px 0 10px;
+  padding-left: 2px;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.cat-card {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+}
+.cat-card .cat-emoji { font-size: 22px; margin-bottom: 4px; }
+.cat-card .cat-name { font-size: 13px; font-weight: 600; color: var(--on-surface); }
+.cat-card .cat-stat {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-top: 4px;
+  flex: 1;
+  line-height: 1.35;
+}
+.cat-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.cat-actions button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cat-actions button:active { opacity: 0.85; }
+.btn-scan { background: var(--primary-container); color: var(--primary); }
+.btn-clean { background: var(--primary); color: var(--on-primary); }
+.btn-clean:disabled, .btn-scan:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.large-panel {
+  background: var(--surface-variant);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 4px;
+}
+.large-panel .input-row { margin-bottom: 10px; }
+.large-panel label {
+  display: block;
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.large-panel input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+.large-panel input:focus { border-color: var(--primary); }
+.btn-block {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--primary);
+  color: var(--on-primary);
+  cursor: pointer;
+  margin-top: 4px;
+}
+.btn-block:active { opacity: 0.9; }
+.btn-block:disabled { opacity: 0.5; }
+
+.table-wrap {
+  margin-top: 12px;
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--outline-variant);
+}
+table.large-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.large-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--on-surface-variant);
+  font-weight: 600;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.large-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(128,128,128,0.1);
+  word-break: break-all;
+  color: var(--on-surface);
+}
+.large-table tr:last-child td { border-bottom: none; }
+.large-table .col-size { white-space: nowrap; width: 1%; color: var(--primary); font-weight: 600; }
+
+.global-actions {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.global-actions button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.global-actions .btn-all-scan {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+.global-actions .btn-all-clean {
+  background: var(--error-container);
+  color: var(--error);
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--outline);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed;
+  bottom: 56px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--on-surface);
+  color: var(--surface);
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+}
+.toast.show { opacity: 1; }
+
+.hidden { display: none !important; }
+.mono { font-family: ui-monospace, monospace; font-size: 10px; }
+</style>
+</head>
+<body class="sc-root">
+
+<div class="sc-header">
+  <div class="icon">🧹</div>
+  <h2 data-i18n="headerTitle"></h2>
+  <p data-i18n="headerDesc"></p>
+</div>
+
+<div class="storage-card" id="storageCard">
+  <div class="storage-ring-wrap">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="ring-bg" cx="50" cy="50" r="40"/>
+      <circle id="ringProgress" class="ring-fill" cx="50" cy="50" r="40"
+        stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+    </svg>
+    <div class="ring-center">
+      <div class="ring-pct" id="ringPct">—</div>
+      <div class="ring-label" data-i18n="storageUsed"></div>
+    </div>
+  </div>
+  <div class="storage-lines" id="storageLines"></div>
+  <div class="compare-bar hidden" id="compareBar">
+    <div class="compare-pill before">
+      <span data-i18n="beforeClean"></span>
+      <div class="v" id="beforeUsed">—</div>
+    </div>
+    <div class="compare-pill after">
+      <span data-i18n="afterClean"></span>
+      <div class="v" id="afterUsed">—</div>
+    </div>
+  </div>
+  <button type="button" class="btn-block" id="btnRefreshStorage" data-i18n="refreshStorage"></button>
+</div>
+
+<div class="global-actions">
+  <button type="button" class="btn-all-scan" id="btnScanAll" data-i18n="scanAll"></button>
+  <button type="button" class="btn-all-clean" id="btnCleanAll" data-i18n="cleanAll"></button>
+</div>
+
+<div class="section-title" data-i18n="sectionCategories"></div>
+<div class="cat-grid" id="catGrid"></div>
+
+<div class="section-title" data-i18n="sectionLargeFiles"></div>
+<div class="large-panel">
+  <div class="input-row">
+    <label for="lfMinMb" data-i18n="lfMinLabel"></label>
+    <input type="number" id="lfMinMb" value="50" min="1" step="1"/>
+  </div>
+  <div class="input-row">
+    <label for="lfPath" data-i18n="lfPathLabel"></label>
+    <input type="text" id="lfPath" data-i18n-placeholder="lfPathPh"/>
+  </div>
+  <button type="button" class="btn-block" id="btnLargeFind" data-i18n="lfFindBtn"></button>
+  <div class="table-wrap hidden" id="lfTableWrap">
+    <table class="large-table">
+      <thead>
+        <tr>
+          <th data-i18n="lfColName"></th>
+          <th class="col-size" data-i18n="lfColSize"></th>
+        </tr>
+      </thead>
+      <tbody id="lfTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '系统清理',
+    headerTitle: '系统清理',
+    headerDesc: '扫描并清理临时文件、缓存、空目录、缩略图与安装包，释放存储空间',
+    storageUsed: '已用',
+    storageTotal: '总量',
+    storageUsedRow: '已用',
+    storageFree: '可用',
+    beforeClean: '清理前',
+    afterClean: '清理后',
+    refreshStorage: '刷新存储信息',
+    scanAll: '全盘扫描',
+    cleanAll: '清理全部',
+    sectionCategories: '分类清理',
+    sectionLargeFiles: '大文件查找',
+    lfMinLabel: '最小大小 (MB)',
+    lfPathLabel: '扫描路径',
+    lfPathPh: '/sdcard',
+    lfFindBtn: '查找大文件',
+    lfColName: '文件',
+    lfColSize: '大小',
+    cat_temp: '临时文件',
+    cat_cache: '应用缓存',
+    cat_apk: '安装包',
+    cat_thumbs: '缩略图缓存',
+    cat_empty_dirs: '空文件夹',
+    cat_logs: '日志',
+    scan: '扫描',
+    clean: '清理',
+    statWaiting: '点击扫描',
+    statEmpty: '无可清理项',
+    toastBusy: '请稍候…',
+    toastNeedScan: '请先扫描或选择分类',
+    errBridge: 'NativeBridge 不可用',
+    errCall: '调用失败'
+  },
+  en: {
+    pageTitle: 'System Cleaner',
+    headerTitle: 'System Cleaner',
+    headerDesc: 'Scan and clean temp files, cache, empty folders, thumbnails, and APKs',
+    storageUsed: 'Used',
+    storageTotal: 'Total',
+    storageUsedRow: 'Used',
+    storageFree: 'Free',
+    beforeClean: 'Before',
+    afterClean: 'After',
+    refreshStorage: 'Refresh storage',
+    scanAll: 'Scan all',
+    cleanAll: 'Clean all',
+    sectionCategories: 'By category',
+    sectionLargeFiles: 'Large files',
+    lfMinLabel: 'Min size (MB)',
+    lfPathLabel: 'Path to scan',
+    lfPathPh: '/sdcard',
+    lfFindBtn: 'Find large files',
+    lfColName: 'File',
+    lfColSize: 'Size',
+    cat_temp: 'Temp',
+    cat_cache: 'Cache',
+    cat_apk: 'APK',
+    cat_thumbs: 'Thumbnails',
+    cat_empty_dirs: 'Empty dirs',
+    cat_logs: 'Logs',
+    scan: 'Scan',
+    clean: 'Clean',
+    statWaiting: 'Tap scan',
+    statEmpty: 'Nothing to clean',
+    toastBusy: 'Please wait…',
+    toastNeedScan: 'Scan first or pick categories',
+    errBridge: 'NativeBridge not available',
+    errCall: 'Call failed'
+  }
+};
+
+var CAT_KEYS = [
+  { id: 'temp', emoji: '📄' },
+  { id: 'cache', emoji: '🗂️' },
+  { id: 'apk', emoji: '📦' },
+  { id: 'thumbs', emoji: '🖼️' },
+  { id: 'empty_dirs', emoji: '📁' },
+  { id: 'logs', emoji: '📋' }
+];
+
+var lastScan = null;
+var storageBeforeClean = null;
+
+function T(key) {
+  var t = i18n[_lang] || i18n.en;
+  return t[key] != null ? t[key] : key;
+}
+
+function applyI18n() {
+  var l = i18n[_lang] ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n-placeholder');
+    if (t[k]) el.setAttribute('placeholder', t[k]);
+  });
+  refreshCategoryLabels();
+}
+
+try {
+  _lang = NativeBridge.getLanguage().substring(0, 2);
+} catch (e) {
+  _lang = (navigator.language || 'en').substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge) throw new Error(T('errBridge'));
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || T('errCall'));
+  var out = res.output;
+  return typeof out === 'string' ? out : JSON.stringify(out);
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2600);
+}
+
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function setRingPercent(pct) {
+  var circle = document.getElementById('ringProgress');
+  var c = 2 * Math.PI * 40;
+  circle.setAttribute('stroke-dasharray', String(c));
+  var off = c * (1 - Math.min(100, Math.max(0, pct)) / 100);
+  circle.setAttribute('stroke-dashoffset', String(off));
+  document.getElementById('ringPct').textContent = (Math.round(pct * 10) / 10) + '%';
+}
+
+function renderStorageFromJson(data) {
+  var ext = data.externalPrimary;
+  if (!ext || ext === null) ext = data.internal;
+  if (!ext) return;
+  var pct = ext.usedPercent != null ? ext.usedPercent : 0;
+  setRingPercent(pct);
+  var lines = document.getElementById('storageLines');
+  lines.innerHTML =
+    '<div class="row"><span class="k">' + esc(T('storageTotal')) + '</span><span>' + esc(ext.totalFormatted || '') + '</span></div>' +
+    '<div class="row"><span class="k">' + esc(T('storageUsedRow')) + '</span><span>' + esc(ext.usedFormatted || '') + '</span></div>' +
+    '<div class="row"><span class="k">' + esc(T('storageFree')) + '</span><span>' + esc(ext.freeFormatted || '') + '</span></div>';
+}
+
+function loadStorage() {
+  try {
+    var raw = invokeNative('getStorageInfo', {});
+    var data = JSON.parse(raw);
+    renderStorageFromJson(data);
+    return data;
+  } catch (e) {
+    showToast(e.message || String(e));
+    return null;
+  }
+}
+
+function defaultExtPath() {
+  try {
+    var raw = invokeNative('getStorageInfo', {});
+    var data = JSON.parse(raw);
+    var ext = data.externalPrimary;
+    if (ext && ext.path) return ext.path;
+  } catch (err) {}
+  return '/sdcard';
+}
+
+function buildCatGrid() {
+  var g = document.getElementById('catGrid');
+  var h = '';
+  CAT_KEYS.forEach(function(c) {
+    h += '<div class="cat-card" data-cat="' + c.id + '">' +
+      '<div class="cat-emoji">' + c.emoji + '</div>' +
+      '<div class="cat-name" data-i18n="cat_' + c.id + '"></div>' +
+      '<div class="cat-stat" id="stat-' + c.id + '">' + esc(T('statWaiting')) + '</div>' +
+      '<div class="cat-actions">' +
+      '<button type="button" class="btn-scan" data-act="scan">' + esc(T('scan')) + '</button>' +
+      '<button type="button" class="btn-clean" data-act="clean">' + esc(T('clean')) + '</button>' +
+      '</div></div>';
+  });
+  g.innerHTML = h;
+  g.querySelectorAll('.btn-scan').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var card = btn.closest('.cat-card');
+      scanCategory(card.getAttribute('data-cat'));
+    });
+  });
+  g.querySelectorAll('.btn-clean').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var card = btn.closest('.cat-card');
+      cleanCategory(card.getAttribute('data-cat'));
+    });
+  });
+  applyI18n();
+}
+
+function refreshCategoryLabels() {
+  CAT_KEYS.forEach(function(c) {
+    var el = document.getElementById('stat-' + c.id);
+    if (el && !el.dataset.lock) {
+      el.textContent = T('statWaiting');
+    }
+  });
+}
+
+function formatCatStat(catId, info) {
+  if (!info || info.count === 0) return T('statEmpty');
+  if (catId === 'empty_dirs') {
+    return info.count + (_lang === 'zh' ? ' 个空目录' : ' empty dirs');
+  }
+  return info.count + (_lang === 'zh' ? ' 个文件 · ' : ' files · ') + (info.sizeFormatted || '');
+}
+
+function mergeScanIntoLast(categories) {
+  if (!lastScan) lastScan = { categories: {} };
+  for (var k in categories) {
+    if (categories.hasOwnProperty(k)) {
+      lastScan.categories[k] = categories[k];
+    }
+  }
+}
+
+function scanCategory(cat) {
+  try {
+    document.getElementById('stat-' + cat).dataset.lock = '1';
+    document.getElementById('stat-' + cat).innerHTML = '<span class="spinner"></span>';
+    setTimeout(function() {
+      try {
+        var raw = invokeNative('scanJunk', { categories: cat });
+        var data = JSON.parse(raw);
+        if (data.error) throw new Error(data.error);
+        var info = data.categories && data.categories[cat];
+        var el = document.getElementById('stat-' + cat);
+        el.dataset.lock = '';
+        el.textContent = formatCatStat(cat, info);
+        mergeScanIntoLast(data.categories || {});
+      } catch (e) {
+        var el2 = document.getElementById('stat-' + cat);
+        el2.dataset.lock = '';
+        el2.textContent = esc(e.message || String(e));
+      }
+    }, 30);
+  } catch (e) {
+    showToast(e.message || String(e));
+  }
+}
+
+function scanAllCategories() {
+  try {
+    CAT_KEYS.forEach(function(c) {
+      var el = document.getElementById('stat-' + c.id);
+      el.dataset.lock = '1';
+      el.innerHTML = '<span class="spinner"></span>';
+    });
+    setTimeout(function() {
+      try {
+        var raw = invokeNative('scanJunk', { categories: '' });
+        var data = JSON.parse(raw);
+        if (data.error) throw new Error(data.error);
+        lastScan = data;
+        CAT_KEYS.forEach(function(c) {
+          var el = document.getElementById('stat-' + c.id);
+          el.dataset.lock = '';
+          var info = data.categories && data.categories[c.id];
+          el.textContent = formatCatStat(c.id, info);
+        });
+        showToast(data.totalSizeFormatted || '');
+      } catch (e) {
+        CAT_KEYS.forEach(function(c) {
+          var el = document.getElementById('stat-' + c.id);
+          el.dataset.lock = '';
+          el.textContent = T('statWaiting');
+        });
+        showToast(e.message || String(e));
+      }
+    }, 30);
+  } catch (e) {
+    showToast(e.message || String(e));
+  }
+}
+
+function cleanCategory(cat) {
+  try {
+    var beforeSnap = loadStorage();
+    var beforeUsedFmt = beforeSnap && beforeSnap.externalPrimary
+      ? beforeSnap.externalPrimary.usedFormatted : null;
+    var raw = invokeNative('cleanJunk', { categories: cat });
+    var data = JSON.parse(raw);
+    if (data.error) throw new Error(data.error);
+    var snap = loadStorage();
+    if (beforeUsedFmt && snap && snap.externalPrimary) {
+      document.getElementById('compareBar').classList.remove('hidden');
+      document.getElementById('beforeUsed').textContent = beforeUsedFmt;
+      document.getElementById('afterUsed').textContent = snap.externalPrimary.usedFormatted || '—';
+    }
+    showToast(data.freedFormatted || '');
+    scanCategory(cat);
+  } catch (e) {
+    showToast(e.message || String(e));
+  }
+}
+
+function cleanAllCategories() {
+  try {
+    storageBeforeClean = null;
+    var before = loadStorage();
+    if (before && before.externalPrimary) {
+      storageBeforeClean = {
+        usedFormatted: before.externalPrimary.usedFormatted,
+        usedBytes: before.externalPrimary.usedBytes
+      };
+    }
+    var raw = invokeNative('cleanJunk', {
+      categories: 'temp,cache,apk,thumbs,empty_dirs,logs'
+    });
+    var data = JSON.parse(raw);
+    if (data.error) throw new Error(data.error);
+    var after = loadStorage();
+    if (storageBeforeClean && after && after.externalPrimary) {
+      document.getElementById('compareBar').classList.remove('hidden');
+      document.getElementById('beforeUsed').textContent = storageBeforeClean.usedFormatted || '—';
+      document.getElementById('afterUsed').textContent = after.externalPrimary.usedFormatted || '—';
+    }
+    showToast(data.freedFormatted || '');
+    scanAllCategories();
+  } catch (e) {
+    showToast(e.message || String(e));
+  }
+}
+
+function findLargeFiles() {
+  var minMb = parseFloat(document.getElementById('lfMinMb').value) || 50;
+  var path = document.getElementById('lfPath').value.trim() || defaultExtPath();
+  var wrap = document.getElementById('lfTableWrap');
+  var tbody = document.getElementById('lfTbody');
+  tbody.innerHTML = '<tr><td colspan="2"><span class="spinner"></span> …</td></tr>';
+  wrap.classList.remove('hidden');
+  setTimeout(function() {
+    try {
+      var raw = invokeNative('findLargeFiles', { minSizeMB: minMb, path: path, recursive: true, limit: 80 });
+      var data = JSON.parse(raw);
+      if (data.error) throw new Error(data.error);
+      tbody.innerHTML = '';
+      if (!data.files || data.files.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2">' + esc(T('statEmpty')) + '</td></tr>';
+        return;
+      }
+      for (var i = 0; i < data.files.length; i++) {
+        var f = data.files[i];
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td class="mono">' + esc(f.name) + '<div style="opacity:.65;font-size:10px;margin-top:2px">' + esc(f.path) + '</div></td>' +
+          '<td class="col-size">' + esc(f.sizeFormatted) + '</td>';
+        tbody.appendChild(tr);
+      }
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="2" style="color:var(--error)">' + esc(e.message || String(e)) + '</td></tr>';
+    }
+  }, 40);
+}
+
+document.getElementById('btnRefreshStorage').addEventListener('click', function() {
+  loadStorage();
+});
+document.getElementById('btnScanAll').addEventListener('click', scanAllCategories);
+document.getElementById('btnCleanAll').addEventListener('click', cleanAllCategories);
+document.getElementById('btnLargeFind').addEventListener('click', findLargeFiles);
+
+buildCatGrid();
+document.getElementById('lfPath').value = defaultExtPath();
+loadStorage();
+</script>
+</body>
+</html>

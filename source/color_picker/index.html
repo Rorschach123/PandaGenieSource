@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title data-i18n="pageTitle">颜色工具 / Color Tools</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.cp-wrap { max-width: 540px; margin: 0 auto; padding: 12px 14px 28px; }
+.cp-header { text-align: center; padding: 14px 0 10px; }
+.cp-header .icon { font-size: 42px; margin-bottom: 4px; }
+.cp-header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.cp-header p { margin: 6px 0 0; font-size: 13px; color: var(--on-surface-variant); line-height: 1.45; }
+.cp-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; justify-content: center;
+}
+.cp-tab {
+  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--outline-variant);
+  background: var(--surface); color: var(--on-surface-variant); font-size: 13px; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.cp-tab.active {
+  background: var(--primary); color: var(--on-primary); border-color: var(--primary);
+}
+.cp-panel { display: none; }
+.cp-panel.active { display: block; }
+.cp-card {
+  background: var(--surface-container); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.cp-label { display: block; font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; letter-spacing: .02em; }
+.cp-row { margin-bottom: 12px; }
+.cp-row:last-child { margin-bottom: 0; }
+.cp-input, .cp-select {
+  width: 100%; box-sizing: border-box; padding: 11px 13px; border-radius: 12px;
+  border: 1px solid var(--outline-variant); background: var(--surface); color: var(--on-surface); font-size: 15px;
+}
+.cp-input { font-variant-numeric: tabular-nums; }
+.cp-picker-row { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.cp-swatch-wrap {
+  flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.cp-swatch {
+  width: 72px; height: 72px; border-radius: 16px; border: 2px solid var(--outline-variant);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); cursor: pointer;
+}
+.cp-native-color { width: 100%; height: 40px; padding: 0; border: none; border-radius: 10px; cursor: pointer; }
+.cp-canvas-wrap { flex: 1; min-width: 200px; display: flex; gap: 8px; align-items: stretch; }
+.cp-canvas-hue {
+  width: 28px; border-radius: 10px; border: 1px solid var(--outline-variant); cursor: crosshair; touch-action: none;
+}
+.cp-canvas-sl {
+  flex: 1; min-height: 160px; border-radius: 12px; border: 1px solid var(--outline-variant); cursor: crosshair; touch-action: none;
+}
+.cp-hue-slider { width: 100%; margin-top: 8px; }
+.cp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 400px) { .cp-grid { grid-template-columns: 1fr; } }
+.cp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 16px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--primary); color: var(--on-primary); width: 100%; margin-top: 4px;
+}
+.cp-btn.secondary { background: var(--secondary-container); color: var(--on-secondary-container); }
+.cp-btn:active { opacity: .92; transform: scale(.99); }
+.cp-palette-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.cp-p-swatch {
+  width: 56px; text-align: center; font-size: 11px; color: var(--on-surface-variant);
+}
+.cp-p-swatch .box {
+  height: 48px; border-radius: 12px; border: 1px solid var(--outline-variant); margin-bottom: 6px; cursor: pointer;
+}
+.cp-p-swatch code { font-size: 10px; word-break: break-all; user-select: all; }
+.cp-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(80px);
+  background: var(--inverse-surface); color: var(--inverse-on-surface); padding: 10px 18px; border-radius: 999px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: transform .2s, opacity .2s; z-index: 100;
+}
+.cp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cp-foot { font-size: 11px; color: var(--on-surface-variant); margin-top: 10px; line-height: 1.5; }
+.cp-named { margin-top: 10px; padding: 12px; border-radius: 12px; background: var(--surface); font-size: 13px; }
+.cp-named strong { color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="cp-wrap">
+  <div class="cp-header">
+    <div class="icon">🎨</div>
+    <h1 data-i18n="headerTitle">颜色工具</h1>
+    <p data-i18n="headerDesc">拾色、格式互转、和谐色板与命名色查询</p>
+  </div>
+
+  <div class="cp-tabs" id="tabs">
+    <button type="button" class="cp-tab active" data-panel="picker" data-i18n="tabPicker">拾色器</button>
+    <button type="button" class="cp-tab" data-panel="convert" data-i18n="tabConvert">转换</button>
+    <button type="button" class="cp-tab" data-panel="palette" data-i18n="tabPalette">色板</button>
+  </div>
+
+  <div class="cp-panel active" id="panel-picker">
+    <div class="cp-card">
+      <div class="cp-picker-row">
+        <div class="cp-swatch-wrap">
+          <div class="cp-swatch" id="mainSwatch" title=""></div>
+          <input type="color" class="cp-native-color" id="nativeColor" value="#6366f1">
+        </div>
+        <div class="cp-canvas-wrap">
+          <canvas class="cp-canvas-hue" id="hueCanvas" width="28" height="200"></canvas>
+          <canvas class="cp-canvas-sl" id="slCanvas" width="280" height="200"></canvas>
+        </div>
+      </div>
+      <input type="range" class="cp-hue-slider" id="hueRange" min="0" max="360" value="237" step="1">
+    </div>
+    <div class="cp-card">
+      <div class="cp-grid">
+        <div class="cp-row">
+          <label class="cp-label" for="fldHex" data-i18n="labelHex">HEX</label>
+          <input type="text" class="cp-input" id="fldHex" placeholder="#6366F1" autocomplete="off">
+        </div>
+        <div class="cp-row">
+          <label class="cp-label" for="fldRgb" data-i18n="labelRgb">RGB</label>
+          <input type="text" class="cp-input" id="fldRgb" placeholder="99, 102, 241" autocomplete="off">
+        </div>
+        <div class="cp-row">
+          <label class="cp-label" for="fldHsl" data-i18n="labelHsl">HSL</label>
+          <input type="text" class="cp-input" id="fldHsl" placeholder="237, 84, 67" autocomplete="off">
+        </div>
+        <div class="cp-row">
+          <label class="cp-label" for="fldCmyk" data-i18n="labelCmyk">CMYK</label>
+          <input type="text" class="cp-input" id="fldCmyk" placeholder="59, 58, 0, 5" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="cp-btn secondary" id="btnCopyAll" data-i18n="btnCopyAll">复制全部格式</button>
+      <div class="cp-named" id="namedBox" style="display:none">
+        <span data-i18n="labelNamed">最接近的 CSS 命名色</span>：
+        <strong id="namedName">—</strong>
+        <span id="namedHex"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cp-panel" id="panel-convert">
+    <div class="cp-card">
+      <div class="cp-row">
+        <label class="cp-label" for="convInput" data-i18n="labelConvInput">输入颜色</label>
+        <input type="text" class="cp-input" id="convInput" placeholder="#FF5733 或 rgb(255,87,51)" autocomplete="off">
+      </div>
+      <div class="cp-row">
+        <label class="cp-label" for="convFrom" data-i18n="labelConvFrom">源格式</label>
+        <select class="cp-select" id="convFrom">
+          <option value="auto" data-i18n="fmtAuto">自动</option>
+          <option value="hex">HEX</option>
+          <option value="rgb">RGB</option>
+          <option value="hsl">HSL</option>
+          <option value="cmyk">CMYK</option>
+        </select>
+      </div>
+      <button type="button" class="cp-btn" id="btnConvNative" data-i18n="btnConvNative">使用原生接口转换</button>
+      <p class="cp-foot" id="convOut" data-i18n="convHint">也可在「拾色器」标签中实时查看各格式。</p>
+    </div>
+  </div>
+
+  <div class="cp-panel" id="panel-palette">
+    <div class="cp-card">
+      <div class="cp-row">
+        <label class="cp-label" for="palBase" data-i18n="labelPalBase">基色</label>
+        <input type="text" class="cp-input" id="palBase" placeholder="#6366F1" autocomplete="off">
+      </div>
+      <div class="cp-row">
+        <label class="cp-label" for="palHarmony" data-i18n="labelPalHarmony">和谐类型</label>
+        <select class="cp-select" id="palHarmony">
+          <option value="complementary" data-i18n="harmComp">互补</option>
+          <option value="analogous" data-i18n="harmAnalog">类似</option>
+          <option value="triadic" data-i18n="harmTriadic">三角</option>
+          <option value="split-complementary" data-i18n="harmSplit">分裂互补</option>
+          <option value="tetradic" data-i18n="harmTetra">四色（方形）</option>
+        </select>
+      </div>
+      <button type="button" class="cp-btn" id="btnPalNative" data-i18n="btnPalNative">生成色板（原生）</button>
+      <div class="cp-palette-swatches" id="palSwatches"></div>
+    </div>
+    <div class="cp-card">
+      <div class="cp-row">
+        <label class="cp-label" for="randCount" data-i18n="labelRandCount">随机色数量</label>
+        <input type="number" class="cp-input" id="randCount" min="1" max="20" value="5">
+      </div>
+      <div class="cp-grid">
+        <div class="cp-row">
+          <label class="cp-label" for="randHueMin" data-i18n="labelHueMin">色相最小</label>
+          <input type="number" class="cp-input" id="randHueMin" min="0" max="360" value="0">
+        </div>
+        <div class="cp-row">
+          <label class="cp-label" for="randHueMax" data-i18n="labelHueMax">色相最大</label>
+          <input type="number" class="cp-input" id="randHueMax" min="0" max="360" value="360">
+        </div>
+      </div>
+      <button type="button" class="cp-btn secondary" id="btnRandNative" data-i18n="btnRandNative">随机颜色（原生）</button>
+      <div class="cp-palette-swatches" id="randSwatches"></div>
+    </div>
+  </div>
+
+  <p class="cp-foot" data-i18n="footBridge">与插件 API convertColor / generatePalette / randomColor / getColorInfo 对齐。</p>
+</div>
+<div class="cp-toast" id="toast"></div>
+
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    pageTitle: '颜色工具 / Color Tools',
+    headerTitle: '颜色工具',
+    headerDesc: '拾色、格式互转、和谐色板与命名色查询',
+    tabPicker: '拾色器',
+    tabConvert: '转换',
+    tabPalette: '色板',
+    labelHex: 'HEX',
+    labelRgb: 'RGB',
+    labelHsl: 'HSL',
+    labelCmyk: 'CMYK',
+    btnCopyAll: '复制全部格式',
+    labelNamed: '最接近的 CSS 命名色',
+    labelConvInput: '输入颜色',
+    labelConvFrom: '源格式',
+    fmtAuto: '自动',
+    btnConvNative: '使用原生接口转换',
+    convHint: '也可在「拾色器」标签中实时查看各格式。',
+    labelPalBase: '基色',
+    labelPalHarmony: '和谐类型',
+    harmComp: '互补',
+    harmAnalog: '类似',
+    harmTriadic: '三角',
+    harmSplit: '分裂互补',
+    harmTetra: '四色（方形）',
+    btnPalNative: '生成色板（原生）',
+    labelRandCount: '随机色数量',
+    labelHueMin: '色相最小',
+    labelHueMax: '色相最大',
+    btnRandNative: '随机颜色（原生）',
+    footBridge: '与插件 API convertColor / generatePalette / randomColor / getColorInfo 对齐。',
+    toastCopied: '已复制',
+    toastErr: '复制失败',
+    bridgeReady: 'NativeBridge 已连接',
+    bridgeOff: '离线预览（无 NativeBridge）',
+    errParse: '无法解析颜色',
+    errNative: '调用失败'
+  },
+  en: {
+    pageTitle: 'Color Tools',
+    headerTitle: 'Color Tools',
+    headerDesc: 'Picker, format conversion, palettes, and named-color lookup',
+    tabPicker: 'Picker',
+    tabConvert: 'Convert',
+    tabPalette: 'Palette',
+    labelHex: 'HEX',
+    labelRgb: 'RGB',
+    labelHsl: 'HSL',
+    labelCmyk: 'CMYK',
+    btnCopyAll: 'Copy all formats',
+    labelNamed: 'Closest CSS named color',
+    labelConvInput: 'Color input',
+    labelConvFrom: 'Source format',
+    fmtAuto: 'Auto',
+    btnConvNative: 'Convert via native API',
+    convHint: 'All formats also update live in the Picker tab.',
+    labelPalBase: 'Base color',
+    labelPalHarmony: 'Harmony',
+    harmComp: 'Complementary',
+    harmAnalog: 'Analogous',
+    harmTriadic: 'Triadic',
+    harmSplit: 'Split-complementary',
+    harmTetra: 'Tetradic (square)',
+    btnPalNative: 'Generate palette (native)',
+    labelRandCount: 'Random count',
+    labelHueMin: 'Hue min',
+    labelHueMax: 'Hue max',
+    btnRandNative: 'Random colors (native)',
+    footBridge: 'Aligned with convertColor / generatePalette / randomColor / getColorInfo.',
+    toastCopied: 'Copied',
+    toastErr: 'Copy failed',
+    bridgeReady: 'NativeBridge connected',
+    bridgeOff: 'Offline preview (no NativeBridge)',
+    errParse: 'Could not parse color',
+    errNative: 'Call failed'
+  }
+};
+
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n-title');
+    if (t[k]) el.setAttribute('title', t[k]);
+  });
+  document.querySelectorAll('select option[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+
+try {
+  if (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) {
+    _lang = NativeBridge.getLanguage().substring(0, 2);
+  } else {
+    _lang = (navigator.language || 'zh').substring(0, 2) === 'zh' ? 'zh' : 'en';
+  }
+} catch (e) {
+  _lang = (navigator.language || 'zh').substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+
+function T(key) {
+  var l = i18n[_lang] ? _lang : 'en';
+  return (i18n[l] && i18n[l][key]) || (i18n.en[key] || key);
+}
+
+function clampByte(v) {
+  if (v < 0) return 0;
+  if (v > 255) return 255;
+  return v | 0;
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(function(x) {
+    var h = clampByte(x).toString(16).toUpperCase();
+    return h.length < 2 ? '0' + h : h;
+  }).join('');
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h = 0, s, l = (max + min) / 2;
+  var d = max - min;
+  if (d < 1e-6) {
+    s = 0;
+  } else {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h: h, s: s * 100, l: l * 100 };
+}
+
+function hslToRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  if (s <= 0) {
+    var v = Math.round(l * 255);
+    return { r: v, g: v, b: v };
+  }
+  var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  var p = 2 * l - q;
+  function hue2rgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 0.5) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  }
+  var r = Math.round(hue2rgb(p, q, h / 360 + 1 / 3) * 255);
+  var g = Math.round(hue2rgb(p, q, h / 360) * 255);
+  var b = Math.round(hue2rgb(p, q, h / 360 - 1 / 3) * 255);
+  return { r: clampByte(r), g: clampByte(g), b: clampByte(b) };
+}
+
+function rgbToCmyk(r, g, b) {
+  var rf = r / 255, gf = g / 255, bf = b / 255;
+  var k = 1 - Math.max(rf, Math.max(gf, bf));
+  if (k >= 1 - 1e-6) return { c: 0, m: 0, y: 0, k: 100 };
+  var c = (1 - rf - k) / (1 - k);
+  var m = (1 - gf - k) / (1 - k);
+  var y = (1 - bf - k) / (1 - k);
+  return { c: c * 100, m: m * 100, y: y * 100, k: k * 100 };
+}
+
+function parseHex(str) {
+  var s = (str || '').trim().replace(/^#/, '');
+  if (s.length === 3) {
+    s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+  }
+  if (s.length === 8) s = s.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+  var n = parseInt(s, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function parseRgbTriplet(str) {
+  var m = (str || '').match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+  var parts = str.split(/[,\s]+/).filter(Boolean);
+  if (parts.length >= 3) {
+    var r = parseInt(parts[0], 10), g = parseInt(parts[1], 10), b = parseInt(parts[2], 10);
+    if (!isNaN(r) && !isNaN(g) && !isNaN(b)) return { r: r, g: g, b: b };
+  }
+  return null;
+}
+
+function parseHslTriplet(str) {
+  var m = (str || '').match(/hsla?\s*\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*%?\s*,\s*([0-9.]+)\s*%?/i);
+  if (m) {
+    var h = parseFloat(m[1]), s = parseFloat(m[2]), l = parseFloat(m[3]);
+    if (!str.includes('%') && s <= 1 && l <= 1) { s *= 100; l *= 100; }
+    return hslToRgb(h, s, l);
+  }
+  var parts = str.replace(/%/g, '').split(/[,\s]+/).filter(Boolean);
+  if (parts.length >= 3) {
+    var h2 = parseFloat(parts[0]), s2 = parseFloat(parts[1]), l2 = parseFloat(parts[2]);
+    if (!str.includes('%') && s2 <= 1 && l2 <= 1) { s2 *= 100; l2 *= 100; }
+    return hslToRgb(h2, s2, l2);
+  }
+  return null;
+}
+
+function parseCmykQuad(str) {
+  var parts = str.replace(/%/g, '').replace(/cmyk/i, '').replace(/[()]/g, ' ').split(/[,\s]+/).filter(Boolean);
+  if (parts.length < 4) return null;
+  var c = parseFloat(parts[0]), m = parseFloat(parts[1]), y = parseFloat(parts[2]), k = parseFloat(parts[3]);
+  if (!str.includes('%') && c <= 1 && m <= 1 && y <= 1 && k <= 1) {
+    c *= 100; m *= 100; y *= 100; k *= 100;
+  }
+  c = Math.max(0, Math.min(100, c)) / 100;
+  m = Math.max(0, Math.min(100, m)) / 100;
+  y = Math.max(0, Math.min(100, y)) / 100;
+  k = Math.max(0, Math.min(100, k)) / 100;
+  var r = Math.round(255 * (1 - c) * (1 - k));
+  var g = Math.round(255 * (1 - m) * (1 - k));
+  var b = Math.round(255 * (1 - y) * (1 - k));
+  return { r: clampByte(r), g: clampByte(g), b: clampByte(b) };
+}
+
+function parseAnyColor(str) {
+  if (!str || !str.trim()) return null;
+  var t = str.trim();
+  var rgb = parseHex(t);
+  if (rgb) return rgb;
+  rgb = parseRgbTriplet(t);
+  if (rgb) return { r: clampByte(rgb.r), g: clampByte(rgb.g), b: clampByte(rgb.b) };
+  rgb = parseHslTriplet(t);
+  if (rgb) return rgb;
+  rgb = parseCmykQuad(t);
+  if (rgb) return rgb;
+  return null;
+}
+
+var state = { h: 237, s: 84, l: 67, draggingHue: false, draggingSl: false };
+
+var hueCanvas = document.getElementById('hueCanvas');
+var slCanvas = document.getElementById('slCanvas');
+var hueCtx = hueCanvas.getContext('2d');
+var slCtx = slCanvas.getContext('2d');
+
+function drawHueCanvas() {
+  var w = hueCanvas.width, h = hueCanvas.height;
+  var grd = hueCtx.createLinearGradient(0, 0, 0, h);
+  for (var i = 0; i <= 6; i++) {
+    var hh = (i / 6) * 360;
+    grd.addColorStop(i / 6, 'hsl(' + hh + ',100%,50%)');
+  }
+  hueCtx.fillStyle = grd;
+  hueCtx.fillRect(0, 0, w, h);
+}
+
+function drawSlCanvas() {
+  var w = slCanvas.width, h = slCanvas.height;
+  var hh = state.h;
+  slCtx.fillStyle = 'hsl(' + hh + ',100%,50%)';
+  slCtx.fillRect(0, 0, w, h);
+  var gWhite = slCtx.createLinearGradient(0, 0, w, 0);
+  gWhite.addColorStop(0, 'rgba(255,255,255,1)');
+  gWhite.addColorStop(1, 'rgba(255,255,255,0)');
+  slCtx.fillStyle = gWhite;
+  slCtx.fillRect(0, 0, w, h);
+  var gBlack = slCtx.createLinearGradient(0, 0, 0, h);
+  gBlack.addColorStop(0, 'rgba(0,0,0,0)');
+  gBlack.addColorStop(1, 'rgba(0,0,0,1)');
+  slCtx.fillStyle = gBlack;
+  slCtx.fillRect(0, 0, w, h);
+}
+
+function rgbFromHslState() {
+  return hslToRgb(state.h, state.s, state.l);
+}
+
+function syncFromRgb(r, g, b) {
+  var hsl = rgbToHsl(r, g, b);
+  state.h = hsl.h;
+  state.s = hsl.s;
+  state.l = hsl.l;
+  document.getElementById('hueRange').value = String(Math.round(state.h));
+  refreshUiFromState(false);
+}
+
+function refreshUiFromState(skipField) {
+  var rgb = rgbFromHslState();
+  var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+  document.getElementById('mainSwatch').style.background = hex;
+  document.getElementById('nativeColor').value = hex;
+  if (skipField !== 'hex') document.getElementById('fldHex').value = hex;
+  if (skipField !== 'rgb') document.getElementById('fldRgb').value = rgb.r + ', ' + rgb.g + ', ' + rgb.b;
+  if (skipField !== 'hsl') {
+    document.getElementById('fldHsl').value =
+      state.h.toFixed(1) + ', ' + state.s.toFixed(1) + ', ' + state.l.toFixed(1);
+  }
+  if (skipField !== 'cmyk') {
+    var ck = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+    document.getElementById('fldCmyk').value =
+      ck.c.toFixed(1) + ', ' + ck.m.toFixed(1) + ', ' + ck.y.toFixed(1) + ', ' + ck.k.toFixed(1);
+  }
+  drawHueMarker();
+  drawSlMarker();
+  updateNamedLocal(rgb.r, rgb.g, rgb.b);
+}
+
+function drawHueMarker() {
+  var h = hueCanvas.height;
+  var y = (state.h / 360) * h;
+  hueCtx.save();
+  drawHueCanvas();
+  hueCtx.strokeStyle = '#fff';
+  hueCtx.lineWidth = 2;
+  hueCtx.shadowColor = 'rgba(0,0,0,.6)';
+  hueCtx.shadowBlur = 3;
+  hueCtx.beginPath();
+  hueCtx.moveTo(0, y);
+  hueCtx.lineTo(hueCanvas.width, y);
+  hueCtx.stroke();
+  hueCtx.restore();
+}
+
+function drawSlMarker() {
+  var w = slCanvas.width, h = slCanvas.height;
+  var x = (state.s / 100) * w;
+  var y = (1 - state.l / 100) * h;
+  slCtx.save();
+  drawSlCanvas();
+  slCtx.strokeStyle = '#fff';
+  slCtx.lineWidth = 2;
+  slCtx.shadowColor = 'rgba(0,0,0,.5)';
+  slCtx.shadowBlur = 3;
+  slCtx.beginPath();
+  slCtx.arc(x, y, 7, 0, Math.PI * 2);
+  slCtx.stroke();
+  slCtx.restore();
+}
+
+function clientPoint(e) {
+  if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function readHueFromEvent(e) {
+  var rect = hueCanvas.getBoundingClientRect();
+  var pt = clientPoint(e);
+  var y = pt.y - rect.top;
+  var p = Math.max(0, Math.min(1, y / rect.height));
+  state.h = p * 360;
+  document.getElementById('hueRange').value = String(Math.round(state.h));
+  refreshUiFromState(false);
+}
+
+function readSlFromEvent(e) {
+  var rect = slCanvas.getBoundingClientRect();
+  var pt = clientPoint(e);
+  var cx = pt.x - rect.left;
+  var cy = pt.y - rect.top;
+  var x = Math.max(0, Math.min(1, cx / rect.width));
+  var y = Math.max(0, Math.min(1, cy / rect.height));
+  state.s = x * 100;
+  state.l = (1 - y) * 100;
+  refreshUiFromState(false);
+}
+
+['mousedown', 'touchstart'].forEach(function(ev) {
+  hueCanvas.addEventListener(ev, function(e) {
+    e.preventDefault();
+    state.draggingHue = true;
+    readHueFromEvent(e.type === 'touchstart' ? e : e);
+  });
+});
+['mousedown', 'touchstart'].forEach(function(ev) {
+  slCanvas.addEventListener(ev, function(e) {
+    e.preventDefault();
+    state.draggingSl = true;
+    readSlFromEvent(e.type === 'touchstart' ? e : e);
+  });
+});
+['mousemove', 'touchmove'].forEach(function(ev) {
+  document.addEventListener(ev, function(e) {
+    if (state.draggingHue && (e.type === 'mousemove' ? e.buttons === 1 : true)) {
+      if (e.type === 'touchmove') e.preventDefault();
+      readHueFromEvent(e);
+    }
+    if (state.draggingSl && (e.type === 'mousemove' ? e.buttons === 1 : true)) {
+      if (e.type === 'touchmove') e.preventDefault();
+      readSlFromEvent(e);
+    }
+  }, { passive: false });
+});
+['mouseup', 'touchend', 'touchcancel'].forEach(function(ev) {
+  document.addEventListener(ev, function() {
+    state.draggingHue = false;
+    state.draggingSl = false;
+  });
+});
+
+document.getElementById('hueRange').addEventListener('input', function() {
+  state.h = parseFloat(this.value) || 0;
+  refreshUiFromState(false);
+});
+
+document.getElementById('nativeColor').addEventListener('input', function() {
+  var p = parseHex(this.value);
+  if (p) syncFromRgb(p.r, p.g, p.b);
+});
+
+document.getElementById('fldHex').addEventListener('input', function() {
+  var p = parseHex(this.value);
+  if (p) { syncFromRgb(p.r, p.g, p.b); refreshUiFromState('hex'); }
+});
+document.getElementById('fldRgb').addEventListener('input', function() {
+  var p = parseRgbTriplet(this.value);
+  if (p) { syncFromRgb(p.r, p.g, p.b); refreshUiFromState('rgb'); }
+});
+document.getElementById('fldHsl').addEventListener('input', function() {
+  var parts = this.value.split(/[,\s]+/).filter(Boolean);
+  if (parts.length >= 3) {
+    var hh = parseFloat(parts[0]), ss = parseFloat(parts[1]), ll = parseFloat(parts[2]);
+    if (!isNaN(hh) && !isNaN(ss) && !isNaN(ll)) {
+      state.h = hh; state.s = ss; state.l = ll;
+      document.getElementById('hueRange').value = String(Math.round(state.h));
+      refreshUiFromState('hsl');
+    }
+  }
+});
+document.getElementById('fldCmyk').addEventListener('input', function() {
+  var p = parseCmykQuad(this.value);
+  if (p) { syncFromRgb(p.r, p.g, p.b); refreshUiFromState('cmyk'); }
+});
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(function() { el.classList.remove('show'); }, 1600);
+}
+
+document.getElementById('mainSwatch').addEventListener('click', function() {
+  var hex = document.getElementById('fldHex').value;
+  copyText(hex).then(function() { showToast(T('toastCopied')); }).catch(function() { showToast(T('toastErr')); });
+});
+
+document.getElementById('btnCopyAll').addEventListener('click', function() {
+  var text = 'HEX: ' + document.getElementById('fldHex').value + '\n' +
+    'RGB: ' + document.getElementById('fldRgb').value + '\n' +
+    'HSL: ' + document.getElementById('fldHsl').value + '\n' +
+    'CMYK: ' + document.getElementById('fldCmyk').value;
+  copyText(text).then(function() { showToast(T('toastCopied')); }).catch(function() { showToast(T('toastErr')); });
+});
+
+function copyText(s) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(s);
+  }
+  return new Promise(function(resolve, reject) {
+    var ta = document.createElement('textarea');
+    ta.value = s;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); resolve(); } catch (e) { reject(e); }
+    document.body.removeChild(ta);
+  });
+}
+
+document.querySelectorAll('#tabs .cp-tab').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var id = btn.getAttribute('data-panel');
+    document.querySelectorAll('#tabs .cp-tab').forEach(function(b) { b.classList.toggle('active', b === btn); });
+    document.querySelectorAll('.cp-panel').forEach(function(p) { p.classList.toggle('active', p.id === 'panel-' + id); });
+  });
+});
+
+function invokeNative(action, params) {
+  if (!window.NativeBridge || !NativeBridge.invoke) throw new Error('NativeBridge.invoke missing');
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  return JSON.parse(raw);
+}
+
+function parseOutput(res) {
+  if (!res || !res.success) return null;
+  var o = res.output;
+  return typeof o === 'string' ? JSON.parse(o) : o;
+}
+
+document.getElementById('btnConvNative').addEventListener('click', function() {
+  var input = document.getElementById('convInput').value.trim();
+  var from = document.getElementById('convFrom').value;
+  var outEl = document.getElementById('convOut');
+  if (!window.NativeBridge || !NativeBridge.invoke) {
+    var local = parseAnyColor(input);
+    if (!local) { outEl.textContent = T('errParse'); return; }
+    var hx = rgbToHex(local.r, local.g, local.b);
+    var hsl = rgbToHsl(local.r, local.g, local.b);
+    var cm = rgbToCmyk(local.r, local.g, local.b);
+    outEl.textContent = 'HEX ' + hx + ' | RGB ' + local.r + ',' + local.g + ',' + local.b +
+      ' | HSL ' + hsl.h.toFixed(1) + ',' + hsl.s.toFixed(1) + ',' + hsl.l.toFixed(1) +
+      ' | CMYK ' + cm.c.toFixed(1) + ',' + cm.m.toFixed(1) + ',' + cm.y.toFixed(1) + ',' + cm.k.toFixed(1);
+    return;
+  }
+  try {
+    var res = invokeNative('convertColor', { input: input, fromFormat: from, toFormat: 'all' });
+    var inner = parseOutput(res);
+    if (!inner) { outEl.textContent = res.error || T('errNative'); return; }
+    outEl.textContent = inner.hex + ' | RGB ' + inner.rgb + ' | HSL ' + inner.hsl + ' | CMYK ' + inner.cmyk;
+    if (res._displayText) console.log('[color_picker]', res._displayText);
+  } catch (e) {
+    outEl.textContent = T('errNative');
+  }
+});
+
+function renderSwatchList(hostId, hexList) {
+  var host = document.getElementById(hostId);
+  host.innerHTML = hexList.map(function(hx, i) {
+    var h = hx.indexOf('#') === 0 ? hx : '#' + hx;
+    return '<div class="cp-p-swatch" data-hex="' + h.replace(/"/g, '') + '"><div class="box" style="background:' + h + '"></div><code>' + h + '</code></div>';
+  }).join('');
+  host.querySelectorAll('.cp-p-swatch').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var h = el.getAttribute('data-hex');
+      copyText(h).then(function() { showToast(T('toastCopied')); }).catch(function() { showToast(T('toastErr')); });
+    });
+  });
+}
+
+document.getElementById('btnPalNative').addEventListener('click', function() {
+  var base = document.getElementById('palBase').value.trim() || document.getElementById('fldHex').value;
+  var harmony = document.getElementById('palHarmony').value;
+  if (!window.NativeBridge || !NativeBridge.invoke) {
+    var p = parseAnyColor(base);
+    if (!p) { showToast(T('errParse')); return; }
+    var hsl = rgbToHsl(p.r, p.g, p.b);
+    var h = hsl.h, s = hsl.s, l = hsl.l;
+    var list = [];
+    function H(d) { var hh = hslToRgb((h + d + 360) % 360, s, l); return rgbToHex(hh.r, hh.g, hh.b); }
+    if (harmony === 'complementary') { list = [rgbToHex(p.r, p.g, p.b), H(180)]; }
+    else if (harmony === 'analogous') { list = [H(-30), H(-15), rgbToHex(p.r, p.g, p.b), H(15), H(30)]; }
+    else if (harmony === 'triadic') { list = [rgbToHex(p.r, p.g, p.b), H(120), H(240)]; }
+    else if (harmony === 'split-complementary') { list = [rgbToHex(p.r, p.g, p.b), H(150), H(210)]; }
+    else { list = [rgbToHex(p.r, p.g, p.b), H(90), H(180), H(270)]; }
+    renderSwatchList('palSwatches', list);
+    return;
+  }
+  try {
+    var res = invokeNative('generatePalette', { baseHex: base, harmony: harmony });
+    var inner = parseOutput(res);
+    if (!inner || !inner.colors) { showToast(T('errNative')); return; }
+    var arr = [];
+    for (var i = 0; i < inner.colors.length; i++) arr.push(inner.colors[i]);
+    renderSwatchList('palSwatches', arr);
+  } catch (e) {
+    showToast(T('errNative'));
+  }
+});
+
+document.getElementById('btnRandNative').addEventListener('click', function() {
+  var count = parseInt(document.getElementById('randCount').value, 10) || 5;
+  count = Math.max(1, Math.min(20, count));
+  var hueMin = parseFloat(document.getElementById('randHueMin').value) || 0;
+  var hueMax = parseFloat(document.getElementById('randHueMax').value) || 360;
+  if (!window.NativeBridge || !NativeBridge.invoke) {
+    var list = [];
+    for (var i = 0; i < count; i++) {
+      var hh = hueMin + Math.random() * (hueMax - hueMin);
+      var rgb = hslToRgb(hh, 55 + Math.random() * 40, 45 + Math.random() * 25);
+      list.push(rgbToHex(rgb.r, rgb.g, rgb.b));
+    }
+    renderSwatchList('randSwatches', list);
+    return;
+  }
+  try {
+    var res = invokeNative('randomColor', { count: count, hueMin: hueMin, hueMax: hueMax });
+    var inner = parseOutput(res);
+    if (!inner || !inner.colors) { showToast(T('errNative')); return; }
+    var arr = [];
+    for (var j = 0; j < inner.colors.length; j++) arr.push(inner.colors[j]);
+    renderSwatchList('randSwatches', arr);
+  } catch (e) {
+    showToast(T('errNative'));
+  }
+});
+
+var NAMED_COLORS = {
+  aliceblue:'F0F8FF',antiquewhite:'FAEBD7',aqua:'00FFFF',aquamarine:'7FFFD4',azure:'F0FFFF',beige:'F5F5DC',bisque:'FFE4C4',black:'000000',blanchedalmond:'FFEBCD',blue:'0000FF',blueviolet:'8A2BE2',brown:'A52A2A',burlywood:'DEB887',cadetblue:'5F9EA0',chartreuse:'7FFF00',chocolate:'D2691E',coral:'FF7F50',cornflowerblue:'6495ED',cornsilk:'FFF8DC',crimson:'DC143C',cyan:'00FFFF',darkblue:'00008B',darkcyan:'008B8B',darkgoldenrod:'B8860B',darkgray:'A9A9A9',darkgreen:'006400',darkgrey:'A9A9A9',darkkhaki:'BDB76B',darkmagenta:'8B008B',darkolivegreen:'556B2F',darkorange:'FF8C00',darkorchid:'9932CC',darkred:'8B0000',darksalmon:'E9967A',darkseagreen:'8FBC8F',darkslateblue:'483D8B',darkslategray:'2F4F4F',darkslategrey:'2F4F4F',darkturquoise:'00CED1',darkviolet:'9400D3',deeppink:'FF1493',deepskyblue:'00BFFF',dimgray:'696969',dimgrey:'696969',dodgerblue:'1E90FF',firebrick:'B22222',floralwhite:'FFFAF0',forestgreen:'228B22',fuchsia:'FF00FF',gainsboro:'DCDCDC',ghostwhite:'F8F8FF',gold:'FFD700',goldenrod:'DAA520',gray:'808080',green:'008000',greenyellow:'ADFF2F',grey:'808080',honeydew:'F0FFF0',hotpink:'FF69B4',indianred:'CD5C5C',indigo:'4B0082',ivory:'FFFFF0',khaki:'F0E68C',lavender:'E6E6FA',lavenderblush:'FFF0F5',lawngreen:'7CFC00',lemonchiffon:'FFFACD',lightblue:'ADD8E6',lightcoral:'F08080',lightcyan:'E0FFFF',lightgoldenrodyellow:'FAFAD2',lightgray:'D3D3D3',lightgreen:'90EE90',lightgrey:'D3D3D3',lightpink:'FFB6C1',lightsalmon:'FFA07A',lightseagreen:'20B2AA',lightskyblue:'87CEFA',lightslategray:'778899',lightslategrey:'778899',lightsteelblue:'B0C4DE',lightyellow:'FFFFE0',lime:'00FF00',limegreen:'32CD32',linen:'FAF0E6',magenta:'FF00FF',maroon:'800000',mediumaquamarine:'66CDAA',mediumblue:'0000CD',mediumorchid:'BA55D3',mediumpurple:'9370DB',mediumseagreen:'3CB371',mediumslateblue:'7B68EE',mediumspringgreen:'00FA9A',mediumturquoise:'48D1CC',mediumvioletred:'C71585',midnightblue:'191970',mintcream:'F5FFFA',mistyrose:'FFE4E1',moccasin:'FFE4B5',navajowhite:'FFDEAD',navy:'000080',oldlace:'FDF5E6',olive:'808000',olivedrab:'6B8E23',orange:'FFA500',orangered:'FF4500',orchid:'DA70D6',palegoldenrod:'EEE8AA',palegreen:'98FB98',paleturquoise:'AFEEEE',palevioletred:'DB7093',papayawhip:'FFEFD5',peachpuff:'FFDAB9',peru:'CD853F',pink:'FFC0CB',plum:'DDA0DD',powderblue:'B0E0E6',purple:'800080',rebeccapurple:'663399',red:'FF0000',rosybrown:'BC8F8F',royalblue:'4169E1',saddlebrown:'8B4513',salmon:'FA8072',sandybrown:'F4A460',seagreen:'2E8B57',seashell:'FFF5EE',sienna:'A0522D',silver:'C0C0C0',skyblue:'87CEEB',slateblue:'6A5ACD',slategray:'708090',slategrey:'708090',snow:'FFFAFA',springgreen:'00FF7F',steelblue:'4682B4',tan:'D2B48C',teal:'008080',thistle:'D8BFD8',tomato:'FF6347',turquoise:'40E0D0',violet:'EE82EE',wheat:'F5DEB3',white:'FFFFFF',whitesmoke:'F5F5F5',yellow:'FFFF00',yellowgreen:'9ACD32'
+};
+
+function closestNamed(r, g, b) {
+  var best = { name: 'black', hex: '000000', d: 1e9 };
+  for (var name in NAMED_COLORS) {
+    if (!Object.prototype.hasOwnProperty.call(NAMED_COLORS, name)) continue;
+    var hx = NAMED_COLORS[name];
+    var n = parseInt(hx, 16);
+    var rr = (n >> 16) & 255, gg = (n >> 8) & 255, bb = n & 255;
+    var d = (r - rr) * (r - rr) + (g - gg) * (g - gg) + (b - bb) * (b - bb);
+    if (d < best.d) best = { name: name, hex: hx, d: d };
+  }
+  best.d = Math.sqrt(best.d);
+  return best;
+}
+
+var namedDebounceTimer;
+
+function updateNamedLocal(r, g, b) {
+  var box = document.getElementById('namedBox');
+  if (!window.NativeBridge || !NativeBridge.invoke) {
+    var c = closestNamed(r, g, b);
+    box.style.display = 'block';
+    document.getElementById('namedName').textContent = c.name;
+    document.getElementById('namedHex').textContent = ' (#' + c.hex + ')';
+    return;
+  }
+  clearTimeout(namedDebounceTimer);
+  namedDebounceTimer = setTimeout(function() {
+    try {
+      var hex = rgbToHex(r, g, b).replace('#', '');
+      var res = invokeNative('getColorInfo', { hex: hex });
+      var inner = parseOutput(res);
+      if (inner && inner.closestName) {
+        box.style.display = 'block';
+        document.getElementById('namedName').textContent = inner.closestName;
+        document.getElementById('namedHex').textContent = ' (' + inner.closestHex + ')';
+      } else {
+        box.style.display = 'none';
+      }
+    } catch (err) {
+      var c2 = closestNamed(r, g, b);
+      box.style.display = 'block';
+      document.getElementById('namedName').textContent = c2.name;
+      document.getElementById('namedHex').textContent = ' (#' + c2.hex + ')';
+    }
+  }, 280);
+}
+
+drawHueCanvas();
+drawSlCanvas();
+syncFromRgb(99, 102, 241);
+
+function verifyNative() {
+  if (!window.NativeBridge || !NativeBridge.invoke) {
+    console.log('[color_picker]', T('bridgeOff'));
+    return;
+  }
+  try {
+    var r = invokeNative('convertColor', { input: '#FF0000', fromFormat: 'hex', toFormat: 'all' });
+    if (r.success) console.log('[color_picker]', T('bridgeReady'), r._displayText || '');
+  } catch (e) {
+    console.warn('[color_picker]', e);
+  }
+}
+verifyNative();
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "id": "qrcode",
+  "name": "二维码工具",
+  "name_en": "QR Code Tools",
+  "description": "二维码工具模块，支持从文本/URL生成二维码、从图片识别解码二维码、查看和分享生成的二维码",
+  "description_en": "QR code tools: generate QR codes from text or URLs, decode QR codes from images, view and share generated codes",
+  "version": "1.0",
+  "icon": "document_scanner",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.qrcode.QrcodePlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read", "file_write"],
+  "permissions": [
+    {
+      "name": "android.permission.WRITE_EXTERNAL_STORAGE",
+      "desc": "用于将生成的二维码保存到 PandaGenie 目录",
+      "desc_en": "Save generated QR images under the PandaGenie folder"
+    },
+    {
+      "name": "android.permission.READ_EXTERNAL_STORAGE",
+      "desc": "用于读取图片以解码二维码",
+      "desc_en": "Read image files for QR decoding"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "generateQR",
+      "desc": "从文本或 URL 生成二维码 PNG 并保存到存储；可选返回 Base64 预览（参数 includeBase64）",
+      "desc_en": "Generate a QR code PNG from text or URL; optional Base64 preview (includeBase64 param)",
+      "params": ["text", "size", "includeBase64"],
+      "paramDesc": ["要编码的文本或链接", "输出图片边长（像素），默认 512", "是否附带 PNG 的 Base64（便于 H5 预览），默认否"],
+      "paramDesc_en": ["Text or URL to encode", "Output image side length in pixels, default 512", "Include PNG as Base64 for H5 preview, default false"]
+    },
+    {
+      "name": "decodeQR",
+      "desc": "校验图片文件并返回尺寸等信息；完整扫码识别请在模块内「扫描」页使用",
+      "desc_en": "Validate image file and return dimensions; use the Scan tab in the module for full decode",
+      "params": ["imagePath"],
+      "paramDesc": ["包含二维码的图片路径"],
+      "paramDesc_en": ["Path to image file that may contain a QR code"]
+    },
+    {
+      "name": "listGenerated",
+      "desc": "列出已保存到 PandaGenie/qrcode 目录下的二维码图片",
+      "desc_en": "List QR code PNG files saved under PandaGenie/qrcode",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

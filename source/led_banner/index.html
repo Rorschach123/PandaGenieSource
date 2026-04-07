@@ -288,8 +288,10 @@ function toggleFullscreen(){
   if(overlay.classList.contains('active')){
     overlay.classList.remove('active');
     clearStars();
+    try{NativeBridge.setLandscape(false);}catch(e){}
     return;
   }
+  try{NativeBridge.setLandscape(true);}catch(e){}
   var text=document.getElementById('bannerText').value||'LED';
   var fc=document.getElementById('fontColor').value;
   var bg=document.getElementById('bgColor').value;

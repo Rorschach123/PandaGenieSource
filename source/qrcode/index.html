@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>QR Code Tools</title>
+<link rel="stylesheet" href="common.css">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+.qr-header { text-align: center; padding: 16px 0 12px; }
+.qr-header .icon { font-size: 44px; margin-bottom: 6px; }
+.qr-header h2 { margin: 0; font-size: 20px; }
+.qr-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.qr-preview-wrap {
+  display: flex; justify-content: center; align-items: center;
+  min-height: 200px; background: var(--surface-variant); border-radius: 14px;
+  margin: 12px 0; padding: 16px;
+}
+.qr-preview-wrap img { max-width: 100%; height: auto; border-radius: 8px; background: #fff; }
+.qr-path { font-size: 11px; color: var(--on-surface-variant); word-break: break-all; margin-top: 8px; }
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.gallery-item {
+  background: var(--surface-variant); border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--outline-variant, #E0E0E0);
+}
+.gallery-item img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; display: block; }
+.gallery-item .cap { padding: 6px 8px; font-size: 10px; color: var(--on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scan-preview { max-width: 100%; border-radius: 12px; margin: 10px 0; background: var(--surface-variant); }
+.toast {
+  position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
+  background: var(--on-surface); color: var(--surface); padding: 10px 18px;
+  border-radius: 20px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <div class="tab active" data-i18n="tab_generate" onclick="switchTab('gen')"></div>
+  <div class="tab" data-i18n="tab_scan" onclick="switchTab('scan')"></div>
+  <div class="tab" data-i18n="tab_gallery" onclick="switchTab('gal')"></div>
+</div>
+
+<div id="tab-gen" class="tab-content active">
+  <div class="qr-header">
+    <div class="icon">📱</div>
+    <h2 data-i18n="title"></h2>
+    <p data-i18n="desc_short"></p>
+  </div>
+  <div class="input-group">
+    <label data-i18n="label_text"></label>
+    <textarea id="genText" placeholder=""></textarea>
+  </div>
+  <div class="input-group">
+    <label data-i18n="label_size"></label>
+    <select id="genSize">
+      <option value="256">256</option>
+      <option value="384">384</option>
+      <option value="512" selected>512</option>
+      <option value="768">768</option>
+      <option value="1024">1024</option>
+    </select>
+  </div>
+  <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:10px" data-i18n="btn_generate" onclick="doGenerate()"></button>
+  <div class="qr-preview-wrap" id="genPreviewBox">
+    <span id="genPlaceholder" style="color:var(--on-surface-variant);font-size:13px" data-i18n="preview_placeholder"></span>
+    <img id="genImg" alt="QR" style="display:none;max-height:min(70vw,360px)" />
+  </div>
+  <p class="qr-path" id="genPath"></p>
+</div>
+
+<div id="tab-scan" class="tab-content">
+  <div class="qr-header">
+    <div class="icon">🔍</div>
+    <h2 data-i18n="scan_title"></h2>
+    <p data-i18n="scan_desc"></p>
+  </div>
+  <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:10px" data-i18n="btn_pick" onclick="pickScanImage()"></button>
+  <img id="scanImg" class="scan-preview" style="display:none" alt="" />
+  <canvas id="scanCanvas" style="display:none"></canvas>
+  <div class="result-box" id="scanResult" style="display:none"></div>
+</div>
+
+<div id="tab-gal" class="tab-content">
+  <div class="qr-header">
+    <div class="icon">🖼️</div>
+    <h2 data-i18n="gal_title"></h2>
+    <p data-i18n="gal_desc"></p>
+  </div>
+  <button type="button" class="btn btn-outline" style="width:100%;margin-bottom:10px" data-i18n="btn_refresh" onclick="loadGallery()"></button>
+  <div id="galList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    tab_generate: '生成',
+    tab_scan: '扫描',
+    tab_gallery: '图库',
+    title: '二维码工具',
+    desc_short: '从文本或链接生成二维码，保存到 PandaGenie/qrcode',
+    label_text: '文本或链接',
+    label_size: '输出边长（像素）',
+    btn_generate: '生成并保存',
+    preview_placeholder: '生成后将显示预览',
+    scan_title: '扫描图片',
+    scan_desc: '选择含二维码的图片，在本地解析内容',
+    btn_pick: '选择图片',
+    gal_title: '已生成的二维码',
+    gal_desc: '插件保存的 PNG 列表',
+    btn_refresh: '刷新列表',
+    err_bridge: 'NativeBridge 不可用',
+    err_gen: '生成失败',
+    err_scan_lib: 'jsQR 未加载，请检查网络后重试',
+    scan_no_qr: '未识别到二维码，请换一张清晰的图片',
+    scan_data: '内容',
+    gal_empty: '暂无文件',
+    gen_placeholder_hint: '输入要编码的文字或 URL'
+  },
+  en: {
+    tab_generate: 'Generate',
+    tab_scan: 'Scan',
+    tab_gallery: 'Gallery',
+    title: 'QR Code Tools',
+    desc_short: 'Encode text or URLs; saved under PandaGenie/qrcode',
+    label_text: 'Text or URL',
+    label_size: 'Output size (px)',
+    btn_generate: 'Generate & save',
+    preview_placeholder: 'Preview appears after generate',
+    scan_title: 'Scan image',
+    scan_desc: 'Pick an image; decode runs locally in the page',
+    btn_pick: 'Choose image',
+    gal_title: 'Generated codes',
+    gal_desc: 'PNG files saved by the plugin',
+    btn_refresh: 'Refresh',
+    err_bridge: 'NativeBridge not available',
+    err_gen: 'Generation failed',
+    err_scan_lib: 'jsQR not loaded — check network and retry',
+    scan_no_qr: 'No QR code found; try a clearer image',
+    scan_data: 'Content',
+    gal_empty: 'No files yet',
+    gen_placeholder_hint: 'Enter text or URL to encode'
+  }
+};
+
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+  var gh = document.getElementById('genText');
+  if (gh) gh.placeholder = (i18n[l] || i18n.en).gen_placeholder_hint;
+}
+
+try {
+  _lang = NativeBridge.getLanguage().substring(0, 2);
+} catch (e) {
+  _lang = (navigator.language || 'en').substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+
+function T(key) {
+  var t = i18n[_lang] || i18n.en;
+  return t[key] || i18n.en[key] || key;
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2600);
+}
+
+function switchTab(name) {
+  var ids = ['gen', 'scan', 'gal'];
+  document.querySelectorAll('.tab').forEach(function(t, i) {
+    t.classList.toggle('active', ids[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'gal') loadGallery();
+}
+
+function invokePlugin(action, params) {
+  if (!window.NativeBridge || !NativeBridge.invoke) throw new Error(T('err_bridge'));
+  var raw = NativeBridge.invoke(action, JSON.stringify(params || {}));
+  var res = JSON.parse(raw);
+  if (!res.success) throw new Error(res.error || 'error');
+  return res.output;
+}
+
+function doGenerate() {
+  var text = (document.getElementById('genText').value || '').trim();
+  if (!text) {
+    showToast(T('gen_placeholder_hint'));
+    return;
+  }
+  var size = parseInt(document.getElementById('genSize').value, 10) || 512;
+  try {
+    var outStr = invokePlugin('generateQR', { text: text, size: size, includeBase64: true });
+    var data = JSON.parse(outStr);
+    var ph = document.getElementById('genPlaceholder');
+    var img = document.getElementById('genImg');
+    if (data.base64) {
+      ph.style.display = 'none';
+      img.style.display = 'block';
+      img.src = 'data:image/png;base64,' + data.base64;
+    } else {
+      ph.style.display = 'block';
+      ph.textContent = T('preview_placeholder');
+      img.style.display = 'none';
+    }
+    document.getElementById('genPath').textContent = data.path || '';
+  } catch (e) {
+    showToast(T('err_gen') + ': ' + (e.message || e));
+  }
+}
+
+function pickScanImage() {
+  if (!window.NativeBridge || !NativeBridge.pickImage) {
+    showToast(T('err_bridge'));
+    return;
+  }
+  try {
+    NativeBridge.pickImage();
+  } catch (e) {
+    showToast(e.message || String(e));
+  }
+}
+
+function onImagePicked(path) {
+  if (!path) return;
+  var imgEl = document.getElementById('scanImg');
+  var resEl = document.getElementById('scanResult');
+  resEl.style.display = 'none';
+  imgEl.style.display = 'block';
+  imgEl.onload = function() { runJsQrDecode(imgEl); };
+  imgEl.onerror = function() {
+    showToast('Cannot load image');
+  };
+  imgEl.src = 'file://' + path.replace(/^\/+/, '/');
+
+  try {
+    var metaStr = invokePlugin('decodeQR', { imagePath: path });
+    JSON.parse(metaStr);
+  } catch (e) { /* optional validation */ }
+}
+
+function runJsQrDecode(imgEl) {
+  if (typeof jsQR !== 'function') {
+    showToast(T('err_scan_lib'));
+    return;
+  }
+  var canvas = document.getElementById('scanCanvas');
+  var ctx = canvas.getContext('2d');
+  var w = imgEl.naturalWidth || imgEl.width;
+  var h = imgEl.naturalHeight || imgEl.height;
+  var maxSide = 1200;
+  var scale = Math.min(1, maxSide / Math.max(w, h));
+  var cw = Math.max(1, Math.floor(w * scale));
+  var ch = Math.max(1, Math.floor(h * scale));
+  canvas.width = cw;
+  canvas.height = ch;
+  ctx.drawImage(imgEl, 0, 0, cw, ch);
+  var imageData = ctx.getImageData(0, 0, cw, ch);
+  var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+  var box = document.getElementById('scanResult');
+  box.style.display = 'block';
+  if (code && code.data) {
+    box.className = 'result-box';
+    box.textContent = T('scan_data') + ':\n' + code.data;
+  } else {
+    box.className = 'result-box error';
+    box.textContent = T('scan_no_qr');
+  }
+}
+
+function loadGallery() {
+  var host = document.getElementById('galList');
+  try {
+    var outStr = invokePlugin('listGenerated', {});
+    var data = JSON.parse(outStr);
+    var files = data.files || [];
+    if (!files.length) {
+      host.innerHTML = '<div class="empty">' + esc(T('gal_empty')) + '</div>';
+      return;
+    }
+    var html = '<div class="gallery-grid">';
+    for (var i = 0; i < files.length; i++) {
+      var p = files[i].path || '';
+      var name = files[i].name || '';
+      var src = 'file://' + p.replace(/^\/+/, '/');
+      html += '<div class="gallery-item"><img src="' + escAttr(src) + '" alt="" loading="lazy" onerror="this.style.opacity=0.3"/><div class="cap">' + esc(name) + '</div></div>';
+    }
+    html += '</div>';
+    host.innerHTML = html;
+  } catch (e) {
+    host.innerHTML = '<div class="result-box error">' + esc(e.message || String(e)) + '</div>';
+  }
+}
+
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function escAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+</script>
+</body>
+</html>

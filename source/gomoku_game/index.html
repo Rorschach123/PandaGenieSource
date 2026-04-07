@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>五子棋</title>
+<link rel="stylesheet" href="common.css">
+<script>
+var _lang = (window.NativeBridge && NativeBridge.getLanguage()) || 'zh';
+var isEn = _lang.startsWith('en');
+function t(zhText, enText) { return isEn ? enText : zhText; }
+document.addEventListener('DOMContentLoaded', function() {
+  document.title = t('五子棋', 'Gomoku');
+  var el;
+  if ((el = document.getElementById('headerTitle'))) el.textContent = t('五子棋', 'Gomoku');
+  if ((el = document.getElementById('headerSub'))) el.textContent = t('你: ●(黑子/先手) | 程序: ○(白子)', 'You: ● (Black/First) | AI: ○ (White)');
+  if ((el = document.getElementById('menuDesc'))) el.textContent = t('与程序对战的五子棋', 'Play Gomoku against AI');
+  if ((el = document.getElementById('btnStart'))) el.textContent = t('开始游戏', 'Start Game');
+  if ((el = document.getElementById('movesLabel'))) el.textContent = t('落子', 'Moves') + ': ';
+  if ((el = document.getElementById('statusText'))) el.textContent = t('轮到你了，点击棋盘落子', 'Your turn, tap the board to place');
+  if ((el = document.getElementById('btnRestart'))) el.textContent = t('重新开始', 'Restart');
+  if ((el = document.getElementById('btnMenu'))) el.textContent = t('返回菜单', 'Back to Menu');
+});
+</script>
+<style>
+.game-header { text-align: center; padding: 16px 0 12px; }
+.game-header .icon { font-size: 48px; }
+.game-header h2 { margin: 6px 0 0; font-size: 20px; }
+.game-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-bar {
+  display: flex; justify-content: center; gap: 16px;
+  padding: 8px; margin-bottom: 8px; font-size: 13px;
+}
+.info-bar span { font-weight: 600; color: var(--primary); }
+.board-wrapper {
+  overflow: auto; -webkit-overflow-scrolling: touch;
+  margin-bottom: 14px;
+}
+.board-canvas {
+  display: grid; grid-template-columns: repeat(15, 28px);
+  gap: 0; margin: 0 auto; width: fit-content;
+  background: #DEB887; border-radius: 4px; padding: 2px;
+  border: 2px solid #8B7355;
+}
+.board-cell {
+  width: 28px; height: 28px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+}
+.board-cell::before {
+  content: ''; position: absolute;
+  width: 100%; height: 100%;
+  border-right: 1px solid rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(0,0,0,0.3);
+  box-sizing: border-box;
+}
+.board-cell:nth-child(15n)::before { border-right: none; }
+.board-cell:nth-child(n+211)::before { border-bottom: none; }
+.stone {
+  width: 22px; height: 22px; border-radius: 50%;
+  z-index: 1; box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+.stone.black { background: radial-gradient(circle at 35% 35%, #555, #000); }
+.stone.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); border: 1px solid #aaa; }
+.stone.last { box-shadow: 0 0 0 2px var(--primary), 1px 1px 3px rgba(0,0,0,0.3); }
+.board-cell:hover::after {
+  content: ''; position: absolute;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,0,0,0.1); z-index: 0;
+}
+.status { text-align: center; font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.result-card {
+  text-align: center; padding: 20px;
+  background: var(--primary-container); border-radius: 14px;
+  margin-bottom: 12px;
+}
+.result-card .emoji { font-size: 48px; margin-bottom: 8px; }
+.result-card h3 { color: var(--primary); }
+.actions { text-align: center; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="game-header">
+  <div class="icon">⚫⚪</div>
+  <h2 id="headerTitle">五子棋</h2>
+  <p id="headerSub">你: ●(黑子/先手) | 程序: ○(白子)</p>
+</div>
+
+<div id="menuScreen">
+  <div class="card" style="text-align:center">
+    <p id="menuDesc" style="margin-bottom:14px">与程序对战的五子棋</p>
+    <button id="btnStart" class="btn btn-primary" onclick="startGame()">开始游戏</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+  <div class="info-bar">
+    <div><span id="movesLabel">落子: </span><span id="moveCount">0</span></div>
+  </div>
+  <div class="status" id="statusText">轮到你了，点击棋盘落子</div>
+  <div class="board-wrapper">
+    <div class="board-canvas" id="board"></div>
+  </div>
+  <div id="resultCard" class="result-card hidden">
+    <div class="emoji" id="resultEmoji"></div>
+    <h3 id="resultText"></h3>
+  </div>
+  <div class="actions">
+    <button id="btnRestart" class="btn btn-primary" onclick="restartGame()">重新开始</button>
+    <button id="btnMenu" class="btn btn-outline" style="margin-left:8px" onclick="backToMenu()">返回菜单</button>
+  </div>
+</div>
+
+<script>
+var lastMove = null;
+
+function callPlugin(a,p){
+  if(window.NativeBridge) return JSON.parse(NativeBridge.invoke(a,JSON.stringify(p||{})));
+  return null;
+}
+
+function startGame(){
+  var r = callPlugin('startGame',{});
+  if(r&&r.success){showScreen('gameScreen');updateDisplay(JSON.parse(r.output));}
+}
+
+function updateDisplay(s){
+  document.getElementById('moveCount').textContent = s.moveCount;
+  var ml = document.getElementById('movesLabel');
+  if (ml) ml.textContent = t('落子', 'Moves') + ': ';
+  var boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  var b = s.board;
+
+  for(var r=0;r<15;r++){
+    for(var c=0;c<15;c++){
+      var cell = document.createElement('div');
+      cell.className = 'board-cell';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      var val = b[r][c];
+      if(val === '●' || val === '○'){
+        var stone = document.createElement('div');
+        stone.className = 'stone ' + (val==='●'?'black':'white');
+        cell.appendChild(stone);
+      }
+      if(!s.gameOver && val === '.'){
+        cell.addEventListener('click', function(){
+          placeStone(parseInt(this.dataset.row), parseInt(this.dataset.col));
+        });
+      }
+      boardEl.appendChild(cell);
+    }
+  }
+
+  var statusEl = document.getElementById('statusText');
+  var resultCard = document.getElementById('resultCard');
+
+  if(s.gameOver){
+    resultCard.classList.remove('hidden');
+    var emoji = document.getElementById('resultEmoji');
+    var text = document.getElementById('resultText');
+    if(s.winner==='player'){ emoji.textContent='🎉'; text.textContent=t('恭喜你赢了！','You win!'); statusEl.textContent=t('你赢了！','You win!'); }
+    else if(s.winner==='ai'){ emoji.textContent='🤖'; text.textContent=t('程序获胜！','AI wins!'); statusEl.textContent=t('程序赢了','AI wins!'); }
+    else { emoji.textContent='🤝'; text.textContent=t('平局！','Draw!'); statusEl.textContent=t('平局','Draw!'); }
+  } else {
+    resultCard.classList.add('hidden');
+    statusEl.textContent = t('轮到你了，点击棋盘落子', 'Your turn, tap the board to place');
+  }
+}
+
+function placeStone(r,c){
+  var res = callPlugin('placeStone',{row:r,col:c});
+  if(res&&res.success) updateDisplay(JSON.parse(res.output));
+}
+
+function restartGame(){
+  var r = callPlugin('restart',{});
+  if(r&&r.success) updateDisplay(JSON.parse(r.output));
+}
+function backToMenu(){ showScreen('menuScreen'); }
+function showScreen(id){
+  ['menuScreen','gameScreen'].forEach(function(s){
+    document.getElementById(s).classList.toggle('hidden',s!==id);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "id": "gomoku_game",
+  "name": "五子棋",
+  "name_en": "Gomoku",
+  "description": "经典五子棋游戏，玩家（黑子）与程序（白子）在15x15棋盘上对战，率先五子连珠者获胜",
+  "description_en": "Classic Gomoku (Five in a Row) game. Player (black) vs AI (white) on a 15x15 board. First to get five in a row wins",
+  "version": "1.1",
+  "icon": "blur_circular",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.gomoku_game.GomokuPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "startGame",
+      "desc": "开始五子棋游戏，玩家执黑先手，返回初始棋盘状态",
+      "desc_en": "Start a new Gomoku game. Player plays black and goes first. Returns initial board state",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "placeStone",
+      "desc": "玩家在指定位置落子（行列从0开始），程序随后自动回应，返回更新后的棋盘状态",
+      "desc_en": "Player places a stone at the specified position (row/col 0-based). AI responds automatically. Returns updated board",
+      "params": ["row", "col"],
+      "paramDesc": ["行号 0-14", "列号 0-14"],
+      "paramDesc_en": ["Row 0-14", "Column 0-14"]
+    },
+    {
+      "name": "getState",
+      "desc": "获取当前游戏状态，包括棋盘、当前回合、胜负情况等",
+      "desc_en": "Get current game state including board, current turn, win/loss status",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "restart",
+      "desc": "重新开始游戏",
+      "desc_en": "Restart the game",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}
