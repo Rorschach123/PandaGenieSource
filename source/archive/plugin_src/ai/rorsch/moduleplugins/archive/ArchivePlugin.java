@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.archive;
 
 import android.content.Context;
+import android.os.Environment;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.ArchiveLib;
 import org.json.JSONArray;
@@ -42,46 +43,42 @@ public class ArchivePlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "decompressZip": {
-                // 解压 ZIP：支持可选密码
-                String outDir = params.optString("outputDir", "");
+                String outDir = resolveStoragePath(params.optString("outputDir", ""));
                 boolean ok = lib.decompressZip(
-                        params.optString("archivePath", params.optString("path", "")),
+                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outDir,
                         params.optString("password", "")
                 );
                 return boolResult(ok, "decompressZip", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressTar": {
-                // 解压纯 TAR 归档到指定目录
-                String outDir = params.optString("outputDir", "");
+                String outDir = resolveStoragePath(params.optString("outputDir", ""));
                 boolean ok = lib.decompressTar(
-                        params.optString("archivePath", params.optString("path", "")),
+                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outDir
                 );
                 return boolResult(ok, "decompressTar", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressTarGz": {
-                // 解压 .tar.gz / .tgz 到目录
-                String outDir = params.optString("outputDir", "");
+                String outDir = resolveStoragePath(params.optString("outputDir", ""));
                 boolean ok = lib.decompressTarGz(
-                        params.optString("archivePath", params.optString("path", "")),
+                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outDir
                 );
                 return boolResult(ok, "decompressTarGz", ok ? formatDecompressDisplay(outDir, false) : null);
             }
             case "decompressGz": {
-                // 解压单个 .gz 流为单个输出文件
-                String outPath = params.optString("outputPath", "");
+                String outPath = resolveStoragePath(params.optString("outputPath", ""));
                 boolean ok = lib.decompressGz(
-                        params.optString("archivePath", params.optString("path", "")),
+                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outPath
                 );
                 return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null);
             }
             case "compressZip": {
-                // 将多个输入路径打包为 ZIP，可选密码
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
-                String output = params.optString("outputPath", params.optString("output", ""));
+                for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
+                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String pwd = params.optString("password", "");
                 String preCheck = validateCompressArgs(inputs, output);
                 if (preCheck != null) return error(preCheck);
@@ -90,9 +87,9 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null);
             }
             case "compressTar": {
-                // 打包为未压缩的 TAR
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
-                String output = params.optString("outputPath", params.optString("output", ""));
+                for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
+                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String preCheck = validateCompressArgs(inputs, output);
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
@@ -100,9 +97,9 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null);
             }
             case "compressTarGz": {
-                // 打包为 gzip 压缩的 TAR（.tar.gz）
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
-                String output = params.optString("outputPath", params.optString("output", ""));
+                for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
+                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String preCheck = validateCompressArgs(inputs, output);
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
@@ -110,9 +107,8 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null);
             }
             case "compressGz": {
-                // 将单个文件 gzip 压缩为输出路径
-                String input = params.optString("inputPath", params.optString("input", ""));
-                String output = params.optString("outputPath", params.optString("output", ""));
+                String input = resolveStoragePath(params.optString("inputPath", params.optString("input", "")));
+                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 if (input.isEmpty()) return error("inputPath is empty");
                 if (output.isEmpty()) return error("outputPath is empty");
                 if (!new File(input).exists()) return error("File not found: " + input);
@@ -121,8 +117,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null);
             }
             case "listContents": {
-                // 列出归档内文件条目，返回原始 JSON 字符串并由展示格式化
-                String raw = lib.listContents(params.optString("archivePath", params.optString("path", "")));
+                String raw = lib.listContents(resolveStoragePath(params.optString("archivePath", params.optString("path", ""))));
                 return ok(raw, formatListContentsDisplay(raw));
             }
             default:
@@ -323,5 +318,16 @@ public class ArchivePlugin implements ModulePlugin {
      */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
+    }
+
+    private static String resolveStoragePath(String path) {
+        String canonical = path.replace("\\", "/");
+        if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
+            String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
+            if (!realRoot.equals("/sdcard")) {
+                return canonical.replaceFirst("/sdcard", realRoot);
+            }
+        }
+        return path;
     }
 }

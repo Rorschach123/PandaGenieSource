@@ -19,4 +19,7 @@ public class FileManagerLib {
     public native boolean nativeWriteTextFile(String path, String content);
     public native boolean nativeFileExists(String path);
     public native long nativeGetFileSize(String path);
+
+    public static native void nativeConfigureSandbox(String[] readPaths, String[] writePaths);
+    public static native void nativeClearSandbox();
 }

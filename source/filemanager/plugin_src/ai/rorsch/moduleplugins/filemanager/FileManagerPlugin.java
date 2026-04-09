@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.filemanager;
 
 import android.content.Context;
+import android.os.Environment;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.FileManagerLib;
 import org.json.JSONArray;
@@ -51,22 +52,22 @@ public class FileManagerPlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "listDirectory": {
-                String path = params.optString("path", "");
+                String path = resolveStoragePath(params.optString("path", ""));
                 String raw = lib.nativeListDirectory(path);
                 return ok(raw, formatListDirectoryDisplay(path, raw));
             }
             case "createDirectory": {
-                String path = params.optString("path", "");
+                String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeCreateDirectory(path);
                 return boolResult(okb, "createDirectory failed", okb ? "📁 Directory created: " + path : null);
             }
             case "deleteFile": {
-                String path = params.optString("path", "");
+                String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeDeleteFile(path);
                 return boolResult(okb, "deleteFile failed", okb ? "🗑️ Deleted: " + path : null);
             }
             case "deleteDirectory": {
-                String path = params.optString("path", "");
+                String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeDeleteDirectory(path, params.optBoolean("recursive", false));
                 return boolResult(okb, "deleteDirectory failed", okb ? "🗑️ Deleted: " + path : null);
             }
@@ -75,38 +76,41 @@ public class FileManagerPlugin implements ModulePlugin {
             case "moveFile":
                 return handleCopyOrMove(params, true);
             case "renameFile": {
-                String oldP = params.optString("oldPath", "");
-                String newP = params.optString("newPath", "");
+                String oldP = resolveStoragePath(params.optString("oldPath", ""));
+                String newP = resolveStoragePath(params.optString("newPath", ""));
                 boolean okb = lib.nativeRenameFile(oldP, newP);
                 return boolResult(okb, "renameFile failed", okb ? formatRenameDisplay(oldP, newP) : null);
             }
             case "getFileInfo": {
-                String raw = lib.nativeGetFileInfo(params.optString("path", ""));
+                String raw = lib.nativeGetFileInfo(resolveStoragePath(params.optString("path", "")));
                 return ok(raw, formatGetFileInfoDisplay(raw));
             }
             case "searchFiles": {
+                String dir = params.optString("dir", "").trim();
+                if (dir.isEmpty()) dir = "/sdcard";
+                dir = resolveStoragePath(dir);
                 String raw = lib.nativeSearchFiles(
-                        params.optString("dir", ""),
+                        dir,
                         params.optString("pattern", "*"),
                         parseBoolean(params.opt("recursive"), true)
                 );
                 return ok(raw, formatSearchFilesDisplay(raw));
             }
             case "readTextFile": {
-                String raw = lib.nativeReadTextFile(params.optString("path", ""));
+                String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
                 return ok(raw, formatReadTextFileDisplay(raw));
             }
             case "writeTextFile": {
-                String path = params.optString("path", "");
+                String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeWriteTextFile(path, params.optString("content", ""));
                 return boolResult(okb, "writeTextFile failed", okb ? "✅ Written to file: " + path : null);
             }
             case "fileExists": {
-                boolean ex = lib.nativeFileExists(params.optString("path", ""));
+                boolean ex = lib.nativeFileExists(resolveStoragePath(params.optString("path", "")));
                 return ok(String.valueOf(ex), "📄 File exists: " + (ex ? "✅" : "❌"));
             }
             case "getFileSize": {
-                long sz = lib.nativeGetFileSize(params.optString("path", ""));
+                long sz = lib.nativeGetFileSize(resolveStoragePath(params.optString("path", "")));
                 return ok(String.valueOf(sz), "📄 Size: " + sz + " bytes");
             }
             default:
@@ -136,8 +140,8 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception 构建响应 JSON 时可能抛出
      */
     private String handleCopyOrMove(JSONObject params, boolean isMove) throws Exception {
-        String src = params.optString("src", params.optString("source", params.optString("path", "")));
-        String dst = params.optString("dst", params.optString("destination", params.optString("target", "")));
+        String src = resolveStoragePath(params.optString("src", params.optString("source", params.optString("path", ""))));
+        String dst = resolveStoragePath(params.optString("dst", params.optString("destination", params.optString("target", ""))));
         String op = isMove ? "moveFile" : "copyFile";
 
         if (src.isEmpty()) return error(op + ": src is empty");
@@ -372,5 +376,16 @@ public class FileManagerPlugin implements ModulePlugin {
      */
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
+    }
+
+    private static String resolveStoragePath(String path) {
+        String canonical = path.replace("\\", "/");
+        if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
+            String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
+            if (!realRoot.equals("/sdcard")) {
+                return canonical.replaceFirst("/sdcard", realRoot);
+            }
+        }
+        return path;
     }
 }

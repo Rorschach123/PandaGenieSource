@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include "archive_module.h"
+#include "sandbox_guard_jni.h"
 
 #define JNI_METHOD(ret, name) \
     extern "C" JNIEXPORT ret JNICALL Java_ai_rorsch_pandagenie_nativelib_ArchiveLib_##name
@@ -143,4 +144,12 @@ JNI_METHOD(jstring, listContents)(JNIEnv* env, jobject, jstring archivePath) {
         env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
         return nullptr;
     }
+}
+
+JNI_METHOD(void, nativeConfigureSandbox)(JNIEnv* env, jclass, jobjectArray readPaths, jobjectArray writePaths) {
+    sandbox_jni::configureSandbox(env, readPaths, writePaths);
+}
+
+JNI_METHOD(void, nativeClearSandbox)(JNIEnv* env, jclass) {
+    sandbox_jni::clearSandbox();
 }

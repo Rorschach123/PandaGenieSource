@@ -1,5 +1,6 @@
 #include "archive_module.h"
 #include "miniz.h"
+#include "sandbox_guard.h"
 #include <zlib.h>
 #include <cstdio>
 #include <cstring>
@@ -52,6 +53,11 @@ void ArchiveModule::encryptDecryptBuffer(std::vector<uint8_t>& data, const std::
 bool ArchiveModule::compressZip(const std::vector<std::string>& inputPaths,
                                 const std::string& outputPath,
                                 const std::string& password) {
+    for (const auto& p : inputPaths) {
+        if (!sandbox::SandboxGuard::checkRead(p)) return false;
+    }
+    if (!sandbox::SandboxGuard::checkWrite(outputPath)) return false;
+
     if (inputPaths.empty()) {
         LOGE("compressZip: no input paths provided");
         return false;
@@ -118,6 +124,9 @@ bool ArchiveModule::compressZip(const std::vector<std::string>& inputPaths,
 bool ArchiveModule::decompressZip(const std::string& archivePath,
                                   const std::string& outputDir,
                                   const std::string& password) {
+    if (!sandbox::SandboxGuard::checkRead(archivePath)) return false;
+    if (!sandbox::SandboxGuard::checkWrite(outputDir)) return false;
+
     LOGI("decompressZip: archive=%s output=%s", archivePath.c_str(), outputDir.c_str());
 
     FILE* testFile = fopen(archivePath.c_str(), "rb");
@@ -296,6 +305,11 @@ bool ArchiveModule::addFileToTar(FILE* tarFile, const std::string& filePath, con
 
 bool ArchiveModule::compressTar(const std::vector<std::string>& inputPaths,
                                 const std::string& outputPath) {
+    for (const auto& p : inputPaths) {
+        if (!sandbox::SandboxGuard::checkRead(p)) return false;
+    }
+    if (!sandbox::SandboxGuard::checkWrite(outputPath)) return false;
+
     FILE* tarFile = fopen(outputPath.c_str(), "wb");
     if (!tarFile) return false;
 
@@ -315,6 +329,9 @@ bool ArchiveModule::compressTar(const std::vector<std::string>& inputPaths,
 
 bool ArchiveModule::decompressTar(const std::string& archivePath,
                                   const std::string& outputDir) {
+    if (!sandbox::SandboxGuard::checkRead(archivePath)) return false;
+    if (!sandbox::SandboxGuard::checkWrite(outputDir)) return false;
+
     FILE* f = fopen(archivePath.c_str(), "rb");
     if (!f) return false;
     mkdirRecursive(outputDir);
@@ -358,6 +375,9 @@ bool ArchiveModule::decompressTar(const std::string& archivePath,
 // --- GZ ---
 
 bool ArchiveModule::compressGz(const std::string& inputPath, const std::string& outputPath) {
+    if (!sandbox::SandboxGuard::checkRead(inputPath)) return false;
+    if (!sandbox::SandboxGuard::checkWrite(outputPath)) return false;
+
     FILE* src = fopen(inputPath.c_str(), "rb");
     if (!src) return false;
 
@@ -376,6 +396,9 @@ bool ArchiveModule::compressGz(const std::string& inputPath, const std::string& 
 }
 
 bool ArchiveModule::decompressGz(const std::string& archivePath, const std::string& outputPath) {
+    if (!sandbox::SandboxGuard::checkRead(archivePath)) return false;
+    if (!sandbox::SandboxGuard::checkWrite(outputPath)) return false;
+
     gzFile gz = gzopen(archivePath.c_str(), "rb");
     if (!gz) return false;
 
@@ -397,6 +420,11 @@ bool ArchiveModule::decompressGz(const std::string& archivePath, const std::stri
 
 bool ArchiveModule::compressTarGz(const std::vector<std::string>& inputPaths,
                                   const std::string& outputPath) {
+    for (const auto& p : inputPaths) {
+        if (!sandbox::SandboxGuard::checkRead(p)) return false;
+    }
+    if (!sandbox::SandboxGuard::checkWrite(outputPath)) return false;
+
     std::string tmpTar = outputPath + ".tmp.tar";
     if (!compressTar(inputPaths, tmpTar)) return false;
     bool ok = compressGz(tmpTar, outputPath);
@@ -406,6 +434,9 @@ bool ArchiveModule::compressTarGz(const std::vector<std::string>& inputPaths,
 
 bool ArchiveModule::decompressTarGz(const std::string& archivePath,
                                     const std::string& outputDir) {
+    if (!sandbox::SandboxGuard::checkRead(archivePath)) return false;
+    if (!sandbox::SandboxGuard::checkWrite(outputDir)) return false;
+
     std::string tmpTar = archivePath + ".tmp.tar";
     if (!decompressGz(archivePath, tmpTar)) return false;
     bool ok = decompressTar(tmpTar, outputDir);
@@ -417,6 +448,8 @@ bool ArchiveModule::decompressTarGz(const std::string& archivePath,
 
 std::vector<ArchiveEntry> ArchiveModule::listContents(const std::string& archivePath) {
     std::vector<ArchiveEntry> entries;
+    if (!sandbox::SandboxGuard::checkRead(archivePath)) return entries;
+
     std::string ext = archivePath.substr(archivePath.find_last_of('.') + 1);
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
