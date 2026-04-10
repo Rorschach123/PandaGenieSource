@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>led_banner 模块技术文档 | PandaGenie</title>
+  <style>
+    :root { --md-primary: #6750A4; --md-on-primary: #FFF; --md-surface: #FEF7FF; --md-surface-container: #FFF; --md-outline: #CAC4D0; --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F; --elevation-1: 0 1px 3px rgba(0,0,0,.12); --radius: 12px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif; background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+    header { background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 100%); color: var(--md-on-primary); padding: 2rem 1.25rem 2.5rem; box-shadow: var(--elevation-1); }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 500; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); padding: 1rem 1.25rem; margin: -1.5rem 0 1.5rem; box-shadow: var(--elevation-1); position: relative; z-index: 1; }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ul { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    h2 { font-size: 1.2rem; font-weight: 500; color: var(--md-primary); border-bottom: 2px solid rgba(103, 80, 164, .25); padding-bottom: .35rem; margin-top: 2rem; }
+    p, li { color: var(--md-on-surface-variant); }
+    code { font-family: ui-monospace, monospace; font-size: .88em; background: rgba(103,80,164,.08); padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: .75rem 0; }
+    th, td { border: 1px solid var(--md-outline); padding: .45rem .55rem; text-align: left; vertical-align: top; }
+    th { background: rgba(103, 80, 164, .1); color: var(--md-primary); font-weight: 500; }
+    details { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); margin: .55rem 0; overflow: hidden; }
+    summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; color: var(--md-primary); list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸"; margin-right: .4rem; display: inline-block; transition: transform .2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details .inner { padding: 0 1rem 1rem; border-top: 1px solid rgba(103,80,164,.15); }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; font-size: .72rem; padding: .2em .55em; border-radius: 999px; margin-left: .35rem; }
+    .flow { background: #fff; border: 1px dashed var(--md-outline); border-radius: 8px; padding: 1rem; font-family: ui-monospace, monospace; font-size: .8rem; white-space: pre-wrap; color: var(--md-on-surface-variant); }
+    footer { text-align: center; padding: 2rem 1rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>LED 灯牌 <span class="badge">led_banner v1.1</span></h1>
+      <div class="meta">Plugin: <code>LedBannerPlugin.java</code> · 赛博模板 20 · 应援模板 38 · CSS 片段</div>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 TOC</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#templates">模板数据</a></li>
+        <li><a href="#effects">特效与 CSS</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览</h2>
+      <p>根据文字、颜色、<strong>显示模式</strong>（<code>scroll</code> / <code>fade</code> / <code>static</code>）、字号、速度与特效关键字生成供 <strong>H5</strong> 渲染的 JSON，包含内联 <strong>CSS 片段</strong>（<code>cssStyle</code>、<code>bgStyle</code>、<code>textShadow</code>）。<code>generateBanner</code> 与 <code>applyTemplate</code> 成功时响应带 <strong><code>_openModule: true</code></strong>，提示宿主打开模块全屏页。</p>
+    </section>
+
+    <section id="templates">
+      <h2>模板数据</h2>
+      <ul>
+        <li><strong>CYBER_TEMPLATES：</strong>源码中定义 <strong>20</strong> 条赛博/霓虹配色 <code>[名称, fontColor, bgColor]</code>。</li>
+        <li><strong>STAR_TEMPLATES：</strong><strong>38</strong> 条明星/应援配色，结构相同。</li>
+        <li><strong>applyTemplate：</strong>先精确匹配名称，再在两类表中做<strong>子串模糊匹配</strong>（用户输入小写包含于模板名）。找不到抛 <code>Template not found</code>。</li>
+      </ul>
+    </section>
+
+    <section id="effects">
+      <h2>特效与 CSS 生成</h2>
+      <p><code>parseEffects</code> 解析逗号/分号/空白分隔关键字，支持英文 <code>glow</code>/<code>flash</code>/<code>shake</code>/<code>bold</code>/<code>italic</code> 及中文触发「荧光」「闪」「抖」「粗」「斜」。<code>glow</code> 为真时生成多层 <code>text-shadow</code> 模拟霓虹。<code>bold</code>/<code>italic</code> 写入 <code>cssStyle</code>。<strong>注意：</strong><code>flash</code>/<code>shake</code> 在 JSON <code>effects</code> 中为布尔开关，具体动画由前端 H5 消费。</p>
+    </section>
+
+    <section id="class">
+      <h2>类 <code>LedBannerPlugin</code></h2>
+      <details open><summary>方法列表</summary><div class="inner">
+        <table>
+          <tr><th>方法</th><th>说明</th></tr>
+          <tr><td><code>invoke</code></td><td>generateBanner → okOpenModule；getTemplates/getStarTemplates → ok；applyTemplate → okOpenModule</td></tr>
+          <tr><td><code>generateBanner</code></td><td>校验 text；normalizeColor；mode 非法回退 scroll；clamp fontSize 12–200、speed 1–50；组装 effects、textShadow、cssStyle、bgStyle</td></tr>
+          <tr><td><code>getTemplates</code> / <code>getStarTemplates</code></td><td>返回 <code>templates[]</code> 与 <code>count</code></td></tr>
+          <tr><td><code>applyTemplate</code></td><td>解析颜色后构造 fakeParams：默认 mode=scroll, fontSize=72, speed=10, effects=&quot;glow&quot;；结果含 <code>templateName</code></td></tr>
+          <tr><td><code>formatBannerDisplay</code></td><td><code>_displayText</code> 摘要</td></tr>
+          <tr><td><code>ok</code> / <code>okOpenModule</code> / <code>error</code></td><td>标准响应；OpenModule 多 <code>_openModule</code></td></tr>
+        </table>
+      </div></details>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions</h2>
+      <table>
+        <thead><tr><th>action</th><th>params</th><th>响应特点</th></tr></thead>
+        <tbody>
+          <tr><td><code>generateBanner</code></td><td>text, fontColor, bgColor, mode, fontSize, speed, effects</td><td>output 为配置 JSON；<code>_openModule</code>；<code>_displayText</code></td></tr>
+          <tr><td><code>getTemplates</code></td><td>—</td><td>templates[], count（无 _openModule）</td></tr>
+          <tr><td><code>getStarTemplates</code></td><td>—</td><td>同上</td></tr>
+          <tr><td><code>applyTemplate</code></td><td>templateName, text（text 可空，默认用模板名）</td><td>同 generateBanner + templateName</td></tr>
+        </tbody>
+      </table>
+      <p><strong>output 字段示例：</strong>text, fontColor, bgColor, mode, modeName, fontSize, speed, effects{}, textShadow, cssStyle, bgStyle。</p>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流</h2>
+      <div class="flow">params → generateBanner / applyTemplate
+  → JSONObject（样式字段）
+  → okOpenModule(output, display)
+  → 宿主读 _openModule 打开 H5
+  → 前端渲染 scroll/fade/static + effects</div>
+    </section>
+
+    <footer>PandaGenie Module · led_banner</footer>
+  </div>
+</body>
+</html>

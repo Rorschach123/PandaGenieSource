@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>farming_game 模块技术文档 | PandaGenie</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-surface: #FEF7FF;
+      --md-surface-container: #FFFFFF;
+      --md-outline: #CAC4D0;
+      --md-on-surface: #1D1B20;
+      --md-on-surface-variant: #49454F;
+      --elevation-1: 0 1px 3px rgba(0,0,0,.12);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface);
+      line-height: 1.65; font-size: 15px;
+    }
+    header {
+      background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 100%);
+      color: var(--md-on-primary); padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--elevation-1);
+    }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 500; }
+    header .meta { opacity: .92; font-size: .9rem; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: var(--md-surface-container); border: 1px solid var(--md-outline);
+      border-radius: var(--radius); padding: 1rem 1.25rem; margin: -1.5rem 0 1.5rem;
+      box-shadow: var(--elevation-1); position: relative; z-index: 1;
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ul { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section { margin-bottom: 1.75rem; }
+    h2 {
+      font-size: 1.2rem; font-weight: 500; color: var(--md-primary);
+      border-bottom: 2px solid rgba(103, 80, 164, .25); padding-bottom: .35rem; margin-top: 2rem;
+    }
+    h3 { font-size: 1.05rem; margin: 1.25rem 0 .5rem; color: var(--md-on-surface); }
+    p, li { color: var(--md-on-surface-variant); }
+    code, .mono { font-family: ui-monospace, "Cascadia Code", monospace; font-size: .88em; background: rgba(103,80,164,.08); padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; margin: .75rem 0; }
+    th, td { border: 1px solid var(--md-outline); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+    th { background: rgba(103, 80, 164, .1); color: var(--md-primary); font-weight: 500; }
+    details {
+      background: var(--md-surface-container); border: 1px solid var(--md-outline);
+      border-radius: var(--radius); margin: .65rem 0; overflow: hidden;
+    }
+    summary {
+      cursor: pointer; padding: .85rem 1rem; font-weight: 500; color: var(--md-primary);
+      list-style: none; display: flex; align-items: center; gap: .5rem;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸"; transition: transform .2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details .inner { padding: 0 1rem 1rem; border-top: 1px solid rgba(103,80,164,.15); }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; font-size: .72rem; padding: .2em .55em; border-radius: 999px; vertical-align: middle; margin-left: .35rem; }
+    .flow { background: #fff; border: 1px dashed var(--md-outline); border-radius: 8px; padding: 1rem; font-family: ui-monospace, monospace; font-size: .82rem; white-space: pre-wrap; color: var(--md-on-surface-variant); }
+    footer { text-align: center; padding: 2rem 1rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+    @media (max-width: 600px) { table { font-size: .85rem; } th, td { padding: .4rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>种菜游戏 <span class="badge">farming_game v1.1</span></h1>
+      <div class="meta">Plugin: <code>FarmingPlugin.java</code> · 实现 <code>ModulePlugin</code> · manifest: <code>manifest.json</code></div>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 TOC</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#architecture">架构与存储</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览</h2>
+      <p>本模块为 PandaGenie 的<strong>种菜模拟</strong>娱乐插件：玩家在 <strong>6 块地块（plots）</strong>上种植 <strong>6 种作物（crop types）</strong>，通过 <strong>浇水 / 施肥 / 除草</strong>影响生长速度，成熟后 <strong>收获</strong>并记录 <strong>品质（quality）</strong>与产量。<code>startGame</code> 会覆盖唯一存档；<code>enterGame</code> 加载存档并在无档时自动新开。</p>
+      <p><strong>manifest 要点：</strong><code>capabilities</code> 含 <code>file_read</code>、<code>file_write</code>；需 <code>MANAGE_EXTERNAL_STORAGE</code> 以写入存档。<code>pluginClass</code> 为 <code>ai.rorsch.moduleplugins.farming_game.FarmingPlugin</code>。</p>
+    </section>
+
+    <section id="architecture">
+      <h2>架构与存储</h2>
+      <ul>
+        <li><strong>入口：</strong><code>invoke(Context, action, paramsJson)</code> 解析 JSON，按 <code>action</code> 分发。</li>
+        <li><strong>状态：</strong>内存中 <code>JSONObject gameState</code>，字段含 <code>startTime</code>、<code>lastUpdateTime</code>、<code>plots</code>（JSONArray）、<code>harvestHistory</code>、<code>totalHarvests</code>。</li>
+        <li><strong>存档：</strong>外部存储 <code>Environment.getExternalStorageDirectory()</code> 下 <code>PandaGenie/data/farming_game/save.json</code>，UTF-8，<code>JSONObject.toString(2)</code> 美化输出。</li>
+        <li><strong>作物表 CROP_DATA：</strong>每行 <code>seedType, 中文名, emoji, growStages, baseGrowTime(分钟), harvestYield</code>。</li>
+        <li><strong>生长：</strong><code>updateGrowth()</code> 根据 <code>lastUpdateTime</code> 与当前时间差（分钟）更新每块地的 <code>accumulatedGrowth</code>、<code>currentStage</code>、<code>mature</code>，并衰减 <code>waterLevel</code>/<code>fertilizerLevel</code>、增长 <code>weedLevel</code>。</li>
+      </ul>
+    </section>
+
+    <section id="class">
+      <h2>类 <code>FarmingPlugin</code> 与方法</h2>
+      <p>单类实现，常量：<code>PLOT_COUNT=6</code>，<code>SAVE_DIR</code>、<code>SAVE_FILE</code>，<code>GROWTH_EMOJIS</code> 用于展示。</p>
+
+      <details open><summary>公开接口</summary><div class="inner">
+        <table>
+          <thead><tr><th>方法</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>String invoke(Context, String action, String paramsJson)</code></td><td>统一入口；异常时返回 <code>success:false</code> 与 <code>error</code>。</td></tr>
+          </tbody>
+        </table>
+      </div></details>
+
+      <details><summary>游戏流程与地块操作</summary><div class="inner">
+        <table>
+          <thead><tr><th>方法</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>startGame</code></td><td><code>createNewGame()</code>，写档，返回 <code>ok(buildDisplayState(), formatDisplay())</code>。</td></tr>
+            <tr><td><code>enterGame</code></td><td><code>loadFromFile</code> 成功则 <code>updateGrowth()</code> 并保存；否则等同 <code>startGame</code>。</td></tr>
+            <tr><td><code>plant</code></td><td>校验 <code>plotIndex</code>、<code>seedType</code>（不区分大小写）；空地写入作物字段并清零水肥草。</td></tr>
+            <tr><td><code>water</code> / <code>fertilize</code></td><td>水/肥等级 +1 封顶 5，然后 <code>updateGrowth</code>。</td></tr>
+            <tr><td><code>weed</code></td><td><code>weedLevel</code> 置 0。</td></tr>
+            <tr><td><code>harvest</code></td><td>需成熟；按杂草/水/肥计算 <code>qualityBonus</code>（0–3）映射 普通/良好/优秀/完美；产量 <code>yield + qualityBonus</code>；地块清空。</td></tr>
+            <tr><td><code>getState</code></td><td><code>ensureLoaded</code> + <code>updateGrowth</code>，返回展示状态与文本。</td></tr>
+            <tr><td><code>getHarvestHistory</code></td><td>返回 <code>harvestHistory</code>、<code>totalHarvests</code>、<code>_historyDisplay</code>（最多展示 20 条倒序）。</td></tr>
+            <tr><td><code>saveGame</code></td><td>刷新 <code>lastUpdateTime</code> 并写档。</td></tr>
+          </tbody>
+        </table>
+      </div></details>
+
+      <details><summary>内部辅助方法</summary><div class="inner">
+        <table>
+          <thead><tr><th>方法</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>createNewGame</code></td><td>初始化时间与空 plots、空 history。</td></tr>
+            <tr><td><code>updateGrowth</code></td><td>按分钟差计算有效生长分钟（水×1.2、肥×1.5、杂草&gt;2 则×0.5）；更新 stage/mature；衰减水肥、长草。</td></tr>
+            <tr><td><code>ensureLoaded</code></td><td>未加载则从文件读，否则抛「请先 startGame 或 enterGame」。</td></tr>
+            <tr><td><code>buildDisplayState</code></td><td>汇总 <code>plots</code> 展示字段（空地块仅 index/empty）。</td></tr>
+            <tr><td><code>formatDisplay</code></td><td>ASCII 风格田地与种子提示。</td></tr>
+            <tr><td><code>findCropInfo</code></td><td>按 <code>seedType</code> 查表。</td></tr>
+            <tr><td><code>getSaveDir</code> / <code>saveToFile</code> / <code>loadFromFile</code></td><td>目录创建与 JSON 读写。</td></tr>
+            <tr><td><code>ok(JSONObject, String)</code> / <code>error(String)</code></td><td>标准响应：<code>success</code>、<code>output</code>（字符串化 JSON）、可选 <code>_displayText</code>。</td></tr>
+            <tr><td><code>emptyJson</code></td><td>空参规范为 <code>{}</code>。</td></tr>
+          </tbody>
+        </table>
+      </div></details>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions（输入 / 输出）</h2>
+      <p>成功时外层：<code>{"success":true,"output":"...JSON字符串...","_displayText":"..."}</code>。</p>
+
+      <details open><summary><code>startGame</code> / <code>enterGame</code></summary><div class="inner">
+        <p><strong>params：</strong>无。</p>
+        <p><strong>output 内嵌 JSON（解析后）：</strong><code>gameLoaded</code>、<code>totalHarvests</code>、<code>plots[]</code>（含 index、empty、作物时 seedType、cropName、stage、水肥草等）。</p>
+      </div></details>
+
+      <details><summary><code>plant</code></summary><div class="inner">
+        <table>
+          <thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>plotIndex</code></td><td>int</td><td>0–5</td></tr>
+            <tr><td><code>seedType</code></td><td>string</td><td><code>tomato</code>/<code>carrot</code>/<code>cabbage</code>/<code>corn</code>/<code>watermelon</code>/<code>strawberry</code></td></tr>
+          </tbody>
+        </table>
+        <p><strong>输出：</strong>更新后的展示状态；错误时顶层 <code>success:false</code>。</p>
+      </div></details>
+
+      <details><summary><code>water</code> / <code>fertilize</code> / <code>weed</code> / <code>harvest</code></summary><div class="inner">
+        <p><strong>params：</strong><code>plotIndex</code>（0–5）。<code>harvest</code> 成功时 output 内可能含 <code>message</code> 描述产量与品质。</p>
+      </div></details>
+
+      <details><summary><code>getState</code> / <code>getHarvestHistory</code> / <code>saveGame</code></summary><div class="inner">
+        <p><strong>getHarvestHistory output：</strong><code>harvestHistory</code>（JSONArray 记录 cropName、cropEmoji、yield、quality、harvestTime）、<code>totalHarvests</code>、<code>_historyDisplay</code>。</p>
+        <p><strong>saveGame：</strong>output 可含 <code>message</code>；<code>_displayText</code> 为简短确认。</p>
+      </div></details>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流 Data Flow</h2>
+      <div class="flow">User/LLM → invoke(action, paramsJson)
+  → JSONObject params
+  → 各 action 修改 gameState
+  → updateGrowth()（时间推进）
+  → saveToFile() → ExternalStorage/.../save.json
+  → ok(buildDisplayState(), formatDisplay())
+  → { success, output, _displayText }</div>
+      <p>首次操作前须 <code>startGame</code> 或 <code>enterGame</code>，否则 <code>ensureLoaded</code> 抛错。定时任务场景下，依赖系统多次调用间的时间差驱动 <code>updateGrowth</code>。</p>
+    </section>
+
+    <footer>PandaGenie Module · farming_game · 文档与源码以仓库为准</footer>
+  </div>
+</body>
+</html>

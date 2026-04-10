@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fortune 模块技术文档 | PandaGenie</title>
+  <style>
+    :root { --md-primary: #6750A4; --md-on-primary: #FFF; --md-surface: #FEF7FF; --md-surface-container: #FFF; --md-outline: #CAC4D0; --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F; --elevation-1: 0 1px 3px rgba(0,0,0,.12); --radius: 12px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif; background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+    header { background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 100%); color: var(--md-on-primary); padding: 2rem 1.25rem 2.5rem; box-shadow: var(--elevation-1); }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 500; }
+    header .meta { opacity: .92; font-size: .9rem; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); padding: 1rem 1.25rem; margin: -1.5rem 0 1.5rem; box-shadow: var(--elevation-1); position: relative; z-index: 1; }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ul { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    h2 { font-size: 1.2rem; font-weight: 500; color: var(--md-primary); border-bottom: 2px solid rgba(103, 80, 164, .25); padding-bottom: .35rem; margin-top: 2rem; }
+    p, li { color: var(--md-on-surface-variant); }
+    code { font-family: ui-monospace, monospace; font-size: .88em; background: rgba(103,80,164,.08); padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: .75rem 0; }
+    th, td { border: 1px solid var(--md-outline); padding: .45rem .55rem; text-align: left; vertical-align: top; }
+    th { background: rgba(103, 80, 164, .1); color: var(--md-primary); font-weight: 500; }
+    details { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); margin: .55rem 0; overflow: hidden; }
+    summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; color: var(--md-primary); list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸"; margin-right: .4rem; display: inline-block; transition: transform .2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details .inner { padding: 0 1rem 1rem; border-top: 1px solid rgba(103,80,164,.15); }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; font-size: .72rem; padding: .2em .55em; border-radius: 999px; margin-left: .35rem; }
+    .flow { background: #fff; border: 1px dashed var(--md-outline); border-radius: 8px; padding: 1rem; font-family: ui-monospace, monospace; font-size: .8rem; white-space: pre-wrap; color: var(--md-on-surface-variant); }
+    footer { text-align: center; padding: 2rem 1rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>每日运势 <span class="badge">fortune v1.0</span></h1>
+      <div class="meta">Plugin: <code>FortunePlugin.java</code> · 农历 1900–2100 · 7 级运势</div>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 TOC</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#algorithm">运势算法</a></li>
+        <li><a href="#lunar">农历转换</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览</h2>
+      <p>本模块基于<strong>公历日期</strong>与可选<strong>姓名</strong>生成<strong>确定性伪随机（seeded）</strong>运势文案，包含 <strong>7 个 fortune level</strong>（大吉→大凶）、吉语词库、宜/忌、幸运数字与颜色，并附带 <strong>农历</strong>信息。仅供互动展示，无预测科学依据。</p>
+      <p><strong>manifest：</strong>无额外 capabilities/permissions。<code>pluginClass</code>：<code>ai.rorsch.moduleplugins.fortune.FortunePlugin</code>。</p>
+    </section>
+
+    <section id="algorithm">
+      <h2>运势生成算法</h2>
+      <ul>
+        <li><strong>种子：</strong><code>seed = dateSeed(y,m,d) + nameHash(name)</code>，其中 <code>dateSeed = year*10000 + month*100 + day</code>；<code>nameHash</code> 为类乘法哈希（空名为 0）。</li>
+        <li><strong>等级：</strong><code>level = seededInt(seed, 7, 1) + 1</code> → 1–7，对应 <code>LEVEL_NAMES_ZH</code> / <code>LEVEL_NAMES_EN</code> / <code>LEVEL_SYMBOLS</code>。</li>
+        <li><strong>词条索引：</strong><code>seededInt</code> 配合不同 <code>salt</code>（2–6）从 <code>FORTUNE_WORDS[level-1]</code>、<code>LUCKY_COLORS</code>、<code>ADVICE_DO</code>、<code>ADVICE_DONT</code> 取值。</li>
+        <li><strong>线性同余混合：</strong><code>mixed = seed * 6364136223846793005L + salt * 1442695040888963407L</code>，再 <code>abs % bound</code>。</li>
+      </ul>
+    </section>
+
+    <section id="lunar">
+      <h2>农历 Lunar Calendar</h2>
+      <p><code>computeLunar</code> 以 <strong>1900-01-31</strong>（UTC）为农历正月初一基准，用 <code>LUNAR_INFO</code> 整型位图数组推算：<code>lunarYearDays</code>、<code>leapMonth</code>、<code>leapDays</code>、<code>monthDays</code>。输出含 <code>lunarYear/Month/Day</code>、<code>isLeapMonth</code>、天干地支年、<code>zodiac</code>、<code>lunarDateString</code> 等。年份限制 <strong>1900–2100</strong>；早于基准日抛错。</p>
+    </section>
+
+    <section id="class">
+      <h2>类 <code>FortunePlugin</code> 方法一览</h2>
+      <details open><summary>入口与对外逻辑</summary><div class="inner">
+        <table>
+          <tr><th>方法</th><th>说明</th></tr>
+          <tr><td><code>invoke</code></td><td>分发 getDailyFortune / getFortuneByDate / getLunarDate / getFortuneLevel。</td></tr>
+          <tr><td><code>getDailyFortune(name)</code></td><td>默认时区今日 → <code>buildFortune</code>。</td></tr>
+          <tr><td><code>getFortuneByDate(date, name)</code></td><td>date 空则等同 daily；否则 <code>parseDate</code> 后 <code>buildFortune</code>。</td></tr>
+          <tr><td><code>getLunarDate(date)</code></td><td>空则今天；返回 <code>computeLunar</code>。</td></tr>
+          <tr><td><code>getFortuneLevel(level)</code></td><td>1–7 合法；返回该级全部 words / advice 数组。</td></tr>
+          <tr><td><code>buildFortune</code></td><td>组装 level、文案、lucky、advice、嵌套 <code>lunar</code>。</td></tr>
+          <tr><td><code>formatFortuneDisplay</code></td><td>生成 <code>_displayText</code> 多行摘要。</td></tr>
+        </table>
+      </div></details>
+      <details><summary>农历与数学辅助</summary><div class="inner">
+        <p><code>lunarDayName</code>、<code>parseDate</code>、<code>emptyJson</code>、<code>ok(JSONObject, displayText)</code>、<code>error</code>。</p>
+      </div></details>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions</h2>
+      <table>
+        <thead><tr><th>action</th><th>params</th><th>output 核心字段</th></tr></thead>
+        <tbody>
+          <tr><td><code>getDailyFortune</code></td><td><code>name</code>（可选）</td><td>date, level, levelName, levelName_en, symbol, fortuneWord, luckyNumber, luckyColor, adviceDo, adviceDont, lunar{...}</td></tr>
+          <tr><td><code>getFortuneByDate</code></td><td><code>date</code>（YYYY-MM-DD，可空）, <code>name</code></td><td>同上</td></tr>
+          <tr><td><code>getLunarDate</code></td><td><code>date</code> 可空</td><td>lunarYear, lunarMonth, lunarDay, ganZhi, zodiac, lunarDateString, …</td></tr>
+          <tr><td><code>getFortuneLevel</code></td><td><code>level</code> 1–7</td><td>name, name_en, symbol, fortuneWords[], adviceDo[], adviceDont[]</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流</h2>
+      <div class="flow">paramsJson → JSONObject
+  → buildFortune: dateSeed + nameHash → seededInt 选词
+  → computeLunar(solar) 嵌套 lunar
+  → ok(output JSONObject, formatFortuneDisplay)
+  → { success, output, _displayText }</div>
+    </section>
+
+    <footer>PandaGenie Module · fortune</footer>
+  </div>
+</body>
+</html>

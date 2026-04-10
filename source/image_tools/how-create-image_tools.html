@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>image_tools 模块技术文档 | PandaGenie</title>
+  <style>
+    :root { --md-primary: #6750A4; --md-on-primary: #FFF; --md-surface: #FEF7FF; --md-surface-container: #FFF; --md-outline: #CAC4D0; --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F; --elevation-1: 0 1px 3px rgba(0,0,0,.12); --radius: 12px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif; background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+    header { background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 100%); color: var(--md-on-primary); padding: 2rem 1.25rem 2.5rem; box-shadow: var(--elevation-1); }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 500; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); padding: 1rem 1.25rem; margin: -1.5rem 0 1.5rem; box-shadow: var(--elevation-1); position: relative; z-index: 1; }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ul { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    h2 { font-size: 1.2rem; font-weight: 500; color: var(--md-primary); border-bottom: 2px solid rgba(103, 80, 164, .25); padding-bottom: .35rem; margin-top: 2rem; }
+    p, li { color: var(--md-on-surface-variant); }
+    code { font-family: ui-monospace, monospace; font-size: .88em; background: rgba(103,80,164,.08); padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .75rem 0; }
+    th, td { border: 1px solid var(--md-outline); padding: .4rem .5rem; text-align: left; vertical-align: top; }
+    th { background: rgba(103, 80, 164, .1); color: var(--md-primary); font-weight: 500; }
+    details { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); margin: .5rem 0; overflow: hidden; }
+    summary { cursor: pointer; padding: .75rem 1rem; font-weight: 500; color: var(--md-primary); list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸"; margin-right: .4rem; display: inline-block; transition: transform .2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details .inner { padding: 0 1rem 1rem; border-top: 1px solid rgba(103,80,164,.15); }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; font-size: .72rem; padding: .2em .55em; border-radius: 999px; margin-left: .35rem; }
+    .flow { background: #fff; border: 1px dashed var(--md-outline); border-radius: 8px; padding: 1rem; font-family: ui-monospace, monospace; font-size: .78rem; white-space: pre-wrap; color: var(--md-on-surface-variant); }
+    footer { text-align: center; padding: 2rem 1rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>图片工具 <span class="badge">image_tools v1.1</span></h1>
+      <div class="meta">Plugin: <code>ImageToolsPlugin.java</code> · <code>Bitmap</code> · <code>ExifInterface</code> · PNG/JPEG/WEBP</div>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 TOC</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#pipeline">解码与内存</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览</h2>
+      <p>对本地图片进行 <strong>信息查询</strong>（<code>inJustDecodeBounds</code> + EXIF）、<strong>缩放</strong>、<strong>质量压缩</strong>、<strong>格式转换</strong>、<strong>旋转</strong>、<strong>区域裁剪</strong>（<code>BitmapRegionDecoder</code>）。输出路径由调用方指定或使用默认在文件名插入后缀。</p>
+      <p><strong>manifest：</strong><code>file_read</code>、<code>file_write</code>；<code>MANAGE_EXTERNAL_STORAGE</code>。<code>pluginClass</code>：<code>ai.rorsch.moduleplugins.image_tools.ImageToolsPlugin</code>。</p>
+    </section>
+
+    <section id="pipeline">
+      <h2>解码与内存策略</h2>
+      <ul>
+        <li><code>MAX_DECODE_SIDE = 4096</code>：<code>computeInSampleSize</code> 使用 2 的幂次 <code>inSampleSize</code>，避免 OOM。</li>
+        <li><code>decodeBounds</code>：仅边界与 MIME。</li>
+        <li><code>loadBitmapForProcessing</code>：全图处理前子采样解码。</li>
+        <li><code>cropImage</code>：<code>BitmapRegionDecoder.decodeRegion</code> + 区域级 <code>inSampleSize</code>。</li>
+        <li><strong>WebP：</strong>API 30+ 使用 <code>WEBP_LOSSY</code> / <code>WEBP_LOSSLESS</code> 分支（<code>webpCompressFormat</code>）。</li>
+        <li><strong>PNG：</strong><code>jpegQualityForFormat</code> 固定质量 100（无损）。</li>
+      </ul>
+    </section>
+
+    <section id="class">
+      <h2>类 <code>ImageToolsPlugin</code>（均为 static 辅助，除接口方法）</h2>
+      <details open><summary>核心 API 实现</summary><div class="inner">
+        <table>
+          <tr><th>方法</th><th>要点</th></tr>
+          <tr><td><code>invoke</code></td><td>6 个 action，每项 <code>ok(out, formatXxxDisplay)</code></td></tr>
+          <tr><td><code>getImageInfo</code></td><td>width/height/mimeType/fileSizeBytes/exif</td></tr>
+          <tr><td><code>readExifJson</code></td><td>orientation, dateTime, GPS(lat/lon/alt)</td></tr>
+          <tr><td><code>resizeImage</code></td><td><code>Bitmap.createScaledBitmap</code>；输出尺寸字段齐全</td></tr>
+          <tr><td><code>compressImage</code></td><td>quality 1–100 钳制；<code>outputSizeBytes</code></td></tr>
+          <tr><td><code>convertFormat</code></td><td><code>parseTargetFormat</code>；默认输出路径 <code>defaultPathWithFormat</code></td></tr>
+          <tr><td><code>rotateImage</code></td><td><code>Matrix.postRotate</code>；角度仅 90/180/270（规范化）</td></tr>
+          <tr><td><code>cropImage</code></td><td>原点与矩形夹紧；requested vs actual crop 字段</td></tr>
+          <tr><td><code>saveBitmap</code></td><td>创建父目录；<code>FileOutputStream</code> + <code>compress</code></td></tr>
+          <tr><td><code>compressFormatForPath</code></td><td>按输出扩展名推断 JPEG/PNG/WebP</td></tr>
+        </table>
+      </div></details>
+      <details><summary>展示格式化 formatXxxDisplay</summary><div class="inner">
+        <p>Markdown 表格风格 <code>_displayText</code>，含尺寸、路径、subsample 标记等。</p>
+      </div></details>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions</h2>
+      <table>
+        <thead><tr><th>action</th><th>params</th><th>output 关键字段</th></tr></thead>
+        <tbody>
+          <tr><td><code>getImageInfo</code></td><td><code>path</code></td><td>width, height, mimeType, fileSizeBytes, exif{}</td></tr>
+          <tr><td><code>resizeImage</code></td><td><code>path</code>, <code>width</code>, <code>height</code>, <code>outputPath</code>?</td><td>inputPath, outputPath, original*/decoded*/output*, subsampled, format</td></tr>
+          <tr><td><code>compressImage</code></td><td><code>path</code>, <code>quality</code>（默认80）, <code>outputPath</code>?</td><td>quality, outputSizeBytes, format, …</td></tr>
+          <tr><td><code>convertFormat</code></td><td><code>path</code>, <code>format</code>（jpg/png/webp）, <code>outputPath</code>?</td><td>outputPath, format, outputSizeBytes, …</td></tr>
+          <tr><td><code>rotateImage</code></td><td><code>path</code>, <code>degrees</code>, <code>outputPath</code>?</td><td>degrees, outputWidth/Height, …</td></tr>
+          <tr><td><code>cropImage</code></td><td><code>path</code>, <code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>, <code>outputPath</code>?</td><td>requested*, crop*, imageWidth/Height, output*, regionSubsample</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流</h2>
+      <div class="flow">path → requireReadableFile
+  → decodeBounds / loadBitmapForProcessing / RegionDecoder
+  → Bitmap 变换 → saveBitmap(outputPath)
+  → JSON string → ok → { success, output, _displayText }</div>
+    </section>
+
+    <footer>PandaGenie Module · image_tools</footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>file_stats 模块技术文档 | PandaGenie</title>
+  <style>
+    :root { --md-primary: #6750A4; --md-on-primary: #FFF; --md-surface: #FEF7FF; --md-surface-container: #FFF; --md-outline: #CAC4D0; --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F; --elevation-1: 0 1px 3px rgba(0,0,0,.12); --radius: 12px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif; background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+    header { background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 100%); color: var(--md-on-primary); padding: 2rem 1.25rem 2.5rem; box-shadow: var(--elevation-1); }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 500; }
+    header .meta { opacity: .92; font-size: .9rem; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); padding: 1rem 1.25rem; margin: -1.5rem 0 1.5rem; box-shadow: var(--elevation-1); position: relative; z-index: 1; }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ul { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section { margin-bottom: 1.75rem; }
+    h2 { font-size: 1.2rem; font-weight: 500; color: var(--md-primary); border-bottom: 2px solid rgba(103, 80, 164, .25); padding-bottom: .35rem; margin-top: 2rem; }
+    h3 { font-size: 1.05rem; margin: 1.25rem 0 .5rem; }
+    p, li { color: var(--md-on-surface-variant); }
+    code { font-family: ui-monospace, monospace; font-size: .88em; background: rgba(103,80,164,.08); padding: .1em .35em; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: .75rem 0; }
+    th, td { border: 1px solid var(--md-outline); padding: .45rem .55rem; text-align: left; vertical-align: top; }
+    th { background: rgba(103, 80, 164, .1); color: var(--md-primary); font-weight: 500; }
+    details { background: var(--md-surface-container); border: 1px solid var(--md-outline); border-radius: var(--radius); margin: .55rem 0; overflow: hidden; }
+    summary { cursor: pointer; padding: .8rem 1rem; font-weight: 500; color: var(--md-primary); list-style: none; display: flex; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸"; margin-right: .4rem; transition: transform .2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details .inner { padding: 0 1rem 1rem; border-top: 1px solid rgba(103,80,164,.15); }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; font-size: .72rem; padding: .2em .55em; border-radius: 999px; margin-left: .35rem; vertical-align: middle; }
+    .flow { background: #fff; border: 1px dashed var(--md-outline); border-radius: 8px; padding: 1rem; font-family: ui-monospace, monospace; font-size: .8rem; white-space: pre-wrap; color: var(--md-on-surface-variant); }
+    footer { text-align: center; padding: 2rem 1rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>文件信息统计 <span class="badge">file_stats v1.1</span></h1>
+      <div class="meta">Plugin: <code>FileStatsPlugin.java</code> · <code>MessageDigest</code> · 递归目录扫描</div>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 TOC</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#architecture">架构</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览</h2>
+      <p><code>file_stats</code> 在本地文件系统上提供：<strong>元数据读取</strong>、<strong>MD5 / SHA-1 / SHA-256</strong> 哈希、<strong>双文件对比</strong>、<strong>checksum 校验</strong>、<strong>目录统计</strong>（按扩展名 breakdown）、<strong>重复文件</strong>（先按 size 分桶再 SHA-256）、<strong>大文件扫描</strong>、<strong>按文件名关键字搜索</strong>、<strong>UTF-8 文本统计</strong>、<strong>批量路径信息</strong>。</p>
+      <p><strong>manifest：</strong><code>capabilities: ["file_read"]</code>；需 <code>MANAGE_EXTERNAL_STORAGE</code>。<code>pluginClass</code>：<code>ai.rorsch.moduleplugins.file_stats.FileStatsPlugin</code>。</p>
+    </section>
+
+    <section id="architecture">
+      <h2>架构</h2>
+      <ul>
+        <li><strong>入口：</strong><code>invoke</code> → <code>JSONObject params</code> → 各私有方法返回<strong>业务 JSON 字符串</strong> → <code>ok(output, _displayText)</code> 包装。</li>
+        <li><strong>哈希：</strong><code>computeHash(File, algorithm)</code> 使用 <code>MessageDigest</code>，8KB 缓冲流式读取；<code>normalizeAlgo</code> 将用户输入规范为 <code>MD5</code> / <code>SHA-1</code> / <code>SHA-256</code>（默认）。</li>
+        <li><strong>目录遍历：</strong><code>collectDirStats</code>、<code>collectFilesBySize</code>、<code>collectLargeFiles</code>、<code>searchByNameRecursive</code> 等 DFS。</li>
+        <li><strong>展示：</strong>多种 <code>formatXxxDisplay</code> 静态方法生成 Markdown 表格风格 <code>_displayText</code>，列表最多 <code>DISPLAY_LIST_MAX = 20</code> 条。</li>
+      </ul>
+    </section>
+
+    <section id="class">
+      <h2>类 <code>FileStatsPlugin</code></h2>
+
+      <details open><summary>入口与常量</summary><div class="inner">
+        <table>
+          <tr><th>成员</th><th>说明</th></tr>
+          <tr><td><code>invoke(Context, action, paramsJson)</code></td><td>分发 10 个 action；未知 action → <code>error</code>。</td></tr>
+          <tr><td><code>SDF</code></td><td><code>SimpleDateFormat("yyyy-MM-dd HH:mm:ss")</code></td></tr>
+          <tr><td><code>SIZE_FMT</code></td><td>人类可读字节格式化</td></tr>
+        </table>
+      </div></details>
+
+      <details><summary>按功能分组的方法</summary><div class="inner">
+        <h3>getFileInfo / buildFileInfo</h3>
+        <p><code>buildFileInfo(File)</code> 输出 path、name、isDirectory、size、lastModified、权限、hidden、extension、mimeType（<code>MimeTypeMap</code>）、目录时 childCount。</p>
+        <h3>getFileHash</h3>
+        <p>目录不可哈希；返回 path、algorithm、hash、size。</p>
+        <h3>compareFiles</h3>
+        <p>先比 length；相同则两文件各算 SHA-256，填 <code>identical</code>、<code>reason</code>。</p>
+        <h3>verifyChecksum</h3>
+        <p><code>actual</code> 与 <code>expectedHash</code> 忽略大小写比较 → <code>verified</code>。</p>
+        <h3>getDirStats / collectDirStats</h3>
+        <p><code>counts[0,1,2]</code> = totalSize、fileCount、directoryCount；<code>extensionBreakdown</code> 按总 size 降序。</p>
+        <h3>findDuplicates / collectFilesBySize</h3>
+        <p>同 size 且 ≥2 才读文件算 SHA-256；<code>wastedSpace</code> = 每组 (count-1)×fileSize 之和。</p>
+        <h3>findLargeFiles / collectLargeFiles</h3>
+        <p>默认 <code>minSizeMB=100</code>，<code>limit=50</code>，结果按 size 降序截断。</p>
+        <h3>searchByName</h3>
+        <p>keywords 逗号分隔，转小写；文件名 <code>contains</code> 任一 keyword；<code>limit</code> 默认 100。</p>
+        <h3>getTextStats</h3>
+        <p>UTF-8 逐行；<code>characters</code> 为每行 length+1 近似换行。</p>
+        <h3>batchFileInfo</h3>
+        <p><code>paths</code> 逗号分隔；存在则元数据，文件则带 hash。</p>
+        <h3>工具</h3>
+        <p><code>getExtension</code>、<code>formatSize</code>、<code>errJson</code>（业务内层 error 字段）、<code>ok</code>、<code>error</code>、<code>parseOutputJson</code>。</p>
+      </div></details>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions（参数与典型 output 字段）</h2>
+
+      <table>
+        <thead><tr><th>action</th><th>主要 params</th><th>output 要点</th></tr></thead>
+        <tbody>
+          <tr><td><code>getFileInfo</code></td><td><code>path</code></td><td>见 buildFileInfo</td></tr>
+          <tr><td><code>getFileHash</code></td><td><code>path</code>, <code>algorithm</code>（默认 SHA-256）</td><td>hash, size, algorithm</td></tr>
+          <tr><td><code>compareFiles</code></td><td><code>path1</code>, <code>path2</code></td><td>identical, size1/2, hash1/2</td></tr>
+          <tr><td><code>verifyChecksum</code></td><td><code>path</code>, <code>expectedHash</code>, <code>algorithm</code></td><td>verified, actualHash, message</td></tr>
+          <tr><td><code>getDirStats</code></td><td><code>path</code>, <code>recursive</code>（默认 true）</td><td>fileCount, directoryCount, extensionBreakdown[]</td></tr>
+          <tr><td><code>findDuplicates</code></td><td><code>path</code>, <code>recursive</code>, <code>minSize</code>（默认 1024）</td><td>duplicates[], duplicateGroups, wastedSpace</td></tr>
+          <tr><td><code>findLargeFiles</code></td><td><code>path</code>, <code>minSizeMB</code>, <code>recursive</code>, <code>limit</code></td><td>files[], found, showing</td></tr>
+          <tr><td><code>searchByName</code></td><td><code>path</code>, <code>keywords</code>, <code>recursive</code>, <code>limit</code></td><td>files[], found</td></tr>
+          <tr><td><code>getTextStats</code></td><td><code>path</code></td><td>totalLines, blankLines, nonBlankLines, words, characters</td></tr>
+          <tr><td><code>batchFileInfo</code></td><td><code>paths</code>, <code>algorithm</code></td><td>files[], count, algorithm</td></tr>
+        </tbody>
+      </table>
+      <p>业务失败时 <code>output</code> 内含 <code>{"error":"..."}</code>，外层仍为 <code>success:true</code>（由 <code>ok</code> 包装）；仅未知 action 为 <code>success:false</code>。</p>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流</h2>
+      <div class="flow">invoke → 读 path / 遍历目录
+  → File API + MessageDigest（大块读写）
+  → 业务 JSON string
+  → ok(output, formatXxxDisplay(output))
+  → 宿主解析 output 与 _displayText</div>
+    </section>
+
+    <footer>PandaGenie Module · file_stats</footer>
+  </div>
+</body>
+</html>
