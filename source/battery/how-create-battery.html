@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电池管理 (battery) v1.1 — 模块开发文档</title>
+<style>
+:root {
+  --md-primary: #6750A4;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #EADDFF;
+  --md-surface: #FEF7FF;
+  --md-surface-container: #F3EDF7;
+  --md-on-surface: #1D1B20;
+  --md-on-surface-variant: #49454F;
+  --radius: 12px;
+  --font: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", monospace;
+  --elevation-1: 0 1px 3px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: var(--font); background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+a { color: var(--md-primary); }
+header.hero {
+  background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+  color: var(--md-on-primary);
+  padding: 2rem 1.25rem 2.5rem;
+  box-shadow: var(--elevation-1);
+}
+header.hero h1 { margin: 0 0 .5rem; font-size: 1.5rem; font-weight: 500; }
+.badge { display: inline-block; padding: .15rem .5rem; border-radius: 999px; background: rgba(255,255,255,.2); font-size: .75rem; }
+.layout { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; display: grid; gap: 1rem; }
+@media (min-width: 900px) { .layout { grid-template-columns: 220px 1fr; align-items: start; } .toc { position: sticky; top: 0; } }
+.toc { background: var(--md-surface-container); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(103,80,164,.15); }
+.toc h2 { margin: 0 0 .75rem; font-size: .85rem; color: var(--md-primary); text-transform: uppercase; }
+.toc ul { margin: 0; padding-left: 1rem; }
+.toc li { margin: .35rem 0; }
+main section { background: #fff; border-radius: var(--radius); padding: 1.25rem 1.35rem; border: 1px solid rgba(0,0,0,.06); box-shadow: var(--elevation-1); margin-bottom: .75rem; }
+section h2 { margin: 0 0 1rem; font-size: 1.15rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+section h3 { font-size: 1rem; margin: 1rem 0 .5rem; }
+table.api { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .75rem 0; }
+table.api th, table.api td { border: 1px solid rgba(0,0,0,.08); padding: .5rem .6rem; text-align: left; vertical-align: top; }
+table.api th { background: var(--md-surface-container); }
+code { font-family: var(--mono); font-size: .86em; background: rgba(103,80,164,.08); padding: .1rem .35rem; border-radius: 4px; }
+pre { background: #2d2640; color: #e8e0f0; padding: 1rem; border-radius: var(--radius); overflow-x: auto; font-size: .82rem; }
+details { border: 1px solid rgba(103,80,164,.25); border-radius: var(--radius); margin: .6rem 0; overflow: hidden; }
+details summary { cursor: pointer; padding: .75rem 1rem; font-weight: 600; color: var(--md-primary); background: var(--md-primary-container); }
+details .inner { padding: 1rem; }
+.flow-diagram { font-family: var(--mono); font-size: .8rem; background: var(--md-surface-container); padding: 1rem; border-radius: var(--radius); white-space: pre-wrap; }
+footer { text-align: center; padding: 2rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>电池管理 · Battery Manager</h1>
+  <p class="meta"><span class="badge">battery v1.1</span> &nbsp; Plugin: <code style="background:rgba(0,0,0,.15);color:#fff;padding:2px 8px;border-radius:4px;">BatteryPlugin.java</code></p>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="目录">
+    <h2>目录 TOC</h2>
+    <ul>
+      <li><a href="#overview">概述</a></li>
+      <li><a href="#arch">架构与数据流</a></li>
+      <li><a href="#manifest">manifest</a></li>
+      <li><a href="#apis">API Actions</a></li>
+      <li><a href="#java">Java 方法</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2>模块概述</h2>
+      <p>本模块（<code>battery</code>）通过 Android 系统<strong>粘性广播</strong> <code>Intent.ACTION_BATTERY_CHANGED</code> 读取电量、充放电状态、插电类型、温度、电压、健康状态与电池技术字符串。不依赖厂商私有 API，异常统一转为 <code>success: false</code> JSON。</p>
+      <p><strong>核心类：</strong> <code>android.os.BatteryManager</code>（<code>EXTRA_*</code> 常量）、<code>IntentFilter(ACTION_BATTERY_CHANGED)</code>。Android 13+（<code>TIRAMISU</code>）注册粘性接收器时使用 <code>Context.RECEIVER_NOT_EXPORTED</code>。</p>
+    </section>
+
+    <section id="arch">
+      <h2>架构与数据流</h2>
+      <div class="flow-diagram">H5 index.html（说明页）
+  → NativeBridge.invoke(action, "{}")
+  → BatteryPlugin.invoke()
+  → getBatteryIntent(): registerReceiver(null, IntentFilter(ACTION_BATTERY_CHANGED))
+  → 从 Intent extras 读取 LEVEL/SCALE/STATUS/PLUGGED/TEMPERATURE/VOLTAGE/HEALTH/TECHNOLOGY
+  ← JSON { success, output, _displayText }</div>
+      <p>电量百分比计算：<code>pct = round(100 * level / scale)</code>，当 <code>level &lt; 0</code> 或 <code>scale &lt;= 0</code> 时 <code>levelPercent</code> 为 <code>-1</code>。</p>
+    </section>
+
+    <section id="manifest">
+      <h2>manifest.json</h2>
+      <table class="api">
+        <tr><th>项</th><th>值</th></tr>
+        <tr><td>id / version</td><td><code>battery</code> / <code>1.1</code></td></tr>
+        <tr><td>pluginClass</td><td><code>ai.rorsch.moduleplugins.battery.BatteryPlugin</code></td></tr>
+        <tr><td>apis</td><td><code>getBatteryStatus</code>, <code>getBatteryHealth</code>, <code>getPowerSummary</code>（均无必填参数）</td></tr>
+      </table>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details open>
+        <summary><code>getBatteryStatus</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> 无（params 可为 <code>{}</code>）。</p>
+          <p><strong>output 字段（JSON 字符串）：</strong></p>
+          <table class="api">
+            <tr><th>字段</th><th>说明</th></tr>
+            <tr><td><code>levelPercent</code></td><td>0–100 或 -1（未知）</td></tr>
+            <tr><td><code>charging</code></td><td>boolean，STATUS 为 CHARGING 或 FULL 时为 true</td></tr>
+            <tr><td><code>status</code></td><td><code>charging</code>|<code>discharging</code>|<code>full</code>|<code>not_charging</code>|<code>unknown</code></td></tr>
+            <tr><td><code>pluggedType</code></td><td><code>none</code>|<code>usb</code>|<code>ac</code>|<code>wireless</code>|<code>unknown</code></td></tr>
+            <tr><td><code>pluggedRaw</code></td><td>原始 int 位标志</td></tr>
+            <tr><td><code>temperatureC</code></td><td>摄氏度 double，或 JSON null</td></tr>
+            <tr><td><code>voltageMilliVolts</code></td><td>毫伏 int 或 null</td></tr>
+            <tr><td><code>health</code></td><td>Good/Cold/Dead/Over voltage/Overheat/Unspecified failure/Unknown</td></tr>
+            <tr><td><code>healthRaw</code></td><td>整型原始健康常量</td></tr>
+            <tr><td><code>technology</code></td><td>如 Li-ion 字符串，可能为空</td></tr>
+          </table>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getBatteryHealth</code></summary>
+        <div class="inner">
+          <p>在 <code>buildStatusJson</code> 基础上增加健康报告字段：</p>
+          <ul>
+            <li><code>healthStatus</code> — 与 status 中 health 字符串一致</li>
+            <li><code>temperatureWarning</code> — 中文温度区间提示（≥45°C 偏高、40–45 略高等）</li>
+            <li><code>cycleEstimate</code> / <code>cycleEstimate_en</code> — 说明标准广播通常不提供真实循环次数</li>
+            <li><code>currentLevelPercent</code></li>
+            <li><code>overallAssessment</code> — 综合中文评估</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getPowerSummary</code></summary>
+        <div class="inner">
+          <p>合并状态与健康摘要，含中文一行 <code>summaryLine</code>（电量、状态中文、插电中文、温度、健康）。</p>
+          <p><strong>主要字段：</strong> <code>levelPercent</code>, <code>status</code>, <code>charging</code>, <code>pluggedType</code>, <code>temperatureC</code>, <code>voltageMilliVolts</code>, <code>health</code>, <code>technology</code>, <code>summaryLine</code>, <code>healthStatus</code>, <code>temperatureWarning</code>。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="java">
+      <h2>Java 类与方法详解</h2>
+      <p><code>public class BatteryPlugin implements ModulePlugin</code></p>
+
+      <details open>
+        <summary><code>invoke(Context, String action, String paramsJson)</code></summary>
+        <div class="inner">
+          <p>内部 <code>try/catch</code>：异常转为 <code>error(异常消息)</code>。成功时均带 <code>_displayText</code>（Markdown 表格）。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getBatteryIntent(Context)</code></summary>
+        <div class="inner">
+          <p><code>registerReceiver(null, filter)</code> 获取最近一次 <code>ACTION_BATTERY_CHANGED</code> 粘性 Intent；不可用时后续构建抛出 <code>IllegalStateException</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>buildStatusJson</code> / <code>buildHealthReportJson</code> / <code>buildPowerSummaryJson</code></summary>
+        <div class="inner">
+          <p>三层组装逻辑；<code>buildPowerSummaryJson</code> 调用前两者的结果字段。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>枚举映射辅助方法</summary>
+        <div class="inner">
+          <ul>
+            <li><code>pluggedTypeString(int plugged)</code> — USB/AC/Wireless 位掩码 → 字符串</li>
+            <li><code>batteryStatusString(int status)</code></li>
+            <li><code>batteryHealthString(int health)</code></li>
+            <li><code>statusLabelZh(String status, boolean charging)</code> — 摘要用中文</li>
+            <li><code>plugLabelZh(String plug)</code> — 供电方式中文</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>展示与工具</summary>
+        <div class="inner">
+          <ul>
+            <li><code>formatBatteryStatus</code> / <code>formatHealthReport</code> / <code>formatPowerSummary</code></li>
+            <li><code>buildBar(int pct)</code> — ASCII 10 格电量条 <code>[████░░░░░░]</code></li>
+            <li><code>emptyJson</code>, <code>ok(String,String)</code>, <code>ok(String)</code>, <code>error(String)</code></li>
+          </ul>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer>PandaGenie · battery v1.1 · #6750A4</footer>
+</body>
+</html>

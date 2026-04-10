@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>颜色工具 (color_picker) v1.1 — 模块开发文档</title>
+<style>
+:root {
+  --md-primary: #6750A4;
+  --md-primary-container: #EADDFF;
+  --md-surface: #FEF7FF;
+  --md-surface-container: #F3EDF7;
+  --md-on-surface: #1D1B20;
+  --md-on-surface-variant: #49454F;
+  --radius: 12px;
+  --font: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  --elevation-1: 0 1px 3px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font); background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+a { color: var(--md-primary); }
+header.hero {
+  background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+  color: #fff;
+  padding: 2rem 1.25rem 2.5rem;
+}
+header.hero h1 { margin: 0 0 .5rem; font-size: 1.5rem; }
+.badge { padding: .15rem .5rem; border-radius: 999px; background: rgba(255,255,255,.2); font-size: .75rem; }
+.layout { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; display: grid; gap: 1rem; }
+@media (min-width: 900px) { .layout { grid-template-columns: 220px 1fr; } .toc { position: sticky; top: 0; } }
+.toc { background: var(--md-surface-container); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(103,80,164,.15); }
+.toc h2 { margin: 0 0 .75rem; font-size: .85rem; color: var(--md-primary); text-transform: uppercase; }
+.toc ul { margin: 0; padding-left: 1rem; }
+main section { background: #fff; border-radius: var(--radius); padding: 1.25rem 1.35rem; border: 1px solid rgba(0,0,0,.06); box-shadow: var(--elevation-1); margin-bottom: .75rem; }
+section h2 { margin: 0 0 1rem; font-size: 1.15rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+table.api { width: 100%; border-collapse: collapse; font-size: .85rem; margin: .75rem 0; }
+table.api th, table.api td { border: 1px solid rgba(0,0,0,.08); padding: .45rem .5rem; text-align: left; vertical-align: top; }
+table.api th { background: var(--md-surface-container); }
+code { font-family: var(--mono); font-size: .84em; background: rgba(103,80,164,.08); padding: .1rem .3rem; border-radius: 4px; }
+details { border: 1px solid rgba(103,80,164,.25); border-radius: var(--radius); margin: .5rem 0; overflow: hidden; }
+details summary { cursor: pointer; padding: .65rem .9rem; font-weight: 600; color: var(--md-primary); background: var(--md-primary-container); font-size: .92rem; }
+details .inner { padding: .9rem; font-size: .92rem; }
+.flow { font-family: var(--mono); font-size: .76rem; background: var(--md-surface-container); padding: .9rem; border-radius: var(--radius); white-space: pre-wrap; }
+footer { text-align: center; padding: 2rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>颜色工具 · Color Tools</h1>
+  <p><span class="badge">color_picker v1.1</span> &nbsp; <code style="background:rgba(0,0,0,.15);padding:2px 8px;border-radius:4px;">ColorPickerPlugin.java</code></p>
+</header>
+<div class="layout">
+  <nav class="toc">
+    <h2>目录 TOC</h2>
+    <ul>
+      <li><a href="#overview">概述</a></li>
+      <li><a href="#arch">架构</a></li>
+      <li><a href="#math">颜色数学</a></li>
+      <li><a href="#apis">API Actions</a></li>
+      <li><a href="#java">Java 方法全表</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2>模块概述</h2>
+      <p>本模块为<strong>纯计算型</strong>插件：<code>Context</code> 不参与颜色运算。提供 <strong>HEX / RGB / HSL / CMYK</strong> 互转、<strong>CSS 命名色</strong>表解析、<code>rgb()</code>/<code>hsl()</code> 函数解析、和谐色板（<strong>complementary</strong>、<strong>analogous</strong>、<strong>triadic</strong>、<strong>split-complementary</strong>、<strong>tetradic</strong>/<strong>square</strong>）、<strong>SecureRandom</strong> 随机色，以及最近 <strong>CSS named color</strong> 匹配（RGB 欧氏距离）。</p>
+    </section>
+
+    <section id="arch">
+      <h2>架构与数据流</h2>
+      <div class="flow">NativeBridge.invoke(action, params)
+  → ColorPickerPlugin.invoke()
+  → handleConvertColor | handleGeneratePalette | handleRandomColor | handleGetColorInfo
+  → JSONObject 业务结果
+  ← { success, output: &lt;JSON string&gt;, _displayText }</div>
+      <p>注意：<code>ok(JSONObject output, String displayText)</code> 将 <code>output</code> 以 <strong>字符串形式</strong>置于外层 <code>output</code> 字段（与部分插件一致）。</p>
+    </section>
+
+    <section id="math">
+      <h2>颜色数学（实现摘要）</h2>
+      <ul>
+        <li><strong>RGB → HSL：</strong> 标准 sRGB 归一化后求 max/min，H∈[0,360)，S/L∈[0,100]。</li>
+        <li><strong>HSL → RGB：</strong> 分段 <code>hueToRgb</code> 插值。</li>
+        <li><strong>RGB → CMYK：</strong> K = 1 - max(R,G,B)，再求 C/M/Y 分母 (1-K)。全黑边界返回 CMYK = 0,0,0,100。</li>
+        <li><strong>最近命名色：</strong> <code>findClosestNamed</code> 遍历 <code>NAMED_HEX</code>，<code>colorDistanceSq</code> 为 RGB 差平方和，返回 <code>sqrt</code> 作为 <code>distance</code>。</li>
+      </ul>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details open>
+        <summary><code>convertColor</code></summary>
+        <div class="inner">
+          <table class="api">
+            <tr><th>参数</th><th>说明</th></tr>
+            <tr><td><code>input</code></td><td>必填，颜色字符串</td></tr>
+            <tr><td><code>fromFormat</code></td><td>默认 <code>auto</code>；可选 <code>hex</code>|<code>rgb</code>|<code>hsl</code>|<code>cmyk</code></td></tr>
+            <tr><td><code>toFormat</code></td><td>默认 <code>all</code>；或 <code>hex</code>|<code>rgb</code>|<code>hsl</code>|<code>cmyk</code>，此时额外字段 <code>result</code> 为单一格式字符串</td></tr>
+          </table>
+          <p><strong>auto 解析顺序：</strong> 灵活 HEX → 逗号 RGB/HSL/CMYK → <code>rgb()/rgba()</code> 前三个整数 → <code>hsl()/hsla()</code>（百分比/0–1 小数兼容）→ <code>NAMED_HEX</code> 表。</p>
+          <p><strong>toFormat=all：</strong> <code>buildColorJson</code> 含 <code>hex</code>, <code>rgb</code>, <code>rgbCss</code>, <code>hsl</code>, <code>hslCss</code>, <code>cmyk</code>, 分量 <code>r,g,b,h,s,l,c,m,y,k</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>generatePalette</code></summary>
+        <div class="inner">
+          <p><code>baseHex</code> 经 <code>normalizeHexParam</code>；<code>harmony</code> 默认 <code>complementary</code>，下划线会替换为连字符。<code>splitcomplementary</code> 与 <code>split-complementary</code> 等价；<code>square</code> 与 <code>tetradic</code> 等价。</p>
+          <p><strong>output：</strong> <code>baseHex</code>, <code>harmony</code>, <code>colors</code>（HEX 字符串数组，含 # 由 <code>rgbToHex</code> 拼接）。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>randomColor</code></summary>
+        <div class="inner">
+          <p><code>count</code>：默认 1，clamp 1–20。<code>hueMin</code>/<code>hueMax</code> 默认 0/360，若颠倒则交换。饱和度约 55–95%，亮度约 45–70%。</p>
+          <p><strong>output：</strong> <code>colors</code>, <code>count</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getColorInfo</code></summary>
+        <div class="inner">
+          <p>参数 <code>hex</code> 或备用键 <code>input</code>。<strong>output：</strong> <code>hex</code>, <code>closestName</code>, <code>closestHex</code>（带 #）, <code>distance</code>（四位小数）。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="java">
+      <h2>Java 类与方法全表</h2>
+      <p><code>public class ColorPickerPlugin implements ModulePlugin</code></p>
+
+      <details open>
+        <summary>入口与 handlers</summary>
+        <div class="inner">
+          <table class="api">
+            <tr><th>方法</th><th>作用</th></tr>
+            <tr><td><code>invoke(Context, action, paramsJson)</code></td><td>分发四 action</td></tr>
+            <tr><td><code>handleConvertColor</code></td><td>解析 → buildColorJson / result</td></tr>
+            <tr><td><code>handleGeneratePalette</code></td><td>HSL 色相环生成 colors</td></tr>
+            <tr><td><code>handleRandomColor</code></td><td>SecureRandom + hslToRgb</td></tr>
+            <tr><td><code>handleGetColorInfo</code></td><td>findClosestNamed</td></tr>
+          </table>
+        </div>
+      </details>
+
+      <details>
+        <summary>构建与格式化</summary>
+        <div class="inner">
+          <ul>
+            <li><code>buildColorJson(int[] rgb)</code></li>
+            <li><code>formatAs(int[] rgb, String to)</code> — 单格式输出</li>
+            <li><code>formatDisplayBlocks</code> / <code>formatPaletteDisplay</code></li>
+            <li><code>mdCell</code> — 表格转义</li>
+            <li><code>blockLine</code> — Unicode 色条占位（█×8）</li>
+            <li><code>blockEmojiForRgb</code> — 按 HSL 粗略映射 emoji</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>解析器</summary>
+        <div class="inner">
+          <ul>
+            <li><code>parseColorAuto</code> / <code>parseColor(input, from)</code></li>
+            <li><code>parseHexFlexible</code> / <code>parseHexToRgb</code> — 支持 3/6/8 位 HEX（8 位丢弃 Alpha）</li>
+            <li><code>normalizeHexParam</code></li>
+            <li><code>parseRgbTriplet</code> / <code>parseHslTriplet</code> / <code>parseCmykQuad</code></li>
+            <li>正则：<code>HEX_PATTERN</code>, <code>RGB_FUNC</code>, <code>HSL_FUNC</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>数值与颜色空间</summary>
+        <div class="inner">
+          <ul>
+            <li><code>clampRgb</code>, <code>clampByte</code>, <code>clamp(int)</code>, <code>clampDouble</code>, <code>clamp(float)</code></li>
+            <li><code>rgbToHsl</code> / <code>hslToRgb</code> / <code>hueToRgb</code></li>
+            <li><code>rgbToCmyk</code> / <code>cmykToRgb</code></li>
+            <li><code>rgbToHex</code> / <code>round4</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>命名色</summary>
+        <div class="inner">
+          <p>静态块填充 <code>NAMED_HEX</code>（LinkedHashMap，约 140+ CSS 颜色）。内部类 <code>NamedMatch { name, hex, distance }</code>。</p>
+          <p><code>findClosestNamed</code> / <code>colorDistanceSq</code></p>
+        </div>
+      </details>
+
+      <details>
+        <summary>响应包装</summary>
+        <div class="inner">
+          <p><code>emptyJson</code>, <code>ok(JSONObject, String)</code>, <code>error(String)</code></p>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer>PandaGenie · color_picker v1.1 · #6750A4</footer>
+</body>
+</html>

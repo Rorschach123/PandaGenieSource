@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>剪贴板管理 (clipboard) v1.1 — 模块开发文档</title>
+<style>
+:root {
+  --md-primary: #6750A4;
+  --md-primary-container: #EADDFF;
+  --md-surface: #FEF7FF;
+  --md-surface-container: #F3EDF7;
+  --md-on-surface: #1D1B20;
+  --md-on-surface-variant: #49454F;
+  --radius: 12px;
+  --font: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  --elevation-1: 0 1px 3px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font); background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+a { color: var(--md-primary); }
+header.hero {
+  background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+  color: #fff;
+  padding: 2rem 1.25rem 2.5rem;
+}
+header.hero h1 { margin: 0 0 .5rem; font-size: 1.5rem; font-weight: 500; }
+.badge { display: inline-block; padding: .15rem .5rem; border-radius: 999px; background: rgba(255,255,255,.2); font-size: .75rem; }
+.layout { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; display: grid; gap: 1rem; }
+@media (min-width: 900px) { .layout { grid-template-columns: 220px 1fr; } .toc { position: sticky; top: 0; } }
+.toc { background: var(--md-surface-container); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(103,80,164,.15); }
+.toc h2 { margin: 0 0 .75rem; font-size: .85rem; color: var(--md-primary); text-transform: uppercase; }
+.toc ul { margin: 0; padding-left: 1rem; }
+main section { background: #fff; border-radius: var(--radius); padding: 1.25rem 1.35rem; border: 1px solid rgba(0,0,0,.06); box-shadow: var(--elevation-1); margin-bottom: .75rem; }
+section h2 { margin: 0 0 1rem; font-size: 1.15rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+table.api { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .75rem 0; }
+table.api th, table.api td { border: 1px solid rgba(0,0,0,.08); padding: .5rem .6rem; text-align: left; vertical-align: top; }
+table.api th { background: var(--md-surface-container); }
+code { font-family: var(--mono); font-size: .86em; background: rgba(103,80,164,.08); padding: .1rem .35rem; border-radius: 4px; }
+details { border: 1px solid rgba(103,80,164,.25); border-radius: var(--radius); margin: .6rem 0; overflow: hidden; }
+details summary { cursor: pointer; padding: .75rem 1rem; font-weight: 600; color: var(--md-primary); background: var(--md-primary-container); }
+details .inner { padding: 1rem; }
+.flow-diagram { font-family: var(--mono); font-size: .78rem; background: var(--md-surface-container); padding: 1rem; border-radius: var(--radius); white-space: pre-wrap; word-break: break-all; }
+.note { border-left: 4px solid var(--md-primary); padding: .5rem .75rem; background: rgba(103,80,164,.06); margin: .75rem 0; font-size: .9rem; }
+footer { text-align: center; padding: 2rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>剪贴板管理 · Clipboard Manager</h1>
+  <p><span class="badge">clipboard v1.1</span> &nbsp; <code style="background:rgba(0,0,0,.15);padding:2px 8px;border-radius:4px;">ClipboardPlugin.java</code></p>
+</header>
+<div class="layout">
+  <nav class="toc">
+    <h2>目录 TOC</h2>
+    <ul>
+      <li><a href="#overview">概述</a></li>
+      <li><a href="#arch">架构与数据流</a></li>
+      <li><a href="#storage">历史存储</a></li>
+      <li><a href="#apis">API Actions</a></li>
+      <li><a href="#java">Java 方法</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2>模块概述</h2>
+      <p>本模块结合 Android <strong>ClipboardManager</strong> 与<strong>本地 JSON 文件</strong>实现系统剪贴板读写、清空，以及剪贴板历史持久化、检索与清空。剪贴板访问必须在<strong>主线程</strong>执行，插件通过 <code>Handler(Looper.getMainLooper())</code> + <code>CountDownLatch</code> 同步等待，超时 3000ms。</p>
+      <p><strong>Capabilities：</strong> <code>file_read</code>, <code>file_write</code>, <code>clipboard</code>。<strong>权限声明：</strong> <code>MANAGE_EXTERNAL_STORAGE</code>（用于历史文件路径）。</p>
+    </section>
+
+    <section id="arch">
+      <h2>架构与数据流</h2>
+      <div class="flow-diagram">invoke(action, params)
+  → 剪贴板类 action: runOnMain(ClipboardTask)
+       → 主线程: ClipboardManager.getPrimaryClip / setPrimaryClip(ClipData.newPlainText)
+  → 历史类 action: loadHistoryArray / appendHistoryEntry / saveHistoryArray
+       → 文件: /sdcard/PandaGenie/data/clipboard/history.json
+  ← ok(output JSON string, _displayText)</div>
+    </section>
+
+    <section id="storage">
+      <h2>历史文件格式</h2>
+      <p>路径常量：<code>HISTORY_FILE = "/sdcard/PandaGenie/data/clipboard/history.json"</code></p>
+      <p>文件内容为 <strong>JSON 数组</strong>，按时间<strong>追加在末尾</strong>；每条为对象 <code>{ "text": "...", "timestamp": long }</code>。<code>HISTORY_MAX = 100</code> 时从索引 0 删除最旧条目。<code>getClipboardHistory</code> 返回顺序为<strong>从新到旧</strong>（从数组尾部向前取）。</p>
+      <div class="note">若文件损坏或解析失败，<code>loadHistoryArray</code> 返回空数组 <code>[]</code>。</div>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details>
+        <summary><code>getClipboard</code></summary>
+        <div class="inner">
+          <p>无参数。<strong>output：</strong> <code>{"text":"..."}</code>，无内容时为空串。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>setClipboard</code></summary>
+        <div class="inner">
+          <p>必填 <code>text</code>（可为空串）。<strong>output：</strong> <code>{"set":true}</code>。缺参抛 <code>IllegalArgumentException</code> → <code>error</code> JSON。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>clearClipboard</code></summary>
+        <div class="inner">
+          <p>写入 <code>ClipData.newPlainText("", "")</code>。<strong>output：</strong> <code>{"cleared":true}</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getClipboardHistory</code></summary>
+        <div class="inner">
+          <p>参数 <code>limit</code>：默认 20；≤0 时重置为 20；最大不超过 <code>HISTORY_MAX</code>。</p>
+          <p><strong>output：</strong> <code>items</code>（JSONArray），<code>count</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>saveToHistory</code></summary>
+        <div class="inner">
+          <p>读取当前剪贴板文本并 <code>appendHistoryEntry</code>。<strong>output：</strong> <code>saved</code>, <code>textLength</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>searchHistory</code></summary>
+        <div class="inner">
+          <p>必填非空 <code>keyword</code>。在存储文本上 <strong>contains</strong> 子串匹配，<strong>不区分大小写</strong>（<code>Locale.ROOT</code>）。结果从新到旧。</p>
+          <p><strong>output：</strong> <code>items</code>, <code>count</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>clearHistory</code></summary>
+        <div class="inner">
+          <p>写入空数组文件。<strong>output：</strong> <code>{"cleared":true}</code>。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="java">
+      <h2>Java 类与方法详解</h2>
+      <p><code>ClipboardPlugin implements ModulePlugin</code></p>
+
+      <details open>
+        <summary>内部接口 <code>ClipboardTask</code></summary>
+        <div class="inner">
+          <p><code>String run(Context ctx)</code> — 在主线程执行的剪贴板读写闭包。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>runOnMain(Context, ClipboardTask)</code></summary>
+        <div class="inner">
+          <p>若已在主线程则直接执行；否则 <code>mainHandler.post</code> + <code>CountDownLatch.await(3000ms)</code>。超时抛出 <code>IllegalArgumentException("Clipboard operation timed out")</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>剪贴板底层</summary>
+        <div class="inner">
+          <ul>
+            <li><code>clipboardManager(Context)</code> — 校验 <code>CLIPBOARD_SERVICE</code></li>
+            <li><code>readClipText(ClipboardManager)</code> — <code>getPrimaryClip()</code> 首项 <code>getText()</code></li>
+            <li><code>getClipboard</code> / <code>setClipboard</code> / <code>clearClipboard</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>文件 IO</summary>
+        <div class="inner">
+          <ul>
+            <li><code>ensureParentDir(File)</code></li>
+            <li><code>readFileUtf8</code> / <code>writeFileUtf8</code> — <code>FileReader</code>/<code>FileWriter</code> 平台默认编码（注释约定 UTF-8 兼容 JSON）</li>
+            <li><code>loadHistoryArray</code> / <code>saveHistoryArray</code> / <code>trimOldest</code> / <code>appendHistoryEntry</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>展示格式化常量</summary>
+        <div class="inner">
+          <p><code>DISPLAY_BODY_MAX=2000</code>, <code>DISPLAY_ITEM_MAX=400</code>, <code>DISPLAY_SEARCH_PREVIEW=5</code> — 用于 <code>format*Display</code> 与 <code>truncateForDisplay</code>、<code>mdCell</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>invoke</code> 异常</summary>
+        <div class="inner">
+          <p><code>IllegalArgumentException</code> → <code>error(ex.getMessage())</code>，与其它模块一致返回 JSON 而非向外抛出。</p>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer>PandaGenie · clipboard v1.1</footer>
+</body>
+</html>

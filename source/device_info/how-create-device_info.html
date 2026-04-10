@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设备信息 (device_info) v1.1 — 模块开发文档</title>
+<style>
+:root {
+  --md-primary: #6750A4;
+  --md-primary-container: #EADDFF;
+  --md-surface: #FEF7FF;
+  --md-surface-container: #F3EDF7;
+  --md-on-surface: #1D1B20;
+  --md-on-surface-variant: #49454F;
+  --radius: 12px;
+  --font: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  --elevation-1: 0 1px 3px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font); background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65; font-size: 15px; }
+a { color: var(--md-primary); }
+header.hero {
+  background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+  color: #fff;
+  padding: 2rem 1.25rem 2.5rem;
+}
+header.hero h1 { margin: 0 0 .5rem; font-size: 1.5rem; font-weight: 500; }
+.badge { display: inline-block; padding: .15rem .5rem; border-radius: 999px; background: rgba(255,255,255,.2); font-size: .75rem; }
+.layout { max-width: 960px; margin: 0 auto; padding: 1rem 1rem 3rem; display: grid; gap: 1rem; }
+@media (min-width: 900px) { .layout { grid-template-columns: 220px 1fr; align-items: start; } .toc { position: sticky; top: 0; } }
+.toc { background: var(--md-surface-container); border-radius: var(--radius); padding: 1rem; border: 1px solid rgba(103,80,164,.15); }
+.toc h2 { margin: 0 0 .75rem; font-size: .85rem; color: var(--md-primary); text-transform: uppercase; letter-spacing: .04em; }
+.toc ul { margin: 0; padding-left: 1rem; }
+.toc li { margin: .35rem 0; }
+main section { background: #fff; border-radius: var(--radius); padding: 1.25rem 1.35rem; border: 1px solid rgba(0,0,0,.06); box-shadow: var(--elevation-1); margin-bottom: .75rem; }
+section h2 { margin: 0 0 1rem; font-size: 1.15rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+table.api { width: 100%; border-collapse: collapse; font-size: .87rem; margin: .75rem 0; }
+table.api th, table.api td { border: 1px solid rgba(0,0,0,.08); padding: .5rem .6rem; text-align: left; vertical-align: top; }
+table.api th { background: var(--md-surface-container); }
+code { font-family: var(--mono); font-size: .86em; background: rgba(103,80,164,.08); padding: .1rem .35rem; border-radius: 4px; }
+details { border: 1px solid rgba(103,80,164,.25); border-radius: var(--radius); margin: .55rem 0; overflow: hidden; }
+details summary { cursor: pointer; padding: .75rem 1rem; font-weight: 600; color: var(--md-primary); background: var(--md-primary-container); }
+details .inner { padding: 1rem; }
+.flow { font-family: var(--mono); font-size: .78rem; background: var(--md-surface-container); padding: 1rem; border-radius: var(--radius); white-space: pre-wrap; }
+footer { text-align: center; padding: 2rem; color: var(--md-on-surface-variant); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>设备信息 · Device Info</h1>
+  <p><span class="badge">device_info v1.1</span> &nbsp; <code style="background:rgba(0,0,0,.15);padding:2px 8px;border-radius:4px;">DeviceInfoPlugin.java</code></p>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="目录">
+    <h2>目录 TOC</h2>
+    <ul>
+      <li><a href="#overview">概述</a></li>
+      <li><a href="#arch">架构与数据流</a></li>
+      <li><a href="#apis">API Actions</a></li>
+      <li><a href="#java">Java 方法详解</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2>模块概述</h2>
+      <p>聚合本机<strong>静态 Build 信息</strong>、<strong>/proc/cpuinfo</strong>（截断）、<strong>ActivityManager.MemoryInfo</strong>、<strong>StatFs</strong> + <strong>Environment</strong> 存储路径、<strong>WindowManager</strong> + <strong>DisplayMetrics</strong> 与刷新率，以及一次性 <strong>getSystemSummary</strong> 嵌套树。仅使用公开 Android API 与只读 proc 节点。</p>
+    </section>
+
+    <section id="arch">
+      <h2>架构与数据流</h2>
+      <div class="flow">invoke(action, params)
+  → getDeviceInfo()      → Build.*
+  → getCpuInfo()         → Runtime.availableProcessors, os.arch, SUPPORTED_ABIS, /proc/cpuinfo
+  → getMemoryInfo(ctx)   → ActivityManager.getMemoryInfo
+  → getStorageInfo()     → statFsToJson(getDataDirectory), statFsToJson(getExternalStorageDirectory)
+  → getDisplayInfo(ctx)  → Display.getRealSize (API 17+), DisplayMetrics, refresh rate
+  → getSystemSummary()   → 合并上述五段 JSON
+  ← ok(output, _displayText)</div>
+    </section>
+
+    <section id="apis">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details open>
+        <summary><code>getDeviceInfo</code></summary>
+        <div class="inner">
+          <p>无参数。<strong>字段：</strong> <code>brand</code>, <code>model</code>, <code>manufacturer</code>, <code>androidVersion</code>（<code>Build.VERSION.RELEASE</code>）, <code>sdkInt</code>, <code>buildNumber</code>（<code>Build.DISPLAY</code>）, <code>buildIncremental</code>, <code>fingerprint</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getCpuInfo</code></summary>
+        <div class="inner">
+          <p><code>processorCount</code> = <code>Runtime.getRuntime().availableProcessors()</code>。</p>
+          <p><code>osArch</code> = <code>System.getProperty("os.arch")</code>。</p>
+          <p><code>supportedAbis</code> = <code>JSONArray(Build.SUPPORTED_ABIS)</code>。</p>
+          <p><code>cpuinfo</code>：读取 <code>/proc/cpuinfo</code> 最多 <code>CPUINFO_MAX_CHARS=65536</code> 字符；统计以 <code>processor</code> 开头的行数为 <code>processorEntriesInCpuinfo</code>。IO 失败时设置 <code>cpuinfoError</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getMemoryInfo</code></summary>
+        <div class="inner">
+          <p>若 <code>ACTIVITY_SERVICE</code> 不可用，返回内含 <code>error</code> 的 JSON（仍包装 success，由 UI 展示）。</p>
+          <p>否则：<code>totalBytes</code>, <code>availableBytes</code>, <code>usedBytes</code>=total−avail，<code>usedPercent</code> 保留两位小数，<code>lowMemory</code>，API 16+ <code>thresholdBytes</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getStorageInfo</code></summary>
+        <div class="inner">
+          <p>根对象含 <code>internal</code>、<code>externalPrimary</code>，路径不存在时为 JSON <code>null</code>。</p>
+          <p>子对象（<code>statFsToJson</code>）：<code>path</code>, <code>totalBytes</code>, <code>availableBytes</code>, <code>usedBytes</code>, <code>usedPercent</code>。外部卷额外 <code>state</code> = <code>Environment.getExternalStorageState()</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getDisplayInfo</code></summary>
+        <div class="inner">
+          <p><code>getMetrics</code> 取 density；宽高优先 <code>Display.getRealSize(Point)</code>（API 17+）以适配全面屏。</p>
+          <p><strong>字段：</strong> <code>widthPx</code>, <code>heightPx</code>, <code>density</code>, <code>densityDpi</code>, <code>refreshRateHz</code>（API R+ 用 <code>display.getRefreshRate()</code>；M–Q 用 <code>getMode().getRefreshRate()</code>；更旧用 deprecated <code>getRefreshRate()</code>）。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><code>getSystemSummary</code></summary>
+        <div class="inner">
+          <p><strong>结构：</strong> <code>{ "device": {...}, "cpu": {...}, "memory": {...}, "storage": {...}, "display": {...} }</code>，各子对象为对应私有方法返回 JSON 的解析结果。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="java">
+      <h2>Java 类与方法详解</h2>
+      <p><code>public class DeviceInfoPlugin implements ModulePlugin</code></p>
+
+      <details open>
+        <summary><code>invoke(Context, String action, String paramsJson)</code></summary>
+        <div class="inner">
+          <p>未知 action 时若 <code>params.length()&gt;0</code>，错误信息附加 <code>(unexpected params ignored)</code>。</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>数据采集私有方法</summary>
+        <div class="inner">
+          <table class="api">
+            <tr><th>方法</th><th>作用</th></tr>
+            <tr><td><code>getDeviceInfo()</code></td><td>静态 Build 字段</td></tr>
+            <tr><td><code>getCpuInfo()</code></td><td>逻辑核、ABI、cpuinfo 文本</td></tr>
+            <tr><td><code>getMemoryInfo(Context)</code></td><td>RAM 统计</td></tr>
+            <tr><td><code>getStorageInfo()</code></td><td>内部 + 主外部卷</td></tr>
+            <tr><td><code>getDisplayInfo(Context)</code></td><td>分辨率与刷新率</td></tr>
+            <tr><td><code>getSystemSummary(Context)</code></td><td>五段嵌套</td></tr>
+            <tr><td><code>statFsToJson(File path)</code></td><td><code>StatFs</code> long API 计算字节</td></tr>
+          </table>
+        </div>
+      </details>
+
+      <details>
+        <summary>展示与工具</summary>
+        <div class="inner">
+          <ul>
+            <li><code>formatBytes(long)</code> — B/KB/MB/GB/TB，<code>Locale.US</code></li>
+            <li><code>formatDeviceInfoDisplay</code> / <code>formatCpuInfoDisplay</code> / <code>formatMemoryInfoDisplay</code> / <code>formatStorageInfoDisplay</code> / <code>formatDisplayInfoDisplay</code> / <code>formatSystemSummaryDisplay</code></li>
+            <li><code>emptyJson</code>, <code>ok(String,String)</code>, <code>ok(String)</code> → 调用双参 ok 且 displayText null, <code>error(String)</code></li>
+          </ul>
+        </div>
+      </details>
+    </section>
+  </main>
+</div>
+<footer>PandaGenie · device_info v1.1 · Material #6750A4</footer>
+</body>
+</html>
