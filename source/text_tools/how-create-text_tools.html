@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — text_tools（文本工具）v1.1</title>
+  <style>
+    :root { --md-primary: #6750A4; --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%); color: #1D1B20; line-height: 1.65; font-size: 15px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero { background: var(--md-primary); color: #fff; border-radius: var(--radius); padding: 28px 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .chip { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; margin-top: 12px; margin-right: 8px; }
+    nav.toc { background: #fff; border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-bottom: 20px; position: sticky; top: 8px; z-index: 10; }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    section.card { background: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(103, 80, 164, 0.12); }
+    section.card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--md-primary); }
+    details.coll { border: 1px solid #EADDFF; border-radius: 10px; margin: 10px 0; background: #FAF8FC; }
+    details.coll summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--md-primary); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+    table.api { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 10px 0; }
+    table.api th, table.api td { border: 1px solid #E0E0E0; padding: 8px 10px; text-align: left; vertical-align: top; }
+    table.api th { background: #F3EDF7; }
+    pre.block { background: #2D2640; color: #E8DEF8; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; line-height: 1.45; }
+    @media (max-width: 600px) { nav.toc { position: relative; top: 0; } table.api { font-size: 0.78rem; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>text_tools（文本工具）模块文档</h1>
+      <div><span class="mono">ai.rorsch.moduleplugins.text_tools.TextToolsPlugin</span> · <strong>v1.1</strong></div>
+      <span class="chip">UTF-8</span>
+      <span class="chip">Java Regex</span>
+      <span class="chip">MessageDigest</span>
+    </header>
+
+    <nav class="toc">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">架构与算法要点</a></li>
+        <li><a href="#class">类与方法明细</a></li>
+        <li><a href="#api">10 个 API Actions</a></li>
+        <li><a href="#flow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>在设备端离线完成常见 <strong>text processing</strong>：<span class="mono">wordCount</span>（含 CJK 分词规则）、<span class="mono">Base64</span> / <span class="mono">URL</span> 编解码、<span class="mono">Java Pattern</span> 正则匹配与替换、大小写与反转等变换、<span class="mono">UUID</span> 随机生成、<span class="mono">MD5</span>/<span class="mono">SHA-1</span>/<span class="mono">SHA-256</span> 摘要。依赖 <span class="mono">android.util.Base64</span> 与 <span class="mono">java.security.MessageDigest</span>。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>架构与算法要点</h2>
+      <ul>
+        <li><strong>字数统计：</strong><span class="mono">characters</span> 使用 <span class="mono">String.codePointCount</span>（Unicode 码点）。<span class="mono">countWords</span>：<span class="mono">Character.isIdeographic</span> 的码点各计 1 词；否则以连续非空白且非表意片段为英文「词」。</li>
+        <li><strong>行数：</strong>空字符串视为 1 行；统计 <span class="mono">\n</span>、<span class="mono">\u2028</span>、<span class="mono">\u2029</span> 及 <span class="mono">\r\n</span>。</li>
+        <li><strong>句数：</strong>正则 <span class="mono">(?&lt;=[\.\!\?。！？])(?=\s|$)</span> 切分后统计非空片段，至少为 1（非空 trim 文本）。</li>
+        <li><strong>段数：</strong>双换行 <span class="mono">\R\s*\R</span> 分段，空文本 0 段，否则至少 1。</li>
+        <li><strong>正则：</strong><span class="mono">pattern</span> 为空抛 <span class="mono">IllegalArgumentException</span>；语法错误包装为 <span class="mono">invalid regex</span>。</li>
+        <li><strong>哈希：</strong>算法名大小写不敏感；<span class="mono">SHA1</span>/<span class="mono">SHA256</span> 映射到 <span class="mono">SHA-1</span>/<span class="mono">SHA-256</span>；输出小写十六进制。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类 <span class="mono">TextToolsPlugin</span> — 方法</h2>
+      <table class="api">
+        <thead><tr><th>成员</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invoke</td><td>解析 JSON，分发 10 个 action，异常统一 <span class="mono">error(getMessage)</span></td></tr>
+          <tr><td class="mono">wordCountJson</td><td>返回五维统计 JSON</td></tr>
+          <tr><td class="mono">countWords / countLines / countSentences / countParagraphs</td><td>私有静态计数实现</td></tr>
+          <tr><td class="mono">base64Encode / base64Decode</td><td><span class="mono">NO_WRAP</span> 编码；<span class="mono">DEFAULT</span> 解码容忍换行</td></tr>
+          <tr><td class="mono">urlEncode / urlDecode</td><td><span class="mono">URLEncoder</span> / <span class="mono">URLDecoder</span>，UTF-8</td></tr>
+          <tr><td class="mono">regexMatch</td><td><span class="mono">Matcher.find</span> 收集 <span class="mono">group()</span></td></tr>
+          <tr><td class="mono">regexReplace</td><td><span class="mono">Matcher.replaceAll</span>，支持 <span class="mono">$1</span> 等</td></tr>
+          <tr><td class="mono">textTransform</td><td><span class="mono">upper|lower|capitalize|reverse|trim</span></td></tr>
+          <tr><td class="mono">capitalizeWords</td><td>按空白分词，词首字母大写（<span class="mono">Character.isLetter</span>）</td></tr>
+          <tr><td class="mono">reverseByCodePoints</td><td>码点级反转，避免破坏代理对</td></tr>
+          <tr><td class="mono">generateUuidJson</td><td><span class="mono">UUID.randomUUID().toString()</span></td></tr>
+          <tr><td class="mono">hashText / toHex</td><td><span class="mono">MessageDigest.digest</span> → hex</td></tr>
+          <tr><td class="mono">ok / error</td><td><span class="mono">output</span> 为业务 JSON 字符串；可选 <span class="mono">_displayText</span>（Markdown 风格表格）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details class="coll" open><summary><span class="mono">wordCount</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span></p>
+        <p><strong>output：</strong><span class="mono">characters</span>，<span class="mono">words</span>，<span class="mono">lines</span>，<span class="mono">sentences</span>，<span class="mono">paragraphs</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">base64Encode</span> / <span class="mono">base64Decode</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span></p>
+        <p><strong>output：</strong><span class="mono">encoded</span> 或 <span class="mono">decoded</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">urlEncode</span> / <span class="mono">urlDecode</span></summary><div class="inner">
+        <p><strong>说明：</strong><span class="mono">application/x-www-form-urlencoded</span>，空格编码为 <span class="mono">+</span>。</p>
+        <p><strong>output：</strong><span class="mono">encoded</span> / <span class="mono">decoded</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">regexMatch</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span>，<span class="mono">pattern</span>（必填）</p>
+        <p><strong>output：</strong><span class="mono">matches</span>（JSON 数组，每项为整段匹配字符串），<span class="mono">count</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">regexReplace</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span>，<span class="mono">pattern</span>，<span class="mono">replacement</span></p>
+        <p><strong>output：</strong><span class="mono">result</span>（全文替换后）</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">textTransform</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span>，<span class="mono">transform</span> ∈ {<span class="mono">upper</span>,<span class="mono">lower</span>,<span class="mono">capitalize</span>,<span class="mono">reverse</span>,<span class="mono">trim</span>}（大小写不敏感）</p>
+        <p><strong>output：</strong><span class="mono">result</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">generateUUID</span></summary><div class="inner">
+        <p><strong>params：</strong>无</p>
+        <p><strong>output：</strong><span class="mono">uuid</span>（RFC 4122 随机 UUID 字符串）</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">hashText</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">text</span>，<span class="mono">algorithm</span>（<span class="mono">MD5</span> | <span class="mono">SHA-1</span> | <span class="mono">SHA-256</span>）</p>
+        <p><strong>output：</strong><span class="mono">algorithm</span>（规范名），<span class="mono">hex</span></p>
+      </div></details>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流</h2>
+      <pre class="block">paramsJson → JSONObject
+    → switch(action)
+        → 业务方法返回 JSONObject 或 String
+        → ok(outputString, _displayText)  // 多数 action 的 output 为紧凑 JSON 字符串
+
+异常路径: catch → error(exception.message)
+
+展示: _displayText 为 Markdown 表格字符串，供 Chat UI 渲染</pre>
+    </section>
+
+    <footer style="text-align:center;color:#79747E;font-size:0.85rem;margin-top:24px;">PandaGenie · text_tools</footer>
+  </div>
+</body>
+</html>

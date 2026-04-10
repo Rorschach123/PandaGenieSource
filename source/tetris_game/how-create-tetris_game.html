@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — tetris_game（俄罗斯方块）v1.1</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%);
+      color: #1D1B20;
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero {
+      background: var(--md-primary);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .chip { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; margin-top: 12px; margin-right: 8px; }
+    nav.toc { background: #fff; border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-bottom: 20px; position: sticky; top: 8px; z-index: 10; }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    section.card { background: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(103, 80, 164, 0.12); }
+    section.card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--md-primary); }
+    details.coll { border: 1px solid #EADDFF; border-radius: 10px; margin: 10px 0; background: #FAF8FC; }
+    details.coll summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--md-primary); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+    table.api { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 10px 0; }
+    table.api th, table.api td { border: 1px solid #E0E0E0; padding: 8px 10px; text-align: left; vertical-align: top; }
+    table.api th { background: #F3EDF7; }
+    pre.block { background: #2D2640; color: #E8DEF8; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; }
+    @media (max-width: 600px) { nav.toc { position: relative; top: 0; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>tetris_game（俄罗斯方块）模块文档</h1>
+      <div><span class="mono">ai.rorsch.moduleplugins.tetris_game.TetrisPlugin</span> · <strong>v1.1</strong></div>
+      <span class="chip">10×20 Board</span>
+      <span class="chip">7 Tetrominoes</span>
+      <span class="chip">SRS-like Wall Kick</span>
+    </header>
+
+    <nav class="toc">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">棋盘、方块与计分</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#api">API Actions</a></li>
+        <li><a href="#flow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>实现经典 <strong>Tetris（俄罗斯方块）</strong>：<span class="mono">board</span> 为 <strong>10 列 × 20 行</strong>，空位用 <span class="mono">-1</span> 表示；七种 <strong>tetromino</strong> 以预定义相对坐标数组 <span class="mono">PIECES[][][][]</span> 存储，字符标签 <span class="mono">I,O,T,S,Z,L,J</span>。当前块与预览块、得分、等级、消行数等由插件字段维护；通过 <span class="mono">ModulePlugin.invoke</span> 暴露游戏循环 API。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>棋盘、方块与计分</h2>
+      <ul>
+        <li><strong>生成方块：</strong><span class="mono">spawnPiece()</span> 将上一轮的 <span class="mono">nextPiece</span> 变为 <span class="mono">currentPiece</span>，再随机新的 <span class="mono">nextPiece</span>；初始位置约在顶部中央，若不能放置则 <span class="mono">gameOver=true</span>。</li>
+        <li><strong>碰撞检测：</strong><span class="mono">canPlace(piece, rotation, px, py)</span> 遍历形状格子，检查边界与已锁定格（≠ -1）。</li>
+        <li><strong>锁定与消行：</strong><span class="mono">lockPiece()</span> 将当前块写入 <span class="mono">board</span>（值为方块类型索引 0–6），调用 <span class="mono">clearLines()</span>：自下而上整行满则下沉复制，顶部清空；得分使用 <span class="mono">lineScores[cleared] * level</span>，其中 <span class="mono">lineScores = {0,100,300,500,800}</span>，<span class="mono">cleared</span> 截断至 4。</li>
+        <li><strong>等级：</strong><span class="mono">level = difficulty + linesCleared / 10</span>（初始 <span class="mono">level = difficulty</span>）。</li>
+        <li><strong>旋转：</strong>尝试下一旋转态；若不可则尝试左右平移一格（简易 wall kick）。</li>
+        <li><strong>Hard drop：</strong><span class="mono">drop()</span> 下落到底，每下落一格 <span class="mono">score += 2</span>，然后 <span class="mono">lockPiece()</span>。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类 <span class="mono">TetrisPlugin</span> 方法一览</h2>
+      <table class="api">
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invoke</td><td>分发 <span class="mono">startGame|move|rotate|drop|tick|getState|restart</span></td></tr>
+          <tr><td class="mono">startGame(int)</td><td>难度 1–3，<span class="mono">initGame()</span></td></tr>
+          <tr><td class="mono">initGame</td><td>清空 board（-1），重置分数/消行/<span class="mono">level=difficulty</span>，<span class="mono">spawnPiece</span></td></tr>
+          <tr><td class="mono">move(String)</td><td><span class="mono">left|right|down</span>；向下若阻塞则 <span class="mono">lockPiece</span></td></tr>
+          <tr><td class="mono">rotate</td><td>旋转 + 左右踢墙</td></tr>
+          <tr><td class="mono">drop / tick</td><td>硬降 / 软降一格或锁定</td></tr>
+          <tr><td class="mono">buildState</td><td>JSON：<span class="mono">score</span>、<span class="mono">level</span>、<span class="mono">linesCleared</span>、<span class="mono">currentPiece</span>/<span class="mono">nextPiece</span> 字符、<span class="mono">board</span> 字符串（ASCII 画）</td></tr>
+          <tr><td class="mono">renderBoard</td><td>锁定格为 <span class="mono">█</span>，空为 <span class="mono">·</span>，当前活动块为 <span class="mono">▓</span>（游戏结束时不再绘制活动块）</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 输入 / 输出</h2>
+      <details class="coll" open><summary><span class="mono">startGame</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">difficulty</span>（1–3，默认 2）</p>
+        <p><strong>output 字段：</strong><span class="mono">gameStarted</span>，<span class="mono">gameOver</span>，<span class="mono">score</span>，<span class="mono">level</span>，<span class="mono">linesCleared</span>，<span class="mono">difficulty</span>，<span class="mono">boardWidth</span>（10），<span class="mono">boardHeight</span>（20），<span class="mono">currentPiece</span>，<span class="mono">nextPiece</span>，<span class="mono">board</span>（多行字符串）。</p>
+      </div></details>
+      <details class="coll"><summary><span class="mono">move</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">direction</span>：<span class="mono">"left"</span> | <span class="mono">"right"</span> | <span class="mono">"down"</span></p>
+        <p>非法方向返回 <span class="mono">success:false</span>。</p>
+      </div></details>
+      <details class="coll"><summary><span class="mono">rotate</span> · <span class="mono">drop</span> · <span class="mono">tick</span></summary><div class="inner">
+        <p>均无额外参数；需游戏已开始。 <span class="mono">tick</span> 模拟重力一步。</p>
+      </div></details>
+      <details class="coll"><summary><span class="mono">getState</span> · <span class="mono">restart</span></summary><div class="inner">
+        <p><span class="mono">restart</span>：若 <span class="mono">difficulty==0</span> 置 2；复用或新建 <span class="mono">Random</span> 后 <span class="mono">initGame()</span>。</p>
+      </div></details>
+      <p>成功响应统一为：<span class="mono">success:true</span>，<span class="mono">output</span> 为嵌套 JSON 字符串，可选 <span class="mono">_displayText</span>。</p>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流</h2>
+      <pre class="block">startGame → initGame → spawnPiece
+    ↓
+循环: move / rotate / drop / tick
+    → canPlace? → 更新坐标或 lockPiece → clearLines → spawnPiece
+    → gameOver 则后续操作仅返回当前状态（部分 action）
+
+输出: buildState() → output 字符串 + formatDisplay()</pre>
+    </section>
+
+    <footer style="text-align:center;color:#79747E;font-size:0.85rem;margin-top:24px;">PandaGenie · tetris_game</footer>
+  </div>
+</body>
+</html>

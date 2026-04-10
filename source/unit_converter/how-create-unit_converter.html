@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — unit_converter（单位转换）v1.0</title>
+  <style>
+    :root { --md-primary: #6750A4; --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%); color: #1D1B20; line-height: 1.6; font-size: 15px; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero { background: var(--md-primary); color: #fff; border-radius: var(--radius); padding: 28px 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    .chip { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; margin-top: 12px; margin-right: 8px; }
+    nav.toc { background: #fff; border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-bottom: 20px; position: sticky; top: 8px; z-index: 10; }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; columns: 2; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    section.card { background: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(103, 80, 164, 0.12); }
+    section.card h2 { margin: 0 0 12px; font-size: 1.12rem; color: var(--md-primary); }
+    section.card h3 { margin: 16px 0 8px; font-size: 1rem; color: #4A4458; }
+    details.coll { border: 1px solid #EADDFF; border-radius: 10px; margin: 10px 0; background: #FAF8FC; }
+    details.coll summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--md-primary); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; }
+    table.api { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 10px 0; }
+    table.api th, table.api td { border: 1px solid #E0E0E0; padding: 6px 8px; text-align: left; vertical-align: top; }
+    table.api th { background: #F3EDF7; }
+    pre.block { background: #2D2640; color: #E8DEF8; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 0.78rem; line-height: 1.45; }
+    @media (max-width: 700px) { nav.toc ul { columns: 1; } }
+    @media (max-width: 600px) { nav.toc { position: relative; top: 0; } table.api { font-size: 0.72rem; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>unit_converter（单位转换）模块文档</h1>
+      <div><span class="mono">ai.rorsch.moduleplugins.unit_converter.UnitConverterPlugin</span> · <strong>v1.0</strong></div>
+      <span class="chip">8 Categories</span>
+      <span class="chip">Static Conversion Tables</span>
+      <span class="chip">Celsius Pivot for Temperature</span>
+    </header>
+
+    <nav class="toc">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">换算模型</a></li>
+        <li><a href="#units">各类别单位表</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#api">API Actions</a></li>
+        <li><a href="#flow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>在本地完成 <strong>length</strong>、<strong>weight</strong>、<strong>temperature</strong>、<strong>area</strong>、<strong>volume</strong>、<strong>speed</strong>、<strong>time</strong>、<strong>data</strong> 八类单位互转。非温度类通过「乘到基准量（base）再除以目标单位因子」实现；温度先统一为 <strong>摄氏 Celsius</strong> 再转到目标温标。</p>
+      <p>常量：<span class="mono">MONTH_SECONDS = 30×86400</span>（月近似），<span class="mono">YEAR_SECONDS = 365×86400</span>（年近似）。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>换算模型</h2>
+      <ul>
+        <li><span class="mono">convert(category, value, from, to)</span>：若 <span class="mono">temperature</span>，则 <span class="mono">toCelsius(from,value)</span> → <span class="mono">fromCelsius(to, c)</span>；否则 <span class="mono">base = value * factorToBase(from)</span>，<span class="mono">result = base / factorToBase(to)</span>。</li>
+        <li><span class="mono">normalizeCategory</span>：小写 trim，且必须在 <span class="mono">CATEGORY_TITLES</span> 键集合中。</li>
+        <li><span class="mono">normalizeUnitToken(category, raw)</span>：去空格、<span class="mono">²→2</span>、<span class="mono">³→3</span>，再按类别映射别名（如 <span class="mono">kmh</span>→<span class="mono">km/h</span>，<span class="mono">°c</span>→<span class="mono">C</span>）。</li>
+        <li><span class="mono">formatNumber</span>：整数无小数；极小/极大用科学计数；否则 <span class="mono">%.10g</span>。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="units">
+      <h2>各类别单位键（与源码静态表一致）</h2>
+
+      <h3>length（基准：米 m）</h3>
+      <table class="api">
+        <thead><tr><th>Key</th><th>说明（相对米）</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">mm, cm, m, km</td><td>公制</td></tr>
+          <tr><td class="mono">in, ft, yd, mi</td><td>英制；<span class="mono">mi</span>=1609.344 m</td></tr>
+          <tr><td class="mono">nm</td><td>海里 nautical mile，1852 m；别名 <span class="mono">nmi</span>、<span class="mono">nauticalmile</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>weight（基准：千克 kg）</h3>
+      <table class="api"><tbody>
+        <tr><td class="mono">mg, g, kg, oz, lb, ton(1000kg), st</td><td>英制 oz/lb/st 等为常规定义；<span class="mono">t</span>→<span class="mono">ton</span></td></tr>
+      </tbody></table>
+
+      <h3>temperature</h3>
+      <p>内部键：<span class="mono">C</span>、<span class="mono">F</span>、<span class="mono">K</span>。展示标签通过 <span class="mono">displayUnitLabel</span> 转为 <span class="mono">°C</span>、<span class="mono">°F</span>、<span class="mono">K</span>。</p>
+
+      <h3>area（基准：平方米 m2）</h3>
+      <table class="api"><tbody>
+        <tr><td class="mono">mm2, cm2, m2, km2, in2, ft2, yd2, mi2, ha, acre</td><td>别名如 <span class="mono">sqm</span>→<span class="mono">m2</span>，<span class="mono">m^2</span> 等</td></tr>
+      </tbody></table>
+
+      <h3>volume（基准：立方米 m3）</h3>
+      <table class="api"><tbody>
+        <tr><td class="mono">ml, l, m3</td><td>公制</td></tr>
+        <tr><td class="mono">gal_us, gal_uk, floz_us, cup_us, pt_us, qt_us</td><td>美制/英制加仑等；别名 <span class="mono">gal</span>→<span class="mono">gal_us</span> 等见源码</td></tr>
+      </tbody></table>
+
+      <h3>speed（基准：米/秒 m/s）</h3>
+      <table class="api"><tbody>
+        <tr><td class="mono">m/s</td><td>1</td></tr>
+        <tr><td class="mono">km/h</td><td>1/3.6 m/s</td></tr>
+        <tr><td class="mono">mph</td><td>0.44704 m/s</td></tr>
+        <tr><td class="mono">knot</td><td>1852/3600 m/s</td></tr>
+        <tr><td class="mono">ft/s</td><td>0.3048 m/s</td></tr>
+      </tbody></table>
+
+      <h3>time（基准：秒 s）</h3>
+      <p><span class="mono">ms, s, min, h, day, week, month, year</span>；别名如 <span class="mono">sec</span>→<span class="mono">s</span>，<span class="mono">hr</span>→<span class="mono">h</span> 等。</p>
+
+      <h3>data（基准：字节 B，1024 幂）</h3>
+      <p><span class="mono">listUnits</span> 仅列出：<span class="mono">B, KB, MB, GB, TB, PB, bit, Kbit, Mbit, Gbit</span>；静态表另含小写别名 <span class="mono">kb, mb, …</span> 供 <span class="mono">normalizeUnitToken</span>。<span class="mono">bit</span> 因子 0.125 字节；<span class="mono">Kbit</span> 等为 1024 比特步长再乘 0.125。</p>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类 <span class="mono">UnitConverterPlugin</span> — 主要方法</h2>
+      <table class="api">
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invoke</td><td><span class="mono">convert|listUnits|listCategories</span></td></tr>
+          <tr><td class="mono">listUnitKeys</td><td>按类别返回有序键列表（<span class="mono">LinkedHashMap</span> 插入顺序或显式顺序）</td></tr>
+          <tr><td class="mono">normalizeCategory / normalizeUnitToken</td><td>类别与单位规范化</td></tr>
+          <tr><td class="mono">convert / toBase / fromBase</td><td>核心换算</td></tr>
+          <tr><td class="mono">toCelsius / fromCelsius</td><td>温标转换公式</td></tr>
+          <tr><td class="mono">require(Map,String)</td><td>查表，缺失抛 <span class="mono">Unknown unit</span></td></tr>
+          <tr><td class="mono">displayUnitLabel / categoryTitle / categoryListTitle</span></td><td>展示用标签与标题</td></tr>
+          <tr><td class="mono">ok / error</td><td>标准响应；<span class="mono">convert</span> 的 <span class="mono">_displayText</span> 含 emoji 标题与等式一行</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details class="coll" open><summary><span class="mono">convert</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">value</span>（必填，数字），<span class="mono">fromUnit</span>，<span class="mono">toUnit</span>，<span class="mono">category</span></p>
+        <p><strong>错误：</strong><span class="mono">Invalid value</span>（非数字）；<span class="mono">Unknown or missing unit</span>；未知类别等。</p>
+        <p><strong>成功 output：</strong><span class="mono">result</span>（double），<span class="mono">resultText</span>（格式化字符串），<span class="mono">fromUnit</span>，<span class="mono">toUnit</span>（规范化键），<span class="mono">category</span>。</p>
+        <p><strong>_displayText 示例结构：</strong><span class="mono">📐 Unit Conversion\n{value} {prettyFrom} = {resultText} {prettyTo}\nCategory: {Length|…}</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">listUnits</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">category</span></p>
+        <p><strong>成功 output：</strong><span class="mono">category</span>（规范化），<span class="mono">units</span>（JSON 数组字符串元素顺序即 UI 顺序）</p>
+        <p><strong>失败：</strong><span class="mono">Unknown category</span></p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">listCategories</span></summary><div class="inner">
+        <p><strong>params：</strong>无</p>
+        <p><strong>output：</strong><span class="mono">categories</span> 数组，顺序为静态 <span class="mono">CATEGORY_TITLES</span> 插入顺序：length, weight, temperature, area, volume, speed, time, data。</p>
+      </div></details>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流</h2>
+      <pre class="block">convert:
+  optDouble("value") → NaN? → error
+  normalizeCategory(category) → ""
+  normalizeUnitToken(category, from/to) → ""
+  convert() → formatNumber(result)
+  JSONObject + _displayText
+
+listUnits:
+  listUnitKeys → JSONArray
+
+listCategories:
+  CATEGORY_TITLES.keySet() → JSONArray</pre>
+    </section>
+
+    <footer style="text-align:center;color:#79747E;font-size:0.85rem;margin-top:24px;">PandaGenie · unit_converter</footer>
+  </div>
+</body>
+</html>

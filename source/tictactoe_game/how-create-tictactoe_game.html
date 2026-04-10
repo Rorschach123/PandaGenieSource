@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — tictactoe_game（井字棋）v1.1</title>
+  <style>
+    :root { --md-primary: #6750A4; --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%); color: #1D1B20; line-height: 1.65; font-size: 15px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero { background: var(--md-primary); color: #fff; border-radius: var(--radius); padding: 28px 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; }
+    .chip { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; margin-top: 12px; margin-right: 8px; }
+    nav.toc { background: #fff; border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); margin-bottom: 20px; position: sticky; top: 8px; z-index: 10; }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    section.card { background: #fff; border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(103, 80, 164, 0.12); }
+    section.card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--md-primary); }
+    details.coll { border: 1px solid #EADDFF; border-radius: 10px; margin: 10px 0; background: #FAF8FC; }
+    details.coll summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--md-primary); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+    table.api { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 10px 0; }
+    table.api th, table.api td { border: 1px solid #E0E0E0; padding: 8px 10px; text-align: left; vertical-align: top; }
+    table.api th { background: #F3EDF7; }
+    pre.block { background: #2D2640; color: #E8DEF8; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; line-height: 1.45; }
+    @media (max-width: 600px) { nav.toc { position: relative; top: 0; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>tictactoe_game（井字棋）模块文档</h1>
+      <div><span class="mono">ai.rorsch.moduleplugins.tictactoe_game.TicTacToePlugin</span> · <strong>v1.1</strong></div>
+      <span class="chip">3×3</span>
+      <span class="chip">Player X</span>
+      <span class="mono">Heuristic AI</span>
+    </header>
+
+    <nav class="toc">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">棋盘编码与 AI 策略</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#api">API Actions</a></li>
+        <li><a href="#flow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>经典 <strong>Tic-Tac-Toe（井字棋）</strong>：<strong>玩家执 X 且先手</strong>，程序执 <strong>O</strong>。棋盘为 <span class="mono">3×3</span>，内部用整数矩阵：<span class="mono">EMPTY=0</span>，<span class="mono">PLAYER_X=1</span>，<span class="mono">PLAYER_O=2</span>。<span class="mono">placeMark</span> 落子后立即调用启发式 <span class="mono">aiMove()</span>，再检测胜负或平局。</p>
+      <p><strong>胜负判定：</strong><span class="mono">winner</span> 内部值 <span class="mono">0=none</span>，<span class="mono">1=玩家胜</span>，<span class="mono">2=AI 胜</span>，<span class="mono">3=平局(draw)</span>；<span class="mono">buildState()</span> 映射为字符串 <span class="mono">"none"|"player"|"ai"|"draw"</span>。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>棋盘编码与 AI 策略（minimax-style 描述）</h2>
+      <p>源码注释为「Try to win / Block / Center / Corner / Any」，属于<strong>浅层必胜/必堵搜索</strong>而非完整博弈树：</p>
+      <ol>
+        <li><span class="mono">findBestMove(player)</span>：遍历每个空格，临时放置该 <span class="mono">player</span>，若 <span class="mono">checkWin(player)</span> 为真则该步为「制胜步」，恢复棋盘后返回坐标。</li>
+        <li><strong>AI 先手顺序：</strong>若存在 O 的制胜步则下；否则若存在 X 的制胜步则堵；否则若中心空则占中心；否则在四个角中随机选一空角；否则任选一空格。</li>
+      </ol>
+      <p><span class="mono">checkWin</span> 检查三行、三列与两条对角线。</p>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类 <span class="mono">TicTacToePlugin</span> 方法</h2>
+      <table class="api">
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invoke</td><td><span class="mono">startGame|placeMark|getState|restart</span></td></tr>
+          <tr><td class="mono">startGame</td><td>新建 <span class="mono">Random</span>，<span class="mono">initGame()</span></td></tr>
+          <tr><td class="mono">initGame</td><td>board 清零，<span class="mono">gameStarted=true</span>，<span class="mono">gameOver=false</span>，<span class="mono">winner=0</span></td></tr>
+          <tr><td class="mono">placeMark(row,col)</td><td>校验边界与空位；写入 X；<span class="mono">checkWinner</span>；若未结束则 <span class="mono">aiMove</span> + 再 <span class="mono">checkWinner</span></td></tr>
+          <tr><td class="mono">aiMove</td><td>见上文策略</td></tr>
+          <tr><td class="mono">findBestMove</td><td>寻找单方下一步即可获胜的位置</td></tr>
+          <tr><td class="mono">checkWinner</td><td>更新 <span class="mono">winner</span> 与 <span class="mono">gameOver</span></td></tr>
+          <tr><td class="mono">buildState</td><td>JSON：<span class="mono">gameStarted</span>，<span class="mono">gameOver</span>，<span class="mono">winner</span>（字符串），<span class="mono">board</span>（<span class="mono">"."|"X"|"O"</span> 的二维数组），<span class="mono">boardDisplay</span></td></tr>
+          <tr><td class="mono">renderBoard / formatDisplay</td><td>ASCII 棋盘与提示文案</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 输入 / 输出</h2>
+      <details class="coll" open><summary><span class="mono">startGame</span></summary><div class="inner">
+        <p><strong>params：</strong>无</p>
+        <p><strong>output：</strong>初始空棋盘状态。</p>
+      </div></details>
+      <details class="coll"><summary><span class="mono">placeMark</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">row</span>，<span class="mono">col</span>（0–2）</p>
+        <p>已被占用或越界返回 error；游戏已结束则返回当前状态（success）不修改棋盘。</p>
+      </div></details>
+      <details class="coll"><summary><span class="mono">getState</span> · <span class="mono">restart</span></summary><div class="inner">
+        <p><span class="mono">getState</span> 需游戏已开始。<span class="mono">restart</span> 保证 <span class="mono">random</span> 非空后 <span class="mono">initGame()</span>。</p>
+      </div></details>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流</h2>
+      <pre class="block">startGame → initGame
+placeMark:
+  board[r][c]=X → checkWinner
+       → if !gameOver: aiMove(O) → checkWinner
+       → ok(buildState, formatDisplay)
+
+胜负: checkWin 行/列/对角 → winner 1 或 2
+平局: 棋盘满且无人胜 → winner=3 (draw)</pre>
+    </section>
+
+    <footer style="text-align:center;color:#79747E;font-size:0.85rem;margin-top:24px;">PandaGenie · tictactoe_game</footer>
+  </div>
+</body>
+</html>

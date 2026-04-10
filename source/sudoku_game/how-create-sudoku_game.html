@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — sudoku_game（数独）v1.1</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-surface: #FEF7FF;
+      --md-surface-container: #EADDFF;
+      --md-outline: #79747E;
+      --md-on-surface: #1D1B20;
+      --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%);
+      color: var(--md-on-surface);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; font-weight: 600; }
+    header.hero .meta { opacity: 0.92; font-size: 0.95rem; }
+    .chip {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      margin-right: 8px;
+    }
+    nav.toc {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+    }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(103, 80, 164, 0.12);
+    }
+    section.card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--md-primary); }
+    section.card h3 { margin: 18px 0 8px; font-size: 1.02rem; color: #4A4458; }
+    details.coll {
+      border: 1px solid var(--md-surface-container);
+      border-radius: 10px;
+      margin: 10px 0;
+      overflow: hidden;
+      background: #FAF8FC;
+    }
+    details.coll summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 600;
+      color: var(--md-primary);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details.coll summary::-webkit-details-marker { display: none; }
+    details.coll summary::before { content: "▸"; transition: transform 0.2s; }
+    details.coll[open] summary::before { transform: rotate(90deg); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.88em; }
+    table.api {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 10px 0;
+    }
+    table.api th, table.api td {
+      border: 1px solid #E0E0E0;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.api th { background: #F3EDF7; color: #362863; }
+    .ok { color: #1B5E20; }
+    .warn { color: #B06000; }
+    pre.block {
+      background: #2D2640;
+      color: #E8DEF8;
+      padding: 12px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+    @media (max-width: 600px) {
+      header.hero h1 { font-size: 1.25rem; }
+      table.api { font-size: 0.82rem; }
+      nav.toc { position: relative; top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>sudoku_game（数独）模块文档</h1>
+      <div class="meta">PandaGenie Module · <span class="mono">ai.rorsch.moduleplugins.sudoku_game.SudokuPlugin</span> · Version <strong>1.1</strong></div>
+      <span class="chip">manifest.json</span>
+      <span class="chip">9×9 Grid</span>
+      <span class="chip">Backtracking + Digging</span>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">架构与数据模型</a></li>
+        <li><a href="#class">类与成员方法</a></li>
+        <li><a href="#api">API Actions（输入/输出）</a></li>
+        <li><a href="#flow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>本模块实现经典 <strong>Sudoku（数独）</strong>：在 <strong>9×9</strong> 网格中填入数字 <span class="mono">1–9</span>，使每行、每列及每个 <strong>3×3 子宫（box）</strong> 内数字不重复。题目由先完整生成合法终盘（<strong>solution</strong>），再按难度随机挖空若干格得到 <strong>puzzle</strong>；玩家盘面为 <strong>playerBoard</strong>，预填格由 <strong>fixed[][]</strong> 标记且不可修改或清除。</p>
+      <p><strong>难度（difficulty）</strong>：取值 <span class="mono">1–3</span>，对应挖空数量：<strong>35</strong>（简单）、<strong>45</strong>（普通，默认）、<strong>55</strong>（困难）格。</p>
+      <p><strong>宿主集成</strong>：实现 <span class="mono">ModulePlugin</span>，入口 <span class="mono">invoke(Context, action, paramsJson)</span>；成功返回 <span class="mono">success=true</span>，业务 JSON 置于字符串字段 <span class="mono">output</span>（二次序列化），可选 <span class="mono">_displayText</span> 供 UI 展示。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>架构与数据模型</h2>
+      <details class="coll" open>
+        <summary>状态矩阵与常量</summary>
+        <div class="inner">
+          <ul>
+            <li><span class="mono">SIZE = 9</span>、<span class="mono">BOX = 3</span></li>
+            <li><span class="mono">int[][] solution</span>：完整终盘答案。</li>
+            <li><span class="mono">int[][] puzzle</span>：挖空后的题目（实现中主要用于初始化，逻辑上以 <span class="mono">playerBoard</span> + <span class="mono">fixed</span> 为准）。</li>
+            <li><span class="mono">int[][] playerBoard</span>：当前玩家可见/可编辑盘面（0 表示空）。</li>
+            <li><span class="mono">boolean[][] fixed</span>：<span class="mono">true</span> 表示题目预填，不可 <span class="mono">placeNumber</span> 覆盖（除规则外）或 <span class="mono">clearCell</span>。</li>
+            <li><span class="mono">boolean gameStarted / gameOver</span>；<span class="mono">int difficulty</span>；<span class="mono">Random random</span>。</li>
+          </ul>
+        </div>
+      </details>
+      <details class="coll">
+        <summary>题目生成流程</summary>
+        <div class="inner">
+          <ol>
+            <li><strong>fillBoard(board, row, col)</strong>：按行列顺序递归回溯，每格从打乱顺序的 <span class="mono">1–9</span> 中选取，调用 <span class="mono">isValid</span> 检查行/列/宫约束，填满即得 <span class="mono">solution</span>。</li>
+            <li>复制 <span class="mono">solution</span> 到 <span class="mono">puzzle</span> 与 <span class="mono">playerBoard</span>。</li>
+            <li>将 <span class="mono">0..80</span> 位置打乱，依难度删除对应数量格子（置 0）。</li>
+            <li>根据 <span class="mono">puzzle</span> 设置 <span class="mono">fixed[r][c] = (puzzle[r][c] != 0)</span>。</li>
+          </ol>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类 <span class="mono">SudokuPlugin</span> 与方法</h2>
+      <table class="api">
+        <thead><tr><th>方法</th><th>可见性</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invoke(Context, String, String)</td><td>public</td><td>分发 7 个 action；异常时返回 <span class="mono">success:false</span> + <span class="mono">error</span>。</td></tr>
+          <tr><td class="mono">startGame(int)</td><td>private</td><td>夹紧难度 1–3，初始化 <span class="mono">Random</span>，<span class="mono">generatePuzzle()</span>，返回 <span class="mono">ok(buildState(), formatDisplay())</span>。</td></tr>
+          <tr><td class="mono">generatePuzzle()</td><td>private</td><td>生成终盘、挖空、设置 <span class="mono">fixed</span>、<span class="mono">gameStarted=true</span>，<span class="mono">gameOver=false</span>。</td></tr>
+          <tr><td class="mono">fillBoard(int[][], int, int)</td><td>private</td><td>回溯填数，返回是否成功。</td></tr>
+          <tr><td class="mono">isValid(int[][], int, int, int)</td><td>private</td><td>检查行、列、3×3 宫是否可放 <span class="mono">num</span>。</td></tr>
+          <tr><td class="mono">placeNumber(int, int, int)</td><td>private</td><td>校验游戏状态与坐标；更新 <span class="mono">playerBoard</span>；<span class="mono">placedCorrect</span> 与 <span class="mono">solution</span> 比较；若全盘正确则 <span class="mono">gameOver</span>。</td></tr>
+          <tr><td class="mono">clearCell(int, int)</td><td>private</td><td>非 <span class="mono">fixed</span> 格置 0。</td></tr>
+          <tr><td class="mono">checkBoard()</td><td>private</td><td>输出 <span class="mono">complete</span>、<span class="mono">correct</span>、<span class="mono">errors</span>（与答案不符的非空格数）、<span class="mono">emptyCells</span>。</td></tr>
+          <tr><td class="mono">getHint()</td><td>private</td><td>在「空或填错」的格中随机选一格，直接填入正确答案到 <span class="mono">playerBoard</span>。</td></tr>
+          <tr><td class="mono">isBoardComplete() / isBoardCorrect()</td><td>private</td><td>全盘非 0 / 与 <span class="mono">solution</span> 完全一致。</td></tr>
+          <tr><td class="mono">getState()</td><td>private</td><td>返回当前 <span class="mono">buildState()</span>。</td></tr>
+          <tr><td class="mono">restart()</td><td>private</td><td>若难度为 0 则置 2；保证 <span class="mono">random</span> 非空后重新 <span class="mono">generatePuzzle()</span>。</td></tr>
+          <tr><td class="mono">buildState()</td><td>private</td><td>组装 JSON：<span class="mono">playerBoard</span>、<span class="mono">fixedCells</span>、<span class="mono">filledCount</span>、<span class="mono">totalCells</span>、<span class="mono">boardDisplay</span> 等。</td></tr>
+          <tr><td class="mono">renderBoard() / formatDisplay()</td><td>private</td><td>ASCII 棋盘与聊天展示文本。</td></tr>
+          <tr><td class="mono">emptyJson / ok / error</td><td>private</td><td>JSON 包装与错误响应。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 参数与输出（与源码一致）</h2>
+      <p>所有请求参数为 JSON 字符串 <span class="mono">paramsJson</span>；空或空白视为 <span class="mono">{}</span>。<span class="mono">optInt</span> 未传字段时使用默认值（如 <span class="mono">row</span> 默认 -1 会触发越界 error）。</p>
+
+      <details class="coll" open><summary><span class="mono">startGame</span></summary><div class="inner">
+        <table class="api">
+          <tr><th>输入参数</th><td><span class="mono">difficulty</span>：int，可选；未传时 <span class="mono">optInt(..., 2)</span>；随后 <span class="mono">Math.max(1, Math.min(3, diff))</span> 夹紧到 1–3。</td></tr>
+          <tr><th>成功 output</th><td>由 <span class="mono">buildState()</span> 生成，字段见下表「公共 state 字段」。另含整局 <span class="mono">formatDisplay()</span> 文本于顶层 <span class="mono">_displayText</span>。</td></tr>
+        </table>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">placeNumber</span></summary><div class="inner">
+        <table class="api">
+          <tr><th>输入参数</th><td><span class="mono">row</span>，<span class="mono">col</span>（<span class="mono">optInt(..., -1)</span>），<span class="mono">number</span>（<span class="mono">optInt(..., 0)</span>）</td></tr>
+          <tr><th>错误条件</th><td>未 <span class="mono">startGame</span>；<span class="mono">row/col</span> 非 0–8；<span class="mono">number</span> 非 1–9；<span class="mono">fixed[row][col]</span> 为 true。</td></tr>
+          <tr><th>成功 output</th><td>公共字段 + <span class="mono">placedCorrect</span>（<span class="mono">number == solution[row][col]</span>）。若放错数字，附 <span class="mono">message</span>：「数字不正确，但已放置」。若全盘填满且与 <span class="mono">solution</span> 一致：<span class="mono">gameOver=true</span>，<span class="mono">completed=true</span>，<span class="mono">message</span> 祝贺文案。</td></tr>
+        </table>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">clearCell</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">row</span>，<span class="mono">col</span>。仅当非 <span class="mono">fixed</span> 时将 <span class="mono">playerBoard</span> 置 0。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">checkBoard</span></summary><div class="inner">
+        <p><strong>output 附加字段：</strong><span class="mono">complete</span>（<span class="mono">isBoardComplete()</span>），<span class="mono">correct</span>（<span class="mono">isBoardCorrect()</span>），<span class="mono">errors</span>（与 <span class="mono">solution</span> 不一致的非 0 格数量），<span class="mono">emptyCells</span>。若 <span class="mono">complete &amp;&amp; correct</span>：<span class="mono">gameOver=true</span> 与祝贺 <span class="mono">message</span>。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">getHint</span></summary><div class="inner">
+        <p>候选格：满足 <span class="mono">playerBoard[r][c]==0 || playerBoard[r][c]!=solution[r][c]</span>。随机选一格写入 <span class="mono">solution</span> 值。返回 <span class="mono">hintRow</span>，<span class="mono">hintCol</span>，<span class="mono">hintValue</span>。若此后全盘正确则 <span class="mono">completed</span> 与 <span class="mono">gameOver</span>。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">getState</span> / <span class="mono">restart</span></summary><div class="inner">
+        <p><strong>getState：</strong>需 <span class="mono">gameStarted</span>。</p>
+        <p><strong>restart：</strong>若 <span class="mono">difficulty==0</span> 置 2；若 <span class="mono">random==null</span> 则 <span class="mono">new Random()</span>；<span class="mono">generatePuzzle()</span> 全新题目。</p>
+      </div></details>
+
+      <h3>公共 state 字段（<span class="mono">buildState()</span>）</h3>
+      <table class="api">
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">gameStarted</td><td>boolean</td><td>是否已开始</td></tr>
+          <tr><td class="mono">gameOver</td><td>boolean</td><td>是否终局（完成或逻辑结束）</td></tr>
+          <tr><td class="mono">difficulty</td><td>int</td><td>1–3</td></tr>
+          <tr><td class="mono">playerBoard</td><td>JSONArray</td><td>9×9 整数，0 表示空</td></tr>
+          <tr><td class="mono">fixedCells</td><td>JSONArray</td><td>9×9 布尔，题目初始锁定格</td></tr>
+          <tr><td class="mono">filledCount</td><td>int</td><td>非 0 格数量</td></tr>
+          <tr><td class="mono">totalCells</td><td>int</td><td>恒为 81</td></tr>
+          <tr><td class="mono">boardDisplay</td><td>string</td><td>多行 ASCII 棋盘（含列标题与宫格线）</td></tr>
+        </tbody>
+      </table>
+
+      <table class="api">
+        <thead><tr><th>顶层响应</th><th>类型</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">success</td><td>boolean</td><td>是否执行成功</td></tr>
+          <tr><td class="mono">output</td><td>string</td><td>内层 JSON 字符串，需二次 <span class="mono">JSON.parse</span></td></tr>
+          <tr><td class="mono">_displayText</td><td>string</td><td>可选，人类可读摘要</td></tr>
+          <tr><td class="mono">error</td><td>string</td><td><span class="mono">success=false</span> 时错误信息</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流（Data Flow）</h2>
+      <pre class="block">Host / LLM
+    │  JSON: { "action": "startGame", "params": { "difficulty": 2 } }
+    ▼
+ModuleRuntime 反射调用 SudokuPlugin.invoke()
+    │  generatePuzzle(): solution → dig cells → fixed / playerBoard
+    ▼
+Response: { success, output: "{...state...}", _displayText }
+    │
+    │  玩家操作: placeNumber / clearCell / getHint / checkBoard
+    ▼
+playerBoard 更新 → buildState() → output 字符串
+    │
+    └─ 终局条件: placeNumber/checkBoard/getHint 中若全盘与 solution 一致则 gameOver=true</pre>
+    </section>
+
+    <footer style="text-align:center;color:var(--md-outline);font-size:0.85rem;margin-top:24px;">
+      PandaGenie · sudoku_game · 文档生成自源码与 manifest
+    </footer>
+  </div>
+</body>
+</html>

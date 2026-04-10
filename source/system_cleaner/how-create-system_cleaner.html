@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 模块文档 — system_cleaner（系统清理）v1.1</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-surface: #FEF7FF;
+      --radius: 12px;
+      --shadow: 0 2px 6px rgba(103, 80, 164, 0.15), 0 8px 24px rgba(103, 80, 164, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Roboto", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: linear-gradient(160deg, #F3EDF7 0%, #E8DEF8 40%, #FEF7FF 100%);
+      color: #1D1B20;
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.55rem; font-weight: 600; }
+    .chip {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      margin-right: 8px;
+    }
+    nav.toc {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+    }
+    nav.toc strong { color: var(--md-primary); display: block; margin-bottom: 10px; }
+    nav.toc ul { margin: 0; padding-left: 18px; }
+    nav.toc a { color: var(--md-primary); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(103, 80, 164, 0.12);
+    }
+    section.card h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--md-primary); }
+    details.coll {
+      border: 1px solid #EADDFF;
+      border-radius: 10px;
+      margin: 10px 0;
+      background: #FAF8FC;
+    }
+    details.coll summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 600;
+      color: var(--md-primary);
+      list-style: none;
+    }
+    details.coll summary::-webkit-details-marker { display: none; }
+    details.coll summary::before { content: "▸ "; }
+    details.coll[open] summary::before { content: "▾ "; }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid #E8DEF8; }
+    code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; }
+    table.api { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 10px 0; }
+    table.api th, table.api td { border: 1px solid #E0E0E0; padding: 8px 10px; text-align: left; vertical-align: top; }
+    table.api th { background: #F3EDF7; color: #362863; }
+    pre.block {
+      background: #2D2640;
+      color: #E8DEF8;
+      padding: 12px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+    @media (max-width: 600px) { nav.toc { position: relative; top: 0; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>system_cleaner（系统清理）模块文档</h1>
+      <div class="meta">PandaGenie Module · <span class="mono">ai.rorsch.moduleplugins.system_cleaner.SystemCleanerPlugin</span> · <strong>v1.1</strong></div>
+      <span class="chip">StatFs</span>
+      <span class="chip">External Storage</span>
+      <span class="chip">6 Categories</span>
+    </header>
+
+    <nav class="toc">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#arch">架构与类别语义</a></li>
+        <li><a href="#class">类、内部类型与方法</a></li>
+        <li><a href="#api">API Actions 详解</a></li>
+        <li><a href="#flow">数据流与安全说明</a></li>
+      </ul>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述</h2>
+      <p>在外部存储（<span class="mono">Environment.getExternalStorageDirectory()</span>）上按类别<strong>扫描（scan）</strong>可清理文件体积、或<strong>删除（clean）</strong>以释放空间；另提供 <strong>StatFs</strong> 存储概览与<strong>大文件枚举</strong>。实现 <span class="mono">ModulePlugin</span>，由宿主 <span class="mono">ModuleRuntime</span> 反射调用；需由宿主申请 <strong>存储读写权限</strong>（<span class="mono">READ/WRITE_EXTERNAL_STORAGE</span> 或分区存储适配）。</p>
+      <p><strong>类别（categories）</strong> 逗号分隔、小写：<span class="mono">temp</span>、<span class="mono">cache</span>、<span class="mono">apk</span>、<span class="mono">thumbs</span>、<span class="mono">empty_dirs</span>、<span class="mono">logs</span>。<span class="mono">scanJunk</span> 在参数为空时默认扫描全部六类；<span class="mono">cleanJunk</span> 必须显式指定至少一类。</p>
+    </section>
+
+    <section class="card" id="arch">
+      <h2>架构与类别语义</h2>
+      <table class="api">
+        <thead><tr><th>Category Key</th><th>扫描范围（摘要）</th><th>清理行为</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">temp</td><td><span class="mono">&lt;ext&gt;/PandaGenie/temp</span> 递归；全盘 <span class="mono">*.tmp</span>（排除已统计目录内重复）</td><td>删除 PandaGenie temp 目录内文件 + 其它 <span class="mono">.tmp</span></td></tr>
+          <tr><td class="mono">cache</td><td><span class="mono">Android/data/*/cache</span> 各包外部缓存</td><td>递归清空各 <span class="mono">cache</span> 目录内容</td></tr>
+          <tr><td class="mono">apk</td><td>外存根目录 <span class="mono">*.apk</span>；<span class="mono">Downloads</span> 与 <span class="mono">Download</span> 树内 APK</td><td>同上范围删除 APK 文件</td></tr>
+          <tr><td class="mono">thumbs</td><td>深度优先查找名为 <span class="mono">.thumbnails</span> 的目录并统计其内文件</td><td>删除每个 <span class="mono">.thumbnails</span> 整树</td></tr>
+          <tr><td class="mono">empty_dirs</td><td>统计「叶子空目录」数量（非根），用于估算空文件夹规模</td><td>多轮（最多 64 轮）扫除空目录，每轮自底向上删除空文件夹</td></tr>
+          <tr><td class="mono">logs</td><td>全盘递归匹配 <span class="mono">*.log</span></td><td>删除匹配日志文件</td></tr>
+        </tbody>
+      </table>
+      <p><strong>注意：</strong><span class="mono">empty_dirs</span> 的「大小」在扫描阶段仅计<strong>目录个数</strong>（<span class="mono">CategoryStat.addEmptyDir</span>），字节为 0。</p>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类、内部类型与主要方法</h2>
+      <h3>公开入口</h3>
+      <p><span class="mono">invoke(Context context, String action, String paramsJson)</span>：分发 <span class="mono">scanJunk</span>、<span class="mono">cleanJunk</span>、<span class="mono">getStorageInfo</span>、<span class="mono">findLargeFiles</span>；各动作结果经 <span class="mono">ok(outputString, displayText)</span> 包装。</p>
+
+      <h3>内部静态类</h3>
+      <ul>
+        <li><strong>CategoryStat</strong>：<span class="mono">count</span>，<span class="mono">sizeBytes</span>；<span class="mono">addFile(long)</span>，<span class="mono">addEmptyDir()</span>；<span class="mono">toJson()</span> 输出 <span class="mono">count</span>、<span class="mono">sizeBytes</span>、<span class="mono">sizeFormatted</span>。</li>
+        <li><strong>CleanResult</strong>：<span class="mono">files</span>，<span class="mono">dirs</span>，<span class="mono">bytes</span>；<span class="mono">toJson()</span> 含 <span class="mono">filesDeleted</span>、<span class="mono">dirsDeleted</span>、<span class="mono">freedBytes</span>、<span class="mono">freedFormatted</span>。</li>
+        <li><strong>FilePredicate</strong>：函数式接口，用于 <span class="mono">accumulateMatchingFiles</span> / <span class="mono">deleteMatchingFiles</span>。</li>
+      </ul>
+
+      <h3>StatFs 与格式化</h3>
+      <p><span class="mono">statFsToJson(File path)</span>：兼容 API 17+ 长整型块大小/块数；字段含 <span class="mono">totalBytes</span>、<span class="mono">availableBytes</span>、<span class="mono">usedBytes</span>、<span class="mono">usedPercent</span>、<span class="mono">totalFormatted</span> 等（GB/TB 英文单位）。</p>
+      <p><span class="mono">getStorageInfo()</span>：<span class="mono">internal</span> ← <span class="mono">Environment.getDataDirectory()</span>；<span class="mono">externalPrimary</span> ← 外存目录并附加 <span class="mono">state</span>（<span class="mono">getExternalStorageState()</span>）。</p>
+
+      <details class="coll"><summary>文件遍历辅助（节选）</summary><div class="inner">
+        <ul>
+          <li><span class="mono">accumulateFilesRecursive</span>、<span class="mono">accumulateMatchingFiles</span></li>
+          <li><span class="mono">collectLargeFiles</span>：非递归或递归收集 ≥ 阈值文件</li>
+          <li><span class="mono">isUnderDirectory</span>：规范路径前缀判断，避免重复统计</li>
+        </ul>
+      </div></details>
+    </section>
+
+    <section class="card" id="api">
+      <h2>API Actions — 输入 / 输出</h2>
+
+      <details class="coll" open><summary><span class="mono">scanJunk</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">categories</span>（可选，逗号分隔；空则六类全扫）</p>
+        <p><strong>成功 output（JSON 对象，字符串在顶层 <span class="mono">output</span> 内）：</strong></p>
+        <ul>
+          <li><span class="mono">categories</span>：各 key 对应 <span class="mono">CategoryStat.toJson()</span></li>
+          <li><span class="mono">totalSizeBytes</span>，<span class="mono">totalSizeFormatted</span></li>
+        </ul>
+        <p>外存不可用：<span class="mono">output</span> 内含 <span class="mono">{"error":"External storage not available"}</span>（仍可能 <span class="mono">success:true</span>，展示层识别 <span class="mono">error</span> 键）。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">cleanJunk</span></summary><div class="inner">
+        <p><strong>params：</strong><span class="mono">categories</span>（必填非空）</p>
+        <p><strong>output：</strong><span class="mono">deletedFiles</span>，<span class="mono">deletedDirs</span>，<span class="mono">deletedItems</span>，<span class="mono">freedBytes</span>，<span class="mono">freedFormatted</span>，<span class="mono">byCategory</span>（每类 <span class="mono">CleanResult</span>）。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">getStorageInfo</span></summary><div class="inner">
+        <p><strong>params：</strong>无</p>
+        <p><strong>output：</strong><span class="mono">internal</span>，<span class="mono">externalPrimary</span>（可能为 <span class="mono">null</span> JSON 字面量）。</p>
+      </div></details>
+
+      <details class="coll"><summary><span class="mono">findLargeFiles</span></summary><div class="inner">
+        <p><strong>params：</strong></p>
+        <ul>
+          <li><span class="mono">minSizeMB</span>：默认 <strong>50.0</strong></li>
+          <li><span class="mono">path</span>：默认外存根或 <span class="mono">/sdcard</span></li>
+          <li><span class="mono">recursive</span>：默认 <span class="mono">true</span></li>
+          <li><span class="mono">limit</span>：默认 <strong>100</strong>（manifest 未列出的扩展参数）</li>
+        </ul>
+        <p><strong>output：</strong><span class="mono">directory</span>，<span class="mono">minSizeMB</span>，<span class="mono">found</span>，<span class="mono">showing</span>，<span class="mono">files[]</span>（每项含 <span class="mono">path</span>、<span class="mono">name</span>、<span class="mono">size</span>、<span class="mono">sizeFormatted</span>）。按文件大小降序截取前 <span class="mono">limit</span> 条。</p>
+      </div></details>
+    </section>
+
+    <section class="card" id="flow">
+      <h2>数据流与安全说明</h2>
+      <pre class="block">User / Agent
+    │  action + paramsJson
+    ▼
+invoke() → switch(action)
+    ├─ scanJunk  → scan* 系列（只读 Stat）→ categories JSON
+    ├─ cleanJunk → clean* / delete*（写文件系统）→ freed 统计
+    ├─ getStorageInfo → StatFs → internal / external JSON
+    └─ findLargeFiles → collectLargeFiles → sort → top N
+
+响应封装: ok(businessJsonString, _displayText Markdown 风格表格)</pre>
+      <p><strong>风险提示：</strong><span class="mono">cleanJunk</span> 会删除真实文件与空目录；<span class="mono">clean cache</span> 影响各应用外部缓存。生产环境应在 UI 侧二次确认并遵守 Scoped Storage 策略。</p>
+    </section>
+
+    <footer style="text-align:center;color:#79747E;font-size:0.85rem;margin-top:24px;">PandaGenie · system_cleaner · 文档基于源码与 manifest</footer>
+  </div>
+</body>
+</html>
