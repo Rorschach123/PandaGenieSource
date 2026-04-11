@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 文件管理器（File Manager）技术文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-on-primary: #FFFFFF;
+      --md-surface: #FEF7FF;
+      --md-surface-container: #F3EDF7;
+      --md-outline: #CAC4D0;
+      --md-on-surface: #1D1B20;
+      --md-on-surface-variant: #49454F;
+      --code-bg: #2B2930;
+      --code-fg: #E6E1E5;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--md-on-surface);
+      background: linear-gradient(180deg, var(--md-surface-container) 0%, var(--md-surface) 40%);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    a { color: var(--md-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 64px; }
+    header.hero {
+      background: linear-gradient(135deg, var(--md-primary) 0%, #4F378B 100%);
+      color: var(--md-on-primary);
+      padding: 40px 28px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    header.hero h1 { margin: 0 0 8px; font-size: 1.75rem; font-weight: 600; letter-spacing: .02em; }
+    header.hero p { margin: 0; opacity: .92; font-size: .95rem; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .badge {
+      background: rgba(255,255,255,.18);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-family: var(--mono);
+    }
+    nav.toc {
+      background: #fff;
+      border: 1px solid var(--md-outline);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    nav.toc h2 { margin: 0 0 12px; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc li { margin: 6px 0; }
+    section.block {
+      background: #fff;
+      border: 1px solid var(--md-outline);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    section.block h2 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+      color: var(--md-primary);
+      border-bottom: 2px solid var(--md-primary-container);
+      padding-bottom: 8px;
+    }
+    section.block h3 { margin: 20px 0 10px; font-size: 1.05rem; color: var(--md-on-surface); }
+    section.block h4 { margin: 16px 0 8px; font-size: .95rem; color: var(--md-on-surface-variant); }
+    p { margin: 0 0 12px; }
+    ul { margin: 8px 0 12px; padding-left: 1.35rem; }
+    li { margin: 4px 0; }
+    table.api {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      margin: 12px 0;
+    }
+    table.api th, table.api td {
+      border: 1px solid var(--md-outline);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.api th { background: var(--md-primary-container); color: #381E72; font-weight: 600; }
+    table.api code { font-size: .85em; }
+    pre.code {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: 14px 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+    code.inline { font-family: var(--mono); background: var(--md-surface-container); padding: 2px 6px; border-radius: 4px; font-size: .88em; }
+    details.coll {
+      border: 1px solid var(--md-outline);
+      border-radius: 8px;
+      margin: 10px 0;
+      overflow: hidden;
+      background: #FAF8FC;
+    }
+    details.coll summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 600;
+      color: var(--md-primary);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details.coll summary::-webkit-details-marker { display: none; }
+    details.coll summary::before { content: "▸"; transition: transform .2s; }
+    details.coll[open] summary::before { transform: rotate(90deg); }
+    details.coll .inner { padding: 0 14px 14px; border-top: 1px solid var(--md-outline); }
+    .diagram {
+      background: #EDE7F6;
+      border: 1px dashed var(--md-primary);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: .78rem;
+      line-height: 1.45;
+      overflow-x: auto;
+      color: #311B92;
+    }
+    .layer-stack {
+      display: grid;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .layer {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid var(--md-primary);
+      background: var(--md-primary-container);
+      color: #21005D;
+    }
+    .layer strong { display: block; margin-bottom: 4px; font-size: .9rem; }
+    footer.note {
+      margin-top: 32px;
+      font-size: .85rem;
+      color: var(--md-on-surface-variant);
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      header.hero { padding: 28px 18px; }
+      .wrap { padding: 16px 12px 48px; }
+      table.api { font-size: .8rem; }
+      table.api th, table.api td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>文件管理器 · File Manager Module</h1>
+      <p>PandaGenie 模块技术文档：HTML UI → Java Plugin → JNI → C++ Native（含 Sandbox Guard）</p>
+      <div class="badge-row">
+        <span class="badge">id: filemanager</span>
+        <span class="badge">v1.0</span>
+        <span class="badge">libfilemanager.so</span>
+        <span class="badge">MANAGE_EXTERNAL_STORAGE</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <h2>目录 · Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#architecture">四层架构</a></li>
+        <li><a href="#classes">类与源码说明</a></li>
+        <li><a href="#api">API 参考（13 项）</a></li>
+        <li><a href="#sandbox">Sandbox 安全模型</a></li>
+        <li><a href="#dataflow">数据流图</a></li>
+      </ol>
+    </nav>
+
+    <section id="overview" class="block">
+      <h2>模块概览 · Module Overview</h2>
+      <table class="api">
+        <tr><th>字段</th><th>值</th></tr>
+        <tr><td>Module ID</td><td><code class="inline">filemanager</code></td></tr>
+        <tr><td>显示名称</td><td>文件管理器</td></tr>
+        <tr><td>Version</td><td><code class="inline">1.0</code></td></tr>
+        <tr><td>Native SO</td><td><code class="inline">libfilemanager.so</code></td></tr>
+        <tr><td>Plugin Class</td><td><code class="inline">ai.rorsch.moduleplugins.filemanager.FileManagerPlugin</code></td></tr>
+        <tr><td>Capabilities</td><td><code class="inline">file_read</code>、<code class="inline">file_write</code></td></tr>
+        <tr><td>Android Permission</td><td><code class="inline">MANAGE_EXTERNAL_STORAGE</code>（配合 All files access / 存储访问策略）</td></tr>
+      </table>
+      <p>本模块在宿主中通过 <code class="inline">ModulePlugin</code> 契约暴露 13 种 <code class="inline">action</code>，底层由 JNI 调用 <code class="inline">filemgr::FileManager</code> 完成 POSIX 风格文件操作；所有路径在 native 层经 <code class="inline">SandboxGuard</code> 校验。</p>
+    </section>
+
+    <section id="architecture" class="block">
+      <h2>四层架构 · 4-Layer Architecture</h2>
+      <div class="layer-stack">
+        <div class="layer"><strong>1. HTML / Chat UI</strong>任务或对话层发起 JSON 调用（<code class="inline">action</code> + <code class="inline">params</code>），展示 <code class="inline">_displayText</code> 摘要。</div>
+        <div class="layer"><strong>2. Java Plugin（FileManagerPlugin）</strong>解析参数、<code class="inline">resolveStoragePath</code>、调用 <code class="inline">FileManagerLib</code>、格式化人类可读输出。</div>
+        <div class="layer"><strong>3. JNI Bridge（filemanager_jni.cpp）</strong><code class="inline">jstring</code> ↔ <code class="inline">std::string</code>，JSON 序列化，异常映射为 <code class="inline">RuntimeException</code>；静态方法对接 <code class="inline">nativeConfigureSandbox</code> / <code class="inline">nativeClearSandbox</code>。</div>
+        <div class="layer"><strong>4. C++ Native（filemanager.cpp + sandbox_guard.cpp）</strong>POSIX I/O（<code class="inline">dirent</code>、<code class="inline">stat</code>、<code class="inline">rename</code> 等），每项操作前 <code class="inline">SandboxGuard::checkRead/Write</code>。</div>
+      </div>
+    </section>
+
+    <section id="classes" class="block">
+      <h2>类与源码说明 · Class Documentation</h2>
+
+      <details class="coll" open>
+        <summary>FileManagerPlugin.java（约 392 行）</summary>
+        <div class="inner">
+          <p><b>职责：</b>实现 <code class="inline">ModulePlugin</code>，作为模块唯一 Java 入口。</p>
+          <ul>
+            <li><b>常量：</b><code class="inline">DISPLAY_LIST_MAX = 20</code>（列表展示行数上限）、<code class="inline">READ_TEXT_DISPLAY_MAX = 2000</code>（读文本展示截断）、<code class="inline">SDF</code> 日期格式 <code class="inline">yyyy-MM-dd HH:mm:ss</code></li>
+            <li><b>字段：</b><code class="inline">private final FileManagerLib lib</code></li>
+            <li><b>invoke()：</b>13 个 <code class="inline">action</code>：<code class="inline">listDirectory</code>、<code class="inline">createDirectory</code>、<code class="inline">deleteFile</code>、<code class="inline">deleteDirectory</code>、<code class="inline">copyFile</code>、<code class="inline">moveFile</code>、<code class="inline">renameFile</code>、<code class="inline">getFileInfo</code>、<code class="inline">searchFiles</code>、<code class="inline">readTextFile</code>、<code class="inline">writeTextFile</code>、<code class="inline">fileExists</code>、<code class="inline">getFileSize</code></li>
+            <li><b>handleCopyOrMove：</b>校验源存在；若 <code class="inline">dst</code> 为目录则拼接源文件名；<code class="inline">mkdirs</code> 创建父目录；移动/复制失败时附带不可写/不可读提示</li>
+            <li><b>resolveStoragePath：</b><code class="inline">/sdcard</code> 前缀映射到 <code class="inline">Environment.getExternalStorageDirectory()</code></li>
+            <li><b>Display formatters：</b><code class="inline">formatListDirectoryDisplay</code>、<code class="inline">formatRenameDisplay</code>、<code class="inline">formatCopyDisplay</code>、<code class="inline">formatMoveDisplay</code>、<code class="inline">formatGetFileInfoDisplay</code>、<code class="inline">formatSearchFilesDisplay</code>、<code class="inline">formatReadTextFileDisplay</code></li>
+            <li><b>Helpers：</b><code class="inline">parseBoolean</code>、<code class="inline">emptyJson</code>、<code class="inline">ok</code>、<code class="inline">boolResult</code>、<code class="inline">error</code>、<code class="inline">formatSizeBytes</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>FileManagerLib.java（约 25 行）</summary>
+        <div class="inner">
+          <p><code class="inline">static { System.loadLibrary("filemanager"); }</code></p>
+          <p><b>共 15 个 native 声明：</b>13 个实例方法（与 FileManager 一一对应）+ 2 个 static sandbox：<code class="inline">nativeConfigureSandbox(String[] readPaths, String[] writePaths)</code>、<code class="inline">nativeClearSandbox()</code>。</p>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>FileManagerLib.kt（约 19 行）</summary>
+        <div class="inner">
+          <p>Kotlin 侧 <code class="inline">external fun</code> 镜像，覆盖 13 个文件操作 API；<b>不包含</b> sandbox 的 static JNI（与 Java 版能力子集对齐，宿主若以 Kotlin 直接集成需注意 sandbox 仅在 Java <code class="inline">FileManagerLib</code> 中声明）。</p>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>filemanager.h（约 48 行）</summary>
+        <div class="inner">
+          <ul>
+            <li><b>Namespace：</b><code class="inline">filemgr</code></li>
+            <li><b>Struct FileInfo：</b><code class="inline">name</code>、<code class="inline">fullPath</code>、<code class="inline">isDirectory</code>、<code class="inline">size</code>、<code class="inline">lastModified</code></li>
+            <li><b>Class FileManager：</b>13 个 public static 方法 + 4 个 private：<code class="inline">wildcardMatch</code>、<code class="inline">multiPatternMatch</code>、<code class="inline">searchFilesRecursive</code>、<code class="inline">deleteDirectoryRecursive</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>filemanager.cpp（约 344 行）</summary>
+        <div class="inner">
+          <ul>
+            <li><b>头文件：</b><code class="inline">dirent.h</code>、<code class="inline">sys/stat.h</code>、<code class="inline">unistd.h</code> 等；日志 <code class="inline">android/log.h</code></li>
+            <li><b>Sandbox：</b>每个公开操作前调用 <code class="inline">sandbox::SandboxGuard::checkRead</code> 或 <code class="inline">checkWrite</code>（移动/重命名涉及多路径）</li>
+            <li><b>wildcardMatch：</b><code class="inline">*</code> 与 <code class="inline">?</code>，双指针回溯；字符比较不区分大小写（<code class="inline">toLowerChar</code>）</li>
+            <li><b>multiPatternMatch：</b>逗号分隔多模式，trim 后任一匹配即可</li>
+            <li><b>searchFilesRecursive：</b>DFS；<code class="inline">MAX_SEARCH_RESULTS = 5000</code></li>
+            <li><b>deleteDirectoryRecursive：</b>递归删除子项后 <code class="inline">rmdir</code></li>
+            <li><b>copyFile：</b><code class="inline">fread</code>/<code class="inline">fwrite</code>，缓冲区 <code class="inline">8192</code> 字节；失败时删除不完整目标</li>
+            <li><b>moveFile：</b>优先 <code class="inline">rename</code>；失败则 <code class="inline">copyFile</code> + <code class="inline">remove</code> 源</li>
+            <li><b>readTextFile / writeTextFile：</b><code class="inline">std::ifstream</code> / <code class="inline">std::ofstream</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>filemanager_jni.cpp（约 231 行）</summary>
+        <div class="inner">
+          <ul>
+            <li><b>Helpers：</b><code class="inline">jstringToString</code>、<code class="inline">escapeJson</code>、<code class="inline">fileInfoToJson</code>、<code class="inline">throwException</code></li>
+            <li>各 JNI 方法 <code class="inline">try/catch</code>，调用对应 <code class="inline">FileManager::</code></li>
+            <li><b>nativeListDirectory：</b>返回 <code class="inline">FileInfo</code> 对象 JSON 数组字符串</li>
+            <li><b>nativeSearchFiles：</b>路径字符串 JSON 数组</li>
+            <li><b>Sandbox JNI：</b><code class="inline">nativeConfigureSandbox</code> → <code class="inline">sandbox_jni::configureSandbox</code>；<code class="inline">nativeClearSandbox</code> → <code class="inline">sandbox_jni::clearSandbox</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="coll">
+        <summary>CMakeLists.txt</summary>
+        <div class="inner">
+          <p><code class="inline">add_library(filemanager SHARED ...)</code> 编译 <code class="inline">filemanager.cpp</code>、<code class="inline">filemanager_jni.cpp</code>、共享目录下 <code class="inline">sandbox_guard.cpp</code>；<code class="inline">target_link_libraries(filemanager log)</code>。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="api" class="block">
+      <h2>API 参考 · 13 Actions</h2>
+      <p>统一通过 <code class="inline">ModulePlugin.invoke(context, action, paramsJson)</code> 调用。成功响应通常含 <code class="inline">success: true</code> 与 <code class="inline">output</code>（字符串：JSON 或标量）；部分含 <code class="inline">_displayText</code>。失败为 <code class="inline">success: false</code> 与 <code class="inline">error</code>。</p>
+
+      <table class="api">
+        <thead>
+          <tr>
+            <th>action</th>
+            <th>参数（params JSON）</th>
+            <th>output 含义</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code class="inline">listDirectory</code></td>
+            <td><code class="inline">path</code>：目录路径</td>
+            <td>JSON 数组，元素为 FileInfo（name, fullPath, isDirectory, size, lastModified）</td>
+          </tr>
+          <tr>
+            <td><code class="inline">createDirectory</code></td>
+            <td><code class="inline">path</code></td>
+            <td><code class="inline">"true"</code> / <code class="inline">"false"</code></td>
+          </tr>
+          <tr>
+            <td><code class="inline">deleteFile</code></td>
+            <td><code class="inline">path</code></td>
+            <td>布尔字符串</td>
+          </tr>
+          <tr>
+            <td><code class="inline">deleteDirectory</code></td>
+            <td><code class="inline">path</code>、<code class="inline">recursive</code>（默认 false）</td>
+            <td>布尔字符串；recursive 为 true 时递归删除</td>
+          </tr>
+          <tr>
+            <td><code class="inline">copyFile</code></td>
+            <td><code class="inline">src</code> / <code class="inline">source</code> / <code class="inline">path</code>；<code class="inline">dst</code> / <code class="inline">destination</code> / <code class="inline">target</code></td>
+            <td><code class="inline">"true"</code>；目标为目录时自动使用源文件名</td>
+          </tr>
+          <tr>
+            <td><code class="inline">moveFile</code></td>
+            <td>同 copyFile</td>
+            <td>同上</td>
+          </tr>
+          <tr>
+            <td><code class="inline">renameFile</code></td>
+            <td><code class="inline">oldPath</code>、<code class="inline">newPath</code></td>
+            <td>布尔字符串</td>
+          </tr>
+          <tr>
+            <td><code class="inline">getFileInfo</code></td>
+            <td><code class="inline">path</code></td>
+            <td>单个 FileInfo JSON 对象字符串</td>
+          </tr>
+          <tr>
+            <td><code class="inline">searchFiles</code></td>
+            <td><code class="inline">dir</code>（默认 <code class="inline">"/sdcard"</code>）、<code class="inline">pattern</code>（默认 <code class="inline">"*"</code>）、<code class="inline">recursive</code>（默认 true，支持 Boolean 或字符串）</td>
+            <td>匹配文件全路径 JSON 数组字符串；native 最多 5000 条</td>
+          </tr>
+          <tr>
+            <td><code class="inline">readTextFile</code></td>
+            <td><code class="inline">path</code></td>
+            <td>文件全文；展示层截断至 READ_TEXT_DISPLAY_MAX</td>
+          </tr>
+          <tr>
+            <td><code class="inline">writeTextFile</code></td>
+            <td><code class="inline">path</code>、<code class="inline">content</code></td>
+            <td>布尔字符串（覆盖写入）</td>
+          </tr>
+          <tr>
+            <td><code class="inline">fileExists</code></td>
+            <td><code class="inline">path</code></td>
+            <td><code class="inline">"true"</code> 或 <code class="inline">"false"</code></td>
+          </tr>
+          <tr>
+            <td><code class="inline">getFileSize</code></td>
+            <td><code class="inline">path</code></td>
+            <td>字节数字符串；native 失败为 <code class="inline">-1</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="sandbox" class="block">
+      <h2>Sandbox 安全模型 · Sandbox Security</h2>
+      <p><b>设计目标：</b>在授予存储权限的前提下，仍由宿主通过 <code class="inline">nativeConfigureSandbox</code> 限定 native 层可读/可写路径前缀，降低模块越权访问风险。</p>
+      <ul>
+        <li><b>读操作</b>（列举、读文件、搜索、exists、getSize、getFileInfo 等）在对应路径上调用 <code class="inline">SandboxGuard::checkRead</code>。</li>
+        <li><b>写操作</b>（创建/删文件、写文本、复制目标端等）调用 <code class="inline">SandboxGuard::checkWrite</code>；<b>move</b> 同时校验源读、源写、目标写。</li>
+        <li><b>配置入口：</b>Java <code class="inline">FileManagerLib.nativeConfigureSandbox(readPaths, writePaths)</code> → JNI → <code class="inline">sandbox_jni::configureSandbox</code>；<code class="inline">nativeClearSandbox</code> 清除策略。</li>
+        <li><b>与 Manifest：</b><code class="inline">MANAGE_EXTERNAL_STORAGE</code> 解决系统级访问；Sandbox 为<b>应用内二次约束</b>，二者互补。</li>
+      </ul>
+    </section>
+
+    <section id="dataflow" class="block">
+      <h2>数据流图 · Data Flow</h2>
+      <div class="diagram">
+┌─────────────────────┐     JSON: action + params      ┌──────────────────────┐
+│  UI / Task Runtime  │ ────────────────────────────▶ │  FileManagerPlugin   │
+│  (HTML / Chat 等)    │ ◀──────────────────────────── │  (ModulePlugin)      │
+└─────────────────────┘   success + output +           └──────────┬───────────┘
+         │                      _displayText                        │
+         │                                                          │ FileManagerLib.*
+         ▼                                                          ▼
+┌─────────────────────┐   jstring / jboolean / jlong   ┌──────────────────────┐
+│  用户可见摘要文本     │ ◀──────────────────────────── │  JNI filemanager_jni │
+└─────────────────────┘                                │  escapeJson / JSON    │
+                                                       └──────────┬───────────┘
+                                                                  │
+                                     SandboxGuard checkRead/Write │
+                                                                  ▼
+                                                       ┌──────────────────────┐
+                                                       │  filemanager.cpp     │
+                                                       │  POSIX + FileManager  │
+                                                       └──────────────────────┘
+      </div>
+      <h4>典型调用链（示例：listDirectory）</h4>
+      <ol>
+        <li>UI 发送 <code class="inline">action=listDirectory</code>，<code class="inline">params.path</code> 经 Java 规范化。</li>
+        <li><code class="inline">nativeListDirectory</code> → <code class="inline">FileManager::listDirectory</code> → <code class="inline">checkRead(path)</code> → <code class="inline">opendir/readdir/stat</code>。</li>
+        <li>JNI 将 <code class="inline">vector&lt;FileInfo&gt;</code> 拼为 JSON 数组返回；Plugin 再生成 <code class="inline">_displayText</code>。</li>
+      </ol>
+    </section>
+
+    <footer class="note">
+      PandaGenie File Manager · 文档与源码路径：<code class="inline">PandaGenieSource/source/filemanager/</code>
+    </footer>
+  </div>
+</body>
+</html>

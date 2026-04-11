@@ -48,6 +48,38 @@ public class ContactsPlugin implements ModulePlugin {
     /** 重复联系人分组在展示文本中的最大组数 */
     private static final int DISPLAY_MAX_DUP_GROUPS = 40;
 
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) {
+                org.json.JSONArray a = new org.json.JSONArray();
+                for (String c : row) {
+                    a.put(c);
+                }
+                r.put(a);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
     /**
      * 模块统一入口：解析 JSON 参数并分发；成功时 {@code output} 为业务 JSON 字符串，并常附带 {@code _displayText}。
      *
@@ -1059,37 +1091,35 @@ public class ContactsPlugin implements ModulePlugin {
      * @return 多行展示字符串
      * @throws Exception JSON 异常
      */
-    private static String mdCell(String s) {
-        if (s == null) return "";
-        return s.replace("\r", "").replace("\n", " ").replace("|", "\\|");
-    }
-
     private static String formatSearchContactsDisplay(JSONObject result) throws Exception {
         JSONArray contacts = result.optJSONArray("contacts");
         int total = result.optInt("total", contacts != null ? contacts.length() : 0);
         if (contacts == null) {
             contacts = new JSONArray();
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Contact Search\n");
-        sb.append("Found ").append(total).append(" contacts\n\n");
-        sb.append("| Name | Phone |\n");
-        sb.append("| --- | --- |\n");
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"姓名", "电话"} : new String[]{"Name", "Phone"};
+        List<String[]> rows = new ArrayList<>();
         int show = Math.min(contacts.length(), DISPLAY_MAX_SEARCH_LINES);
         for (int i = 0; i < show; i++) {
             JSONObject c = contacts.getJSONObject(i);
             String name = c.optString("name", "").trim();
             if (name.isEmpty()) {
-                name = "(no name)";
+                name = zh ? "(无名称)" : "(no name)";
             }
             String phone = c.optString("primaryPhone", "").trim();
             if (phone.isEmpty()) {
                 phone = "—";
             }
-            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(phone)).append(" |\n");
+            rows.add(new String[]{name, phone});
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append(zh ? "🔍 联系人搜索\n" : "🔍 Contact Search\n");
+        sb.append(zh ? ("找到 " + total + " 个联系人\n\n") : ("Found " + total + " contacts\n\n"));
+        sb.append(pgTable("", headers, rows));
         if (contacts.length() > DISPLAY_MAX_SEARCH_LINES) {
-            sb.append("\n… (+").append(contacts.length() - DISPLAY_MAX_SEARCH_LINES).append(" more)");
+            int rest = contacts.length() - DISPLAY_MAX_SEARCH_LINES;
+            sb.append("\n\n… (+").append(rest).append(zh ? " 更多)" : " more)");
         }
         return sb.toString().trim();
     }
@@ -1102,23 +1132,25 @@ public class ContactsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String formatGetContactDetailDisplay(JSONObject d) throws Exception {
+        boolean zh = isZh();
         String name = d.optString("displayName", "").trim();
         if (name.isEmpty()) {
-            name = "(no name)";
+            name = zh ? "(无名称)" : "(no name)";
         }
         String phone = firstPhoneNumberForDisplay(d.optJSONArray("phones"));
         String email = firstEmailAddressForDisplay(d.optJSONArray("emails"));
         String contactId = d.optString("contactId", "").trim();
         String lookupKey = d.optString("lookupKey", "").trim();
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "联系人 ID" : "Contact ID", contactId.isEmpty() ? "—" : contactId});
+        rows.add(new String[]{zh ? "姓名" : "Name", name});
+        rows.add(new String[]{zh ? "查找键" : "Lookup key", lookupKey.isEmpty() ? "—" : lookupKey});
+        rows.add(new String[]{zh ? "电话" : "Phone", phone.isEmpty() ? "—" : phone});
+        rows.add(new String[]{zh ? "邮箱" : "Email", email.isEmpty() ? "—" : email});
         StringBuilder sb = new StringBuilder();
-        sb.append("👤 Contact Detail\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| Contact ID | ").append(mdCell(contactId.isEmpty() ? "—" : contactId)).append(" |\n");
-        sb.append("| Name | ").append(mdCell(name)).append(" |\n");
-        sb.append("| Lookup key | ").append(mdCell(lookupKey.isEmpty() ? "—" : lookupKey)).append(" |\n");
-        sb.append("| Phone | ").append(mdCell(phone.isEmpty() ? "—" : phone)).append(" |\n");
-        sb.append("| Email | ").append(mdCell(email.isEmpty() ? "—" : email)).append(" |\n");
+        sb.append(zh ? "👤 联系人详情\n\n" : "👤 Contact Detail\n\n");
+        sb.append(pgTable("", headers, rows));
         return sb.toString().trim();
     }
 
@@ -1179,26 +1211,29 @@ public class ContactsPlugin implements ModulePlugin {
         if (contacts == null) {
             contacts = new JSONArray();
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("📇 Contact List\n");
-        sb.append("[").append(total).append("] contacts total\n\n");
-        sb.append("| Name | Phone |\n");
-        sb.append("| --- | --- |\n");
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"姓名", "电话"} : new String[]{"Name", "Phone"};
+        List<String[]> rows = new ArrayList<>();
         int show = Math.min(contacts.length(), DISPLAY_MAX_LIST_LINES);
         for (int i = 0; i < show; i++) {
             JSONObject c = contacts.getJSONObject(i);
             String name = c.optString("name", "").trim();
             if (name.isEmpty()) {
-                name = "(no name)";
+                name = zh ? "(无名称)" : "(no name)";
             }
             String phone = c.optString("primaryPhone", "").trim();
             if (phone.isEmpty()) {
                 phone = "—";
             }
-            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(phone)).append(" |\n");
+            rows.add(new String[]{name, phone});
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append(zh ? "📇 联系人列表\n" : "📇 Contact List\n");
+        sb.append(zh ? ("共 " + total + " 个联系人\n\n") : ("[" + total + "] contacts total\n\n"));
+        sb.append(pgTable("", headers, rows));
         if (contacts.length() > DISPLAY_MAX_LIST_LINES) {
-            sb.append("\n… (+").append(contacts.length() - DISPLAY_MAX_LIST_LINES).append(" more in this page)");
+            int rest = contacts.length() - DISPLAY_MAX_LIST_LINES;
+            sb.append("\n\n… (+").append(rest).append(zh ? " 更多)" : " more in this page)");
         }
         return sb.toString().trim();
     }
@@ -1209,7 +1244,12 @@ public class ContactsPlugin implements ModulePlugin {
      */
     private static String formatGetContactCountDisplay(JSONObject result) {
         int n = result.optInt("count", 0);
-        return "📇 Contact Count\n\n| Item | Value |\n| --- | --- |\n| Total contacts | " + n + " |";
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "联系人总数" : "Total contacts", String.valueOf(n)});
+        String head = zh ? "📇 联系人数量\n\n" : "📇 Contact Count\n\n";
+        return head + pgTable("", headers, rows);
     }
 
     /**
@@ -1219,11 +1259,13 @@ public class ContactsPlugin implements ModulePlugin {
     private static String formatExportContactsDisplay(JSONObject result) {
         int exported = result.optInt("exported", 0);
         String path = result.optString("path", "").trim();
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "文件" : "File", path.isEmpty() ? "—" : path});
         StringBuilder sb = new StringBuilder();
-        sb.append("📤 Exported ").append(exported).append(" contacts\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| File | ").append(mdCell(path.isEmpty() ? "—" : path)).append(" |\n");
+        sb.append(zh ? "📤 已导出 " : "📤 Exported ").append(exported).append(zh ? " 个联系人\n\n" : " contacts\n\n");
+        sb.append(pgTable("", headers, rows));
         return sb.toString().trim();
     }
 
@@ -1244,22 +1286,21 @@ public class ContactsPlugin implements ModulePlugin {
             phoneGroups = new JSONArray();
         }
         int groupCount = nameGroups.length() + phoneGroups.length();
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔁 Duplicate Contacts\n");
-        sb.append("Found ").append(groupCount).append(" groups\n\n");
-        sb.append("| Type | Key | Count | Contact IDs |\n");
-        sb.append("| --- | --- | --- | --- |\n");
+        boolean zh = isZh();
+        String[] headers = zh
+                ? new String[]{"类型", "关键字", "数量", "联系人 ID"}
+                : new String[]{"Type", "Key", "Count", "Contact IDs"};
+        List<String[]> rows = new ArrayList<>();
         int lines = 0;
         for (int i = 0; i < nameGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
             JSONObject g = nameGroups.getJSONObject(i);
             String norm = g.optString("normalizedName", "").trim();
             if (norm.isEmpty()) {
-                norm = "(unnamed)";
+                norm = zh ? "(未命名)" : "(unnamed)";
             }
             int cnt = g.optInt("count", 0);
             String ids = joinContactIds(g.optJSONArray("contactIds"));
-            sb.append("| Name | ").append(mdCell(norm)).append(" | ").append(cnt).append(" | ")
-                    .append(mdCell(ids)).append(" |\n");
+            rows.add(new String[]{zh ? "姓名" : "Name", norm, String.valueOf(cnt), ids});
             lines++;
         }
         for (int i = 0; i < phoneGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
@@ -1270,13 +1311,16 @@ public class ContactsPlugin implements ModulePlugin {
             }
             int cnt = g.optInt("count", 0);
             String ids = joinContactIds(g.optJSONArray("contactIds"));
-            sb.append("| Phone | ").append(mdCell(norm)).append(" | ").append(cnt).append(" | ")
-                    .append(mdCell(ids)).append(" |\n");
+            rows.add(new String[]{zh ? "电话" : "Phone", norm, String.valueOf(cnt), ids});
             lines++;
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append(zh ? "🔁 重复联系人\n" : "🔁 Duplicate Contacts\n");
+        sb.append(zh ? ("找到 " + groupCount + " 组\n\n") : ("Found " + groupCount + " groups\n\n"));
+        sb.append(pgTable("", headers, rows));
         int totalLines = nameGroups.length() + phoneGroups.length();
         if (totalLines > DISPLAY_MAX_DUP_GROUPS) {
-            sb.append("\n… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(" more groups)");
+            sb.append("\n\n… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(zh ? " 更多组)" : " more groups)");
         }
         return sb.toString().trim();
     }

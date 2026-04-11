@@ -12,6 +12,8 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -428,6 +430,38 @@ public class TextToolsPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            t.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) {
+                JSONArray a = new JSONArray();
+                for (String c : row) {
+                    a.put(c);
+                }
+                r.put(a);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
     /** Escape {@code |} and newlines so Markdown table cells stay on one row. */
     private static String mdCell(String s) {
         if (s == null) {
@@ -438,51 +472,63 @@ public class TextToolsPlugin implements ModulePlugin {
 
     /** {@code wordCount} 的展示块。 */
     private static String formatWordCountDisplay(JSONObject o) {
-        return "📝 Text Stats\n\n"
-                + "| Metric | Count |\n|---|---|\n"
-                + "| Words | " + o.optInt("words") + " |\n"
-                + "| Characters | " + o.optInt("characters") + " |\n"
-                + "| Lines | " + o.optInt("lines") + " |\n"
-                + "| Sentences | " + o.optInt("sentences") + " |\n"
-                + "| Paragraphs | " + o.optInt("paragraphs") + " |";
+        boolean zh = isZh();
+        String title = zh ? "文本统计" : "Text Stats";
+        String[] headers = new String[] { zh ? "指标" : "Metric", zh ? "数量" : "Count" };
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "单词" : "Words", String.valueOf(o.optInt("words")) });
+        rows.add(new String[] { zh ? "字符" : "Characters", String.valueOf(o.optInt("characters")) });
+        rows.add(new String[] { zh ? "行" : "Lines", String.valueOf(o.optInt("lines")) });
+        rows.add(new String[] { zh ? "句子" : "Sentences", String.valueOf(o.optInt("sentences")) });
+        rows.add(new String[] { zh ? "段落" : "Paragraphs", String.valueOf(o.optInt("paragraphs")) });
+        return "📝 " + title + "\n\n" + pgTable(title, headers, rows);
     }
 
     /** Base64 编解码结果块。 */
     private static String formatBase64BlockDisplay(String resultText) {
-        return "🔄 Base64 Result\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Text | " + mdCell(resultText) + " |";
+        boolean zh = isZh();
+        String title = zh ? "Base64 结果" : "Base64 Result";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "文本" : "Text", mdCell(resultText) });
+        return "🔄 " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /** URL 编解码结果块。 */
     private static String formatUrlBlockDisplay(String resultText) {
-        return "🔗 URL Result\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Text | " + mdCell(resultText) + " |";
+        boolean zh = isZh();
+        String title = zh ? "URL 结果" : "URL Result";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "文本" : "Text", mdCell(resultText) });
+        return "🔗 " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /** 列出正则匹配到的各子串（带序号）。 */
     private static String formatRegexMatchDisplay(JSONObject o) {
+        boolean zh = isZh();
         int count = o.optInt("count", 0);
         JSONArray matches = o.optJSONArray("matches");
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Regex Match\n\n");
-        sb.append("| Item | Value |\n|---|---|\n");
-        sb.append("| Matches found | ").append(count).append(" |\n\n");
-        sb.append("| # | Match |\n|---|---|\n");
+        String mainTitle = zh ? "正则匹配" : "Regex Match";
+        List<String[]> rows1 = new ArrayList<>();
+        rows1.add(new String[] { zh ? "找到匹配" : "Matches found", String.valueOf(count) });
+        String block1 = pgTable(mainTitle, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows1);
+        List<String[]> rows2 = new ArrayList<>();
         if (matches != null) {
             for (int i = 0; i < matches.length(); i++) {
-                sb.append("| ").append(i + 1).append(" | ").append(mdCell(matches.optString(i))).append(" |\n");
+                rows2.add(new String[] { String.valueOf(i + 1), mdCell(matches.optString(i)) });
             }
         }
-        return sb.toString().trim();
+        String subTitle = zh ? "匹配列表" : "Matches";
+        String block2 = pgTable(subTitle, new String[] { "#", zh ? "匹配" : "Match" }, rows2);
+        return "🔍 " + mainTitle + "\n\n" + block1 + "\n\n" + block2;
     }
 
     /** 正则替换后的全文展示。 */
     private static String formatRegexReplaceDisplay(String resultText) {
-        return "✏️ Regex Replace\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Result | " + mdCell(resultText) + " |";
+        boolean zh = isZh();
+        String title = zh ? "正则替换" : "Regex Replace";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "结果" : "Result", mdCell(resultText) });
+        return "✏️ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -492,25 +538,31 @@ public class TextToolsPlugin implements ModulePlugin {
      * @param resultText    变换后字符串
      */
     private static String formatTextTransformDisplay(String transform, String resultText) {
+        boolean zh = isZh();
         String mode = transform == null ? "" : transform.trim();
-        return "🔤 Text Transform\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Mode | " + mdCell(mode) + " |\n"
-                + "| Result | " + mdCell(resultText) + " |";
+        String title = zh ? "文本转换" : "Text Transform";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "模式" : "Mode", mdCell(mode) });
+        rows.add(new String[] { zh ? "结果" : "Result", mdCell(resultText) });
+        return "🔤 " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /** UUID 一行展示。 */
     private static String formatUuidDisplay(String uuid) {
-        return "🔑 UUID Generated\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| UUID | " + mdCell(uuid) + " |";
+        boolean zh = isZh();
+        String title = zh ? "UUID 已生成" : "UUID Generated";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { "UUID", mdCell(uuid) });
+        return "🔑 " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /** 摘要算法名与十六进制摘要。 */
     private static String formatHashDisplay(JSONObject o) {
-        return "🔐 Hash Result\n\n"
-                + "| Algorithm | Hash |\n|---|---|\n"
-                + "| " + mdCell(o.optString("algorithm")) + " | " + mdCell(o.optString("hex")) + " |";
+        boolean zh = isZh();
+        String title = zh ? "哈希结果" : "Hash Result";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { mdCell(o.optString("algorithm")), mdCell(o.optString("hex")) });
+        return "🔐 " + title + "\n\n" + pgTable(title, new String[] { zh ? "算法" : "Algorithm", zh ? "哈希" : "Hash" }, rows);
     }
 
     /**

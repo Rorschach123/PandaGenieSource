@@ -35,6 +35,34 @@ import java.util.Locale;
  */
 public class AppManagerPlugin implements ModulePlugin {
 
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) {
+                org.json.JSONArray rowArr = new org.json.JSONArray();
+                for (String cell : row) rowArr.put(cell);
+                r.put(rowArr);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
     /**
      * 根据 {@code action} 分发到列举、启动、查询、卸载或设置页等逻辑。
      *
@@ -332,22 +360,25 @@ public class AppManagerPlugin implements ModulePlugin {
     private String formatListAppsDisplay(JSONObject obj) throws Exception {
         int count = obj.optInt("count", 0);
         JSONArray apps = obj.optJSONArray("apps");
-        StringBuilder sb = new StringBuilder();
-        sb.append("📱 Installed Apps (").append(count).append(" total)\n\n");
-        sb.append("| Name | Package | Version |\n");
-        sb.append("| --- | --- | --- |\n");
+        boolean zh = isZh();
+        String title = zh
+                ? ("📱 已安装应用（共 " + count + "）")
+                : ("📱 Installed Apps (" + count + " total)");
+        String[] headers = zh
+                ? new String[]{"名称", "包名", "版本"}
+                : new String[]{"Name", "Package", "Version"};
+        List<String[]> rowList = new ArrayList<>();
         if (apps != null) {
             for (int i = 0; i < apps.length(); i++) {
                 JSONObject app = apps.getJSONObject(i);
-                String name = app.optString("appName", "");
-                String pkg = app.optString("packageName", "");
-                String ver = app.optString("versionName", "");
-                sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(pkg)).append(" | ")
-                        .append(mdCell(ver)).append(" |\n");
+                rowList.add(new String[]{
+                        mdCell(app.optString("appName", "")),
+                        mdCell(app.optString("packageName", "")),
+                        mdCell(app.optString("versionName", ""))
+                });
             }
         }
-        String s = sb.toString();
-        return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
+        return pgTable(title, headers, rowList);
     }
 
     /**
@@ -357,30 +388,25 @@ public class AppManagerPlugin implements ModulePlugin {
      * @return 多行展示字符串
      */
     private String formatGetAppInfoDisplay(JSONObject info) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("📱 App Info\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        appendRow(sb, "Name", info.optString("appName", ""));
-        appendRow(sb, "Package", info.optString("packageName", ""));
-        appendRow(sb, "Version", info.optString("versionName", ""));
-        appendRow(sb, "Version code", String.valueOf(info.optInt("versionCode", 0)));
-        appendRow(sb, "First install", info.optString("firstInstallTime", ""));
-        appendRow(sb, "Last update", info.optString("lastUpdateTime", ""));
-        appendRow(sb, "Target SDK", String.valueOf(info.optInt("targetSdkVersion", 0)));
-        appendRow(sb, "Min SDK", String.valueOf(info.optInt("minSdkVersion", 0)));
-        appendRow(sb, "System app", String.valueOf(info.optBoolean("isSystemApp", false)));
-        appendRow(sb, "Enabled", String.valueOf(info.optBoolean("enabled", true)));
-        appendRow(sb, "Data dir", info.optString("dataDir", ""));
-        appendRow(sb, "Source dir", info.optString("sourceDir", ""));
-        appendRow(sb, "Installer package", info.optString("installerPackage", ""));
-        appendRow(sb, "Installer label", info.optString("installerLabel", ""));
-        String s = sb.toString();
-        return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
-    }
-
-    private static void appendRow(StringBuilder sb, String item, String value) {
-        sb.append("| ").append(mdCell(item)).append(" | ").append(mdCell(value)).append(" |\n");
+        boolean zh = isZh();
+        String title = zh ? "📱 应用信息" : "📱 App Info";
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "名称" : "Name", mdCell(info.optString("appName", ""))});
+        rows.add(new String[]{zh ? "包名" : "Package", mdCell(info.optString("packageName", ""))});
+        rows.add(new String[]{zh ? "版本" : "Version", mdCell(info.optString("versionName", ""))});
+        rows.add(new String[]{zh ? "版本号" : "Version code", mdCell(String.valueOf(info.optInt("versionCode", 0)))});
+        rows.add(new String[]{zh ? "首次安装" : "First install", mdCell(info.optString("firstInstallTime", ""))});
+        rows.add(new String[]{zh ? "最后更新" : "Last update", mdCell(info.optString("lastUpdateTime", ""))});
+        rows.add(new String[]{zh ? "目标 SDK" : "Target SDK", mdCell(String.valueOf(info.optInt("targetSdkVersion", 0)))});
+        rows.add(new String[]{zh ? "最低 SDK" : "Min SDK", mdCell(String.valueOf(info.optInt("minSdkVersion", 0)))});
+        rows.add(new String[]{zh ? "系统应用" : "System app", mdCell(String.valueOf(info.optBoolean("isSystemApp", false)))});
+        rows.add(new String[]{zh ? "已启用" : "Enabled", mdCell(String.valueOf(info.optBoolean("enabled", true)))});
+        rows.add(new String[]{zh ? "数据目录" : "Data dir", mdCell(info.optString("dataDir", ""))});
+        rows.add(new String[]{zh ? "源码目录" : "Source dir", mdCell(info.optString("sourceDir", ""))});
+        rows.add(new String[]{zh ? "安装器包名" : "Installer package", mdCell(info.optString("installerPackage", ""))});
+        rows.add(new String[]{zh ? "安装来源" : "Installer label", mdCell(info.optString("installerLabel", ""))});
+        return pgTable(title, headers, rows);
     }
 
     /**

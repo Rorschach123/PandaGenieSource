@@ -50,6 +50,14 @@ public class NotesPlugin implements ModulePlugin {
     /** 创建与更新时间戳格式。 */
     private static final SimpleDateFormat TS = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 模块入口：仅将 {@link IllegalArgumentException} 转为错误响应，其它异常会向上抛出。
      *
@@ -149,6 +157,9 @@ public class NotesPlugin implements ModulePlugin {
     private String formatCreateNoteDisplay(String noteJson) throws Exception {
         JSONObject note = new JSONObject(noteJson);
         String title = note.optString("title", "");
+        if (isZh()) {
+            return "📝 笔记已创建\n━━━━━━━━━━━━━━\n▸ 标题: " + title;
+        }
         return "📝 Note Created\n━━━━━━━━━━━━━━\n▸ Title: " + title;
     }
 
@@ -164,7 +175,11 @@ public class NotesPlugin implements ModulePlugin {
         JSONArray notes = root.optJSONArray("notes");
         int count = root.optInt("count", notes != null ? notes.length() : 0);
         StringBuilder sb = new StringBuilder();
-        sb.append("📋 Notes (").append(count).append(" total)\n━━━━━━━━━━━━━━");
+        if (isZh()) {
+            sb.append("📋 笔记（共 ").append(count).append("）\n━━━━━━━━━━━━━━");
+        } else {
+            sb.append("📋 Notes (").append(count).append(" total)\n━━━━━━━━━━━━━━");
+        }
         if (notes != null && notes.length() > 0) {
             sb.append('\n');
             for (int i = 0; i < notes.length(); i++) {
@@ -194,6 +209,9 @@ public class NotesPlugin implements ModulePlugin {
         JSONObject note = new JSONObject(noteJson);
         String title = note.optString("title", "");
         String contentPreview = preview(note.optString("content", ""));
+        if (isZh()) {
+            return "📝 笔记\n━━━━━━━━━━━━━━\n▸ 标题: " + title + "\n" + contentPreview;
+        }
         return "📝 Note\n━━━━━━━━━━━━━━\n▸ Title: " + title + "\n" + contentPreview;
     }
 
@@ -203,7 +221,7 @@ public class NotesPlugin implements ModulePlugin {
      * @return 展示字符串
      */
     private String formatUpdateNoteDisplay() {
-        return "✅ Note updated";
+        return isZh() ? "✅ 笔记已更新" : "✅ Note updated";
     }
 
     /**
@@ -212,7 +230,7 @@ public class NotesPlugin implements ModulePlugin {
      * @return 展示字符串
      */
     private String formatDeleteNoteDisplay() {
-        return "🗑️ Note deleted";
+        return isZh() ? "🗑️ 笔记已删除" : "🗑️ Note deleted";
     }
 
     /**
@@ -230,6 +248,9 @@ public class NotesPlugin implements ModulePlugin {
         if (notes != null && count == 0) {
             count = notes.length();
         }
+        if (isZh()) {
+            return "🔍 搜索结果\n━━━━━━━━━━━━━━\n找到 " + count + " 条匹配笔记 '" + keyword + "'";
+        }
         return "🔍 Search Results\n━━━━━━━━━━━━━━\nFound " + count + " notes matching '" + keyword + "'";
     }
 
@@ -243,6 +264,9 @@ public class NotesPlugin implements ModulePlugin {
     private String formatExportNoteDisplay(String exportJson) throws Exception {
         JSONObject root = new JSONObject(exportJson);
         String path = root.optString("path", "");
+        if (isZh()) {
+            return "📤 笔记已导出\n▸ 文件: " + path;
+        }
         return "📤 Note exported\n▸ File: " + path;
     }
 

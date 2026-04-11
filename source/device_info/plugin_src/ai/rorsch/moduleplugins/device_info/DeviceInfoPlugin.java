@@ -19,6 +19,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -39,6 +41,38 @@ public class DeviceInfoPlugin implements ModulePlugin {
 
     /** 读取 {@code /proc/cpuinfo} 时正文最大字符数，防止超大文件占用内存 */
     private static final int CPUINFO_MAX_CHARS = 65536;
+
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            t.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) {
+                JSONArray rowArr = new JSONArray();
+                for (String cell : row) {
+                    rowArr.put(cell);
+                }
+                r.put(rowArr);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
 
     /**
      * 根据 {@code action} 收集对应信息并返回标准 JSON 包装（含可选 {@code _displayText}）。
@@ -132,7 +166,7 @@ public class DeviceInfoPlugin implements ModulePlugin {
                         raw.append(line).append('\n');
                     } else if (room > 0) {
                         raw.append(line, 0, room);
-                        raw.append("\n... (truncated)");
+                        raw.append("\n... (").append(isZh() ? "已截断" : "truncated").append(")");
                         break;
                     }
                 }
@@ -336,22 +370,26 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return 多行字符串
      */
     private static String formatDeviceInfoDisplay(JSONObject d) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("📱 Device Info\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Model | ").append(d.optString("model", "—")).append(" |\n");
-        sb.append("| Brand | ").append(d.optString("brand", "—")).append(" |\n");
-        sb.append("| Manufacturer | ").append(d.optString("manufacturer", "—")).append(" |\n");
-        sb.append("| Android | ").append(d.optString("androidVersion", "—")).append(" |\n");
-        sb.append("| SDK | ").append(d.optInt("sdkInt", 0)).append(" |\n");
-        sb.append("| Build | ").append(d.optString("buildNumber", "—")).append(" |\n");
-        sb.append("| Incremental | ").append(d.optString("buildIncremental", "—")).append(" |\n");
+        boolean zh = isZh();
+        String title = zh ? "设备信息" : "Device Info";
+        String item = zh ? "项目" : "Item";
+        String value = zh ? "值" : "Value";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "型号" : "Model", d.optString("model", "—")});
+        rows.add(new String[]{zh ? "品牌" : "Brand", d.optString("brand", "—")});
+        rows.add(new String[]{zh ? "制造商" : "Manufacturer", d.optString("manufacturer", "—")});
+        rows.add(new String[]{"Android", d.optString("androidVersion", "—")});
+        rows.add(new String[]{"SDK", String.valueOf(d.optInt("sdkInt", 0))});
+        rows.add(new String[]{zh ? "版本号" : "Build", d.optString("buildNumber", "—")});
+        rows.add(new String[]{zh ? "增量版本" : "Incremental", d.optString("buildIncremental", "—")});
         String fp = d.optString("fingerprint", "");
         if (fp.length() > 96) {
-            fp = fp.substring(0, 93) + "...";
+            fp = fp.substring(0, 93) + "… " + (isZh() ? "更多" : "more");
         }
-        sb.append("| Fingerprint | ").append(fp.isEmpty() ? "—" : fp).append(" |\n");
+        rows.add(new String[]{zh ? "指纹" : "Fingerprint", fp.isEmpty() ? "—" : fp});
+        StringBuilder sb = new StringBuilder();
+        sb.append("📱 ").append(title).append("\n\n");
+        sb.append(pgTable(title, new String[]{item, value}, rows));
         return sb.toString();
     }
 
@@ -362,12 +400,13 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatCpuInfoDisplay(JSONObject d) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("⚙️ CPU Info\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Cores | ").append(d.optInt("processorCount", 0)).append(" |\n");
-        sb.append("| Architecture | ").append(d.optString("osArch", "—")).append(" |\n");
+        boolean zh = isZh();
+        String title = zh ? "CPU 信息" : "CPU Info";
+        String item = zh ? "项目" : "Item";
+        String value = zh ? "值" : "Value";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "核心数" : "Cores", String.valueOf(d.optInt("processorCount", 0))});
+        rows.add(new String[]{zh ? "架构" : "Architecture", d.optString("osArch", "—")});
         JSONArray abis = d.optJSONArray("supportedAbis");
         String abisStr = "—";
         if (abis != null && abis.length() > 0) {
@@ -380,13 +419,18 @@ public class DeviceInfoPlugin implements ModulePlugin {
             }
             abisStr = a.toString();
         }
-        sb.append("| ABIs | ").append(abisStr).append(" |\n");
-        sb.append("| /proc/cpuinfo processors | ")
-                .append(d.optInt("processorEntriesInCpuinfo", 0)).append(" |\n");
+        rows.add(new String[]{"ABIs", abisStr});
+        rows.add(new String[]{
+                zh ? "/proc/cpuinfo 处理器行" : "/proc/cpuinfo processors",
+                String.valueOf(d.optInt("processorEntriesInCpuinfo", 0))
+        });
         String cpuErr = d.optString("cpuinfoError", "");
         if (!cpuErr.isEmpty()) {
-            sb.append("| CPU info | ").append(cpuErr).append(" |\n");
+            rows.add(new String[]{zh ? "CPU 信息" : "CPU info", cpuErr});
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append("⚙️ ").append(title).append("\n\n");
+        sb.append(pgTable(title, new String[]{item, value}, rows));
         return sb.toString();
     }
 
@@ -397,23 +441,35 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatMemoryInfoDisplay(JSONObject d) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("💾 Memory\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
+        boolean zh = isZh();
+        String title = zh ? "内存" : "Memory";
+        String item = zh ? "项目" : "Item";
+        String value = zh ? "值" : "Value";
+        List<String[]> rows = new ArrayList<>();
         if (d.has("error")) {
-            sb.append("| Error | ").append(d.optString("error", "—")).append(" |\n");
+            rows.add(new String[]{zh ? "错误" : "Error", d.optString("error", "—")});
+            StringBuilder sb = new StringBuilder();
+            sb.append("💾 ").append(title).append("\n\n");
+            sb.append(pgTable(title, new String[]{item, value}, rows));
             return sb.toString();
         }
-        sb.append("| Total | ").append(formatBytes(d.optLong("totalBytes", 0))).append(" |\n");
-        sb.append("| Available | ").append(formatBytes(d.optLong("availableBytes", 0))).append(" |\n");
-        sb.append("| Used | ").append(formatBytes(d.optLong("usedBytes", 0))).append(" |\n");
-        sb.append("| Used % | ")
-                .append(String.format(Locale.US, "%.2f%%", d.optDouble("usedPercent", 0))).append(" |\n");
-        sb.append("| Low memory | ").append(d.optBoolean("lowMemory", false) ? "Yes" : "No").append(" |\n");
+        rows.add(new String[]{zh ? "总计" : "Total", formatBytes(d.optLong("totalBytes", 0))});
+        rows.add(new String[]{zh ? "可用" : "Available", formatBytes(d.optLong("availableBytes", 0))});
+        rows.add(new String[]{zh ? "已用" : "Used", formatBytes(d.optLong("usedBytes", 0))});
+        rows.add(new String[]{
+                zh ? "使用率" : "Used %",
+                String.format(Locale.US, "%.2f%%", d.optDouble("usedPercent", 0))
+        });
+        rows.add(new String[]{
+                zh ? "低内存" : "Low memory",
+                d.optBoolean("lowMemory", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")
+        });
         if (d.has("thresholdBytes")) {
-            sb.append("| Threshold | ").append(formatBytes(d.optLong("thresholdBytes", 0))).append(" |\n");
+            rows.add(new String[]{zh ? "阈值" : "Threshold", formatBytes(d.optLong("thresholdBytes", 0))});
         }
+        StringBuilder sb = new StringBuilder();
+        sb.append("💾 ").append(title).append("\n\n");
+        sb.append(pgTable(title, new String[]{item, value}, rows));
         return sb.toString();
     }
 
@@ -442,16 +498,29 @@ public class DeviceInfoPlugin implements ModulePlugin {
         if (external != null) {
             exState = external.optString("state", "");
         }
+        boolean zh = isZh();
+        String title = zh ? "存储" : "Storage";
+        String metric = zh ? "指标" : "Metric";
+        String colInternal = zh ? "内部" : "Internal";
+        String colExternal = zh ? "外部" : "External";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{
+                zh ? "路径" : "Path",
+                inPath,
+                exPath
+        });
+        rows.add(new String[]{zh ? "总计" : "Total", inTotal, exTotal});
+        rows.add(new String[]{zh ? "已用" : "Used", inUsed, exUsed});
+        rows.add(new String[]{zh ? "可用" : "Available", inAvail, exAvail});
+        rows.add(new String[]{zh ? "使用率" : "Used %", inPct, exPct});
+        rows.add(new String[]{
+                zh ? "状态" : "State",
+                "—",
+                exState.isEmpty() ? "—" : exState
+        });
         StringBuilder sb = new StringBuilder();
-        sb.append("💿 Storage\n\n");
-        sb.append("| Metric | Internal | External |\n");
-        sb.append("|---|---|---|\n");
-        sb.append("| Path | ").append(inPath).append(" | ").append(exPath).append(" |\n");
-        sb.append("| Total | ").append(inTotal).append(" | ").append(exTotal).append(" |\n");
-        sb.append("| Used | ").append(inUsed).append(" | ").append(exUsed).append(" |\n");
-        sb.append("| Available | ").append(inAvail).append(" | ").append(exAvail).append(" |\n");
-        sb.append("| Used % | ").append(inPct).append(" | ").append(exPct).append(" |\n");
-        sb.append("| State | — | ").append(exState.isEmpty() ? "—" : exState).append(" |\n");
+        sb.append("💿 ").append(title).append("\n\n");
+        sb.append(pgTable(title, new String[]{metric, colInternal, colExternal}, rows));
         return sb.toString();
     }
 
@@ -462,22 +531,36 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatDisplayInfoDisplay(JSONObject d) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("🖥️ Display\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
+        boolean zh = isZh();
+        String title = zh ? "显示" : "Display";
+        String item = zh ? "项目" : "Item";
+        String value = zh ? "值" : "Value";
+        List<String[]> rows = new ArrayList<>();
         if (d.has("error")) {
-            sb.append("| Error | ").append(d.optString("error", "—")).append(" |\n");
+            rows.add(new String[]{zh ? "错误" : "Error", d.optString("error", "—")});
+            StringBuilder sb = new StringBuilder();
+            sb.append("🖥️ ").append(title).append("\n\n");
+            sb.append(pgTable(title, new String[]{item, value}, rows));
             return sb.toString();
         }
         int w = d.optInt("widthPx", 0);
         int h = d.optInt("heightPx", 0);
-        sb.append("| Resolution | ").append(w).append(" × ").append(h).append(" |\n");
-        sb.append("| Density | ")
-                .append(String.format(Locale.US, "%.2f", d.optDouble("density", 0))).append(" |\n");
-        sb.append("| Density DPI | ").append(d.optInt("densityDpi", 0)).append(" |\n");
-        sb.append("| Refresh rate | ")
-                .append(String.format(Locale.US, "%.1f Hz", d.optDouble("refreshRateHz", 0))).append(" |\n");
+        rows.add(new String[]{zh ? "分辨率" : "Resolution", w + " × " + h});
+        rows.add(new String[]{
+                zh ? "密度" : "Density",
+                String.format(Locale.US, "%.2f", d.optDouble("density", 0))
+        });
+        rows.add(new String[]{
+                zh ? "密度 DPI" : "Density DPI",
+                String.valueOf(d.optInt("densityDpi", 0))
+        });
+        rows.add(new String[]{
+                zh ? "刷新率" : "Refresh rate",
+                String.format(Locale.US, "%.1f Hz", d.optDouble("refreshRateHz", 0))
+        });
+        StringBuilder sb = new StringBuilder();
+        sb.append("🖥️ ").append(title).append("\n\n");
+        sb.append(pgTable(title, new String[]{item, value}, rows));
         return sb.toString();
     }
 
@@ -488,76 +571,97 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatSystemSummaryDisplay(JSONObject sum) {
+        boolean zh = isZh();
+        String item = zh ? "项目" : "Item";
+        String value = zh ? "值" : "Value";
+        String titleSummary = zh ? "系统摘要" : "System Summary";
         StringBuilder sb = new StringBuilder();
-        sb.append("📋 System Summary\n\n");
+        sb.append("📋 ").append(titleSummary).append("\n\n");
         JSONObject device = sum.optJSONObject("device");
         if (device != null) {
-            sb.append("Device\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
+            String sec = zh ? "设备" : "Device";
+            sb.append(sec).append("\n\n");
+            List<String[]> rows = new ArrayList<>();
             String name = (device.optString("brand", "") + " " + device.optString("model", "")).trim();
-            sb.append("| Device | ").append(name.isEmpty() ? "—" : name).append(" |\n");
-            sb.append("| Android | ")
-                    .append(device.optString("androidVersion", "—"))
-                    .append(" (API ").append(device.optInt("sdkInt", 0)).append(") |\n");
-            sb.append("\n");
+            rows.add(new String[]{zh ? "设备" : "Device", name.isEmpty() ? "—" : name});
+            rows.add(new String[]{
+                    "Android",
+                    device.optString("androidVersion", "—")
+                            + " (API " + device.optInt("sdkInt", 0) + ")"
+            });
+            sb.append(pgTable(sec, new String[]{item, value}, rows));
+            sb.append("\n\n");
         }
         JSONObject cpu = sum.optJSONObject("cpu");
         if (cpu != null) {
-            sb.append("CPU\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
-            sb.append("| CPU cores | ").append(cpu.optInt("processorCount", 0)).append(" |\n");
-            sb.append("| CPU arch | ").append(cpu.optString("osArch", "—")).append(" |\n");
-            sb.append("\n");
+            String sec = "CPU";
+            sb.append(sec).append("\n\n");
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{
+                    zh ? "核心数" : "CPU cores",
+                    String.valueOf(cpu.optInt("processorCount", 0))
+            });
+            rows.add(new String[]{zh ? "架构" : "CPU arch", cpu.optString("osArch", "—")});
+            sb.append(pgTable(sec, new String[]{item, value}, rows));
+            sb.append("\n\n");
         }
         JSONObject memory = sum.optJSONObject("memory");
         if (memory != null) {
-            sb.append("Memory\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
+            String sec = zh ? "内存" : "Memory";
+            sb.append(sec).append("\n\n");
+            List<String[]> rows = new ArrayList<>();
             if (memory.has("error")) {
-                sb.append("| Memory | ").append(memory.optString("error", "—")).append(" |\n");
+                rows.add(new String[]{zh ? "内存" : "Memory", memory.optString("error", "—")});
             } else {
-                sb.append("| RAM total | ").append(formatBytes(memory.optLong("totalBytes", 0))).append(" |\n");
-                sb.append("| RAM used | ")
-                        .append(String.format(Locale.US, "%.2f%%", memory.optDouble("usedPercent", 0)))
-                        .append(" |\n");
+                rows.add(new String[]{
+                        zh ? "内存总计" : "RAM total",
+                        formatBytes(memory.optLong("totalBytes", 0))
+                });
+                rows.add(new String[]{
+                        zh ? "内存使用率" : "RAM used",
+                        String.format(Locale.US, "%.2f%%", memory.optDouble("usedPercent", 0))
+                });
             }
-            sb.append("\n");
+            sb.append(pgTable(sec, new String[]{item, value}, rows));
+            sb.append("\n\n");
         }
         JSONObject storage = sum.optJSONObject("storage");
         if (storage != null) {
             JSONObject internal = storage.optJSONObject("internal");
             if (internal != null) {
-                sb.append("Storage (internal)\n\n");
-                sb.append("| Item | Value |\n");
-                sb.append("|---|---|\n");
-                sb.append("| Used / Total | ")
-                        .append(formatBytes(internal.optLong("usedBytes", 0)))
-                        .append(" / ")
-                        .append(formatBytes(internal.optLong("totalBytes", 0)))
-                        .append(" |\n");
-                sb.append("| Used % | ")
-                        .append(String.format(Locale.US, "%.1f%%", internal.optDouble("usedPercent", 0)))
-                        .append(" |\n");
-                sb.append("\n");
+                String sec = zh ? "存储（内部）" : "Storage (internal)";
+                sb.append(sec).append("\n\n");
+                List<String[]> rows = new ArrayList<>();
+                rows.add(new String[]{
+                        zh ? "已用 / 总计" : "Used / Total",
+                        formatBytes(internal.optLong("usedBytes", 0))
+                                + " / "
+                                + formatBytes(internal.optLong("totalBytes", 0))
+                });
+                rows.add(new String[]{
+                        zh ? "使用率" : "Used %",
+                        String.format(Locale.US, "%.1f%%", internal.optDouble("usedPercent", 0))
+                });
+                sb.append(pgTable(sec, new String[]{item, value}, rows));
+                sb.append("\n\n");
             }
         }
         JSONObject display = sum.optJSONObject("display");
         if (display != null) {
-            sb.append("Display\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
+            String sec = zh ? "显示" : "Display";
+            sb.append(sec).append("\n\n");
+            List<String[]> rows = new ArrayList<>();
             if (display.has("error")) {
-                sb.append("| Display | ").append(display.optString("error", "—")).append(" |\n");
+                rows.add(new String[]{zh ? "显示" : "Display", display.optString("error", "—")});
             } else {
-                sb.append("| Resolution @ Hz | ")
-                        .append(display.optInt("widthPx", 0)).append(" × ")
-                        .append(display.optInt("heightPx", 0)).append(" @ ")
-                        .append(String.format(Locale.US, "%.0f Hz", display.optDouble("refreshRateHz", 0)))
-                        .append(" |\n");
+                rows.add(new String[]{
+                        zh ? "分辨率 @ 刷新率" : "Resolution @ Hz",
+                        display.optInt("widthPx", 0) + " × "
+                                + display.optInt("heightPx", 0) + " @ "
+                                + String.format(Locale.US, "%.0f Hz", display.optDouble("refreshRateHz", 0))
+                });
             }
+            sb.append(pgTable(sec, new String[]{item, value}, rows));
         }
         return sb.toString();
     }

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>贪吃蛇 (snake_game) v1.1 — PandaGenie 模块文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-surface: #FEF7FF;
+      --md-on-surface: #1D1B20;
+      --md-outline: #CAC4D0;
+      --md-radius: 12px;
+      --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+      color: #fff; padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--md-shadow);
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.85rem); font-weight: 500; }
+    header.hero .meta { opacity: .92; font-size: .95rem; }
+    header.hero code { background: rgba(255,255,255,.15); padding: .15rem .4rem; border-radius: 6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: #fff; margin: -1.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: var(--md-radius);
+      box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: #4F378B; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff; border-radius: var(--md-radius); padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem; box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    section.card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+    p { margin: .6rem 0; }
+    table.api { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table.api th, table.api td { border: 1px solid var(--md-outline); padding: .55rem .65rem; text-align: left; vertical-align: top; }
+    table.api th { background: var(--md-primary-container); color: #21005D; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
+    pre.json {
+      background: #2D2640; color: #E8DEF8; padding: 1rem; border-radius: 8px; overflow-x: auto;
+      font-size: .82rem; line-height: 1.45;
+    }
+    details.coll {
+      border: 1px solid var(--md-outline); border-radius: 8px; margin: .75rem 0; overflow: hidden;
+    }
+    details.coll > summary {
+      cursor: pointer; padding: .75rem 1rem; background: var(--md-primary-container); color: #21005D;
+      font-weight: 500;
+    }
+    details.coll .inner { padding: 1rem; background: #fff; }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; }
+    .flow { font-family: ui-monospace, monospace; background: #F3EDF7; padding: 1rem; border-radius: 8px; font-size: .85rem; white-space: pre-wrap; }
+    .kbd { display: inline-block; padding: .1rem .4rem; background: #E7E0EC; border-radius: 4px; font-size: .85em; }
+    @media (max-width: 600px) { table.api { font-size: .8rem; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:920px;margin:0 auto;padding:0 1rem;">
+      <h1>贪吃蛇 · Snake Game</h1>
+      <div class="meta">
+        <span class="badge">v1.1</span>
+        <code>snake_game</code> · Plugin: <code>SnakePlugin</code> ·
+        <code>ai.rorsch.moduleplugins.snake_game.SnakePlugin</code>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#board">棋盘与难度</a></li>
+        <li><a href="#architecture">状态机与碰撞</a></li>
+        <li><a href="#class">类、字段与方法</a></li>
+        <li><a href="#apis">四大 API Actions</a></li>
+        <li><a href="#output">game state JSON</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+        <li><a href="#manifest">manifest.json</a></li>
+      </ol>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述 Module overview</h2>
+      <p>
+        <strong>贪吃蛇（snake_game）</strong> 在插件进程内维护一局游戏的内存状态：<strong>蛇身坐标列表</strong>、<strong>食物坐标</strong>、当前方向、得分、<code>gameOver</code>、<code>gameStarted</code>、难度 <code>difficulty</code>（1–3）。
+        通过 <code>ModulePlugin#invoke</code> 暴露 <strong>4 个 action</strong>：<code>startGame</code>、<code>move</code>、<code>getState</code>、<code>restart</code>。
+        棋盘大小固定为 <strong>20 × 15</strong> 单元格（宽 × 高），与源码常量 <code>BOARD_WIDTH</code>、<code>BOARD_HEIGHT</code> 一致。
+      </p>
+    </section>
+
+    <section class="card" id="board">
+      <h2>棋盘与难度 Board &amp; difficulty</h2>
+      <ul>
+        <li><strong>Board：</strong> <code>BOARD_WIDTH = 20</code>，<code>BOARD_HEIGHT = 15</code>。渲染字符：空地 <code>·</code>，蛇头 <code>●</code>，蛇身 <code>○</code>，食物 <code>★</code>，带边框 Unicode 线框。</li>
+        <li><strong>难度：</strong> <code>startGame(difficulty)</code> 将参数限制在 <code>[1,3]</code>。得分：<code>score += 10 * difficulty</code>（每吃一个食物）。</li>
+        <li><strong>难度名称（_displayText）：</strong> 简单 / 普通 / 困难 对应 1 / 2 / 3。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="architecture">
+      <h2>状态机与碰撞检测</h2>
+      <details class="coll" open>
+        <summary>游戏流程</summary>
+        <div class="inner">
+          <ol>
+            <li><code>startGame</code> → <code>initGame()</code>：蛇初始 3 节，居中偏左水平向右；<code>spawnFood()</code> 随机生成不与蛇重叠的食物。</li>
+            <li><code>move(direction)</code>：若未 <code>startGame</code> 则 error；若已 <code>gameOver</code> 则仍返回当前 state（success）。</li>
+            <li>方向：若传入空串则沿用当前方向；<strong>禁止 180° 掉头</strong>（与当前方向相反则忽略新方向）。非法方向字符串返回 error。</li>
+            <li>计算新头坐标 <code>(newX,newY)</code> 后：先判<strong>撞墙</strong>（越界）→ <code>gameOver</code>；再<strong>在插入新头之前</strong>将 <code>(newX,newY)</code> 与<strong>当前整条蛇</strong>各节比较 → 重合则 <code>gameOver</code>；随后 <code>snake.add(0, {newX,newY})</code>；若吃到食物则加分并 <code>spawnFood</code> 且<strong>不去尾</strong>，否则移除尾节。</li>
+            <li>吃到食物：得分 <code>+= 10 * difficulty</code>，并重新生成食物。</li>
+          </ol>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类、字段与方法 SnakePlugin</h2>
+      <p>包：<code>ai.rorsch.moduleplugins.snake_game</code>。单类实现 <code>ModulePlugin</code>。</p>
+      <table class="api">
+        <thead><tr><th>成员</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>BOARD_WIDTH</code> / <code>BOARD_HEIGHT</code></td><td>20 / 15</td></tr>
+          <tr><td><code>snake</code></td><td><code>List&lt;int[]&gt;</code>，每节 <code>{x,y}</code>，索引 0 为蛇头。</td></tr>
+          <tr><td><code>food</code></td><td><code>int[]{x,y}</code></td></tr>
+          <tr><td><code>direction</code></td><td><code>up|down|left|right</code></td></tr>
+          <tr><td><code>score</code></td><td>整数得分</td></tr>
+          <tr><td><code>gameOver</code> / <code>gameStarted</code></td><td>布尔状态</td></tr>
+          <tr><td><code>difficulty</code></td><td>1–3</td></tr>
+          <tr><td><code>random</code></td><td><code>java.util.Random</code>，在 <code>startGame</code> 初始化</td></tr>
+        </tbody>
+      </table>
+      <table class="api">
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>invoke</code></td><td>分发四 action，异常 → <code>error</code></td></tr>
+          <tr><td><code>startGame(int)</code></td><td>clamp 难度、<code>initGame</code>、<code>ok(buildState(), formatDisplay())</code></td></tr>
+          <tr><td><code>initGame()</code></td><td>重置蛇、方向 right、分数、food</td></tr>
+          <tr><td><code>spawnFood()</code></td><td>随机直到不与蛇身重叠</td></tr>
+          <tr><td><code>move(String dir)</code></td><td>核心移动与碰撞逻辑</td></tr>
+          <tr><td><code>getState()</code></td><td>未开始则 error</td></tr>
+          <tr><td><code>restart()</code></td><td>若 difficulty 为 0 则置 2；保证 <code>random</code> 非空；<code>initGame</code></td></tr>
+          <tr><td><code>buildState()</code></td><td>组装 JSON（含 snake 数组、food、board 文本）</td></tr>
+          <tr><td><code>renderBoard()</code></td><td>字符矩阵渲染为字符串</td></tr>
+          <tr><td><code>formatDisplay()</code></td><td>中文 UI：难度、得分、长度、棋盘、操作提示</td></tr>
+          <tr><td><code>emptyJson</code> / <code>ok</code> / <code>error</code></td><td>工具方法</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="apis">
+      <h2>四大 API Actions</h2>
+      <table class="api">
+        <thead><tr><th>action</th><th>输入 params</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td><code>startGame</code></td><td><code>difficulty</code> 可选，默认 2</td><td>新开局并返回 state + _displayText</td></tr>
+          <tr><td><code>move</code></td><td><code>direction</code>：up/down/left/right 或空（保持方向）</td><td>单步移动；撞墙/撞身则 gameOver</td></tr>
+          <tr><td><code>getState</code></td><td>无</td><td>返回当前 state；未开始则 error</td></tr>
+          <tr><td><code>restart</code></td><td>无</td><td>保持 difficulty，重新 <code>initGame</code></td></tr>
+        </tbody>
+      </table>
+      <p>方向键提示在 <code>_displayText</code> 中：<span class="kbd">up</span> / <span class="kbd">down</span> / <span class="kbd">left</span> / <span class="kbd">right</span>。</p>
+    </section>
+
+    <section class="card" id="output">
+      <h2>game state JSON（output 字段内嵌字符串）</h2>
+      <p>成功时 <code>output</code> 为 <code>JSONObject.toString()</code>，主要字段：</p>
+      <pre class="json">{
+  "gameStarted": true,
+  "gameOver": false,
+  "score": 0,
+  "difficulty": 2,
+  "direction": "right",
+  "boardWidth": 20,
+  "boardHeight": 15,
+  "snakeLength": 3,
+  "snake": [ {"x":0,"y":0}, ... ],
+  "food": { "x": 0, "y": 0 },
+  "board": "┌──…──┐\\n│…│\\n└──…──┘"
+}</pre>
+    </section>
+
+    <section class="card" id="dataflow">
+      <h2>数据流 Data flow</h2>
+      <div class="flow">Client 调用 invoke(action, paramsJson)
+  → 修改 SnakePlugin 内存状态（单例插件生命周期内持久）
+  → buildState() → output 字符串
+  → formatDisplay() → _displayText（ASCII/Unicode 棋盘 + 中文说明）</div>
+      <p><strong>注意：</strong> 状态保存在插件实例字段；宿主若卸载/重载插件类则状态丢失。</p>
+    </section>
+
+    <section class="card" id="manifest">
+      <h2>manifest.json 摘要</h2>
+      <ul>
+        <li><code>id</code>: snake_game · <code>version</code>: 1.1</li>
+        <li><code>pluginClass</code>: ai.rorsch.moduleplugins.snake_game.SnakePlugin</li>
+        <li>apis：startGame, move, getState, restart — 与源码一致</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

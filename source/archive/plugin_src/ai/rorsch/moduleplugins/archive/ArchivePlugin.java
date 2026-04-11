@@ -181,6 +181,14 @@ public class ArchivePlugin implements ModulePlugin {
     /** 列表类展示时最多展示的条目数，超出部分以省略提示 */
     private static final int DISPLAY_LIST_MAX = 20;
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 构造仅含成功标志与输出字段的 JSON（无展示文案）。
      *
@@ -266,6 +274,9 @@ public class ArchivePlugin implements ModulePlugin {
      */
     private static String formatDecompressDisplay(String outputPath, boolean singleFile) {
         int n = countExtractedFiles(new File(outputPath), singleFile);
+        if (isZh()) {
+            return "📦 已解压\n━━━━━━━━━━━━━━\n▸ " + n + " 个文件\n▸ 输出: " + outputPath;
+        }
         return "📦 Extracted\n━━━━━━━━━━━━━━\n▸ Files: " + n + " extracted\n▸ Output: " + outputPath;
     }
 
@@ -281,6 +292,9 @@ public class ArchivePlugin implements ModulePlugin {
         String sizeStr = len < 1024 * 1024
                 ? String.format(Locale.US, "%.2f KB", len / 1024.0)
                 : String.format(Locale.US, "%.2f MB", mb);
+        if (isZh()) {
+            return "📦 已压缩\n━━━━━━━━━━━━━━\n▸ 输出: " + outputPath + "\n▸ 大小: " + sizeStr;
+        }
         return "📦 Compressed\n━━━━━━━━━━━━━━\n▸ Output: " + outputPath + "\n▸ Size: " + sizeStr;
     }
 
@@ -295,17 +309,27 @@ public class ArchivePlugin implements ModulePlugin {
             JSONArray arr = new JSONArray(rawJson);
             int total = arr.length();
             StringBuilder sb = new StringBuilder();
-            sb.append("📦 Archive Contents\n━━━━━━━━━━━━━━\n").append(total).append(" files\n");
+            if (isZh()) {
+                sb.append("📦 压缩包内容\n━━━━━━━━━━━━━━\n").append(total).append(" 个文件\n");
+            } else {
+                sb.append("📦 Archive Contents\n━━━━━━━━━━━━━━\n").append(total).append(" files\n");
+            }
             int show = Math.min(DISPLAY_LIST_MAX, total);
             for (int i = 0; i < show; i++) {
                 JSONObject e = arr.optJSONObject(i);
                 String name = e != null ? e.optString("name", "?") : "?";
                 sb.append(i + 1).append(". ").append(name).append("\n");
             }
-            if (total > show) sb.append("… (+").append(total - show).append(" more)");
+            if (total > show) {
+                if (isZh()) {
+                    sb.append("… (+").append(total - show).append(" 更多)");
+                } else {
+                    sb.append("… (+").append(total - show).append(" more)");
+                }
+            }
             return sb.toString().trim();
         } catch (Exception ignored) {
-            return "📦 Archive Contents\n━━━━━━━━━━━━━━\n";
+            return isZh() ? "📦 压缩包内容\n━━━━━━━━━━━━━━\n" : "📦 Archive Contents\n━━━━━━━━━━━━━━\n";
         }
     }
 

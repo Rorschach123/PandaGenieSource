@@ -28,15 +28,28 @@ import java.util.Locale;
  * </p>
  */
 public class FileManagerPlugin implements ModulePlugin {
-    /** 列表类结果在 {@code _displayText} 中最多展示的行数，避免过长输出 */
     private static final int DISPLAY_LIST_MAX = 20;
-    /** 读取文本文件时，展示内容截断的最大字符数 */
     private static final int READ_TEXT_DISPLAY_MAX = 2000;
-    /** 文件修改时间等展示用日期格式 */
+    private static final int PATH_MAX_DISPLAY = 45;
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
-    /** 与 native 层绑定的文件操作库实例，实际 IO 在 C/C++ 中完成 */
     private final FileManagerLib lib = new FileManagerLib();
+
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String displayPath(String path) {
+        String p = path.replace("/storage/emulated/0/", "/sdcard/")
+                       .replace("/storage/emulated/0", "/sdcard");
+        if (p.length() <= PATH_MAX_DISPLAY) return p;
+        int keep = 18;
+        return p.substring(0, keep) + "…" + p.substring(p.length() - keep);
+    }
 
     /**
      * 模块统一入口：根据 {@code action} 分发到对应原生方法，并包装为 JSON 字符串返回。
@@ -59,17 +72,17 @@ public class FileManagerPlugin implements ModulePlugin {
             case "createDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeCreateDirectory(path);
-                return boolResult(okb, "createDirectory failed", okb ? "📁 Directory created: " + path : null);
+                return boolResult(okb, "createDirectory failed", okb ? "📁 " + (isZh() ? "目录已创建: " : "Directory created: ") + displayPath(path) : null);
             }
             case "deleteFile": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeDeleteFile(path);
-                return boolResult(okb, "deleteFile failed", okb ? "🗑️ Deleted: " + path : null);
+                return boolResult(okb, "deleteFile failed", okb ? "🗑️ " + (isZh() ? "已删除: " : "Deleted: ") + displayPath(path) : null);
             }
             case "deleteDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeDeleteDirectory(path, params.optBoolean("recursive", false));
-                return boolResult(okb, "deleteDirectory failed", okb ? "🗑️ Deleted: " + path : null);
+                return boolResult(okb, "deleteDirectory failed", okb ? "🗑️ " + (isZh() ? "已删除: " : "Deleted: ") + displayPath(path) : null);
             }
             case "copyFile":
                 return handleCopyOrMove(params, false);
@@ -103,15 +116,15 @@ public class FileManagerPlugin implements ModulePlugin {
             case "writeTextFile": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeWriteTextFile(path, params.optString("content", ""));
-                return boolResult(okb, "writeTextFile failed", okb ? "✅ Written to file: " + path : null);
+                return boolResult(okb, "writeTextFile failed", okb ? "✅ " + (isZh() ? "已写入文件: " : "Written to file: ") + displayPath(path) : null);
             }
             case "fileExists": {
                 boolean ex = lib.nativeFileExists(resolveStoragePath(params.optString("path", "")));
-                return ok(String.valueOf(ex), "📄 File exists: " + (ex ? "✅" : "❌"));
+                return ok(String.valueOf(ex), "📄 " + (isZh() ? "文件存在: " : "File exists: ") + (ex ? "✅" : "❌"));
             }
             case "getFileSize": {
                 long sz = lib.nativeGetFileSize(resolveStoragePath(params.optString("path", "")));
-                return ok(String.valueOf(sz), "📄 Size: " + sz + " bytes");
+                return ok(String.valueOf(sz), "📄 " + (isZh() ? "大小: " : "Size: ") + formatSizeBytes(sz));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -254,11 +267,14 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 多行展示字符串；解析失败时返回仅含标题的占位文本
      */
     private static String formatListDirectoryDisplay(String dirPath, String rawJson) {
+        boolean zh = isZh();
         try {
             JSONArray arr = new JSONArray(rawJson);
             int n = arr.length();
             StringBuilder sb = new StringBuilder();
-            sb.append("📂 Directory: ").append(dirPath).append("\n━━━━━━━━━━━━━━\n").append(n).append(" items\n");
+            sb.append("📂 ").append(zh ? "目录: " : "Directory: ").append(displayPath(dirPath))
+              .append("\n━━━━━━━━━━━━━━\n")
+              .append(n).append(zh ? " 项" : " items").append("\n");
             int show = Math.min(DISPLAY_LIST_MAX, n);
             for (int i = 0; i < show; i++) {
                 JSONObject e = arr.optJSONObject(i);
@@ -269,10 +285,10 @@ public class FileManagerPlugin implements ModulePlugin {
                 if (isDir) sb.append("📁 ").append(name).append("/\n");
                 else sb.append("📄 ").append(name).append(" (").append(formatSizeBytes(sz)).append(")\n");
             }
-            if (n > show) sb.append("… (+").append(n - show).append(" more)");
+            if (n > show) sb.append("… (+").append(n - show).append(zh ? " 更多)" : " more)");
             return sb.toString().trim();
         } catch (Exception ignored) {
-            return "📂 Directory: " + dirPath + "\n━━━━━━━━━━━━━━\n";
+            return "📂 " + (zh ? "目录: " : "Directory: ") + displayPath(dirPath) + "\n━━━━━━━━━━━━━━\n";
         }
     }
 
@@ -284,7 +300,10 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 多行展示字符串
      */
     private static String formatRenameDisplay(String oldPath, String newPath) {
-        return "✏️ Renamed\n▸ From: " + oldPath + "\n▸ To: " + newPath;
+        boolean zh = isZh();
+        return "✏️ " + (zh ? "已重命名" : "Renamed")
+                + "\n▸ " + (zh ? "原: " : "From: ") + displayPath(oldPath)
+                + "\n▸ " + (zh ? "新: " : "To: ") + displayPath(newPath);
     }
 
     /**
@@ -295,7 +314,10 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 多行展示字符串
      */
     private static String formatCopyDisplay(String src, String dst) {
-        return "📋 Copied\n▸ From: " + src + "\n▸ To: " + dst;
+        boolean zh = isZh();
+        return "📋 " + (zh ? "已复制" : "Copied")
+                + "\n▸ " + (zh ? "来源: " : "From: ") + displayPath(src)
+                + "\n▸ " + (zh ? "目标: " : "To: ") + displayPath(dst);
     }
 
     /**
@@ -306,7 +328,10 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 多行展示字符串
      */
     private static String formatMoveDisplay(String src, String dst) {
-        return "📦 Moved\n▸ From: " + src + "\n▸ To: " + dst;
+        boolean zh = isZh();
+        return "📦 " + (zh ? "已移动" : "Moved")
+                + "\n▸ " + (zh ? "来源: " : "From: ") + displayPath(src)
+                + "\n▸ " + (zh ? "目标: " : "To: ") + displayPath(dst);
     }
 
     /**
@@ -316,17 +341,19 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 展示用多行文本
      */
     private static String formatGetFileInfoDisplay(String rawJson) {
+        boolean zh = isZh();
         try {
             JSONObject o = new JSONObject(rawJson);
             String name = o.optString("name", "");
             long sz = o.optLong("size", 0);
             long lm = o.optLong("lastModified", 0);
             String mod = lm > 0 ? SDF.format(new Date(lm)) : String.valueOf(lm);
-            return "📄 File Info\n━━━━━━━━━━━━━━\n▸ Name: " + name
-                    + "\n▸ Size: " + formatSizeBytes(sz)
-                    + "\n▸ Modified: " + mod;
+            return "📄 " + (zh ? "文件信息" : "File Info") + "\n━━━━━━━━━━━━━━\n"
+                    + "▸ " + (zh ? "名称: " : "Name: ") + name
+                    + "\n▸ " + (zh ? "大小: " : "Size: ") + formatSizeBytes(sz)
+                    + "\n▸ " + (zh ? "修改时间: " : "Modified: ") + mod;
         } catch (Exception ignored) {
-            return "📄 File Info\n━━━━━━━━━━━━━━\n";
+            return "📄 " + (zh ? "文件信息" : "File Info") + "\n━━━━━━━━━━━━━━\n";
         }
     }
 
@@ -337,19 +364,22 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatSearchFilesDisplay(String rawJson) {
+        boolean zh = isZh();
         try {
             JSONArray arr = new JSONArray(rawJson);
             int n = arr.length();
             StringBuilder sb = new StringBuilder();
-            sb.append("🔍 Search Results\n━━━━━━━━━━━━━━\nFound ").append(n).append(" files\n");
+            sb.append("🔍 ").append(zh ? "搜索结果" : "Search Results")
+              .append("\n━━━━━━━━━━━━━━\n")
+              .append(zh ? "找到 " : "Found ").append(n).append(zh ? " 个文件" : " files").append("\n");
             int show = Math.min(DISPLAY_LIST_MAX, n);
             for (int i = 0; i < show; i++) {
-                sb.append(i + 1).append(". ").append(arr.optString(i, "?")).append("\n");
+                sb.append(i + 1).append(". ").append(displayPath(arr.optString(i, "?"))).append("\n");
             }
-            if (n > show) sb.append("… (+").append(n - show).append(" more)");
+            if (n > show) sb.append("… (+").append(n - show).append(zh ? " 更多)" : " more)");
             return sb.toString().trim();
         } catch (Exception ignored) {
-            return "🔍 Search Results\n━━━━━━━━━━━━━━\n";
+            return "🔍 " + (zh ? "搜索结果" : "Search Results") + "\n━━━━━━━━━━━━━━\n";
         }
     }
 
@@ -364,7 +394,7 @@ public class FileManagerPlugin implements ModulePlugin {
         if (body.length() > READ_TEXT_DISPLAY_MAX) {
             body = body.substring(0, READ_TEXT_DISPLAY_MAX) + "…";
         }
-        return "📄 File Content\n━━━━━━━━━━━━━━\n" + body;
+        return "📄 " + (isZh() ? "文件内容" : "File Content") + "\n━━━━━━━━━━━━━━\n" + body;
     }
 
     /**

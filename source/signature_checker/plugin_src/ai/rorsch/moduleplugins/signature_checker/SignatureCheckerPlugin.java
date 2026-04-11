@@ -18,9 +18,11 @@ import java.security.MessageDigest;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.Enumeration;
 
 /**
  * PandaGenie 签名检查模块插件。
@@ -43,6 +45,24 @@ public class SignatureCheckerPlugin implements ModulePlugin {
     private static final String APK_CERT_ASSET = "module_signing/official_cert.pem";
     /** 外部存储上存放已下载模块包的相对目录名（相对 {@link Environment#getExternalStorageDirectory()}）。 */
     private static final String MODULES_DIR = "PandaGenie/modules";
+
+    private static boolean isZh() {
+        try { return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh"); }
+        catch (Exception e) { return false; }
+    }
+    private static String pgTable(String title, String[] headers, List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) { org.json.JSONArray a = new org.json.JSONArray(); for (String c : row) a.put(c); r.put(a); }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) { return title; }
+    }
 
     /**
      * 按 {@code action} 执行 APK/模块签名相关校验。
@@ -465,22 +485,24 @@ public class SignatureCheckerPlugin implements ModulePlugin {
     }
 
     private String formatVerifyApkDisplay(JSONObject apk) {
+        boolean zh = isZh();
         boolean v = apk.optBoolean("verified", false);
-        String status = v ? "✅ Valid" : "❌ Invalid";
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔐 APK Signature\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| Status | ").append(mdCell(status)).append(" |\n");
+        String status = v
+                ? (zh ? "✅ 有效" : "✅ Valid")
+                : (zh ? "❌ 无效" : "❌ Invalid");
+        String title = zh ? "APK 签名" : "APK Signature";
+        String[] headers = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "状态" : "Status", mdCell(status)});
         if (v) {
-            sb.append("| Package | ").append(mdCell(apk.optString("packageName", ""))).append(" |\n");
-            sb.append("| Fingerprint | ").append(mdCell(apk.optString("fingerprint", ""))).append(" |\n");
-            sb.append("| Subject | ").append(mdCell(apk.optString("subject", ""))).append(" |\n");
-            sb.append("| Issuer | ").append(mdCell(apk.optString("issuer", ""))).append(" |\n");
+            rows.add(new String[]{zh ? "包名" : "Package", mdCell(apk.optString("packageName", ""))});
+            rows.add(new String[]{zh ? "指纹" : "Fingerprint", mdCell(apk.optString("fingerprint", ""))});
+            rows.add(new String[]{zh ? "主体" : "Subject", mdCell(apk.optString("subject", ""))});
+            rows.add(new String[]{zh ? "签发者" : "Issuer", mdCell(apk.optString("issuer", ""))});
         } else {
-            sb.append("| Error | ").append(mdCell(apk.optString("error", ""))).append(" |\n");
+            rows.add(new String[]{zh ? "错误" : "Error", mdCell(apk.optString("error", ""))});
         }
-        return sb.toString().trim();
+        return ("🔐 " + title + "\n\n" + pgTable(title, headers, rows)).trim();
     }
 
     /**
@@ -489,30 +511,32 @@ public class SignatureCheckerPlugin implements ModulePlugin {
      * @param mod {@link #verifySingleModule} 返回对象
      */
     private String formatVerifyModuleDisplay(JSONObject mod) {
+        boolean zh = isZh();
         String moduleName = mod.optString("name", "");
         if (moduleName.isEmpty()) moduleName = mod.optString("id", mod.optString("file", ""));
         boolean v = mod.optBoolean("verified", false);
-        String status = v ? "✅ Valid" : "❌ Invalid";
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔐 Module Signature\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| Module | ").append(mdCell(moduleName)).append(" |\n");
-        sb.append("| File | ").append(mdCell(mod.optString("file", ""))).append(" |\n");
-        sb.append("| ID | ").append(mdCell(mod.optString("id", ""))).append(" |\n");
-        sb.append("| Version | ").append(mdCell(mod.optString("version", ""))).append(" |\n");
-        sb.append("| Status | ").append(mdCell(status)).append(" |\n");
+        String status = v
+                ? (zh ? "✅ 有效" : "✅ Valid")
+                : (zh ? "❌ 无效" : "❌ Invalid");
+        String title = zh ? "模块签名" : "Module Signature";
+        String[] headers = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "模块" : "Module", mdCell(moduleName)});
+        rows.add(new String[]{zh ? "文件" : "File", mdCell(mod.optString("file", ""))});
+        rows.add(new String[]{"ID", mdCell(mod.optString("id", ""))});
+        rows.add(new String[]{zh ? "版本" : "Version", mdCell(mod.optString("version", ""))});
+        rows.add(new String[]{zh ? "状态" : "Status", mdCell(status)});
         if (v) {
-            sb.append("| Official | ").append(mdCell(String.valueOf(mod.optBoolean("isOfficial", false)))).append(" |\n");
-            sb.append("| Signer count | ").append(mod.optInt("signerCount", 0)).append(" |\n");
-            sb.append("| Official fingerprint | ").append(mdCell(mod.optString("officialFingerprint", ""))).append(" |\n");
-            sb.append("| Official subject | ").append(mdCell(mod.optString("officialSubject", ""))).append(" |\n");
-            sb.append("| Dev fingerprint | ").append(mdCell(mod.optString("devFingerprint", ""))).append(" |\n");
-            sb.append("| Dev subject | ").append(mdCell(mod.optString("devSubject", ""))).append(" |\n");
+            rows.add(new String[]{zh ? "官方" : "Official", mdCell(String.valueOf(mod.optBoolean("isOfficial", false)))});
+            rows.add(new String[]{zh ? "签名者数量" : "Signer count", String.valueOf(mod.optInt("signerCount", 0))});
+            rows.add(new String[]{zh ? "官方指纹" : "Official fingerprint", mdCell(mod.optString("officialFingerprint", ""))});
+            rows.add(new String[]{zh ? "官方主体" : "Official subject", mdCell(mod.optString("officialSubject", ""))});
+            rows.add(new String[]{zh ? "开发者指纹" : "Dev fingerprint", mdCell(mod.optString("devFingerprint", ""))});
+            rows.add(new String[]{zh ? "开发者主体" : "Dev subject", mdCell(mod.optString("devSubject", ""))});
         } else {
-            sb.append("| Error | ").append(mdCell(mod.optString("error", ""))).append(" |\n");
+            rows.add(new String[]{zh ? "错误" : "Error", mdCell(mod.optString("error", ""))});
         }
-        return sb.toString().trim();
+        return ("🔐 " + title + "\n\n" + pgTable(title, headers, rows)).trim();
     }
 
     /**
@@ -521,6 +545,7 @@ public class SignatureCheckerPlugin implements ModulePlugin {
      * @param results {@link #verifyAllModules} 的返回值
      */
     private static void appendModulesSummaryAndTable(StringBuilder sb, JSONArray results) {
+        boolean zh = isZh();
         int valid = 0;
         int invalid = 0;
         for (int i = 0; i < results.length(); i++) {
@@ -528,30 +553,38 @@ public class SignatureCheckerPlugin implements ModulePlugin {
             if (o != null && o.optBoolean("verified", false)) valid++;
             else invalid++;
         }
-        sb.append("✅ ").append(valid).append(" valid / ❌ ").append(invalid).append(" invalid\n\n");
-        sb.append("| Module | File | Status | Details |\n");
-        sb.append("| --- | --- | --- | --- |\n");
+        sb.append("✅ ").append(valid).append(zh ? " 有效 / ❌ " : " valid / ❌ ").append(invalid).append(zh ? " 无效\n\n" : " invalid\n\n");
+        String title = zh ? "模块列表" : "Module list";
+        String[] headers = new String[]{
+                zh ? "模块" : "Module", zh ? "文件" : "File", zh ? "状态" : "Status", zh ? "详情" : "Details"};
+        List<String[]> rows = new ArrayList<>();
         for (int i = 0; i < results.length(); i++) {
             JSONObject o = results.optJSONObject(i);
             if (o == null) continue;
             String name = o.optString("name", "");
             if (name.isEmpty()) name = o.optString("id", o.optString("file", "?"));
             boolean v = o.optBoolean("verified", false);
-            String st = v ? "✅ Valid" : "❌ Invalid";
+            String st = v
+                    ? (zh ? "✅ 有效" : "✅ Valid")
+                    : (zh ? "❌ 无效" : "❌ Invalid");
             String details;
             if (v) {
-                details = o.optBoolean("isOfficial", false) ? "Official" : "Verified";
+                details = o.optBoolean("isOfficial", false)
+                        ? (zh ? "官方" : "Official")
+                        : (zh ? "已验证" : "Verified");
             } else {
                 details = o.optString("error", "—");
             }
-            sb.append("| ").append(mdCell(name)).append(" | ").append(mdCell(o.optString("file", "")))
-                    .append(" | ").append(mdCell(st)).append(" | ").append(mdCell(details)).append(" |\n");
+            rows.add(new String[]{mdCell(name), mdCell(o.optString("file", "")), mdCell(st), mdCell(details)});
         }
+        sb.append(pgTable(title, headers, rows));
     }
 
     private String formatVerifyAllModulesDisplay(JSONArray results) {
+        boolean zh = isZh();
+        String head = zh ? "🔐 所有模块已验证" : "🔐 All Modules Verified";
         StringBuilder sb = new StringBuilder();
-        sb.append("🔐 All Modules Verified\n");
+        sb.append(head).append("\n");
         appendModulesSummaryAndTable(sb, results);
         return sb.toString().trim();
     }
@@ -566,8 +599,10 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         if (modules != null) {
             return formatVerifyAllModulesDisplay(modules);
         }
+        boolean zh = isZh();
+        String head = zh ? "🔐 所有模块已验证" : "🔐 All Modules Verified";
         StringBuilder sb = new StringBuilder();
-        sb.append("🔐 All Modules Verified\n");
+        sb.append(head).append("\n");
         appendModulesSummaryAndTable(sb, new JSONArray());
         return sb.toString().trim();
     }

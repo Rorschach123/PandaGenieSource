@@ -57,6 +57,43 @@ public class NetworkToolsPlugin implements ModulePlugin {
     private static final int PUBLIC_IP_TIMEOUT_MS = 5000;
     /** 允许的 ping 目标字符集（防命令注入的简单校验）。 */
     private static final Pattern SAFE_HOST = Pattern.compile("^[a-zA-Z0-9.:\\-_]+$");
+
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            JSONObject root = new JSONObject();
+            root.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            root.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) {
+                JSONArray rowArr = new JSONArray();
+                for (String cell : row) {
+                    rowArr.put(cell);
+                }
+                r.put(rowArr);
+            }
+            root.put("rows", r);
+            return "__pg_table__" + root.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
+    private static String t(String en, String zh) {
+        return isZh() ? zh : en;
+    }
+
     /**
      * 模块入口：需要 {@link Context} 的 action 会传入用于获取系统服务。
      *
@@ -477,7 +514,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
         try {
             JSONObject o = new JSONObject(outputJson);
             String stdout = o.optString("stdout", "");
-            return "🏓 Ping Results\n\n" + stdout;
+            return t("🏓 Ping Results", "🏓 Ping 结果") + "\n\n" + stdout;
         } catch (Exception ignored) {
             return "";
         }
@@ -494,18 +531,18 @@ public class NetworkToolsPlugin implements ModulePlugin {
             JSONObject o = new JSONObject(outputJson);
             String host = o.optString("domain", "—");
             JSONArray arr = o.optJSONArray("addresses");
-            StringBuilder sb = new StringBuilder();
-            sb.append("🌐 DNS Lookup\n\n");
-            sb.append("| Domain | Address |\n");
-            sb.append("|---|---|\n");
+            ArrayList<String[]> rows = new ArrayList<>();
             if (arr != null && arr.length() > 0) {
                 for (int i = 0; i < arr.length(); i++) {
-                    sb.append("| ").append(host).append(" | ").append(arr.optString(i, "—")).append(" |\n");
+                    rows.add(new String[]{host, arr.optString(i, "—")});
                 }
             } else {
-                sb.append("| ").append(host).append(" | — |\n");
+                rows.add(new String[]{host, "—"});
             }
-            return sb.toString();
+            return pgTable(
+                    t("🌐 DNS Lookup", "🌐 DNS 查询"),
+                    new String[]{t("Domain", "域名"), t("Address", "地址")},
+                    rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -520,26 +557,26 @@ public class NetworkToolsPlugin implements ModulePlugin {
     private static String formatLocalIpDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
-            StringBuilder sb = new StringBuilder();
-            sb.append("📡 Local IP\n\n");
-            sb.append("| Family | Address |\n");
-            sb.append("|---|---|\n");
+            ArrayList<String[]> rows = new ArrayList<>();
             JSONArray v4 = o.optJSONArray("ipv4");
             if (v4 != null) {
                 for (int i = 0; i < v4.length(); i++) {
-                    sb.append("| IPv4 | ").append(v4.optString(i, "—")).append(" |\n");
+                    rows.add(new String[]{"IPv4", v4.optString(i, "—")});
                 }
             }
             JSONArray v6 = o.optJSONArray("ipv6");
             if (v6 != null) {
                 for (int i = 0; i < v6.length(); i++) {
-                    sb.append("| IPv6 | ").append(v6.optString(i, "—")).append(" |\n");
+                    rows.add(new String[]{"IPv6", v6.optString(i, "—")});
                 }
             }
-            if ((v4 == null || v4.length() == 0) && (v6 == null || v6.length() == 0)) {
-                sb.append("| — | — |\n");
+            if (rows.isEmpty()) {
+                rows.add(new String[]{"—", "—"});
             }
-            return sb.toString();
+            return pgTable(
+                    t("📡 Local IP", "📡 本地 IP"),
+                    new String[]{t("Family", "地址族"), t("Address", "地址")},
+                    rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -558,13 +595,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
             if (ip.isEmpty()) {
                 ip = "—";
             }
-            StringBuilder sb = new StringBuilder();
-            sb.append("🌍 Public IP\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
-            sb.append("| IP | ").append(ip).append(" |\n");
-            sb.append("| HTTP status | ").append(o.optInt("httpStatus", 0)).append(" |\n");
-            return sb.toString();
+            ArrayList<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{"IP", ip});
+            rows.add(new String[]{t("HTTP status", "HTTP 状态"), String.valueOf(o.optInt("httpStatus", 0))});
+            return pgTable(
+                    t("🌍 Public IP", "🌍 公网 IP"),
+                    new String[]{t("Item", "项目"), t("Value", "值")},
+                    rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -579,21 +616,21 @@ public class NetworkToolsPlugin implements ModulePlugin {
     private static String formatConnectivityDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
-            StringBuilder sb = new StringBuilder();
-            sb.append("📶 Network Status\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
+            String title = t("📶 Network Status", "📶 网络状态");
+            String[] hdr = new String[]{t("Item", "项目"), t("Value", "值")};
             if (!o.optBoolean("hasConnectivityService", false)) {
-                sb.append("| Connected | ❌ |\n");
-                sb.append("| Type | — |\n");
-                return sb.toString();
+                ArrayList<String[]> rows = new ArrayList<>();
+                rows.add(new String[]{t("Connected", "已连接"), "❌"});
+                rows.add(new String[]{t("Type", "类型"), "—"});
+                return pgTable(title, hdr, rows);
             }
             boolean active = o.optBoolean("activeNetwork", false);
             JSONArray transports = o.optJSONArray("transports");
             String typeStr = transportsToFriendly(transports);
-            sb.append("| Connected | ").append(active ? "✅" : "❌").append(" |\n");
-            sb.append("| Type | ").append(active ? typeStr : "—").append(" |\n");
-            return sb.toString();
+            ArrayList<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{t("Connected", "已连接"), active ? "✅" : "❌"});
+            rows.add(new String[]{t("Type", "类型"), active ? typeStr : "—"});
+            return pgTable(title, hdr, rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -660,27 +697,27 @@ public class NetworkToolsPlugin implements ModulePlugin {
             JSONObject o = new JSONObject(outputJson);
             String rawType = o.optString("networkType", "unknown");
             String typeLine = networkTypeToDisplay(rawType);
-            StringBuilder sb = new StringBuilder();
-            sb.append("📶 Network Info\n\n");
-            sb.append("| Item | Value |\n");
-            sb.append("|---|---|\n");
-            sb.append("| Type | ").append(typeLine).append(" |\n");
+            ArrayList<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{t("Type", "类型"), typeLine});
             if ("wifi".equals(rawType)) {
                 String ssid = o.optString("wifiSsid", "");
-                sb.append("| SSID | ").append(ssid.isEmpty() ? "—" : ssid).append(" |\n");
+                rows.add(new String[]{"SSID", ssid.isEmpty() ? "—" : ssid});
             }
-            sb.append("| Connected | ").append(o.optBoolean("connected", false) ? "✅" : "❌").append(" |\n");
+            rows.add(new String[]{t("Connected", "已连接"), o.optBoolean("connected", false) ? "✅" : "❌"});
             if ("wifi".equals(rawType)) {
                 int link = o.optInt("linkSpeedMbps", -1);
                 if (link >= 0) {
-                    sb.append("| Link speed | ").append(link).append(" Mbps |\n");
+                    rows.add(new String[]{t("Link speed", "连接速度"), link + " Mbps"});
                 }
                 int freq = o.optInt("frequencyMhz", 0);
                 if (freq > 0) {
-                    sb.append("| Frequency | ").append(freq).append(" MHz |\n");
+                    rows.add(new String[]{t("Frequency", "频率"), freq + " MHz"});
                 }
             }
-            return sb.toString();
+            return pgTable(
+                    t("📶 Network Info", "📶 网络信息"),
+                    new String[]{t("Item", "项目"), t("Value", "值")},
+                    rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -706,7 +743,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
             case "vpn":
                 return "VPN";
             case "none":
-                return "None";
+                return t("None", "无");
             case "unknown":
                 return "Unknown";
             case "other":

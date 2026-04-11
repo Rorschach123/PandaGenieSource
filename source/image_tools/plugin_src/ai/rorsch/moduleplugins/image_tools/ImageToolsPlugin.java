@@ -12,11 +12,14 @@ import android.media.ExifInterface;
 import android.os.Build;
 import android.text.TextUtils;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -724,6 +727,42 @@ public class ImageToolsPlugin implements ModulePlugin {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            t.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) {
+                JSONArray a = new JSONArray();
+                for (String c : row) {
+                    a.put(c);
+                }
+                r.put(a);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
+    private static String yesNo(boolean b, boolean zh) {
+        return b ? (zh ? "是" : "yes") : (zh ? "否" : "no");
+    }
+
     private static String mdCell(String s) {
         if (s == null) {
             return "";
@@ -739,49 +778,49 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatGetImageInfoDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         int w = o.optInt("width");
         int h = o.optInt("height");
         String formatLabel;
         if (o.isNull("mimeType")) {
-            formatLabel = "Unknown";
+            formatLabel = zh ? "未知" : "Unknown";
         } else {
-            formatLabel = mimeTypeToDisplayFormat(o.optString("mimeType"));
+            formatLabel = mimeTypeToDisplayFormat(o.optString("mimeType"), zh);
         }
         long sizeBytes = o.optLong("fileSizeBytes");
         String path = o.optString("path", "");
-        StringBuilder sb = new StringBuilder();
-        sb.append("🖼️ Image Info\n\n");
-        sb.append("| Item | Value |\n|---|---|\n");
-        sb.append("| Dimensions | ").append(w).append("×").append(h).append(" |\n");
-        sb.append("| Format | ").append(mdCell(formatLabel)).append(" |\n");
-        sb.append("| File size | ").append(formatFileSizeMb(sizeBytes)).append(" |\n");
-        sb.append("| Path | ").append(mdCell(path)).append(" |\n");
+        String title = zh ? "图片信息" : "Image Info";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "尺寸" : "Dimensions", w + "×" + h });
+        rows.add(new String[] { zh ? "格式" : "Format", mdCell(formatLabel) });
+        rows.add(new String[] { zh ? "文件大小" : "File size", formatFileSizeMb(sizeBytes) });
+        rows.add(new String[] { zh ? "路径" : "Path", mdCell(path) });
         JSONObject exif = o.optJSONObject("exif");
         if (exif != null) {
             if (exif.has("error") && !exif.isNull("error")) {
-                sb.append("| EXIF | ").append(mdCell(exif.optString("error"))).append(" |\n");
+                rows.add(new String[] { "EXIF", mdCell(exif.optString("error")) });
             } else {
-                sb.append("| EXIF orientation | ").append(exif.optInt("orientation")).append(" |\n");
+                rows.add(new String[] { "EXIF orientation", String.valueOf(exif.optInt("orientation")) });
                 String dt = exif.isNull("dateTime") ? "—" : exif.optString("dateTime");
-                sb.append("| EXIF date/time | ").append(mdCell(dt)).append(" |\n");
+                rows.add(new String[] { "EXIF date/time", mdCell(dt) });
                 String dto = exif.isNull("dateTimeOriginal") ? "—" : exif.optString("dateTimeOriginal");
-                sb.append("| EXIF date/time (original) | ").append(mdCell(dto)).append(" |\n");
+                rows.add(new String[] { "EXIF date/time (original)", mdCell(dto) });
                 if (!exif.isNull("gps")) {
                     JSONObject gps = exif.optJSONObject("gps");
                     if (gps != null) {
-                        sb.append("| GPS latitude | ").append(gps.optDouble("latitude")).append(" |\n");
-                        sb.append("| GPS longitude | ").append(gps.optDouble("longitude")).append(" |\n");
+                        rows.add(new String[] { "GPS latitude", String.valueOf(gps.optDouble("latitude")) });
+                        rows.add(new String[] { "GPS longitude", String.valueOf(gps.optDouble("longitude")) });
                         if (gps.has("altitude") && !gps.isNull("altitude")) {
-                            sb.append("| GPS altitude | ").append(mdCell(gps.optString("altitude"))).append(" |\n");
+                            rows.add(new String[] { "GPS altitude", mdCell(gps.optString("altitude")) });
                         }
                     }
                 } else {
-                    sb.append("| GPS | — |\n");
+                    rows.add(new String[] { "GPS", "—" });
                 }
             }
         }
-        return sb.toString().trim();
+        return "🖼️ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -792,20 +831,24 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatResizeImageDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         int ow = o.optInt("outputWidth");
         int oh = o.optInt("outputHeight");
         String path = o.optString("outputPath");
         String inPath = o.optString("inputPath");
-        return "✅ Image resized\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input path | " + mdCell(inPath) + " |\n"
-                + "| Original size | " + o.optInt("originalWidth") + "×" + o.optInt("originalHeight") + " |\n"
-                + "| Decoded size | " + o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") + " |\n"
-                + "| Output size | " + ow + "×" + oh + " |\n"
-                + "| Subsampled | " + (o.optBoolean("subsampled") ? "yes" : "no") + " |\n"
-                + "| Format | " + mdCell(o.optString("format")) + " |\n"
-                + "| Output path | " + mdCell(path) + " |";
+        String title = zh ? "图片已调整大小" : "Image resized";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
+        rows.add(new String[] { zh ? "原始尺寸" : "Original size",
+                o.optInt("originalWidth") + "×" + o.optInt("originalHeight") });
+        rows.add(new String[] { zh ? "解码尺寸" : "Decoded size",
+                o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") });
+        rows.add(new String[] { zh ? "输出尺寸" : "Output size", ow + "×" + oh });
+        rows.add(new String[] { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) });
+        rows.add(new String[] { zh ? "格式" : "Format", mdCell(o.optString("format")) });
+        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
+        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -816,22 +859,26 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatCompressImageDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         String inPath = o.optString("inputPath");
         long before = new File(inPath).length();
         long after = o.optLong("outputSizeBytes");
         String path = o.optString("outputPath");
-        return "✅ Image compressed\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input path | " + mdCell(inPath) + " |\n"
-                + "| Size before | " + formatFileSizeMb(before) + " |\n"
-                + "| Size after | " + formatFileSizeMb(after) + " |\n"
-                + "| Quality | " + o.optInt("quality") + " |\n"
-                + "| Original size | " + o.optInt("originalWidth") + "×" + o.optInt("originalHeight") + " |\n"
-                + "| Decoded size | " + o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") + " |\n"
-                + "| Subsampled | " + (o.optBoolean("subsampled") ? "yes" : "no") + " |\n"
-                + "| Format | " + mdCell(o.optString("format")) + " |\n"
-                + "| Output path | " + mdCell(path) + " |";
+        String title = zh ? "图片已压缩" : "Image compressed";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
+        rows.add(new String[] { zh ? "压缩前大小" : "Size before", formatFileSizeMb(before) });
+        rows.add(new String[] { zh ? "压缩后大小" : "Size after", formatFileSizeMb(after) });
+        rows.add(new String[] { zh ? "质量" : "Quality", String.valueOf(o.optInt("quality")) });
+        rows.add(new String[] { zh ? "原始尺寸" : "Original size",
+                o.optInt("originalWidth") + "×" + o.optInt("originalHeight") });
+        rows.add(new String[] { zh ? "解码尺寸" : "Decoded size",
+                o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") });
+        rows.add(new String[] { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) });
+        rows.add(new String[] { zh ? "格式" : "Format", mdCell(o.optString("format")) });
+        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
+        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -842,20 +889,24 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatConvertFormatDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         String fmt = o.optString("format");
         String label = formatKeyToUpperLabel(fmt);
         String path = o.optString("outputPath");
         String inPath = o.optString("inputPath");
-        return "✅ Image format converted\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input path | " + mdCell(inPath) + " |\n"
-                + "| Output format | " + mdCell(label) + " |\n"
-                + "| Original size | " + o.optInt("originalWidth") + "×" + o.optInt("originalHeight") + " |\n"
-                + "| Decoded size | " + o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") + " |\n"
-                + "| Subsampled | " + (o.optBoolean("subsampled") ? "yes" : "no") + " |\n"
-                + "| Output size (bytes) | " + o.optLong("outputSizeBytes") + " |\n"
-                + "| Output path | " + mdCell(path) + " |";
+        String title = zh ? "图片格式已转换" : "Image format converted";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
+        rows.add(new String[] { zh ? "输出格式" : "Output format", mdCell(label) });
+        rows.add(new String[] { zh ? "原始尺寸" : "Original size",
+                o.optInt("originalWidth") + "×" + o.optInt("originalHeight") });
+        rows.add(new String[] { zh ? "解码尺寸" : "Decoded size",
+                o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") });
+        rows.add(new String[] { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) });
+        rows.add(new String[] { zh ? "输出大小（字节）" : "Output size (bytes)", String.valueOf(o.optLong("outputSizeBytes")) });
+        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
+        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -866,20 +917,25 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatRotateImageDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         int deg = o.optInt("degrees");
         String path = o.optString("outputPath");
         String inPath = o.optString("inputPath");
-        return "✅ Image rotated\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input path | " + mdCell(inPath) + " |\n"
-                + "| Degrees | " + deg + " |\n"
-                + "| Original size | " + o.optInt("originalWidth") + "×" + o.optInt("originalHeight") + " |\n"
-                + "| Decoded size | " + o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") + " |\n"
-                + "| Output size | " + o.optInt("outputWidth") + "×" + o.optInt("outputHeight") + " |\n"
-                + "| Subsampled | " + (o.optBoolean("subsampled") ? "yes" : "no") + " |\n"
-                + "| Format | " + mdCell(o.optString("format")) + " |\n"
-                + "| Output path | " + mdCell(path) + " |";
+        String title = zh ? "图片已旋转" : "Image rotated";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
+        rows.add(new String[] { zh ? "角度" : "Degrees", String.valueOf(deg) });
+        rows.add(new String[] { zh ? "原始尺寸" : "Original size",
+                o.optInt("originalWidth") + "×" + o.optInt("originalHeight") });
+        rows.add(new String[] { zh ? "解码尺寸" : "Decoded size",
+                o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") });
+        rows.add(new String[] { zh ? "输出尺寸" : "Output size",
+                o.optInt("outputWidth") + "×" + o.optInt("outputHeight") });
+        rows.add(new String[] { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) });
+        rows.add(new String[] { zh ? "格式" : "Format", mdCell(o.optString("format")) });
+        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
+        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -890,21 +946,27 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 解析异常
      */
     private static String formatCropImageDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
         String path = o.optString("outputPath");
         String inPath = o.optString("inputPath");
-        return "✅ Image cropped\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input path | " + mdCell(inPath) + " |\n"
-                + "| Requested region | " + o.optInt("requestedX") + "," + o.optInt("requestedY") + " "
-                + o.optInt("requestedWidth") + "×" + o.optInt("requestedHeight") + " |\n"
-                + "| Actual crop | " + o.optInt("cropX") + "," + o.optInt("cropY") + " "
-                + o.optInt("cropWidth") + "×" + o.optInt("cropHeight") + " |\n"
-                + "| Source image | " + o.optInt("imageWidth") + "×" + o.optInt("imageHeight") + " |\n"
-                + "| Output size | " + o.optInt("outputWidth") + "×" + o.optInt("outputHeight") + " |\n"
-                + "| Region subsampled | " + (o.optBoolean("regionSubsample") ? "yes" : "no") + " |\n"
-                + "| Format | " + mdCell(o.optString("format")) + " |\n"
-                + "| Output path | " + mdCell(path) + " |";
+        String title = zh ? "图片已裁剪" : "Image cropped";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
+        rows.add(new String[] { zh ? "请求区域" : "Requested region",
+                o.optInt("requestedX") + "," + o.optInt("requestedY") + " "
+                        + o.optInt("requestedWidth") + "×" + o.optInt("requestedHeight") });
+        rows.add(new String[] { zh ? "实际裁剪" : "Actual crop",
+                o.optInt("cropX") + "," + o.optInt("cropY") + " "
+                        + o.optInt("cropWidth") + "×" + o.optInt("cropHeight") });
+        rows.add(new String[] { zh ? "源图尺寸" : "Source image",
+                o.optInt("imageWidth") + "×" + o.optInt("imageHeight") });
+        rows.add(new String[] { zh ? "输出尺寸" : "Output size",
+                o.optInt("outputWidth") + "×" + o.optInt("outputHeight") });
+        rows.add(new String[] { zh ? "区域降采样" : "Region subsampled", yesNo(o.optBoolean("regionSubsample"), zh) });
+        rows.add(new String[] { zh ? "格式" : "Format", mdCell(o.optString("format")) });
+        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
+        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
     /**
@@ -913,9 +975,9 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @param mime 原始 MIME，可为 null
      * @return 展示标签
      */
-    private static String mimeTypeToDisplayFormat(String mime) {
+    private static String mimeTypeToDisplayFormat(String mime, boolean zh) {
         if (mime == null || mime.isEmpty()) {
-            return "Unknown";
+            return zh ? "未知" : "Unknown";
         }
         String m = mime.toLowerCase(Locale.US);
         if (m.contains("jpeg") || m.endsWith("jpg")) {

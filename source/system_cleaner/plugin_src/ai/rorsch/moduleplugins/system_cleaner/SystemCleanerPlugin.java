@@ -43,6 +43,34 @@ public class SystemCleanerPlugin implements ModulePlugin {
     /** {@code findLargeFiles} 默认最多返回的条数上限。 */
     private static final int LARGE_FILES_DEFAULT_LIMIT = 100;
 
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) {
+                org.json.JSONArray a = new org.json.JSONArray();
+                for (String c : row) a.put(c);
+                r.put(a);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
     /**
      * 模块入口：分发清理与存储相关动作。
      *
@@ -840,143 +868,167 @@ public class SystemCleanerPlugin implements ModulePlugin {
 
     /** {@code scanJunk} 结果的人类可读摘要。 */
     private static String formatScanJunkDisplay(String output) {
+        boolean zh = isZh();
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🔍 Junk Scan Results\n";
+        if (o == null) return zh ? "🔍 垃圾扫描结果\n" : "🔍 Junk Scan Results\n";
         if (o.has("error")) return "❌ " + o.optString("error");
         JSONObject cats = o.optJSONObject("categories");
-        if (cats == null) return "🔍 Junk Scan Results\n";
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Junk Scan Results\n\n");
-        sb.append("| Category | Count | Size |\n");
-        sb.append("| --- | ---: | --- |\n");
-        appendScanCategoryRow(sb, cats, "temp", "Temp files");
-        appendScanCategoryRow(sb, cats, "cache", "Cache");
-        appendScanCategoryRow(sb, cats, "apk", "APK");
-        appendScanCategoryRow(sb, cats, "thumbs", "Thumbs");
-        appendScanCategoryRow(sb, cats, "empty_dirs", "Empty dirs");
-        appendScanCategoryRow(sb, cats, "logs", "Logs");
-        sb.append("\n| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| Total reclaimable | ")
-                .append(mdCell(o.optString("totalSizeFormatted", formatSizeBytes(o.optLong("totalSizeBytes", 0)))))
-                .append(" |\n");
-        return sb.toString().trim();
+        if (cats == null) return zh ? "🔍 垃圾扫描结果\n" : "🔍 Junk Scan Results\n";
+        String title = zh ? "🔍 垃圾扫描结果" : "🔍 Junk Scan Results";
+        String[] h1 = zh ? new String[]{"类别", "数量", "大小"} : new String[]{"Category", "Count", "Size"};
+        List<String[]> rows1 = new ArrayList<>();
+        appendScanCategoryRow(rows1, cats, "temp", zh ? "临时文件" : "Temp files");
+        appendScanCategoryRow(rows1, cats, "cache", zh ? "缓存" : "Cache");
+        appendScanCategoryRow(rows1, cats, "apk", "APK");
+        appendScanCategoryRow(rows1, cats, "thumbs", zh ? "缩略图" : "Thumbs");
+        appendScanCategoryRow(rows1, cats, "empty_dirs", zh ? "空目录" : "Empty dirs");
+        appendScanCategoryRow(rows1, cats, "logs", zh ? "日志" : "Logs");
+        String part1 = pgTable(title, h1, rows1);
+        String[] h2 = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows2 = new ArrayList<>();
+        rows2.add(new String[]{
+                zh ? "可回收总计" : "Total reclaimable",
+                mdCell(o.optString("totalSizeFormatted", formatSizeBytes(o.optLong("totalSizeBytes", 0))))
+        });
+        String part2 = pgTable(zh ? "汇总" : "Summary", h2, rows2);
+        return (part1 + "\n\n" + part2).trim();
     }
 
-    private static void appendScanCategoryRow(StringBuilder sb, JSONObject cats, String key, String label) {
+    private static void appendScanCategoryRow(List<String[]> rows, JSONObject cats, String key, String label) {
         JSONObject c = cats.optJSONObject(key);
         if (c == null) return;
         int count = c.optInt("count", 0);
         String size = c.optString("sizeFormatted", formatSizeBytes(c.optLong("sizeBytes", 0)));
-        sb.append("| ").append(mdCell(label)).append(" | ").append(count).append(" | ").append(mdCell(size))
-                .append(" |\n");
+        rows.add(new String[]{mdCell(label), String.valueOf(count), mdCell(size)});
     }
 
     /** {@code cleanJunk} 完成后的删除项数与释放空间摘要。 */
     private static String formatCleanJunkDisplay(String output) {
+        boolean zh = isZh();
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "🧹 Cleanup Complete!\n";
+        if (o == null) return zh ? "🧹 清理完成\n" : "🧹 Cleanup Complete!\n";
         if (o.has("error")) return "❌ " + o.optString("error");
         int items = o.optInt("deletedItems", o.optInt("deletedFiles", 0));
         int files = o.optInt("deletedFiles", 0);
         int dirs = o.optInt("deletedDirs", 0);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🧹 Cleanup Complete!\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("| --- | --- |\n");
-        sb.append("| Total items removed | ").append(items).append(" |\n");
-        sb.append("| Files deleted | ").append(files).append(" |\n");
-        sb.append("| Dirs deleted | ").append(dirs).append(" |\n");
-        sb.append("| Space freed | ")
-                .append(mdCell(o.optString("freedFormatted", formatSizeBytes(o.optLong("freedBytes", 0)))))
-                .append(" |\n");
+        String title = zh ? "🧹 清理完成" : "🧹 Cleanup Complete!";
+        String[] h1 = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        List<String[]> rows1 = new ArrayList<>();
+        rows1.add(new String[]{zh ? "已移除项目总数" : "Total items removed", String.valueOf(items)});
+        rows1.add(new String[]{zh ? "已删除文件" : "Files deleted", String.valueOf(files)});
+        rows1.add(new String[]{zh ? "已删除目录" : "Dirs deleted", String.valueOf(dirs)});
+        rows1.add(new String[]{
+                zh ? "释放空间" : "Space freed",
+                mdCell(o.optString("freedFormatted", formatSizeBytes(o.optLong("freedBytes", 0))))
+        });
+        String part1 = pgTable(title, h1, rows1);
         JSONObject byCat = o.optJSONObject("byCategory");
-        if (byCat != null && byCat.length() > 0) {
-            sb.append("\n| Category | Files removed | Dirs removed | Space freed |\n");
-            sb.append("| --- | ---: | ---: | --- |\n");
-            appendCleanCategoryRow(sb, byCat, "temp", "Temp");
-            appendCleanCategoryRow(sb, byCat, "cache", "Cache");
-            appendCleanCategoryRow(sb, byCat, "apk", "APK");
-            appendCleanCategoryRow(sb, byCat, "thumbs", "Thumbs");
-            appendCleanCategoryRow(sb, byCat, "logs", "Logs");
-            appendCleanCategoryRow(sb, byCat, "empty_dirs", "Empty dirs");
+        if (byCat == null || byCat.length() == 0) {
+            return part1.trim();
         }
-        return sb.toString().trim();
+        String[] h2 = zh
+                ? new String[]{"类别", "已删除文件", "已删除目录", "释放空间"}
+                : new String[]{"Category", "Files removed", "Dirs removed", "Space freed"};
+        List<String[]> rows2 = new ArrayList<>();
+        appendCleanCategoryRow(rows2, byCat, "temp", zh ? "临时文件" : "Temp");
+        appendCleanCategoryRow(rows2, byCat, "cache", zh ? "缓存" : "Cache");
+        appendCleanCategoryRow(rows2, byCat, "apk", "APK");
+        appendCleanCategoryRow(rows2, byCat, "thumbs", zh ? "缩略图" : "Thumbs");
+        appendCleanCategoryRow(rows2, byCat, "logs", zh ? "日志" : "Logs");
+        appendCleanCategoryRow(rows2, byCat, "empty_dirs", zh ? "空目录" : "Empty dirs");
+        String part2 = pgTable(zh ? "按类别" : "By category", h2, rows2);
+        return (part1 + "\n\n" + part2).trim();
     }
 
-    private static void appendCleanCategoryRow(StringBuilder sb, JSONObject byCat, String key, String label) {
+    private static void appendCleanCategoryRow(List<String[]> rows, JSONObject byCat, String key, String label) {
         JSONObject c = byCat.optJSONObject(key);
         if (c == null) return;
         int f = c.optInt("filesDeleted", 0);
         int d = c.optInt("dirsDeleted", 0);
         String freed = c.optString("freedFormatted", formatSizeBytes(c.optLong("freedBytes", 0)));
-        sb.append("| ").append(mdCell(label)).append(" | ").append(f).append(" | ").append(d).append(" | ")
-                .append(mdCell(freed)).append(" |\n");
+        rows.add(new String[]{mdCell(label), String.valueOf(f), String.valueOf(d), mdCell(freed)});
     }
 
     /** 优先展示主外部存储的总用量/空闲；不可用时回退内部存储字段。 */
     private static String formatStorageInfoDisplay(String output) {
+        boolean zh = isZh();
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "💾 Storage Info\n";
+        if (o == null) return zh ? "💾 存储信息\n" : "💾 Storage Info\n";
         if (o.has("error")) return "❌ " + o.optString("error");
-        StringBuilder sb = new StringBuilder();
-        sb.append("💾 Storage Info\n\n");
-        sb.append("| Partition | Path | Total | Used | Used % | Free |\n");
-        sb.append("| --- | --- | --- | --- | ---: | --- |\n");
+        String title = zh ? "💾 存储信息" : "💾 Storage Info";
+        String[] headers = zh
+                ? new String[]{"分区", "路径", "总计", "已用", "已用 %", "可用"}
+                : new String[]{"Partition", "Path", "Total", "Used", "Used %", "Free"};
+        List<String[]> rows = new ArrayList<>();
         boolean any = false;
         JSONObject internal = o.optJSONObject("internal");
         if (internal != null && internal != JSONObject.NULL) {
-            appendStorageRow(sb, "Internal", internal, null);
+            appendStorageRow(rows, zh ? "内部" : "Internal", internal, null, zh);
             any = true;
         }
         JSONObject ext = o.optJSONObject("externalPrimary");
         if (ext != null && ext != JSONObject.NULL) {
-            appendStorageRow(sb, "External (primary)", ext, ext.optString("state", ""));
+            appendStorageRow(rows, zh ? "外部（主）" : "External (primary)", ext, ext.optString("state", ""), zh);
             any = true;
         }
         if (!any) {
-            return "💾 Storage Info\n\n| Item | Value |\n| --- | --- |\n| Status | — |";
+            String[] h0 = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+            List<String[]> r0 = new ArrayList<>();
+            r0.add(new String[]{zh ? "状态" : "Status", "—"});
+            return pgTable(title, h0, r0).trim();
         }
-        return sb.toString().trim();
+        return pgTable(title, headers, rows).trim();
     }
 
-    private static void appendStorageRow(StringBuilder sb, String label, JSONObject part, String state) {
+    private static void appendStorageRow(List<String[]> rows, String label, JSONObject part, String state, boolean zh) {
         String path = mdCell(part.optString("path", "—"));
         String note = label;
         if (state != null && !state.isEmpty()) {
-            note = label + " (" + state + ")";
+            note = label + (zh ? "（" + state + "）" : " (" + state + ")");
         }
-        sb.append("| ").append(mdCell(note)).append(" | ").append(path).append(" | ")
-                .append(mdCell(part.optString("totalFormatted", "—"))).append(" | ")
-                .append(mdCell(part.optString("usedFormatted", "—"))).append(" | ")
-                .append(String.format(Locale.US, "%.1f%%", part.optDouble("usedPercent", 0))).append(" | ")
-                .append(mdCell(part.optString("freeFormatted", "—"))).append(" |\n");
+        rows.add(new String[]{
+                mdCell(note),
+                path,
+                mdCell(part.optString("totalFormatted", "—")),
+                mdCell(part.optString("usedFormatted", "—")),
+                String.format(Locale.US, "%.1f%%", part.optDouble("usedPercent", 0)),
+                mdCell(part.optString("freeFormatted", "—"))
+        });
     }
 
     /** 列出前至多 20 个大文件名与大小，超出部分用省略提示。 */
     private static String formatFindLargeFilesDisplay(String output) {
+        boolean zh = isZh();
         JSONObject o = parseOutputJson(output);
-        if (o == null) return "📦 Large Files\n";
+        if (o == null) return zh ? "📦 大文件\n" : "📦 Large Files\n";
         if (o.has("error")) return "❌ " + o.optString("error");
         JSONArray files = o.optJSONArray("files");
-        if (files == null) return "📦 Large Files\n";
-        StringBuilder sb = new StringBuilder();
-        sb.append("📦 Large Files\n");
-        sb.append("Directory: ").append(mdCell(o.optString("directory", ""))).append(", min ")
-                .append(o.optDouble("minSizeMB", 0)).append(" MB, found ")
-                .append(o.optInt("found", 0)).append(", showing ").append(o.optInt("showing", 0)).append("\n\n");
-        sb.append("| Name | Size | Path |\n");
-        sb.append("| --- | --- | --- |\n");
+        if (files == null) return zh ? "📦 大文件\n" : "📦 Large Files\n";
+        String banner = zh ? "📦 大文件" : "📦 Large Files";
+        String headerLine = zh
+                ? ("目录: " + mdCell(o.optString("directory", "")) + "，最小 "
+                + o.optDouble("minSizeMB", 0) + " MB，找到 "
+                + o.optInt("found", 0) + "，显示 " + o.optInt("showing", 0))
+                : ("Directory: " + mdCell(o.optString("directory", "")) + ", min "
+                + o.optDouble("minSizeMB", 0) + " MB, found "
+                + o.optInt("found", 0) + ", showing " + o.optInt("showing", 0));
+        String[] headers = zh ? new String[]{"名称", "大小", "路径"} : new String[]{"Name", "Size", "Path"};
+        List<String[]> rows = new ArrayList<>();
         int show = Math.min(20, files.length());
         for (int i = 0; i < show; i++) {
             JSONObject f = files.optJSONObject(i);
             if (f == null) continue;
-            sb.append("| ").append(mdCell(f.optString("name", "?"))).append(" | ")
-                    .append(mdCell(f.optString("sizeFormatted", ""))).append(" | ")
-                    .append(mdCell(f.optString("path", ""))).append(" |\n");
+            rows.add(new String[]{
+                    mdCell(f.optString("name", "?")),
+                    mdCell(f.optString("sizeFormatted", "")),
+                    mdCell(f.optString("path", ""))
+            });
         }
+        String table = pgTable(zh ? "列表" : "List", headers, rows);
+        StringBuilder sb = new StringBuilder();
+        sb.append(banner).append("\n").append(headerLine).append("\n\n").append(table);
         if (files.length() > show) {
-            sb.append("\n… (+").append(files.length() - show).append(" more)");
+            sb.append("\n\n… (+").append(files.length() - show).append(zh ? " 更多)" : " more)");
         }
         return sb.toString().trim();
     }

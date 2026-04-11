@@ -45,6 +45,24 @@ public class FileStatsPlugin implements ModulePlugin {
     /** 列表类 {@code _displayText} 最大条数 */
     private static final int DISPLAY_LIST_MAX = 20;
 
+    private static boolean isZh() {
+        try { return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh"); }
+        catch (Exception e) { return false; }
+    }
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) { org.json.JSONArray a = new org.json.JSONArray(); for (String c : row) a.put(c); r.put(a); }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) { return title; }
+    }
+
     /**
      * 根据 {@code action} 调用对应实现，统一包装为 {@code success/output/_displayText} 或错误 JSON。
      *
@@ -806,40 +824,40 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatStatsGetFileInfoDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件信息" : "File Info";
+        String[] h = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "📄 File Info\n\n| Item | Value |\n|---|---|\n";
+            return "📄 " + title + "\n\n" + pgTable(title, h, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "📄 File Info\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📄 " + title + "\n\n" + pgTable(title, h, rows);
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("📄 File Info\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
-        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        rows.add(new String[]{zh ? "名称" : "Name", o.optString("name", "—")});
         boolean isDir = o.optBoolean("isDirectory", false);
         boolean isFile = o.optBoolean("isFile", false);
-        sb.append("| Type | ")
-                .append(isDir ? "Directory" : (isFile ? "File" : "—"))
-                .append(" |\n");
-        sb.append("| Size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
-        sb.append("| Modified | ").append(o.optString("lastModified", "—")).append(" |\n");
-        sb.append("| Readable | ").append(o.optBoolean("canRead", false) ? "Yes" : "No").append(" |\n");
-        sb.append("| Writable | ").append(o.optBoolean("canWrite", false) ? "Yes" : "No").append(" |\n");
-        sb.append("| Executable | ").append(o.optBoolean("canExecute", false) ? "Yes" : "No").append(" |\n");
-        sb.append("| Hidden | ").append(o.optBoolean("isHidden", false) ? "Yes" : "No").append(" |\n");
+        rows.add(new String[]{zh ? "类型" : "Type",
+                isDir ? (zh ? "目录" : "Directory") : (isFile ? (zh ? "文件" : "File") : "—")});
+        rows.add(new String[]{zh ? "大小" : "Size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))});
+        rows.add(new String[]{zh ? "修改时间" : "Modified", o.optString("lastModified", "—")});
+        rows.add(new String[]{zh ? "可读" : "Readable", o.optBoolean("canRead", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        rows.add(new String[]{zh ? "可写" : "Writable", o.optBoolean("canWrite", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        rows.add(new String[]{zh ? "可执行" : "Executable", o.optBoolean("canExecute", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        rows.add(new String[]{zh ? "隐藏" : "Hidden", o.optBoolean("isHidden", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
         String parent = o.optString("parent", "");
-        sb.append("| Parent | ").append(parent.isEmpty() ? "—" : parent).append(" |\n");
+        rows.add(new String[]{zh ? "父目录" : "Parent", parent.isEmpty() ? "—" : parent});
         String ext = o.optString("extension", "");
-        sb.append("| Extension | ").append(ext.isEmpty() ? "—" : ext).append(" |\n");
-        sb.append("| MIME | ").append(o.optString("mimeType", "—")).append(" |\n");
+        rows.add(new String[]{zh ? "扩展名" : "Extension", ext.isEmpty() ? "—" : ext});
+        rows.add(new String[]{"MIME", o.optString("mimeType", "—")});
         if (o.optBoolean("isDirectory", false) && o.has("childCount")) {
-            sb.append("| Child count | ").append(o.optInt("childCount", 0)).append(" |\n");
+            rows.add(new String[]{zh ? "子项数" : "Child count", String.valueOf(o.optInt("childCount", 0))});
         }
-        return sb.toString();
+        return "📄 " + title + "\n\n" + pgTable(title, h, rows);
     }
 
     /**
@@ -849,24 +867,25 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatGetFileHashDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件哈希" : "File Hash";
+        String[] h = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "🔐 File Hash\n\n| Item | Value |\n|---|---|\n";
+            return "🔐 " + title + "\n\n" + pgTable(title, h, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "🔐 File Hash\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "🔐 " + title + "\n\n" + pgTable(title, h, rows);
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔐 File Hash\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
-        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
-        sb.append("| Algorithm | ").append(o.optString("algorithm", "—")).append(" |\n");
-        sb.append("| Hash | ").append(o.optString("hash", "—")).append(" |\n");
-        sb.append("| Size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
-        return sb.toString();
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        rows.add(new String[]{zh ? "名称" : "Name", o.optString("name", "—")});
+        rows.add(new String[]{zh ? "算法" : "Algorithm", o.optString("algorithm", "—")});
+        rows.add(new String[]{zh ? "哈希" : "Hash", o.optString("hash", "—")});
+        rows.add(new String[]{zh ? "大小" : "Size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))});
+        return "🔐 " + title + "\n\n" + pgTable(title, h, rows);
     }
 
     /**
@@ -876,32 +895,33 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatCompareFilesDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件比较" : "File Comparison";
+        String[] h = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "🔍 File Comparison\n\n| Item | Value |\n|---|---|\n";
+            return "🔍 " + title + "\n\n" + pgTable(title, h, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "🔍 File Comparison\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "🔍 " + title + "\n\n" + pgTable(title, h, rows);
         }
         boolean same = o.optBoolean("identical", false);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 File Comparison\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Identical | ").append(same ? "✅ Yes" : "❌ No").append(" |\n");
-        sb.append("| Reason | ").append(o.optString("reason", "—")).append(" |\n");
-        sb.append("| File 1 | ").append(o.optString("file1", "—")).append(" |\n");
-        sb.append("| File 2 | ").append(o.optString("file2", "—")).append(" |\n");
-        sb.append("| Size 1 | ").append(o.optString("size1Formatted", String.valueOf(o.optLong("size1", 0)))).append(" |\n");
-        sb.append("| Size 2 | ").append(o.optString("size2Formatted", String.valueOf(o.optLong("size2", 0)))).append(" |\n");
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "相同" : "Identical", same ? (zh ? "✅ 是" : "✅ Yes") : (zh ? "❌ 否" : "❌ No")});
+        rows.add(new String[]{zh ? "原因" : "Reason", o.optString("reason", "—")});
+        rows.add(new String[]{zh ? "文件 1" : "File 1", o.optString("file1", "—")});
+        rows.add(new String[]{zh ? "文件 2" : "File 2", o.optString("file2", "—")});
+        rows.add(new String[]{zh ? "大小 1" : "Size 1", o.optString("size1Formatted", String.valueOf(o.optLong("size1", 0)))});
+        rows.add(new String[]{zh ? "大小 2" : "Size 2", o.optString("size2Formatted", String.valueOf(o.optLong("size2", 0)))});
         if (o.has("hash1")) {
-            sb.append("| SHA-256 (file 1) | ").append(o.optString("hash1", "—")).append(" |\n");
+            rows.add(new String[]{zh ? "SHA-256（文件 1）" : "SHA-256 (file 1)", o.optString("hash1", "—")});
         }
         if (o.has("hash2")) {
-            sb.append("| SHA-256 (file 2) | ").append(o.optString("hash2", "—")).append(" |\n");
+            rows.add(new String[]{zh ? "SHA-256（文件 2）" : "SHA-256 (file 2)", o.optString("hash2", "—")});
         }
-        return sb.toString();
+        return "🔍 " + title + "\n\n" + pgTable(title, h, rows);
     }
 
     /**
@@ -911,26 +931,27 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatVerifyChecksumDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "校验和验证" : "Verify Checksum";
+        String[] h = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
             return "";
         }
         if (o.has("error")) {
-            return "🔐 Verify Checksum\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "🔐 " + title + "\n\n" + pgTable(title, h, rows);
         }
         boolean ok = o.optBoolean("verified", false);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔐 Verify Checksum\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Verified | ").append(ok ? "✅ Yes" : "❌ No").append(" |\n");
-        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
-        sb.append("| Algorithm | ").append(o.optString("algorithm", "—")).append(" |\n");
-        sb.append("| Expected | ").append(o.optString("expectedHash", "—")).append(" |\n");
-        sb.append("| Actual | ").append(o.optString("actualHash", "—")).append(" |\n");
-        sb.append("| Message | ").append(o.optString("message", "—")).append(" |\n");
-        return sb.toString();
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "已验证" : "Verified", ok ? (zh ? "✅ 是" : "✅ Yes") : (zh ? "❌ 否" : "❌ No")});
+        rows.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        rows.add(new String[]{zh ? "算法" : "Algorithm", o.optString("algorithm", "—")});
+        rows.add(new String[]{zh ? "期望值" : "Expected", o.optString("expectedHash", "—")});
+        rows.add(new String[]{zh ? "实际值" : "Actual", o.optString("actualHash", "—")});
+        rows.add(new String[]{zh ? "消息" : "Message", o.optString("message", "—")});
+        return "🔐 " + title + "\n\n" + pgTable(title, h, rows);
     }
 
     /**
@@ -940,26 +961,26 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatGetDirStatsDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "目录统计" : "Directory Stats";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "📊 Directory Stats\n\n| Item | Value |\n|---|---|\n";
+            return "📊 " + title + "\n\n" + pgTable(title, h2, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "📊 Directory Stats\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📊 " + title + "\n\n" + pgTable(title, h2, rows);
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("📊 Directory Stats\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
-        sb.append("| Files | ").append(o.optLong("fileCount", 0)).append(" |\n");
-        sb.append("| Directories | ").append(o.optLong("directoryCount", 0)).append(" |\n");
-        sb.append("| Total size | ").append(o.optString("totalSizeFormatted", "—")).append(" |\n");
-        sb.append("\n");
-        sb.append("By extension\n\n");
-        sb.append("| Extension | Count | Total size |\n");
-        sb.append("|---|---|---|\n");
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        summaryRows.add(new String[]{zh ? "文件" : "Files", String.valueOf(o.optLong("fileCount", 0))});
+        summaryRows.add(new String[]{zh ? "子目录" : "Directories", String.valueOf(o.optLong("directoryCount", 0))});
+        summaryRows.add(new String[]{zh ? "总大小" : "Total size", o.optString("totalSizeFormatted", "—")});
+        String sub = zh ? "按扩展名" : "By extension";
+        String[] h3 = new String[]{zh ? "扩展名" : "Extension", zh ? "数量" : "Count", zh ? "总大小" : "Total size"};
+        List<String[]> extRows = new ArrayList<>();
         JSONArray breakdown = o.optJSONArray("extensionBreakdown");
         if (breakdown != null) {
             int show = Math.min(DISPLAY_LIST_MAX, breakdown.length());
@@ -968,15 +989,16 @@ public class FileStatsPlugin implements ModulePlugin {
                 if (row == null) {
                     continue;
                 }
-                sb.append("| ").append(row.optString("extension", "—"))
-                        .append(" | ").append(row.optLong("count", 0))
-                        .append(" | ").append(row.optString("totalSizeFormatted", "—")).append(" |\n");
+                extRows.add(new String[]{
+                        row.optString("extension", "—"),
+                        String.valueOf(row.optLong("count", 0)),
+                        row.optString("totalSizeFormatted", "—")});
             }
             if (breakdown.length() > show) {
-                sb.append("| … | +").append(breakdown.length() - show).append(" more | — |\n");
+                extRows.add(new String[]{"…", "+" + (breakdown.length() - show) + (zh ? " 更多" : " more"), "—"});
             }
         }
-        return sb.toString();
+        return "📊 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, extRows);
     }
 
     /**
@@ -986,47 +1008,46 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatFindDuplicatesDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "重复文件" : "Duplicate Files";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "🔁 Duplicate Files\n\n| Item | Value |\n|---|---|\n";
+            return "🔁 " + title + "\n\n" + pgTable(title, h2, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "🔁 Duplicate Files\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "🔁 " + title + "\n\n" + pgTable(title, h2, rows);
         }
-        int groups = o.optInt("duplicateGroups", 0);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔁 Duplicate Files\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
-        sb.append("| Duplicate groups | ").append(groups).append(" |\n");
-        sb.append("| Files scanned | ").append(o.optLong("filesScanned", 0)).append(" |\n");
-        sb.append("| Wasted space | ").append(o.optString("wastedSpaceFormatted", "—")).append(" |\n");
-        sb.append("\n");
-        sb.append("| # | Count | Size | Example path |\n");
-        sb.append("|---|---|---|---|\n");
+        int groupCount = o.optInt("duplicateGroups", 0);
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "目录" : "Directory", o.optString("directory", "—")});
+        summaryRows.add(new String[]{zh ? "重复组" : "Duplicate groups", String.valueOf(groupCount)});
+        summaryRows.add(new String[]{zh ? "扫描文件" : "Files scanned", String.valueOf(o.optLong("filesScanned", 0))});
+        summaryRows.add(new String[]{zh ? "浪费空间" : "Wasted space", o.optString("wastedSpaceFormatted", "—")});
+        String sub = zh ? "分组列表" : "Group list";
+        String[] h3 = new String[]{"#", zh ? "数量" : "Count", zh ? "大小" : "Size", zh ? "示例路径" : "Example path"};
+        List<String[]> detailRows = new ArrayList<>();
         JSONArray dups = o.optJSONArray("duplicates");
-        if (dups == null) {
-            return sb.toString();
-        }
-        int showG = Math.min(DISPLAY_LIST_MAX, dups.length());
-        for (int g = 0; g < showG; g++) {
-            JSONObject grp = dups.optJSONObject(g);
-            if (grp == null) {
-                continue;
+        if (dups != null) {
+            int showG = Math.min(DISPLAY_LIST_MAX, dups.length());
+            for (int g = 0; g < showG; g++) {
+                JSONObject grp = dups.optJSONObject(g);
+                if (grp == null) {
+                    continue;
+                }
+                int cnt = grp.optInt("count", 0);
+                String sz = grp.optString("fileSizeFormatted", "—");
+                JSONArray files = grp.optJSONArray("files");
+                String first = (files != null && files.length() > 0) ? files.optString(0, "") : "—";
+                detailRows.add(new String[]{String.valueOf(g + 1), String.valueOf(cnt), sz, first});
             }
-            int cnt = grp.optInt("count", 0);
-            String sz = grp.optString("fileSizeFormatted", "—");
-            JSONArray files = grp.optJSONArray("files");
-            String first = (files != null && files.length() > 0) ? files.optString(0, "") : "—";
-            sb.append("| ").append(g + 1).append(" | ").append(cnt).append(" | ").append(sz)
-                    .append(" | ").append(first).append(" |\n");
+            if (dups.length() > showG) {
+                detailRows.add(new String[]{"…", "+" + (dups.length() - showG) + (zh ? " 组" : " groups"), "—", "—"});
+            }
         }
-        if (dups.length() > showG) {
-            sb.append("| … | +").append(dups.length() - showG).append(" groups | — | — |\n");
-        }
-        return sb.toString();
+        return "🔁 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, detailRows);
     }
 
     /**
@@ -1036,43 +1057,45 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatFindLargeFilesDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "大文件" : "Large Files";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "📦 Large Files\n\n| Name | Size | Modified |\n|---|---|---|\n";
+            String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+            return "📦 " + title + "\n\n" + pgTable(title, h3, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "📦 Large Files\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📦 " + title + "\n\n" + pgTable(title, h2, rows);
         }
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "目录" : "Directory", o.optString("directory", "—")});
+        summaryRows.add(new String[]{zh ? "最小大小 (MB)" : "Min size (MB)", String.valueOf(o.optDouble("minSizeMB", 0))});
+        summaryRows.add(new String[]{zh ? "找到" : "Found", String.valueOf(o.optLong("found", 0))});
+        summaryRows.add(new String[]{zh ? "显示" : "Showing", String.valueOf(o.optLong("showing", 0))});
+        String sub = zh ? "文件列表" : "Files";
+        String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+        List<String[]> fileRows = new ArrayList<>();
         JSONArray files = o.optJSONArray("files");
-        StringBuilder sb = new StringBuilder();
-        sb.append("📦 Large Files\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
-        sb.append("| Min size (MB) | ").append(o.optDouble("minSizeMB", 0)).append(" |\n");
-        sb.append("| Found | ").append(o.optLong("found", 0)).append(" |\n");
-        sb.append("| Showing | ").append(o.optLong("showing", 0)).append(" |\n");
-        sb.append("\n");
-        sb.append("| Name | Size | Modified |\n");
-        sb.append("|---|---|---|\n");
-        if (files == null) {
-            return sb.toString();
-        }
-        int show = Math.min(DISPLAY_LIST_MAX, files.length());
-        for (int i = 0; i < show; i++) {
-            JSONObject f = files.optJSONObject(i);
-            if (f == null) {
-                continue;
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject f = files.optJSONObject(i);
+                if (f == null) {
+                    continue;
+                }
+                fileRows.add(new String[]{
+                        f.optString("name", "?"),
+                        f.optString("sizeFormatted", "—"),
+                        f.optString("lastModified", "—")});
             }
-            sb.append("| ").append(f.optString("name", "?")).append(" | ")
-                    .append(f.optString("sizeFormatted", "—")).append(" | ")
-                    .append(f.optString("lastModified", "—")).append(" |\n");
+            if (files.length() > show) {
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—"});
+            }
         }
-        if (files.length() > show) {
-            sb.append("| … | +").append(files.length() - show).append(" more | — |\n");
-        }
-        return sb.toString();
+        return "📦 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, fileRows);
     }
 
     /**
@@ -1082,46 +1105,54 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatSearchByNameDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "找到文件" : "Files Found";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "🔍 Files Found\n\n| Name | Path | Type | Size | Modified |\n|---|---|---|---|---|\n";
+            String[] h3 = new String[]{
+                    zh ? "名称" : "Name", zh ? "路径" : "Path", zh ? "类型" : "Type",
+                    zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+            return "🔍 " + title + "\n\n" + pgTable(title, h3, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "🔍 Files Found\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "🔍 " + title + "\n\n" + pgTable(title, h2, rows);
         }
         int found = o.optInt("found", 0);
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "目录" : "Directory", o.optString("directory", "—")});
+        summaryRows.add(new String[]{zh ? "关键词" : "Keywords", o.optString("keywords", "—")});
+        summaryRows.add(new String[]{zh ? "匹配" : "Matches", String.valueOf(found)});
+        String sub = zh ? "结果" : "Results";
+        String[] h3 = new String[]{
+                zh ? "名称" : "Name", zh ? "路径" : "Path", zh ? "类型" : "Type",
+                zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+        List<String[]> fileRows = new ArrayList<>();
         JSONArray files = o.optJSONArray("files");
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Files Found\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Directory | ").append(o.optString("directory", "—")).append(" |\n");
-        sb.append("| Keywords | ").append(o.optString("keywords", "—")).append(" |\n");
-        sb.append("| Matches | ").append(found).append(" |\n");
-        sb.append("\n");
-        sb.append("| Name | Path | Type | Size | Modified |\n");
-        sb.append("|---|---|---|---|---|\n");
-        if (files == null) {
-            return sb.toString();
-        }
-        int show = Math.min(DISPLAY_LIST_MAX, files.length());
-        for (int i = 0; i < show; i++) {
-            JSONObject f = files.optJSONObject(i);
-            if (f == null) {
-                continue;
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject f = files.optJSONObject(i);
+                if (f == null) {
+                    continue;
+                }
+                String type = f.optBoolean("isDirectory", false)
+                        ? (zh ? "目录" : "Dir")
+                        : (zh ? "文件" : "File");
+                fileRows.add(new String[]{
+                        f.optString("name", "?"),
+                        f.optString("path", "—"),
+                        type,
+                        f.optString("sizeFormatted", "—"),
+                        f.optString("lastModified", "—")});
             }
-            String type = f.optBoolean("isDirectory", false) ? "Dir" : "File";
-            sb.append("| ").append(f.optString("name", "?")).append(" | ")
-                    .append(f.optString("path", "—")).append(" | ")
-                    .append(type).append(" | ")
-                    .append(f.optString("sizeFormatted", "—")).append(" | ")
-                    .append(f.optString("lastModified", "—")).append(" |\n");
+            if (files.length() > show) {
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—", "—", "—"});
+            }
         }
-        if (files.length() > show) {
-            sb.append("| … | +").append(files.length() - show).append(" more | — | — | — |\n");
-        }
-        return sb.toString();
+        return "🔍 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, fileRows);
     }
 
     /**
@@ -1131,27 +1162,28 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatGetTextStatsDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文本统计" : "Text Stats";
+        String[] h = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "📝 Text Stats\n\n| Item | Value |\n|---|---|\n";
+            return "📝 " + title + "\n\n" + pgTable(title, h, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "📝 Text Stats\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📝 " + title + "\n\n" + pgTable(title, h, rows);
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("📝 Text Stats\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Path | ").append(o.optString("path", "—")).append(" |\n");
-        sb.append("| Name | ").append(o.optString("name", "—")).append(" |\n");
-        sb.append("| File size | ").append(o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))).append(" |\n");
-        sb.append("| Total lines | ").append(o.optLong("totalLines", 0)).append(" |\n");
-        sb.append("| Non-blank lines | ").append(o.optLong("nonBlankLines", 0)).append(" |\n");
-        sb.append("| Blank lines | ").append(o.optLong("blankLines", 0)).append(" |\n");
-        sb.append("| Words | ").append(o.optLong("words", 0)).append(" |\n");
-        sb.append("| Characters | ").append(o.optLong("characters", 0)).append(" |\n");
-        return sb.toString();
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        rows.add(new String[]{zh ? "名称" : "Name", o.optString("name", "—")});
+        rows.add(new String[]{zh ? "文件大小" : "File size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))});
+        rows.add(new String[]{zh ? "总行数" : "Total lines", String.valueOf(o.optLong("totalLines", 0))});
+        rows.add(new String[]{zh ? "非空行" : "Non-blank lines", String.valueOf(o.optLong("nonBlankLines", 0))});
+        rows.add(new String[]{zh ? "空行" : "Blank lines", String.valueOf(o.optLong("blankLines", 0))});
+        rows.add(new String[]{zh ? "词数" : "Words", String.valueOf(o.optLong("words", 0))});
+        rows.add(new String[]{zh ? "字符" : "Characters", String.valueOf(o.optLong("characters", 0))});
+        return "📝 " + title + "\n\n" + pgTable(title, h, rows);
     }
 
     /**
@@ -1161,24 +1193,29 @@ public class FileStatsPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatBatchFileInfoDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "批量文件信息" : "Batch File Info";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
         JSONObject o = parseOutputJson(output);
         if (o == null) {
-            return "📋 Batch File Info\n\n| Path | Exists | Details |\n|---|---|---|\n";
+            String[] h3 = new String[]{
+                    zh ? "路径" : "Path", zh ? "存在" : "Exists", zh ? "详情" : "Details"};
+            return "📋 " + title + "\n\n" + pgTable(title, h3, new ArrayList<String[]>());
         }
         if (o.has("error")) {
-            return "📋 Batch File Info\n\n| Item | Value |\n|---|---|\n| Error | "
-                    + o.optString("error", "—") + " |\n";
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📋 " + title + "\n\n" + pgTable(title, h2, rows);
         }
         String algo = o.optString("algorithm", "—");
-        StringBuilder sb = new StringBuilder();
-        sb.append("📋 Batch File Info\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Count | ").append(o.optInt("count", 0)).append(" |\n");
-        sb.append("| Algorithm | ").append(algo).append(" |\n");
-        sb.append("\n");
-        sb.append("| Path | Exists | Name | Size | Modified | Hash |\n");
-        sb.append("|---|---|---|---|---|---|\n");
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "数量" : "Count", String.valueOf(o.optInt("count", 0))});
+        summaryRows.add(new String[]{zh ? "算法" : "Algorithm", algo});
+        String sub = zh ? "文件" : "Files";
+        String[] h3 = new String[]{
+                zh ? "路径" : "Path", zh ? "存在" : "Exists", zh ? "名称" : "Name",
+                zh ? "大小" : "Size", zh ? "修改时间" : "Modified", zh ? "哈希" : "Hash"};
+        List<String[]> fileRows = new ArrayList<>();
         JSONArray files = o.optJSONArray("files");
         if (files != null) {
             int show = Math.min(DISPLAY_LIST_MAX, files.length());
@@ -1190,20 +1227,19 @@ public class FileStatsPlugin implements ModulePlugin {
                 String path = it.optString("path", "—");
                 boolean ex = it.optBoolean("exists", false);
                 if (!ex) {
-                    sb.append("| ").append(path).append(" | No | — | — | — | — |\n");
+                    fileRows.add(new String[]{path, zh ? "否" : "No", "—", "—", "—", "—"});
                     continue;
                 }
                 String name = it.optString("name", "—");
                 String size = it.optString("sizeFormatted", String.valueOf(it.optLong("size", 0)));
                 String mod = it.optString("lastModified", "—");
                 String hash = it.optBoolean("isDirectory", false) ? "—" : it.optString("hash", "—");
-                sb.append("| ").append(path).append(" | Yes | ").append(name).append(" | ")
-                        .append(size).append(" | ").append(mod).append(" | ").append(hash).append(" |\n");
+                fileRows.add(new String[]{path, zh ? "是" : "Yes", name, size, mod, hash});
             }
             if (files.length() > show) {
-                sb.append("| … | +").append(files.length() - show).append(" more | — | — | — | — |\n");
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—", "—", "—", "—"});
             }
         }
-        return sb.toString();
+        return "📋 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, fileRows);
     }
 }

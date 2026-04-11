@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>网络工具 (network_tools) v1.1 — PandaGenie 模块文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-surface: #FEF7FF;
+      --md-on-surface: #1D1B20;
+      --md-outline: #CAC4D0;
+      --md-radius: 12px;
+      --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+      color: #fff; padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--md-shadow);
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.85rem); font-weight: 500; }
+    header.hero .meta { opacity: .92; font-size: .95rem; }
+    header.hero code { background: rgba(255,255,255,.15); padding: .15rem .4rem; border-radius: 6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: #fff; margin: -1.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: var(--md-radius);
+      box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: #4F378B; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff; border-radius: var(--md-radius); padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem; box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    section.card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+    section.card h3 { margin: 1.25rem 0 .5rem; font-size: 1.05rem; color: #362863; }
+    p { margin: .6rem 0; }
+    table.api { width: 100%; border-collapse: collapse; font-size: .9rem; overflow-x: auto; display: block; }
+    table.api thead { display: table; width: 100%; }
+    table.api tbody { display: table; width: 100%; }
+    table.api th, table.api td { border: 1px solid var(--md-outline); padding: .55rem .65rem; text-align: left; vertical-align: top; }
+    table.api th { background: var(--md-primary-container); color: #21005D; }
+    code, .mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; }
+    pre.json {
+      background: #2D2640; color: #E8DEF8; padding: 1rem; border-radius: 8px; overflow-x: auto;
+      font-size: .82rem; line-height: 1.45;
+    }
+    details.coll {
+      border: 1px solid var(--md-outline); border-radius: 8px; margin: .75rem 0; overflow: hidden;
+    }
+    details.coll > summary {
+      cursor: pointer; padding: .75rem 1rem; background: var(--md-primary-container); color: #21005D;
+      font-weight: 500; list-style: none;
+    }
+    details.coll > summary::-webkit-details-marker { display: none; }
+    details.coll[open] > summary { border-bottom: 1px solid var(--md-outline); }
+    details.coll .inner { padding: 1rem; background: #fff; }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; }
+    .flow { font-family: ui-monospace, monospace; background: #F3EDF7; padding: 1rem; border-radius: 8px; font-size: .85rem; white-space: pre-wrap; }
+    @media (max-width: 600px) {
+      table.api { font-size: .8rem; }
+      section.card { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:920px;margin:0 auto;padding:0 1rem;">
+      <h1>网络工具 · Network Tools</h1>
+      <div class="meta">
+        <span class="badge">v1.1</span>
+        <code>network_tools</code> · Plugin: <code>NetworkToolsPlugin</code> ·
+        <code>ai.rorsch.moduleplugins.network_tools.NetworkToolsPlugin</code>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概述 Module overview</a></li>
+        <li><a href="#architecture">架构 Architecture</a></li>
+        <li><a href="#class">类与成员 Classes &amp; members</a></li>
+        <li><a href="#apis">API Actions（参数与输出）</a></li>
+        <li><a href="#response">响应封装 Response envelope</a></li>
+        <li><a href="#dataflow">数据流 Data flow</a></li>
+        <li><a href="#manifest">manifest.json 摘要</a></li>
+      </ol>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述 Module overview</h2>
+      <p>
+        <strong>网络工具（network_tools）</strong> 为 PandaGenie 提供本地网络诊断与信息查询能力：通过系统 <code>ping</code> 子进程、
+        <code>InetAddress</code> DNS 解析、网卡枚举、HTTPS 公网 IP 查询、<code>ConnectivityManager</code> 与 <code>WifiManager</code> 等 Android API，
+        将结果序列化为 JSON 字符串，并由宿主 <code>ModuleRuntime</code> 经 <code>ModulePlugin#invoke</code> 返回给前端或助手。
+      </p>
+      <p>
+        <strong>Capabilities：</strong> manifest 声明 <code>network</code>。<strong>Permissions：</strong>
+        <code>ACCESS_NETWORK_STATE</code>、<code>ACCESS_WIFI_STATE</code>（用于连通性与 Wi‑Fi 信息）。
+      </p>
+    </section>
+
+    <section class="card" id="architecture">
+      <h2>架构 Architecture</h2>
+      <ul>
+        <li><strong>入口：</strong> 实现接口 <code>ModulePlugin</code>，唯一公开实例方法 <code>invoke(Context, String action, String paramsJson)</code>。</li>
+        <li><strong>分发：</strong> <code>switch (action)</code> 映射到 <code>ping</code>、<code>dnsLookup</code>、<code>getLocalIp</code>、<code>getPublicIp</code>、<code>checkConnectivity</code>、<code>getNetworkInfo</code>。</li>
+        <li><strong>安全：</strong> <code>ping</code> 的 <code>host</code> 使用正则 <code>SAFE_HOST</code> 校验，防止 command injection。</li>
+        <li><strong>子进程：</strong> <code>ping</code> 使用独立线程 <code>drainStream</code> 读取 stdout/stderr，避免缓冲区死锁；API 26+ 使用 <code>Process#waitFor(timeout)</code>，低版本使用轮询 <code>waitForProcess</code>。</li>
+        <li><strong>展示：</strong> 成功时通过私有 <code>format*Display</code> 生成 Markdown 风格表格到字段 <code>_displayText</code>。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类与成员 Classes &amp; members</h2>
+      <p>包名：<code>ai.rorsch.moduleplugins.network_tools</code>。单类 <strong>NetworkToolsPlugin</strong>（实现 <code>ModulePlugin</code>）。</p>
+
+      <details class="coll">
+        <summary>常量 Constants</summary>
+        <div class="inner">
+          <table class="api">
+            <thead><tr><th>名称</th><th>值 / 说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>PING_TIMEOUT_SEC</code></td><td>20 — ping 子进程最长等待秒数。</td></tr>
+              <tr><td><code>PUBLIC_IP_TIMEOUT_MS</code></td><td>5000 — <code>api.ipify.org</code> HTTP 超时。</td></tr>
+              <tr><td><code>SAFE_HOST</code></td><td><code>^[a-zA-Z0-9.:\-_]+$</code> — ping 目标白名单。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="coll" open>
+        <summary>方法 Methods（public / private）</summary>
+        <div class="inner">
+          <table class="api">
+            <thead><tr><th>方法</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>invoke(Context, String action, String paramsJson)</code></td><td>模块入口；异常时返回 <code>error(message)</code>。</td></tr>
+              <tr><td><code>ping(String host)</code></td><td>执行 <code>ping -c 4 host</code>，返回 JSON：host, command, stdout, stderr, exitCode, timedOut。</td></tr>
+              <tr><td><code>waitForProcess(Process, long timeoutMs)</code></td><td>API 26 以下轮询等待子进程退出。</td></tr>
+              <tr><td><code>drainStream(InputStream, StringBuilder)</code></td><td>UTF-8 按行读取子进程输出。</td></tr>
+              <tr><td><code>dnsLookup(String domain)</code></td><td><code>InetAddress.getAllByName</code>，输出 domain, addresses[]。</td></tr>
+              <tr><td><code>getLocalIp()</code></td><td>遍历 <code>NetworkInterface</code>，跳过 loopback/down，输出 ipv4/ipv6 数组。</td></tr>
+              <tr><td><code>getPublicIp()</code></td><td>GET <code>https://api.ipify.org?format=json</code>，输出 httpStatus, body, ip（成功时）。</td></tr>
+              <tr><td><code>readFully(InputStream)</code></td><td>读取 HTTP 响应体为单行字符串。</td></tr>
+              <tr><td><code>checkConnectivity(Context)</code></td><td><code>ConnectivityManager#getActiveNetwork</code> + <code>NetworkCapabilities</code>：hasInternetCapability, validated, metered, transports[]。</td></tr>
+              <tr><td><code>getNetworkInfo(Context)</code></td><td>networkType（wifi/mobile/ethernet/vpn/none）、connected；Wi‑Fi 时 wifiSsid, linkSpeedMbps, frequencyMhz, rxLinkSpeedMbps (API 29+)。</td></tr>
+              <tr><td><code>safeSsid(String)</code></td><td>去除引号与 unknown SSID 占位。</td></tr>
+              <tr><td><code>emptyJson(String)</code></td><td>空参数规范为 <code>{}</code>。</td></tr>
+              <tr><td><code>formatPingDisplay</code> … <code>formatNetworkInfoDisplay</code></td><td>各 action 的 <code>_displayText</code> 格式化。</td></tr>
+              <tr><td><code>transportsToFriendly</code> / <code>transportTokenToDisplay</code> / <code>networkTypeToDisplay</code></td><td>传输类型与网络类型的可读映射。</td></tr>
+              <tr><td><code>ok(String output, String displayText)</code></td><td><code>success:true</code>，<code>output</code> 为业务 JSON 字符串。</td></tr>
+              <tr><td><code>error(String msg)</code></td><td><code>success:false</code>, <code>error</code>。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="apis">
+      <h2>API Actions（输入 / 输出）</h2>
+      <p>所有请求参数置于 <code>paramsJson</code> 解析后的 <code>JSONObject</code> 中。成功时外层见「响应封装」。</p>
+
+      <details class="coll" open>
+        <summary><code>ping</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> <code>host</code>（string，必填）— 主机名或 IP，须匹配 <code>SAFE_HOST</code>。</p>
+          <p><strong>output 内嵌 JSON 字段：</strong> host, command, stdout, stderr, exitCode, timedOut。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary><code>dnsLookup</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> <code>domain</code>（必填）。</p>
+          <p><strong>output：</strong> domain, addresses（字符串数组）。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary><code>getLocalIp</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> 无。</p>
+          <p><strong>output：</strong> ipv4[], ipv6[]。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary><code>getPublicIp</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> 无。需网络。</p>
+          <p><strong>output：</strong> httpStatus, body, ip（HTTP 2xx 且 JSON 解析成功时）。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary><code>checkConnectivity</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> 无（使用 <code>Context</code>）。</p>
+          <p><strong>output：</strong> hasConnectivityService, activeNetwork, hasInternetCapability, validated, metered, transports（如 wifi/cellular/ethernet/vpn 等）。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary><code>getNetworkInfo</code></summary>
+        <div class="inner">
+          <p><strong>输入：</strong> 无。</p>
+          <p><strong>output：</strong> networkType, connected, wifi 相关字段（ssid/bssid/link speed 等，依系统策略可能为空）。</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="response">
+      <h2>响应封装 Response envelope</h2>
+      <p><strong>成功：</strong></p>
+      <pre class="json">{
+  "success": true,
+  "output": "&lt;业务 JSON 字符串，需二次 parse&gt;",
+  "_displayText": "&lt;可选，Markdown 风格摘要&gt;"
+}</pre>
+      <p><strong>失败（invoke 捕获异常或未知 action）：</strong></p>
+      <pre class="json">{ "success": false, "error": "&lt;message&gt;" }</pre>
+    </section>
+
+    <section class="card" id="dataflow">
+      <h2>数据流 Data flow</h2>
+      <div class="flow">Host App (ModuleRuntime)
+  → 反射加载 NetworkToolsPlugin
+  → invoke(context, action, paramsJson)
+  → 业务方法（ping / dns / …）
+  → ok(outputString, displayText) 或 error(msg)
+  → WebView / Chat UI 解析 JSON，展示 output 与 _displayText</div>
+    </section>
+
+    <section class="card" id="manifest">
+      <h2>manifest.json 摘要</h2>
+      <ul>
+        <li><code>id</code>: network_tools · <code>version</code>: 1.1 · <code>pluginClass</code>: ai.rorsch.moduleplugins.network_tools.NetworkToolsPlugin</li>
+        <li><code>h5Page</code>: index.html · <code>capabilities</code>: ["network"]</li>
+        <li><code>apis</code>: ping, dnsLookup, getLocalIp, getPublicIp, checkConnectivity, getNetworkInfo（与代码一致）</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

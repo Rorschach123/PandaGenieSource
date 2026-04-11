@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>提醒助手 (reminder) — PandaGenie 模块文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-surface: #FEF7FF;
+      --md-on-surface: #1D1B20;
+      --md-outline: #CAC4D0;
+      --md-radius: 12px;
+      --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+      color: #fff; padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--md-shadow);
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.85rem); font-weight: 500; }
+    header.hero .meta { opacity: .92; font-size: .95rem; }
+    header.hero code { background: rgba(255,255,255,.15); padding: .15rem .4rem; border-radius: 6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: #fff; margin: -1.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: var(--md-radius);
+      box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: #4F378B; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff; border-radius: var(--md-radius); padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem; box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    section.card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+    p { margin: .6rem 0; }
+    table.api { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    table.api th, table.api td { border: 1px solid var(--md-outline); padding: .5rem .55rem; text-align: left; vertical-align: top; }
+    table.api th { background: var(--md-primary-container); color: #21005D; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
+    pre.json {
+      background: #2D2640; color: #E8DEF8; padding: 1rem; border-radius: 8px; overflow-x: auto;
+      font-size: .8rem; line-height: 1.45;
+    }
+    details.coll {
+      border: 1px solid var(--md-outline); border-radius: 8px; margin: .75rem 0; overflow: hidden;
+    }
+    details.coll > summary {
+      cursor: pointer; padding: .75rem 1rem; background: var(--md-primary-container); color: #21005D;
+      font-weight: 500;
+    }
+    details.coll .inner { padding: 1rem; background: #fff; }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; }
+    .warn { background: #FFF8E1; border-left: 4px solid #F9A825; padding: .75rem 1rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+    .flow { font-family: ui-monospace, monospace; background: #F3EDF7; padding: 1rem; border-radius: 8px; font-size: .82rem; white-space: pre-wrap; }
+    @media (max-width: 600px) { table.api { font-size: .75rem; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:920px;margin:0 auto;padding:0 1rem;">
+      <h1>提醒助手 · Reminder</h1>
+      <div class="meta">
+        <span class="badge">v1.0</span>
+        <code>reminder</code> · Plugin: <code>ReminderPlugin</code> ·
+        <code>ai.rorsch.moduleplugins.reminder.ReminderPlugin</code>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#architecture">架构</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions 详解</a></li>
+        <li><a href="#errors">错误语义与 errJson</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+        <li><a href="#manifest">manifest.json</a></li>
+      </ol>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述 Module overview</h2>
+      <p>
+        <strong>提醒助手（reminder）</strong> 通过 Android <code>CalendarContract</code> 读写系统日历（事件 CRUD、实例查询、生日每年重复、临近日程）；
+        通过 <code>AlarmClock.ACTION_SET_ALARM</code> 与 <code>AlarmClock.ACTION_SET_TIMER</code> 调起系统闹钟/倒计时界面；
+        通过 <code>Intent.ACTION_VIEW</code> 打开系统日历到指定时间戳。
+      </p>
+      <p><strong>Capabilities：</strong> <code>calendar</code>。<strong>Permissions：</strong> <code>READ_CALENDAR</code>、<code>WRITE_CALENDAR</code>。</p>
+    </section>
+
+    <section class="card" id="architecture">
+      <h2>架构 Architecture</h2>
+      <ul>
+        <li>时间格式：<code>SDF_DATETIME</code> = <code>yyyy-MM-dd HH:mm</code>；日期查询 <code>SDF_DATE</code> = <code>yyyy-MM-dd</code>；列表展示 <code>SDF_DISPLAY</code> 含秒。</li>
+        <li>事件实例查询使用 <code>CalendarContract.Instances</code> 内容 URI（区间由 <code>ContentUris.appendId</code> 限定）。</li>
+        <li><code>createEvent</code>：重复事件时写入 <code>RRULE</code>，移除 <code>DTEND</code> 并设置 <code>DURATION</code>（<code>PT1H</code>），符合 Android 日历契约。</li>
+        <li><code>getDefaultCalendarId</code>：优先 <code>IS_PRIMARY</code>，否则第一个 <code>VISIBLE=1</code> 日历。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类与方法 ReminderPlugin</h2>
+      <p>单类实现 <code>ModulePlugin</code>。主要私有方法：</p>
+      <table class="api">
+        <thead><tr><th>方法</th><th>职责</th></tr></thead>
+        <tbody>
+          <tr><td><code>invoke</code></td><td>action 分发；部分返回 <code>ok(out, displayText)</code>。</td></tr>
+          <tr><td><code>createEvent</code></td><td>插入 <code>Events</code>，<code>addReminder</code>。</td></tr>
+          <tr><td><code>listEvents</code></td><td>解析 startDate/endDate → <code>queryEvents</code>。</td></tr>
+          <tr><td><code>queryEvents</code></td><td>查询 Instances，输出 events[] + count。</td></tr>
+          <tr><td><code>updateEvent</code></td><td>非空字段更新；无字段则 errJson。</td></tr>
+          <tr><td><code>deleteEvent</code></td><td>按 eventId 删除。</td></tr>
+          <tr><td><code>getCalendars</code></td><td>列出日历账户与颜色等。</td></tr>
+          <tr><td><code>setAlarm</code></td><td>启动 <code>ACTION_SET_ALARM</code>，<code>daysOfWeek</code> 映射到 <code>Calendar</code> 星期常量。</td></tr>
+          <tr><td><code>setTimer</code></td><td><code>ACTION_SET_TIMER</code>，<code>EXTRA_LENGTH</code> 秒。</td></tr>
+          <tr><td><code>createBirthdayReminder</code></td><td>全天事件 + <code>FREQ=YEARLY</code>，<code>DURATION P1D</code>。</td></tr>
+          <tr><td><code>openCalendar</code></td><td><code>content://com.android.calendar/time/&lt;ms&gt;</code> 风格 URI。</td></tr>
+          <tr><td><code>getUpcoming</code></td><td>从 now 起 days 天（默认 7，最大 365）调用 <code>queryEvents</code>，附加 <code>daysAhead</code>。</td></tr>
+          <tr><td><code>addReminder</code></td><td><code>Reminders</code> 表，<code>METHOD_ALERT</code>。</td></tr>
+          <tr><td><code>parseDateTime</code> / <code>parseDateStart</code> / <code>parseDateEnd</code></td><td>时间解析。</td></tr>
+          <tr><td><code>buildRRule</code></td><td>daily/weekly/monthly/yearly → RRULE 字符串。</td></tr>
+          <tr><td><code>putIfNotEmpty</code> / <code>strVal</code></td><td>ContentValues 与 Cursor 辅助。</td></tr>
+          <tr><td><code>errJson(msg)</code></td><td>返回 <code>{"error":"..."}</code> 字符串（见下节）。</td></tr>
+          <tr><td><code>ok</code> / <code>error</code></td><td>标准封装。</td></tr>
+          <tr><td><code>format*Display</code></td><td><code>_displayText</code> 生成。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="apis">
+      <h2>API Actions 详解</h2>
+      <table class="api">
+        <thead><tr><th>action</th><th>主要参数</th><th>行为与 output 要点</th></tr></thead>
+        <tbody>
+          <tr><td><code>createEvent</code></td><td>title*, startTime*；endTime 默认+1h；description, location, rrule(none/daily/weekly/monthly/yearly), reminderMinutes 默认 10</td><td>成功：eventId, title, startTime, endTime, repeat, reminderMinutes, message</td></tr>
+          <tr><td><code>listEvents</code></td><td>startDate*；endDate 默认当日全天</td><td>count, events[]（含 eventId, title, startTime, endTime, allDay, rrule, calendarName 等）</td></tr>
+          <tr><td><code>updateEvent</code></td><td>eventId*；title/description/location/startTime/endTime 可选</td><td>updated, message</td></tr>
+          <tr><td><code>deleteEvent</code></td><td>eventId*</td><td>deleted, message</td></tr>
+          <tr><td><code>getCalendars</code></td><td>无</td><td>calendars[], count</td></tr>
+          <tr><td><code>setAlarm</code></td><td>hour, minute；label；daysOfWeek "1..7" 逗号分隔</td><td>调起系统 UI；返回 hour, minute, label, message</td></tr>
+          <tr><td><code>setTimer</code></td><td>seconds&gt;0；label</td><td>调起系统 UI；seconds, display, label, message</td></tr>
+          <tr><td><code>createBirthdayReminder</code></td><td>name*, date*（MM-dd 或 yyyy-MM-dd）；reminderMinutes 默认 1440</td><td>eventId, name, date, repeat yearly, message</td></tr>
+          <tr><td><code>openCalendar</code></td><td>date 可选 yyyy-MM-dd</td><td>opened, date, message</td></tr>
+          <tr><td><code>getUpcoming</code></td><td>days 默认 7</td><td>同 queryEvents + daysAhead</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="errors">
+      <h2>错误语义与 errJson</h2>
+      <div class="warn">
+        <strong>重要：</strong> <code>createEvent</code>、<code>listEvents</code> 等失败路径返回字符串 <code>errJson("...")</code>，
+        该字符串仍作为 <code>success: true</code> 的 <code>output</code> 字段内容；客户端应 <strong>parse output 后检查 <code>error</code> 键</strong>。
+        仅当 <code>invoke</code> 遇到未知 <code>action</code> 时才会 <code>success: false</code>（<code>error()</code>）。
+      </div>
+      <p><code>updateEvent</code>、<code>deleteEvent</code> 等同样可能内嵌业务失败信息于 output JSON。</p>
+    </section>
+
+    <section class="card" id="dataflow">
+      <h2>数据流 Data flow</h2>
+      <div class="flow">invoke → CalendarContract ContentResolver / AlarmClock Intent
+  → output JSON string
+  → ok(output) 或 ok(output, _displayText)
+  → UI 解析 success + output（注意内层 error）</div>
+    </section>
+
+    <section class="card" id="manifest">
+      <h2>manifest.json 摘要</h2>
+      <ul>
+        <li><code>id</code>: reminder · <code>version</code>: 1.0</li>
+        <li><code>pluginClass</code>: ai.rorsch.moduleplugins.reminder.ReminderPlugin</li>
+        <li>apis 列表与源码 switch 分支一致（10 个 action）</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

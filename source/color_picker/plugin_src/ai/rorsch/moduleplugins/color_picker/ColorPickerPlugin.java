@@ -34,6 +34,24 @@ public class ColorPickerPlugin implements ModulePlugin {
     /** 用于 {@link #handleRandomColor} 的加密安全随机数源 */
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    private static boolean isZh() {
+        try { return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh"); }
+        catch (Exception e) { return false; }
+    }
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            org.json.JSONObject t = new org.json.JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) { org.json.JSONArray a = new org.json.JSONArray(); for (String c : row) a.put(c); r.put(a); }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) { return title; }
+    }
+
     /** CSS 标准命名色 → 六位大写十六进制（不含 {@code #}），用于名称解析与最近色匹配 */
     private static final LinkedHashMap<String, String> NAMED_HEX = new LinkedHashMap<>();
 
@@ -240,9 +258,10 @@ public class ColorPickerPlugin implements ModulePlugin {
             hueMax = t;
         }
         JSONArray arr = new JSONArray();
-        StringBuilder sb = new StringBuilder();
-        sb.append("🎲 Random colors\n\n");
-        sb.append("| # | Swatch | Hex |\n|---|---|---|\n");
+        boolean zh = isZh();
+        String title = zh ? "随机颜色" : "Random colors";
+        String[] headers = new String[]{"#", zh ? "色块" : "Swatch", "Hex"};
+        List<String[]> rows = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             float hue = hueMin + RANDOM.nextFloat() * (hueMax - hueMin);
             float sat = 55f + RANDOM.nextFloat() * 40f;
@@ -250,11 +269,14 @@ public class ColorPickerPlugin implements ModulePlugin {
             int[] rgb = hslToRgb(hue, sat, light);
             String hex = rgbToHex(rgb[0], rgb[1], rgb[2]);
             arr.put(hex);
-            sb.append("| ").append(i + 1).append(" | ").append(blockEmojiForRgb(rgb[0], rgb[1], rgb[2]))
-                    .append(" | #").append(hex).append(" |\n");
+            rows.add(new String[]{
+                    String.valueOf(i + 1),
+                    blockEmojiForRgb(rgb[0], rgb[1], rgb[2]),
+                    "#" + hex});
         }
         JSONObject out = new JSONObject().put("colors", arr).put("count", count);
-        return ok(out, sb.toString().trim());
+        String display = "🎲 " + title + "\n\n" + pgTable(title, headers, rows);
+        return ok(out, display.trim());
     }
 
     /**
@@ -279,13 +301,17 @@ public class ColorPickerPlugin implements ModulePlugin {
                 .put("closestName", m.name)
                 .put("closestHex", "#" + m.hex)
                 .put("distance", round4(m.distance));
-        String display = "🎨 Named color\n"
+        boolean zh = isZh();
+        String title = zh ? "命名颜色" : "Named color";
+        String[] headers = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{zh ? "输入 HEX" : "Input HEX", "#" + mdCell(hex)});
+        rows.add(new String[]{zh ? "最近名称" : "Closest name", mdCell(m.name)});
+        rows.add(new String[]{zh ? "最近 HEX" : "Closest HEX", "#" + mdCell(m.hex)});
+        rows.add(new String[]{zh ? "ΔRGB 距离" : "ΔRGB distance", String.valueOf(round4(m.distance))});
+        String display = "🎨 " + title + "\n"
                 + blockLine(rgb[0], rgb[1], rgb[2]) + "\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Input HEX | #" + mdCell(hex) + " |\n"
-                + "| Closest name | " + mdCell(m.name) + " |\n"
-                + "| Closest HEX | #" + mdCell(m.hex) + " |\n"
-                + "| ΔRGB distance | " + round4(m.distance) + " |";
+                + pgTable(title, headers, rows);
         return ok(out, display);
     }
 
@@ -356,15 +382,19 @@ public class ColorPickerPlugin implements ModulePlugin {
 
     private static String formatDisplayBlocks(int[] rgb, JSONObject full) throws Exception {
         String blocks = blockLine(rgb[0], rgb[1], rgb[2]);
-        return "🎨 Color\n"
+        boolean zh = isZh();
+        String title = zh ? "颜色" : "Color";
+        String[] headers = new String[]{zh ? "格式" : "Format", zh ? "值" : "Value"};
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"HEX", mdCell(full.optString("hex"))});
+        rows.add(new String[]{"RGB", mdCell(full.optString("rgb"))});
+        rows.add(new String[]{"RGB (CSS)", mdCell(full.optString("rgbCss"))});
+        rows.add(new String[]{"HSL", mdCell(full.optString("hsl"))});
+        rows.add(new String[]{"HSL (CSS)", mdCell(full.optString("hslCss"))});
+        rows.add(new String[]{"CMYK", mdCell(full.optString("cmyk"))});
+        return "🎨 " + title + "\n"
                 + blocks + "\n\n"
-                + "| Format | Value |\n|---|---|\n"
-                + "| HEX | " + mdCell(full.optString("hex")) + " |\n"
-                + "| RGB | " + mdCell(full.optString("rgb")) + " |\n"
-                + "| RGB (CSS) | " + mdCell(full.optString("rgbCss")) + " |\n"
-                + "| HSL | " + mdCell(full.optString("hsl")) + " |\n"
-                + "| HSL (CSS) | " + mdCell(full.optString("hslCss")) + " |\n"
-                + "| CMYK | " + mdCell(full.optString("cmyk")) + " |";
+                + pgTable(title, headers, rows);
     }
 
     /**
@@ -375,21 +405,26 @@ public class ColorPickerPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private static String formatPaletteDisplay(JSONArray colors, String harmony) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("🧩 Palette (").append(harmony).append(")\n\n");
-        sb.append("| # | Swatch | Hex |\n|---|---|---|\n");
+        boolean zh = isZh();
+        String pal = zh ? "调色板" : "Palette";
+        String title = "🧩 " + pal + " (" + harmony + ")";
+        String[] headers = new String[]{"#", zh ? "色块" : "Swatch", "Hex"};
+        List<String[]> rows = new ArrayList<>();
         for (int i = 0; i < colors.length(); i++) {
             String hx = colors.optString(i, "");
             int[] rgb = parseHexToRgb(hx.replace("#", ""));
             String hexCell = hx.startsWith("#") ? hx : "#" + hx;
             if (rgb != null) {
-                sb.append("| ").append(i + 1).append(" | ").append(blockEmojiForRgb(rgb[0], rgb[1], rgb[2]))
-                        .append(" | ").append(mdCell(hexCell)).append(" |\n");
+                rows.add(new String[]{
+                        String.valueOf(i + 1),
+                        blockEmojiForRgb(rgb[0], rgb[1], rgb[2]),
+                        mdCell(hexCell)});
             } else {
-                sb.append("| ").append(i + 1).append(" | ⬛ | ").append(mdCell(hexCell)).append(" |\n");
+                rows.add(new String[]{String.valueOf(i + 1), "⬛", mdCell(hexCell)});
             }
         }
-        return sb.toString().trim();
+        String shortTitle = pal + " (" + harmony + ")";
+        return (title + "\n\n" + pgTable(shortTitle, headers, rows)).trim();
     }
 
     /**

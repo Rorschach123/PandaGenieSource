@@ -26,6 +26,34 @@ import org.json.JSONObject;
  */
 public class BatteryPlugin implements ModulePlugin {
 
+    private static boolean isZh() {
+        try {
+            return java.util.Locale.getDefault().getLanguage().toLowerCase(java.util.Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            org.json.JSONArray h = new org.json.JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            org.json.JSONArray r = new org.json.JSONArray();
+            for (String[] row : rows) {
+                org.json.JSONArray rowArr = new org.json.JSONArray();
+                for (String cell : row) rowArr.put(cell);
+                r.put(rowArr);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
+
     /**
      * 分发电池相关查询；异常时返回 {@code success:false} 而非向外抛出。
      *
@@ -326,23 +354,22 @@ public class BatteryPlugin implements ModulePlugin {
      * @return 供 {@code _displayText} 使用的字符串
      */
     private String formatBatteryStatus(JSONObject r) {
+        boolean zh = isZh();
         int pct = r.optInt("levelPercent", -1);
         boolean charging = r.optBoolean("charging", false);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔋 ").append(pct >= 0 ? pct + "%" : "N/A");
-        sb.append(charging ? " ⚡ Charging" : "").append("\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Status | ").append(r.optString("status", "unknown")).append(" |\n");
-        sb.append("| Plugged | ").append(r.optString("pluggedType", "none")).append(" |\n");
+        String title = "🔋 " + (pct >= 0 ? pct + "%" : "N/A") + (charging ? " ⚡ " + (zh ? "充电中" : "Charging") : "");
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        rows.add(new String[]{zh ? "状态" : "Status", r.optString("status", "unknown")});
+        rows.add(new String[]{zh ? "供电方式" : "Plugged", r.optString("pluggedType", "none")});
         if (!r.isNull("temperatureC"))
-            sb.append("| Temperature | ").append(String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))).append(" |\n");
+            rows.add(new String[]{zh ? "温度" : "Temperature", String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))});
         if (!r.isNull("voltageMilliVolts"))
-            sb.append("| Voltage | ").append(r.optInt("voltageMilliVolts")).append(" mV |\n");
-        sb.append("| Health | ").append(r.optString("health", "unknown")).append(" |\n");
+            rows.add(new String[]{zh ? "电压" : "Voltage", r.optInt("voltageMilliVolts") + " mV"});
+        rows.add(new String[]{zh ? "健康" : "Health", r.optString("health", "unknown")});
         String tech = r.optString("technology", "");
-        if (!tech.isEmpty()) sb.append("| Technology | ").append(tech).append(" |\n");
-        return sb.toString();
+        if (!tech.isEmpty()) rows.add(new String[]{zh ? "技术" : "Technology", tech});
+        return title + "\n\n" + pgTable("", headers, rows);
     }
 
     /**
@@ -352,17 +379,17 @@ public class BatteryPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private String formatHealthReport(JSONObject r) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("🏥 Battery Health Report\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Health | ").append(r.optString("healthStatus", "unknown")).append(" |\n");
-        sb.append("| Level | ").append(r.optInt("currentLevelPercent", -1)).append("% |\n");
+        boolean zh = isZh();
+        String title = "🏥 " + (zh ? "电池健康报告" : "Battery Health Report");
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        rows.add(new String[]{zh ? "健康" : "Health", r.optString("healthStatus", "unknown")});
+        rows.add(new String[]{zh ? "电量" : "Level", r.optInt("currentLevelPercent", -1) + "%"});
         String tempWarn = r.optString("temperatureWarning", "");
-        if (!tempWarn.isEmpty()) sb.append("| Temp Warning | ").append(tempWarn).append(" |\n");
+        if (!tempWarn.isEmpty()) rows.add(new String[]{zh ? "温度提示" : "Temp Warning", tempWarn});
         String assessment = r.optString("overallAssessment", "");
-        if (!assessment.isEmpty()) sb.append("| Assessment | ").append(assessment).append(" |\n");
-        return sb.toString();
+        if (!assessment.isEmpty()) rows.add(new String[]{zh ? "综合评估" : "Assessment", assessment});
+        return title + "\n\n" + pgTable("", headers, rows);
     }
 
     /**
@@ -372,21 +399,20 @@ public class BatteryPlugin implements ModulePlugin {
      * @return 展示文本
      */
     private String formatPowerSummary(JSONObject r) {
+        boolean zh = isZh();
         int pct = r.optInt("levelPercent", -1);
         boolean charging = r.optBoolean("charging", false);
         String bar = buildBar(pct);
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔋 ").append(bar).append(" ").append(pct >= 0 ? pct + "%" : "N/A");
-        sb.append(charging ? " ⚡" : "").append("\n\n");
-        sb.append("| Item | Value |\n");
-        sb.append("|---|---|\n");
-        sb.append("| Status | ").append(r.optString("status", "unknown")).append(" |\n");
+        String title = "🔋 " + bar + " " + (pct >= 0 ? pct + "%" : "N/A") + (charging ? " ⚡" : "");
+        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        rows.add(new String[]{zh ? "状态" : "Status", r.optString("status", "unknown")});
         if (!r.isNull("temperatureC"))
-            sb.append("| Temperature | ").append(String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))).append(" |\n");
-        sb.append("| Health | ").append(r.optString("health", "unknown")).append(" |\n");
+            rows.add(new String[]{zh ? "温度" : "Temperature", String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"))});
+        rows.add(new String[]{zh ? "健康" : "Health", r.optString("health", "unknown")});
         String tech = r.optString("technology", "");
-        if (!tech.isEmpty()) sb.append("| Technology | ").append(tech).append(" |\n");
-        return sb.toString();
+        if (!tech.isEmpty()) rows.add(new String[]{zh ? "技术" : "Technology", tech});
+        return title + "\n\n" + pgTable("", headers, rows);
     }
 
     /**

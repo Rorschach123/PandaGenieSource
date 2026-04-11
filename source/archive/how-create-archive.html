@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie Archive 模块技术文档 | Technical Reference</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-on-primary: #FFFFFF;
+      --md-surface: #FEF7FF;
+      --md-surface-variant: #E7E0EC;
+      --md-on-surface: #1D1B20;
+      --md-on-surface-variant: #49454F;
+      --md-outline: #79747E;
+      --code-bg: #2B2930;
+      --code-fg: #E6E1E6;
+      --accent: #625B71;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: linear-gradient(160deg, var(--md-surface) 0%, #EDE7F6 100%);
+      color: var(--md-on-surface);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      max-width: 1280px;
+      margin: 0 auto;
+      min-height: 100vh;
+      gap: 0;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      nav.toc { position: static; border-right: none; border-bottom: 1px solid var(--md-outline); }
+    }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 1.25rem 1rem 2rem;
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(8px);
+      border-right: 1px solid var(--md-surface-variant);
+    }
+    nav.toc h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--md-on-surface-variant);
+      margin: 1rem 0 .5rem;
+    }
+    nav.toc h2:first-child { margin-top: 0; }
+    nav.toc a {
+      display: block;
+      padding: .35rem .5rem;
+      border-radius: 8px;
+      color: var(--md-on-surface);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    nav.toc a:hover { background: var(--md-primary-container); color: var(--md-primary); }
+    main.doc {
+      padding: 2rem 1.5rem 4rem;
+      max-width: 900px;
+    }
+    header.hero {
+      background: linear-gradient(135deg, var(--md-primary) 0%, #7F67BE 50%, #9A82DB 100%);
+      color: var(--md-on-primary);
+      padding: 2.5rem 2rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: 1.75rem; font-weight: 600; }
+    header.hero .meta { opacity: .95; font-size: 0.95rem; }
+    header.hero .badge-row { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.2);
+      padding: .25rem .65rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+    }
+    section {
+      margin-bottom: 2rem;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+      box-shadow: var(--shadow);
+    }
+    section > h2 {
+      margin: 0 0 1rem;
+      font-size: 1.35rem;
+      color: var(--md-primary);
+      border-bottom: 2px solid var(--md-primary-container);
+      padding-bottom: .5rem;
+    }
+    section h3 { font-size: 1.1rem; margin: 1.25rem 0 .6rem; color: var(--accent); }
+    section h4 { font-size: 1rem; margin: 1rem 0 .4rem; }
+    p { margin: .6rem 0; color: var(--md-on-surface); }
+    ul, ol { margin: .5rem 0; padding-left: 1.35rem; }
+    li { margin: .35rem 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 1rem 0;
+    }
+    th, td {
+      border: 1px solid var(--md-surface-variant);
+      padding: .6rem .75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--md-primary-container); color: var(--md-primary); font-weight: 600; }
+    tr:nth-child(even) { background: #FAF8FC; }
+    code, .inline-code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--md-surface-variant);
+      padding: .1rem .35rem;
+      border-radius: 4px;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: 1rem 1.15rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin: 1rem 0;
+    }
+    pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+    .hl-kw { color: #D0BCFF; }
+    .hl-str { color: #B8F397; }
+    .hl-cmt { color: #938F99; }
+    .hl-fn { color: #7FDFFF; }
+    details {
+      border: 1px solid var(--md-surface-variant);
+      border-radius: 8px;
+      margin: .75rem 0;
+      overflow: hidden;
+    }
+    details summary {
+      cursor: pointer;
+      padding: .75rem 1rem;
+      background: linear-gradient(90deg, var(--md-primary-container), transparent);
+      font-weight: 600;
+      color: var(--md-primary);
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary { border-bottom: 1px solid var(--md-surface-variant); }
+    details .inner { padding: 1rem 1.15rem; }
+    .diagram {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      background: #1D1B20;
+      color: #E8DEF8;
+      padding: 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.45;
+    }
+    .note {
+      border-left: 4px solid var(--md-primary);
+      padding: .75rem 1rem;
+      background: var(--md-primary-container);
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .file-tree { font-family: var(--mono); font-size: 0.85rem; line-height: 1.6; }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--md-on-surface-variant);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="toc" aria-label="目录">
+      <h2>导航</h2>
+      <a href="#overview">模块概览</a>
+      <a href="#architecture">架构总览</a>
+      <a href="#files">文件结构</a>
+      <a href="#plugin">ArchivePlugin.java</a>
+      <a href="#javalib">ArchiveLib.java</a>
+      <a href="#kotlinlib">ArchiveLib.kt</a>
+      <a href="#native">C++ Native</a>
+      <a href="#cmake">CMakeLists.txt</a>
+      <a href="#api-ref">API 参考表</a>
+      <a href="#flow">数据流</a>
+    </nav>
+
+    <main class="doc">
+      <header class="hero">
+        <h1>压缩解压 · Archive 模块</h1>
+        <p class="meta">PandaGenie 模块技术文档（中文版，术语保留 English）— 理解与复现本模块的权威参考。</p>
+        <div class="badge-row">
+          <span class="badge">ID: archive</span>
+          <span class="badge">Version 1.1</span>
+          <span class="badge">libarchive_module.so</span>
+        </div>
+      </header>
+
+      <section id="overview">
+        <h2>模块概览 · Module Overview</h2>
+        <table>
+          <tr><th>字段</th><th>值</th></tr>
+          <tr><td>ID</td><td><code>archive</code></td></tr>
+          <tr><td>名称</td><td>压缩解压 / Archive（<code>manifest.json</code> 中 <code>name_en</code>）</td></tr>
+          <tr><td>版本</td><td><strong>1.1</strong></td></tr>
+          <tr><td>描述</td><td>文件压缩解压模块，支持 <strong>ZIP</strong>（含密码加密）、<strong>TAR</strong>、<strong>GZ</strong>、<strong>TAR.GZ</strong> 格式</td></tr>
+          <tr><td>SO Libraries</td><td><code>libarchive_module.so</code>（<code>manifest.json</code> → <code>soLibraries</code>）</td></tr>
+          <tr><td>Plugin Class</td><td><code>ai.rorsch.moduleplugins.archive.ArchivePlugin</code></td></tr>
+          <tr><td>Capabilities</td><td><code>file_read</code>, <code>file_write</code></td></tr>
+          <tr><td>Permissions</td><td><code>android.permission.MANAGE_EXTERNAL_STORAGE</code>（全存储管理，用于读写设备上的压缩包与目录）</td></tr>
+          <tr><td>H5 UI</td><td><code>index.html</code>（WebView，<code>h5Page</code>）</td></tr>
+          <tr><td>SO 加载</td><td><code>soLoadMode: manual</code>；实际 native 由 <code>ArchiveLib.java</code> 中 <code>System.loadLibrary("archive_module")</code> 加载</td></tr>
+        </table>
+      </section>
+
+      <section id="architecture">
+        <h2>架构总览 · Architecture Overview</h2>
+        <p>本模块采用 <strong>四层架构</strong>：</p>
+        <ol>
+          <li><strong>HTML UI</strong>（<code>index.html</code> + <code>common.css</code>）：用户界面，通过 <code>window.NativeBridge</code> 与宿主通信。</li>
+          <li><strong>Java Plugin</strong>（<code>ArchivePlugin</code> 实现 <code>ModulePlugin</code>）：解析 <code>action</code> 与 JSON 参数，路径规范化，调用 JNI 封装类。</li>
+          <li><strong>JNI Bridge</strong>（<code>ArchiveLib.java</code> / <code>ArchiveLib.kt</code> + <code>archive_jni.cpp</code>）：Java/Kotlin <code>native</code> 方法与 C++ 符号绑定。</li>
+          <li><strong>C++ Native</strong>（<code>ArchiveModule</code> + <code>miniz</code> + <code>zlib</code>）：实际压缩/解压；<strong>sandbox</strong> 在 native 层通过 <code>SandboxGuard</code> 校验读写路径。</li>
+        </ol>
+        <p>通信路径：WebView 中 <code>NativeBridge.invoke(action, JSON.stringify(params))</code> → 宿主将请求交给 <code>ArchivePlugin.invoke()</code> → <code>ArchiveLib</code> JNI → <code>archive::ArchiveModule</code> → 文件系统。</p>
+        <div class="note">
+          <strong>安全模型：</strong>模块声明 <code>MANAGE_EXTERNAL_STORAGE</code>；运行时还可由宿主配置 <code>ArchiveLib.nativeConfigureSandbox(readPaths, writePaths)</code>，在 native 层 <code>sandbox_guard.cpp</code> 与 ZIP/TAR/GZ 各入口的 <code>checkRead</code>/<code>checkWrite</code> 共同限制可访问路径。（具体由 PandaGenie <code>ModuleRuntime</code> 与插件加载流程配合，不在本文展开。）
+        </div>
+      </section>
+
+      <section id="files">
+        <h2>文件结构 · File Structure</h2>
+        <p>根目录：<code>source/archive/</code>。各文件职责如下。</p>
+        <div class="file-tree">
+source/archive/
+├── <strong>manifest.json</strong>          模块元数据：id、版本、capabilities、permissions、API 列表、pluginClass、soLibraries、h5Page
+├── <strong>index.html</strong>              WebView UI：解压/压缩/API 说明 Tab；<code>NativeBridge.invoke</code>、<code>browseFile</code>、<code>getModuleInfoJson</code>
+├── <strong>common.css</strong>             （与仓库中其他模块共享样式，本页文档不内嵌）界面样式
+├── <strong>plugin_src/...</strong>
+│   ├── <strong>ArchivePlugin.java</strong>   模块入口：<code>ModulePlugin</code>，action 分发与 JSON 响应
+│   └── <strong>ArchiveLib.java</strong>     JNI 声明 + <code>System.loadLibrary("archive_module")</code> + sandbox 静态 native
+├── <strong>jni_bridge/...</strong>
+│   └── <strong>ArchiveLib.kt</strong>        Kotlin 外部函数声明（与 Java 实例方法对应；不含 <code>loadLibrary</code> 与 sandbox static）
+├── <strong>native/</strong>
+│   ├── <strong>CMakeLists.txt</strong>        构建 <code>libarchive_module.so</code>，链接 log、z，并入 <code>sandbox_guard.cpp</code>
+│   ├── include/
+│   │   ├── <strong>archive_module.h</strong>   <code>ArchiveEntry</code>、<code>ArchiveModule</code> API 与私有辅助声明
+│   │   └── <strong>miniz.h</strong>            精简 ZIP：<code>mz_zip_archive</code>、<code>mz_zip_file_stat</code>、读写 API
+│   └── src/
+│       ├── <strong>archive_module.cpp</strong> 核心实现（约 484 行）：ZIP/miniz、TAR 512 头、GZ/zlib、TAR.GZ、listContents、XOR 式 ZIP 密码封装
+│       ├── <strong>archive_jni.cpp</strong>    JNI 绑定（约 156 行），<code>sandbox_guard_jni.h</code>
+│       └── <strong>miniz.cpp</strong>          miniz ZIP 读/写实现
+├── <strong>build_native.ps1</strong>           Windows 下辅助 native 构建脚本（若存在）
+└── <strong>how-create-archive.html</strong>   本技术文档（自包含 HTML）
+        </div>
+        <p>共享代码：<code>source/shared_native/sandbox_guard.h</code>、<code>sandbox_guard.cpp</code>、<code>sandbox_guard_jni.h</code> — 被 CMake 以相对路径编入 <code>archive_module</code>。</p>
+      </section>
+
+      <section id="plugin">
+        <h2>1. ArchivePlugin.java · Java 插件层</h2>
+        <p><strong>包名：</strong><code>ai.rorsch.moduleplugins.archive</code></p>
+        <p><strong>实现：</strong><code>ModulePlugin</code></p>
+        <p><strong>职责：</strong>所有归档操作的入口；解析 <code>paramsJson</code>；将 <code>/sdcard</code> 路径解析为真实外部存储根路径（<code>resolveStoragePath</code>）；压缩前校验输入存在且可读、创建输出父目录；将 native 布尔结果或 <code>listContents</code> 的 JSON 字符串格式化为统一 JSON 响应；可选 <code>_displayText</code> 供 UI 展示。</p>
+
+        <h3>invoke(Context, String action, String paramsJson)</h3>
+        <p>主分发器。空 <code>paramsJson</code> 经 <code>emptyJson()</code> 视为 <code>"{}"</code>。</p>
+
+        <details open>
+          <summary>compressZip</summary>
+          <div class="inner">
+            <p><strong>参数（JSON）：</strong></p>
+            <ul>
+              <li><code>inputPaths</code> 或 <code>input</code>：<code>String</code>，逗号分隔的多个绝对路径。</li>
+              <li><code>outputPath</code> 或 <code>output</code>：输出 <code>.zip</code> 路径。</li>
+              <li><code>password</code>：可选；非空时 native 在生成标准 ZIP 后对整文件做额外封装（见 C++ 层）。</li>
+            </ul>
+            <p><strong>行为：</strong><code>validateCompressArgs</code> → <code>ensureParentDir</code> → <code>lib.compressZip(inputs, output, pwd)</code>。</p>
+            <p><strong>返回：</strong>成功时 <code>success: true</code>，<code>output: "true"</code>，<code>_displayText</code> 含路径与估算大小；校验失败 <code>success: false</code> + <code>error</code> 英文说明；native 失败 <code>error</code> 含 “failed in native code (check logcat tag=ArchiveModule...)”。</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>decompressZip</summary>
+          <div class="inner">
+            <p><strong>参数：</strong><code>archivePath</code> 或 <code>path</code>；<code>outputDir</code>；<code>password</code>（可选）。</p>
+            <p><strong>行为：</strong>解压到目录；密码与 C++ 中 <code>ENC</code> 标记解密流程对应。</p>
+            <p><strong>返回：</strong>布尔结果 JSON + 成功时解压统计展示文案。</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>compressTar / decompressTar</summary>
+          <div class="inner">
+            <p><strong>compress：</strong><code>inputPaths</code>/<code>input</code>，<code>outputPath</code>/<code>output</code>。无密码。</p>
+            <p><strong>decompress：</strong><code>archivePath</code>/<code>path</code>，<code>outputDir</code>。</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>compressGz / decompressGz</summary>
+          <div class="inner">
+            <p><strong>compressGz：</strong><code>inputPath</code>/<code>input</code>，<code>outputPath</code>/<code>output</code>；单独校验非空与源文件存在。</p>
+            <p><strong>decompressGz：</strong><code>archivePath</code>/<code>path</code>，<code>outputPath</code>（单文件输出）。</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>compressTarGz / decompressTarGz</summary>
+          <div class="inner">
+            <p>参数形式分别同 TAR 压缩与 TAR 解压；底层为先 TAR 再 GZ 或先 GZ 再 TAR（见 native）。</p>
+          </div>
+        </details>
+
+        <details>
+          <summary>listContents</summary>
+          <div class="inner">
+            <p><strong>参数：</strong><code>archivePath</code> 或 <code>path</code>。</p>
+            <p><strong>行为：</strong>直接返回 <code>lib.listContents(path)</code> 的字符串（native 生成的 JSON 数组）。</p>
+            <p><strong>返回：</strong><code>ok(raw, displayText)</code> — <code>success: true</code>，<code>output</code> 为条目 JSON 字符串，<code>_displayText</code> 为截断列表展示。</p>
+          </div>
+        </details>
+
+        <h3>辅助方法（实际源码）</h3>
+        <table>
+          <tr><th>方法</th><th>作用</th></tr>
+          <tr><td><code>emptyJson(String)</code></td><td>空参数转为 <code>"{}"</code>，避免 <code>JSONObject</code> 解析异常。</td></tr>
+          <tr><td><code>ok(String)</code> / <code>ok(String, String)</code></td><td>成功响应：<code>success</code>、<code>output</code>，可选 <code>_displayText</code>。</td></tr>
+          <tr><td><code>boolResult(boolean, String action, String display)</code></td><td>压缩/解压布尔结果；失败时写入 <code>error</code> 提示查看 logcat <code>ArchiveModule</code>。</td></tr>
+          <tr><td><code>error(String)</code></td><td><code>success: false</code> + <code>error</code> 消息。</td></tr>
+          <tr><td><code>validateCompressArgs</code> / <code>splitPaths</code> / <code>ensureParentDir</code></td><td>压缩参数校验与目录创建。</td></tr>
+          <tr><td><code>resolveStoragePath</code></td><td><code>/sdcard</code> 前缀映射到 <code>Environment.getExternalStorageDirectory()</code>。</td></tr>
+          <tr><td><code>formatDecompressDisplay</code> / <code>formatCompressDisplay</code> / <code>formatListContentsDisplay</code></td><td>人类可读 <code>_displayText</code>。</td></tr>
+        </table>
+        <div class="note">
+          <strong>说明：</strong>用户文档中若提到 <code>configureSandbox</code> / <code>clearSandbox</code> 在 Plugin 内 — 当前仓库中它们位于 <code>ArchiveLib.java</code> 的 <strong>static native</strong> 方法 <code>nativeConfigureSandbox</code> / <code>nativeClearSandbox</code>，由运行时/宿主在适当时机调用，而非 <code>ArchivePlugin</code> 实例方法。
+        </div>
+      </section>
+
+      <section id="javalib">
+        <h2>2. ArchiveLib.java · JNI 声明（Java）</h2>
+        <p><strong>包名：</strong><code>ai.rorsch.pandagenie.nativelib</code></p>
+        <p><strong>加载：</strong>静态块 <code>System.loadLibrary("archive_module")</code> → 对应 <code>libarchive_module.so</code>。</p>
+        <table>
+          <tr><th>方法签名</th><th>说明</th></tr>
+          <tr><td><code>native boolean compressZip(String[] inputPaths, String outputPath, String password)</code></td><td>多文件 → ZIP</td></tr>
+          <tr><td><code>native boolean decompressZip(String archivePath, String outputDir, String password)</code></td><td>ZIP → 目录</td></tr>
+          <tr><td><code>native boolean compressTar(String[] inputPaths, String outputPath)</code></td><td>TAR 打包</td></tr>
+          <tr><td><code>native boolean decompressTar(String archivePath, String outputDir)</code></td><td>TAR 解压</td></tr>
+          <tr><td><code>native boolean compressGz(String inputPath, String outputPath)</code></td><td>单文件 gzip</td></tr>
+          <tr><td><code>native boolean decompressGz(String archivePath, String outputPath)</code></td><td>gzip → 单文件</td></tr>
+          <tr><td><code>native boolean compressTarGz(String[] inputPaths, String outputPath)</code></td><td>TAR.GZ 创建</td></tr>
+          <tr><td><code>native boolean decompressTarGz(String archivePath, String outputDir)</code></td><td>TAR.GZ 解压</td></tr>
+          <tr><td><code>native String listContents(String archivePath)</code></td><td>返回 JSON 数组字符串</td></tr>
+          <tr><td><code>public static native void nativeConfigureSandbox(String[] readPaths, String[] writePaths)</code></td><td>配置 native 沙箱读写白名单</td></tr>
+          <tr><td><code>public static native void nativeClearSandbox()</code></td><td>清除沙箱配置</td></tr>
+        </table>
+      </section>
+
+      <section id="kotlinlib">
+        <h2>3. ArchiveLib.kt · Kotlin JNI 桥接</h2>
+        <p>包名同为 <code>ai.rorsch.pandagenie.nativelib</code>。<code>external fun</code> 与 Java 版实例方法一一对应（<code>Array&lt;String&gt;</code> 对应 <code>String[]</code>）。</p>
+        <p><strong>不包含</strong><code>System.loadLibrary</code>（由 Java <code>ArchiveLib</code> 静态加载保证 so 已载入）。当前片段中亦<strong>未声明</strong> <code>nativeConfigureSandbox</code> / <code>nativeClearSandbox</code>；若 Kotlin 侧需直接调用，应在 <code>ArchiveLib.kt</code> 中补充 <code>external</code> 与 <code>@JvmStatic</code> 等 JNI 约定并与 <code>archive_jni.cpp</code> 符号一致。</p>
+      </section>
+
+      <section id="native">
+        <h2>4. C++ Native 层</h2>
+
+        <h3>4.1 archive_module.h</h3>
+        <ul>
+          <li><strong>命名空间：</strong><code>archive</code></li>
+          <li><strong><code>struct ArchiveEntry</code>：</strong><code>name</code>, <code>size</code>, <code>compressedSize</code>, <code>isDirectory</code></li>
+          <li><strong><code>class ArchiveModule</code>：</strong>静态方法 <code>compressZip</code>, <code>decompressZip</code>, <code>compressTar</code>, <code>decompressTar</code>, <code>compressGz</code>, <code>decompressGz</code>, <code>compressTarGz</code>, <code>decompressTarGz</code>, <code>listContents</code></li>
+          <li><strong>私有辅助：</strong><code>encryptDecryptBuffer</code>（XOR + 位置相关混淆，用于“密码”封装）, <code>addFileToTar</code>, <code>getBaseName</code>, <code>mkdirRecursive</code></li>
+        </ul>
+
+        <h3>4.2 archive_module.cpp（约 484 行）</h3>
+        <ul>
+          <li><strong>ZIP：</strong>使用 <code>miniz</code>（<code>mz_zip_writer_*</code> / <code>mz_zip_reader_*</code>）生成与读取标准 ZIP。<strong>密码：</strong>非空密码时先在明文 ZIP 上调用 <code>encryptDecryptBuffer</code>，再写入 4 字节魔数 <code>'E','N','C',1</code> 前缀；解压时若提供密码则去前缀、解密、写临时文件再交给 miniz。<em>注意：此为自定义混淆而非标准 ZIP AES/PKWARE 加密，与常规 ZIP 工具不兼容。</em></li>
+          <li><strong>TAR：</strong>自定义 512 字节 <code>TarHeader</code>（USTAR magic），<code>octalToStr</code> / <code>octalFromStr</code> / <code>tarChecksum</code>。</li>
+          <li><strong>GZ：</strong><code>zlib</code> 的 <code>gzopen</code> / <code>gzread</code> / <code>gzwrite</code> / <code>gzclose</code>。</li>
+          <li><strong>TAR.GZ：</strong><code>compressTarGz</code>：先 <code>outputPath + ".tmp.tar"</code> 写 TAR，再 <code>compressGz</code> 到目标并删除临时文件；<code>decompressTarGz</code> 先 GZ 到临时 TAR 再 TAR 解压。</li>
+          <li><strong>listContents：</strong>按扩展名；<code>.zip</code> 走 central directory；<code>.tar</code> 顺序读 512 头（<code>.tar.gz</code> 扩展名判断为 <code>gz</code> 而非 <code>tar</code>，故 <strong>listContents 主要覆盖 zip 与 tar</strong>，与实现一致）。</li>
+          <li>各操作前调用 <code>sandbox::SandboxGuard::checkRead</code> / <code>checkWrite</code>。</li>
+        </ul>
+
+        <h3>4.3 archive_jni.cpp（约 156 行）</h3>
+        <p>宏 <code>Java_ai_rorsch_pandagenie_nativelib_ArchiveLib_*</code> 映射到 <code>archive::ArchiveModule</code>。<code>listContents</code> 将 <code>vector&lt;ArchiveEntry&gt;</code> 手写拼接为 JSON 数组字符串（含 <code>escapeJson</code>）。<code>nativeConfigureSandbox</code> / <code>nativeClearSandbox</code> 委托 <code>sandbox_jni::configureSandbox</code> / <code>sandbox_jni::clearSandbox</code>（头文件 <code>sandbox_guard_jni.h</code>）。</p>
+
+        <h3>4.4 miniz.h / miniz.cpp</h3>
+        <p>精简 ZIP 实现，基于 zlib deflate/inflate；结构体 <code>mz_zip_file_stat</code>、<code>mz_zip_archive</code>；Reader：<code>init_file</code>, <code>get_num_files</code>, <code>file_stat</code>, <code>extract_to_file</code>, <code>end</code>；Writer：<code>init_file</code>, <code>add_file</code>, <code>finalize_archive</code>, <code>end</code>。</p>
+
+        <h3>4.5 sandbox_guard 集成</h3>
+        <p><code>CMakeLists.txt</code> 将 <code>shared_native/sandbox_guard.cpp</code> 链入；<code>archive_module.cpp</code> 包含 <code>sandbox_guard.h</code>，所有读写在打开文件前经 <code>SandboxGuard</code> 校验。</p>
+      </section>
+
+      <section id="cmake">
+        <h2>5. CMakeLists.txt</h2>
+        <ul>
+          <li><code>add_library(archive_module SHARED ...)</code>：源文件 <code>archive_module.cpp</code>, <code>archive_jni.cpp</code>, <code>miniz.cpp</code>, <code>../../shared_native/sandbox_guard.cpp</code></li>
+          <li><code>target_include_directories</code>：<code>include</code>、<code>shared_native</code></li>
+          <li><code>target_link_libraries</code>：<code>log</code>、<code>z</code>（zlib）</li>
+        </ul>
+      </section>
+
+      <section id="api-ref">
+        <h2>API 参考表 · API Reference</h2>
+        <p>下列 9 个 <code>action</code> 与 <code>manifest.json</code> / UI 一致。返回格式以 <code>ArchivePlugin</code> 实际输出为准。</p>
+
+        <h3>compressZip</h3>
+        <table>
+          <tr><th>项目</th><th>内容</th></tr>
+          <tr><td>描述</td><td>将多个文件压缩为 ZIP（Chinese：ZIP 压缩；English：ZIP compression）。可选密码会对<strong>整包</strong>做 native 自定义封装。</td></tr>
+          <tr><td>输入参数</td><td><code>inputPaths</code> 或 <code>input</code>（String，逗号分隔）；<code>outputPath</code> 或 <code>output</code>；<code>password</code>（可选 String）</td></tr>
+          <tr><td>返回 JSON</td><td>成功：<code>{"success":true,"output":"true","_displayText":"..."}</code>；失败：<code>success:false</code> + <code>error</code></td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("compressZip", JSON.stringify({
+  inputPaths: "/sdcard/a.txt,/sdcard/b.txt",
+  outputPath: "/sdcard/out.zip",
+  password: "secret"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>decompressZip</h3>
+        <table>
+          <tr><td>描述</td><td>解压 ZIP 到目录（Extract ZIP archive）。</td></tr>
+          <tr><td>输入参数</td><td><code>archivePath</code> 或 <code>path</code>；<code>outputDir</code>；<code>password</code>（可选）</td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果形式 + <code>_displayText</code>（解压文件数统计）</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("decompressZip", JSON.stringify({
+  archivePath: "/sdcard/x.zip",
+  outputDir: "/sdcard/out",
+  password: ""
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>compressTar</h3>
+        <table>
+          <tr><td>描述</td><td>打包为 TAR（POSIX USTAR 风格 512 字节块）。</td></tr>
+          <tr><td>输入参数</td><td><code>inputPaths</code>/<code>input</code>；<code>outputPath</code>/<code>output</code></td></tr>
+          <tr><td>返回 JSON</td><td>同 compressZip 布尔分支（无密码字段处理）</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("compressTar", JSON.stringify({
+  inputPaths: "/sdcard/doc.txt",
+  outputPath: "/sdcard/doc.tar"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>decompressTar</h3>
+        <table>
+          <tr><td>描述</td><td>解压 TAR 到目录。</td></tr>
+          <tr><td>输入参数</td><td><code>archivePath</code>/<code>path</code>；<code>outputDir</code></td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果 + 展示文案</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("decompressTar", JSON.stringify({
+  archivePath: "/sdcard/a.tar",
+  outputDir: "/sdcard/extract"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>compressGz</h3>
+        <table>
+          <tr><td>描述</td><td>gzip 压缩<strong>单个</strong>文件。</td></tr>
+          <tr><td>输入参数</td><td><code>inputPath</code>/<code>input</code>；<code>outputPath</code>/<code>output</code></td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果；空路径或文件不存在返回 <code>error</code> 英文消息</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("compressGz", JSON.stringify({
+  inputPath: "/sdcard/big.bin",
+  outputPath: "/sdcard/big.bin.gz"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>decompressGz</h3>
+        <table>
+          <tr><td>描述</td><td>gzip 解压为单文件。</td></tr>
+          <tr><td>输入参数</td><td><code>archivePath</code>/<code>path</code>；<code>outputPath</code></td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果；<code>formatDecompressDisplay(..., true)</code> 单文件模式</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("decompressGz", JSON.stringify({
+  archivePath: "/sdcard/f.gz",
+  outputPath: "/sdcard/f.out"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>compressTarGz</h3>
+        <table>
+          <tr><td>描述</td><td>先 TAR 再 gzip（<code>.tar.gz</code>）。</td></tr>
+          <tr><td>输入参数</td><td><code>inputPaths</code>/<code>input</code>；<code>outputPath</code>/<code>output</code></td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果 + 压缩展示</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("compressTarGz", JSON.stringify({
+  inputPaths: "/sdcard/a.txt,/sdcard/b.txt",
+  outputPath: "/sdcard/ab.tar.gz"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>decompressTarGz</h3>
+        <table>
+          <tr><td>描述</td><td>gunzip 得临时 TAR 再解压到目录。</td></tr>
+          <tr><td>输入参数</td><td><code>archivePath</code>/<code>path</code>；<code>outputDir</code></td></tr>
+          <tr><td>返回 JSON</td><td>布尔结果 + 展示文案</td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("decompressTarGz", JSON.stringify({
+  archivePath: "/sdcard/pkg.tar.gz",
+  outputDir: "/sdcard/pkg"
+}));</code></pre></td></tr>
+        </table>
+
+        <h3>listContents</h3>
+        <table>
+          <tr><td>描述</td><td>列出归档内条目（实现侧对 <code>.zip</code> / <code>.tar</code> 扩展名分支；<code>archive_jni</code> 输出含 name/size/compressedSize/isDirectory）。</td></tr>
+          <tr><td>输入参数</td><td><code>archivePath</code> 或 <code>path</code></td></tr>
+          <tr><td>返回 JSON</td><td><code>{"success":true,"output":"[{\"name\":\"...\",\"size\":...,\"compressedSize\":...,\"isDirectory\":false}, ...]","_displayText":"..."}</code></td></tr>
+          <tr><td>示例</td><td><pre><code>NativeBridge.invoke("listContents", JSON.stringify({
+  archivePath: "/sdcard/sample.zip"
+}));</code></pre></td></tr>
+        </table>
+      </section>
+
+      <section id="flow">
+        <h2>数据流 · Data Flow（文本示意图）</h2>
+        <div class="diagram">┌─────────────────────────────────────────────────────────────────────────────┐
+│  HTML UI (WebView, index.html)                                               │
+│  User tap → JS: NativeBridge.invoke(action, JSON.stringify(params))          │
+│  Optional: NativeBridge.browseFile / getModuleInfoJson / getLanguage           │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ JSON string
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Host / ModuleRuntime                                                         │
+│  Dispatch to ModulePlugin: ArchivePlugin.invoke(Context, action, paramsJson) │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ parse JSONObject, resolveStoragePath
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ArchivePlugin (Java)                                                       │
+│  validateCompressArgs / ensureParentDir → ArchiveLib instance methods       │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ JNI
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  archive_jni.cpp                                                            │
+│  jstring / jobjectArray → std::vector&lt;std::string&gt; → ArchiveModule::*       │
+│  static: sandbox_jni::configureSandbox / clearSandbox                       │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  archive_module.cpp + miniz.cpp + zlib                                      │
+│  SandboxGuard::checkRead / checkWrite on each path                         │
+│  ZIP (miniz) | TAR (512-byte) | GZ (zlib gz*) | TAR.GZ (pipeline)           │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ fopen / fread / fwrite / mkdir
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  File System（外部存储等）                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+                    响应沿 JNI 返回 → Plugin 封装 JSON
+                    → NativeBridge 将结果字符串传回 JS → UI 渲染</div>
+      </section>
+
+      <footer>
+        PandaGenie Archive Module · Technical Documentation · 本文档与仓库源码同步时请以实际代码为准
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

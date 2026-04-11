@@ -52,6 +52,14 @@ public class QrcodePlugin implements ModulePlugin {
     /** 当边长不超过此值时，默认附带 PNG 的 Base64，避免大图撑爆 JSON。 */
     private static final int BASE64_MAX_SIDE = 512;
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 模块统一入口：根据 {@code action} 执行对应二维码能力，并返回 JSON 字符串。
      *
@@ -281,6 +289,14 @@ public class QrcodePlugin implements ModulePlugin {
         JSONObject o = new JSONObject(outputJson);
         String text = o.optString("text", "");
         String preview = text.length() > 48 ? text.substring(0, 48) + "…" : text;
+        if (isZh()) {
+            return "\uD83D\uDCF1 二维码已生成\n"
+                    + "━━━━━━━━━━━━━━\n"
+                    + "\u25B8 内容: " + preview + "\n"
+                    + "\u25B8 图片: " + o.optInt("imageSize") + " px\n"
+                    + "\u25B8 QR 版本: " + o.optInt("qrVersion") + "\n"
+                    + "\u25B8 已保存: " + o.optString("path");
+        }
         return "\uD83D\uDCF1 QR Code generated\n"
                 + "━━━━━━━━━━━━━━\n"
                 + "\u25B8 Content: " + preview + "\n"
@@ -299,6 +315,13 @@ public class QrcodePlugin implements ModulePlugin {
         JSONObject o = new JSONObject(outputJson);
         int w = o.optInt("width");
         int h = o.optInt("height");
+        if (isZh()) {
+            return "\uD83D\uDCF7 图片已准备好扫描\n"
+                    + "━━━━━━━━━━━━━━\n"
+                    + "\u25B8 大小: " + w + "\u00D7" + h + "\n"
+                    + "\u25B8 路径: " + o.optString("imagePath") + "\n"
+                    + "\u25B8 请在本模块打开扫描标签页以读取二维码内容。";
+        }
         return "\uD83D\uDCF7 Image ready for scan\n"
                 + "━━━━━━━━━━━━━━\n"
                 + "\u25B8 Size: " + w + "\u00D7" + h + "\n"
@@ -315,6 +338,12 @@ public class QrcodePlugin implements ModulePlugin {
     private static String formatListDisplay(String outputJson) throws Exception {
         JSONObject o = new JSONObject(outputJson);
         int n = o.optInt("count");
+        if (isZh()) {
+            return "\uD83D\uDCC2 二维码图库\n"
+                    + "━━━━━━━━━━━━━━\n"
+                    + "\u25B8 " + n + " 个 PNG 文件\n"
+                    + "\u25B8 文件夹: " + o.optString("directory");
+        }
         return "\uD83D\uDCC2 QR gallery\n"
                 + "━━━━━━━━━━━━━━\n"
                 + "\u25B8 " + n + " PNG file(s)\n"

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PandaGenie 二维码工具（QR Code Tools）— 技术文档</title>
+  <meta name="description" content="PandaGenie qrcode 模块架构、Nayuki QR 嵌入库、QrcodePlugin API 与数据流说明">
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #EADDFF;
+      --md-on-primary-container: #21005D;
+      --md-surface: #FEF7FF;
+      --md-surface-container: #F3EDF7;
+      --md-surface-container-high: #ECE6F0;
+      --md-outline: #79747E;
+      --md-on-surface: #1D1B20;
+      --md-on-surface-variant: #49454F;
+      --md-code-bg: #2B2930;
+      --md-code-fg: #E8DEF8;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --font-sans: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --font-mono: "Cascadia Code", "Consolas", "Noto Sans Mono CJK SC", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--md-on-surface);
+      background: linear-gradient(180deg, var(--md-primary-container) 0%, var(--md-surface) 180px);
+      min-height: 100vh;
+    }
+    a { color: var(--md-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 24px 20px 80px; }
+    header.doc-header {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      padding: 28px 24px 32px;
+      border-radius: 0 0 var(--radius) var(--radius);
+      box-shadow: var(--shadow);
+      margin: 0 -8px 28px;
+    }
+    header.doc-header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    header.doc-header .subtitle {
+      opacity: 0.92;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    header.doc-header .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.35);
+    }
+    nav.toc {
+      background: var(--md-surface-container);
+      border: 1px solid color-mix(in srgb, var(--md-outline) 25%, transparent);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    nav.toc h2 {
+      margin: 0 0 12px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--md-on-surface-variant);
+    }
+    nav.toc ul { margin: 0; padding-left: 1.2em; }
+    nav.toc li { margin: 6px 0; }
+    section {
+      margin-bottom: 28px;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      border: 1px solid color-mix(in srgb, var(--md-outline) 20%, transparent);
+      box-shadow: var(--shadow);
+    }
+    section > h2 {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+      color: var(--md-primary);
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--md-primary-container);
+    }
+    section h3 {
+      margin: 20px 0 10px;
+      font-size: 1.05rem;
+      color: var(--md-on-surface);
+    }
+    p { margin: 0 0 12px; }
+    ul, ol { margin: 0 0 12px; padding-left: 1.35em; }
+    li { margin: 4px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid color-mix(in srgb, var(--md-outline) 35%, transparent);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      font-weight: 600;
+    }
+    tr:nth-child(even) td { background: var(--md-surface-container-high); }
+    code.inline {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    pre {
+      margin: 12px 0;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--md-code-bg);
+      color: var(--md-code-fg);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    pre .k { color: #FFB74D; }
+    pre .s { color: #A5D6A7; }
+    details.collap {
+      margin: 12px 0;
+      border: 1px solid color-mix(in srgb, var(--md-outline) 30%, transparent);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--md-surface-container);
+    }
+    details.collap > summary {
+      cursor: pointer;
+      padding: 12px 16px;
+      font-weight: 600;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    details.collap > summary::-webkit-details-marker { display: none; }
+    details.collap > summary::before {
+      content: "▸";
+      color: var(--md-primary);
+      transition: transform 0.2s;
+    }
+    details.collap[open] > summary::before { transform: rotate(90deg); }
+    details.collap .inner { padding: 0 16px 16px; }
+    .diagram {
+      background: var(--md-surface-container-high);
+      border-radius: 10px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .diagram svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    .note {
+      border-left: 4px solid var(--md-primary);
+      padding: 10px 14px;
+      margin: 12px 0;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+    }
+    footer {
+      text-align: center;
+      color: var(--md-on-surface-variant);
+      font-size: 13px;
+      margin-top: 32px;
+    }
+    @media (max-width: 600px) {
+      .wrap { padding: 16px 14px 60px; }
+      section { padding: 16px; }
+      table { font-size: 13px; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="doc-header">
+      <h1>PandaGenie 二维码工具 · 技术文档</h1>
+      <p class="subtitle">QR Code Tools 模块 — 三层架构（HTML UI + jsQR ↔ Java Plugin + Nayuki QR）</p>
+      <div class="badges">
+        <span class="badge">Module ID: <code class="inline" style="background:transparent;color:inherit;padding:0">qrcode</code></span>
+        <span class="badge">Version 1.0</span>
+        <span class="badge">Pure Java · 无 native SO</span>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="目录">
+      <h2>目录 · Table of Contents</h2>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#architecture">三层架构</a></li>
+        <li><a href="#qrcode-plugin">QrcodePlugin.java</a></li>
+        <li><a href="#nayuki">Nayuki QR 嵌入库</a></li>
+        <li><a href="#index-html">index.html UI</a></li>
+        <li><a href="#api">API 参考（3 个 action）</a></li>
+        <li><a href="#gen-flow">生成流程（Generation Flow）</a></li>
+        <li><a href="#dataflow">数据流图（Data Flow）</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览 · Module Overview</h2>
+      <table>
+        <thead>
+          <tr><th>字段</th><th>值</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>ID</strong></td><td><code class="inline">qrcode</code></td></tr>
+          <tr><td><strong>名称</strong></td><td>二维码工具</td></tr>
+          <tr><td><strong>版本</strong></td><td>1.0</td></tr>
+          <tr><td><strong>Native</strong></td><td>无 <code class="inline">.so</code> 库；纯 Java（Pure Java）实现</td></tr>
+          <tr><td><strong>Plugin Class</strong></td><td><code class="inline">ai.rorsch.moduleplugins.qrcode.QrcodePlugin</code></td></tr>
+          <tr><td><strong>Capabilities</strong></td><td><code class="inline">file_read</code>、<code class="inline">file_write</code>（宿主声明的模块能力）</td></tr>
+          <tr><td><strong>QR 引擎</strong></td><td>内嵌 <strong>Nayuki QR Code generator</strong>（Java），MIT License</td></tr>
+        </tbody>
+      </table>
+      <p>本模块在宿主 <strong>WebView</strong> 中加载 <code class="inline">index.html</code>，通过 <strong>NativeBridge</strong> 调用 Java 插件；解码路径采用浏览器端 <strong>jsQR</strong>，与 Java 端生成链路分离，兼顾性能与内存安全。</p>
+    </section>
+
+    <section id="architecture">
+      <h2>三层架构 · 3-Layer Architecture</h2>
+      <ol>
+        <li><strong>Presentation（HTML + JavaScript）</strong>：<code class="inline">index.html</code>，三标签页 UI；扫描页使用 <strong>jsQR</strong> 在客户端解码。</li>
+        <li><strong>Bridge（NativeBridge）</strong>：<code class="inline">invoke(action, paramsJson)</code> / <code class="inline">pickImage()</code> 等与宿主交互。</li>
+        <li><strong>Plugin（Java）</strong>：<code class="inline">QrcodePlugin</code> 使用 <strong>Nayuki</strong> 的 <code class="inline">QrCode</code> 生成矩阵 → <strong>Bitmap</strong> → PNG 文件；可选返回 <strong>Base64</strong>。</li>
+      </ol>
+      <div class="note">
+        <strong>解码策略：</strong>Generation 在 Java 侧完成（Nayuki → Bitmap → PNG）。<strong>Decoding</strong> 在 WebView 内用 <strong>jsQR</strong> 完成；Java 的 <code class="inline">decodeQR</code> 仅校验路径并读取 <code class="inline">inJustDecodeBounds</code> 元数据，并返回 <code class="inline">hint: open_scan_tab</code> 引导 UI。
+      </div>
+      <ul>
+        <li><strong>Gallery：</strong>Java 列举外部存储 <code class="inline">PandaGenie/qrcode/</code> 下 <code class="inline">.png</code>，按 <strong>修改时间降序</strong>。</li>
+      </ul>
+    </section>
+
+    <section id="qrcode-plugin">
+      <h2>QrcodePlugin.java</h2>
+      <p>约 <strong>370</strong> 行。实现 <code class="inline">ModulePlugin</code>，统一入口 <code class="inline">invoke(Context, String action, String paramsJson)</code>。</p>
+
+      <h3>常量 · Constants</h3>
+      <table>
+        <thead><tr><th>名称</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">SIZE_MIN</code></td><td>64 — 生成位图边长下限（像素）</td></tr>
+          <tr><td><code class="inline">SIZE_MAX</code></td><td>2048 — 上限，防止 OOM</td></tr>
+          <tr><td><code class="inline">SIZE_DEFAULT</code></td><td>512 — 未指定 <code class="inline">size</code> 时的默认边长</td></tr>
+          <tr><td><code class="inline">BASE64_MAX_SIDE</code></td><td>512 — 边长 ≤ 此值时默认附带 Base64，避免大 JSON</td></tr>
+        </tbody>
+      </table>
+
+      <h3>invoke() — 三种 action</h3>
+      <table>
+        <thead><tr><th>action</th><th>职责</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">generateQR</code></td><td>生成 QR、写 PNG、返回路径与元数据；可选 Base64</td></tr>
+          <tr><td><code class="inline">decodeQR</code></td><td>校验图片路径、仅读 bounds、返回元数据 + hint</td></tr>
+          <tr><td><code class="inline">listGenerated</code></td><td>列出输出目录 PNG，按修改时间降序</td></tr>
+        </tbody>
+      </table>
+
+      <details class="collap">
+        <summary>generateQR() 细节</summary>
+        <div class="inner">
+          <ul>
+            <li>使用 <code class="inline">QrCode.encodeText(text, QrCode.Ecc.MEDIUM)</code> — <strong>MEDIUM ECC</strong>。</li>
+            <li><code class="inline">renderQrBitmap()</code>：<strong>4 模块</strong>静区（quiet zone），按单元格在 <strong>Canvas</strong> 上绘制。</li>
+            <li>输出目录：<code class="inline">Environment.getExternalStorageDirectory()/PandaGenie/qrcode/</code>，文件名 <code class="inline">qr_&lt;timestamp&gt;.png</code>。</li>
+            <li>若 <code class="inline">includeBase64 == true</code> 或 <code class="inline">size &lt;= BASE64_MAX_SIDE</code>，附加 PNG 的 Base64。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="collap">
+        <summary>decodeQR() 细节</summary>
+        <div class="inner">
+          <ul>
+            <li>参数：<code class="inline">imagePath</code>（必填）。</li>
+            <li><code class="inline">BitmapFactory.Options.inJustDecodeBounds = true</code> — 只读尺寸与 MIME，不解码全图。</li>
+            <li>返回字段含 <code class="inline">width</code>、<code class="inline">height</code>、<code class="inline">fileSizeBytes</code>、<code class="inline">mimeType</code>、<code class="inline">decoded: null</code>、<code class="inline">hint: "open_scan_tab"</code>。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="collap">
+        <summary>listGenerated() 与展示格式化</summary>
+        <div class="inner">
+          <ul>
+            <li>列出 <code class="inline">.png</code>，排序：<code class="inline">lastModified</code> 降序。</li>
+            <li><code class="inline">formatGenerateDisplay</code> / <code class="inline">formatDecodeDisplay</code> / <code class="inline">formatListDisplay</code>：生成 <code class="inline">_displayText</code> 供宿主 UI 展示。</li>
+            <li>辅助方法：<code class="inline">recycleQuietly</code>、<code class="inline">emptyJson</code>、<code class="inline">ok</code>、<code class="inline">error</code>。</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <section id="nayuki">
+      <h2>Nayuki QR 嵌入库 · Embedded Library</h2>
+      <p>包路径：<code class="inline">ai.rorsch.moduleplugins.qrcode.qr</code>。以下为各类职责摘要（行数为仓库内近似统计）。</p>
+
+      <details class="collap" open>
+        <summary>QrCode.java（约 815 行）</summary>
+        <div class="inner">
+          <ul>
+            <li>QR 码生成的核心类；<strong>版本</strong> <code class="inline">MIN_VERSION = 1</code> … <code class="inline">MAX_VERSION = 40</code>。</li>
+            <li><strong>Enum Ecc：</strong> <code class="inline">LOW</code>、<code class="inline">MEDIUM</code>、<code class="inline">QUARTILE</code>、<code class="inline">HIGH</code>（含 ordinal、formatBits、ECC codewords 等表）。</li>
+            <li><strong>工厂方法：</strong> <code class="inline">encodeText</code>、<code class="inline">encodeBinary</code>、<code class="inline">encodeSegments(segs, ecl, minVer, maxVer, mask, boostEcl)</code> 等。</li>
+            <li><strong>实例字段：</strong> <code class="inline">version</code>、<code class="inline">size</code>、<code class="inline">errorCorrectionLevel</code>、<code class="inline">mask</code>、<code class="inline">modules[][]</code>、<code class="inline">isFunction[][]</code>。</li>
+            <li><strong>关键方法：</strong> <code class="inline">getModule(x,y)</code>、<code class="inline">drawFunctionPatterns</code>、<code class="inline">drawFormatBits</code>、<code class="inline">drawVersion</code>、<code class="inline">drawCodewords</code>、<code class="inline">applyMask</code>、<code class="inline">getPenaltyScore</code>。</li>
+            <li><strong>静态辅助：</strong> <code class="inline">getBit</code>、<code class="inline">addEccAndInterleave</code>、<code class="inline">getNumRawDataModules</code>、<code class="inline">getNumDataCodewords</code> 等。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="collap">
+        <summary>QrSegment.java（约 317 行）</summary>
+        <div class="inner">
+          <ul>
+            <li>数据段：<code class="inline">makeBytes</code>、<code class="inline">makeNumeric</code>、<code class="inline">makeAlphanumeric</code>、<code class="inline">makeSegments</code>、<code class="inline">makeEci</code>。</li>
+            <li>校验：<code class="inline">isNumeric</code>、<code class="inline">isAlphanumeric</code>。</li>
+            <li><strong>Enum Mode：</strong> <code class="inline">NUMERIC</code>、<code class="inline">ALPHANUMERIC</code>、<code class="inline">BYTE</code>、<code class="inline">KANJI</code>、<code class="inline">ECI</code> — <code class="inline">modeBits</code>、<code class="inline">numCharCountBits</code>。</li>
+            <li><code class="inline">ALPHANUMERIC_CHARSET</code> 常量。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="collap">
+        <summary>BitBuffer.java（约 129 行）</summary>
+        <div class="inner">
+          <p>基于 <code class="inline">BitSet</code> 的可追加位序列。方法：<code class="inline">bitLength</code>、<code class="inline">getBit</code>、<code class="inline">appendBits</code>、<code class="inline">appendData</code>、<code class="inline">clone</code>。</p>
+        </div>
+      </details>
+
+      <details class="collap">
+        <summary>DataTooLongException.java（约 57 行）</summary>
+        <div class="inner">
+          <p>继承 <code class="inline">IllegalArgumentException</code>，载荷超出 QR 容量时抛出。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="index-html">
+      <h2>index.html UI</h2>
+      <ul>
+        <li><strong>三标签页：</strong> Generate（生成）、Scan（扫描）、Gallery（图库）。</li>
+        <li><strong>Generate：</strong> 文本/链接输入、边长下拉（256–1024 等）、调用 <code class="inline">generateQR</code> 且 <code class="inline">includeBase64: true</code> 用于预览。</li>
+        <li><strong>Scan：</strong> <code class="inline">NativeBridge.pickImage()</code> 选图；<code class="inline">onImagePicked(path)</code> 加载 <code class="inline">file://</code>；可选调用 <code class="inline">decodeQR</code> 做校验；<strong>jsQR</strong> 在 <code class="inline">canvas</code> 上解码（含缩放与 <code class="inline">inversionAttempts: 'attemptBoth'</code>）。</li>
+        <li><strong>Gallery：</strong> <code class="inline">listGenerated</code> 拉取列表并网格展示缩略图。</li>
+        <li><strong>i18n：</strong> <code class="inline">zh</code> / <code class="inline">en</code> 字典，<code class="inline">NativeBridge.getLanguage()</code> 或浏览器语言回退。</li>
+      </ul>
+      <p>脚本依赖：<strong>jsQR</strong>（CDN：<code class="inline">jsqr@1.4.0</code>）；样式可引用同目录 <code class="inline">common.css</code>（Material 变量）。</p>
+    </section>
+
+    <section id="api">
+      <h2>API 参考 · Plugin Actions（JSON）</h2>
+      <p>所有调用经宿主封装：成功返回外层 JSON，含 <code class="inline">success: true</code>、<code class="inline">output</code>（字符串化的业务 JSON），以及可选 <code class="inline">_displayText</code>。</p>
+
+      <h3>1. generateQR</h3>
+      <p><strong>请求参数（params JSON）</strong></p>
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">text</code></td><td>string</td><td>必填，编码内容（trim 后非空）</td></tr>
+          <tr><td><code class="inline">size</code></td><td>int</td><td>可选，像素边长；钳制在 [SIZE_MIN, SIZE_MAX]，默认 SIZE_DEFAULT</td></tr>
+          <tr><td><code class="inline">includeBase64</code></td><td>bool</td><td>可选；true 时强制附带 PNG Base64（大图慎用）</td></tr>
+        </tbody>
+      </table>
+      <p><strong>output 字段（成功，业务 JSON）</strong></p>
+      <table>
+        <thead><tr><th>字段</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">path</code></td><td>绝对路径（Absolute path）到已保存 PNG</td></tr>
+          <tr><td><code class="inline">text</code></td><td>原始文本</td></tr>
+          <tr><td><code class="inline">requestedSize</code></td><td>请求尺寸（钳制后）</td></tr>
+          <tr><td><code class="inline">imageSize</code></td><td>Bitmap 实际边长（可能因整除单元格略小于请求）</td></tr>
+          <tr><td><code class="inline">qrVersion</code></td><td>Nayuki 版本号（1–40）</td></tr>
+          <tr><td><code class="inline">modules</code></td><td>逻辑模块边长（module count）</td></tr>
+          <tr><td><code class="inline">base64</code></td><td>可选，PNG 的 Base64（NO_WRAP）</td></tr>
+        </tbody>
+      </table>
+      <p><strong>典型错误：</strong> 空文本、目录不可写、<code class="inline">DataTooLongException</code> → “text too long for QR code”、PNG 压缩失败等。</p>
+
+      <h3>2. decodeQR</h3>
+      <p><strong>请求参数</strong></p>
+      <table>
+        <thead><tr><th>字段</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">imagePath</code></td><td>必填，本地图片绝对路径</td></tr>
+        </tbody>
+      </table>
+      <p><strong>output 字段</strong></p>
+      <table>
+        <thead><tr><th>字段</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">imagePath</code> / <code class="inline">width</code> / <code class="inline">height</code></td><td>路径与像素尺寸</td></tr>
+          <tr><td><code class="inline">fileSizeBytes</code></td><td>文件大小</td></tr>
+          <tr><td><code class="inline">mimeType</code></td><td>来自 bounds，可能为 null</td></tr>
+          <tr><td><code class="inline">decoded</code></td><td>null（正文解码在 Scan 页由 jsQR 完成）</td></tr>
+          <tr><td><code class="inline">hint</code></td><td><code class="inline">"open_scan_tab"</code> — 建议打开扫描标签</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3. listGenerated</h3>
+      <p><strong>请求参数：</strong> 无（空对象 <code class="inline">{}</code> 即可）。</p>
+      <p><strong>output 字段</strong></p>
+      <table>
+        <thead><tr><th>字段</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code class="inline">directory</code></td><td>扫描目录绝对路径</td></tr>
+          <tr><td><code class="inline">files</code></td><td>数组：每项含 <code class="inline">name</code>、<code class="inline">path</code>、<code class="inline">sizeBytes</code>、<code class="inline">modified</code></td></tr>
+          <tr><td><code class="inline">count</code></td><td>文件数量</td></tr>
+        </tbody>
+      </table>
+
+      <h3>外层响应示例（成功）</h3>
+      <pre><span class="k">{</span>
+  <span class="s">"success"</span>: <span class="k">true</span>,
+  <span class="s">"output"</span>: <span class="s">"{ ... business json string ... }"</span>,
+  <span class="s">"_displayText"</span>: <span class="s">"..."</span>
+<span class="k">}</span></pre>
+    </section>
+
+    <section id="gen-flow">
+      <h2>QR 生成流程 · Generation Flow</h2>
+      <ol>
+        <li>Web UI 收集 <code class="inline">text</code>、<code class="inline">size</code>、<code class="inline">includeBase64</code>。</li>
+        <li><code class="inline">NativeBridge.invoke('generateQR', params)</code> → <code class="inline">QrcodePlugin</code>。</li>
+        <li><code class="inline">QrCode.encodeText(..., Ecc.MEDIUM)</code> 得到模块矩阵。</li>
+        <li><code class="inline">renderQrBitmap</code>：4 模块白边 + 逐格绘制 → <code class="inline">ARGB_8888</code> Bitmap。</li>
+        <li>写入 <code class="inline">PandaGenie/qrcode/qr_*.png</code>；按需附加 Base64。</li>
+        <li>返回 JSON；前端可用 <code class="inline">data:image/png;base64,...</code> 预览。</li>
+      </ol>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流图 · Data Flow Diagram</h2>
+      <p>下图概括 Generate / Scan / Gallery 三条路径与 Bridge、Plugin、jsQR 的关系。</p>
+      <div class="diagram">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="Data flow diagram">
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#6750A4;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#7F67BE;stop-opacity:1" />
+            </linearGradient>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0 0, 8 4, 0 8" fill="#6750A4"/>
+            </marker>
+          </defs>
+          <rect width="720" height="420" fill="#F3EDF7"/>
+          <text x="360" y="28" text-anchor="middle" font-size="15" font-family="Segoe UI, Microsoft YaHei, sans-serif" fill="#1D1B20" font-weight="600">PandaGenie QR — Data Flow</text>
+
+          <rect x="40" y="52" width="160" height="56" rx="10" fill="url(#g1)" stroke="#4F378B" stroke-width="1"/>
+          <text x="120" y="78" text-anchor="middle" fill="#fff" font-size="12" font-family="Segoe UI, sans-serif">index.html</text>
+          <text x="120" y="96" text-anchor="middle" fill="#E8DEF8" font-size="11" font-family="Segoe UI, sans-serif">WebView UI</text>
+
+          <rect x="280" y="60" width="160" height="44" rx="8" fill="#EADDFF" stroke="#6750A4"/>
+          <text x="360" y="88" text-anchor="middle" fill="#21005D" font-size="12" font-family="Segoe UI, sans-serif">NativeBridge</text>
+
+          <rect x="520" y="52" width="160" height="56" rx="10" fill="#E8DEF8" stroke="#6750A4"/>
+          <text x="600" y="78" text-anchor="middle" fill="#1D1B20" font-size="12" font-family="Segoe UI, sans-serif">QrcodePlugin</text>
+          <text x="600" y="96" text-anchor="middle" fill="#49454F" font-size="11" font-family="Segoe UI, sans-serif">Java + Nayuki</text>
+
+          <path d="M200 80 L280 82" stroke="#6750A4" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+          <path d="M440 82 L520 80" stroke="#6750A4" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+
+          <rect x="40" y="150" width="200" height="100" rx="10" fill="#fff" stroke="#79747E"/>
+          <text x="140" y="175" text-anchor="middle" font-size="12" font-weight="600" fill="#6750A4">Generate</text>
+          <text x="140" y="198" text-anchor="middle" font-size="11" fill="#49454F">invoke(generateQR)</text>
+          <text x="140" y="218" text-anchor="middle" font-size="11" fill="#49454F">→ PNG + optional Base64</text>
+
+          <rect x="260" y="150" width="200" height="100" rx="10" fill="#fff" stroke="#79747E"/>
+          <text x="360" y="175" text-anchor="middle" font-size="12" font-weight="600" fill="#6750A4">Scan</text>
+          <text x="360" y="198" text-anchor="middle" font-size="11" fill="#49454F">pickImage → file://</text>
+          <text x="360" y="218" text-anchor="middle" font-size="11" fill="#49454F">jsQR(canvas) 客户端解码</text>
+
+          <rect x="480" y="150" width="200" height="100" rx="10" fill="#fff" stroke="#79747E"/>
+          <text x="580" y="175" text-anchor="middle" font-size="12" font-weight="600" fill="#6750A4">Gallery</text>
+          <text x="580" y="198" text-anchor="middle" font-size="11" fill="#49454F">invoke(listGenerated)</text>
+          <text x="580" y="218" text-anchor="middle" font-size="11" fill="#49454F">→ 列举 PNG 缩略图</text>
+
+          <path d="M140 150 L140 124" stroke="#79747E" stroke-width="1.5" fill="none"/>
+          <path d="M360 150 L360 124" stroke="#79747E" stroke-width="1.5" fill="none"/>
+          <path d="M580 150 L580 124" stroke="#79747E" stroke-width="1.5" fill="none"/>
+
+          <rect x="80" y="290" width="560" height="100" rx="10" fill="#ECE6F0" stroke="#6750A4"/>
+          <text x="360" y="318" text-anchor="middle" font-size="12" font-weight="600" fill="#1D1B20">External Storage · PandaGenie/qrcode/</text>
+          <text x="360" y="342" text-anchor="middle" font-size="11" fill="#49454F">generateQR 写入 PNG；listGenerated 读取目录；decodeQR 校验所选文件元数据</text>
+          <text x="360" y="368" text-anchor="middle" font-size="11" fill="#49454F">Scan 解码不依赖服务端 — 纯 WebView + jsQR</text>
+        </svg>
+      </div>
+
+      <p class="note">Material 主题色 Primary：<code class="inline" style="background:#6750A4;color:#fff">#6750A4</code> — 与本页样式一致。</p>
+    </section>
+
+    <footer>
+      PandaGenie · QR Code Tools（qrcode）— 技术说明文档 · Self-contained HTML
+    </footer>
+  </div>
+</body>
+</html>

@@ -2,7 +2,6 @@
 #include <string>
 #include <sstream>
 #include "filemanager.h"
-#include "sandbox_guard_jni.h"
 
 #define JNI_METHOD(ret, name) \
     extern "C" JNIEXPORT ret JNICALL Java_ai_rorsch_pandagenie_nativelib_FileManagerLib_##name
@@ -221,10 +220,3 @@ JNI_METHOD(jlong, nativeGetFileSize)(JNIEnv* env, jobject, jstring jpath) {
     }
 }
 
-JNI_METHOD(void, nativeConfigureSandbox)(JNIEnv* env, jclass, jobjectArray readPaths, jobjectArray writePaths) {
-    sandbox_jni::configureSandbox(env, readPaths, writePaths);
-}
-
-JNI_METHOD(void, nativeClearSandbox)(JNIEnv* env, jclass) {
-    sandbox_jni::clearSandbox();
-}

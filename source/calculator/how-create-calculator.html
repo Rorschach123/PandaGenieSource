@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PandaGenie 计算器模块 — 技术文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-on-primary: #FFFFFF;
+      --md-primary-container: #EADDFF;
+      --md-on-primary-container: #21005D;
+      --md-surface: #FEF7FF;
+      --md-surface-container: #F3EDF7;
+      --md-outline: #79747E;
+      --md-code-bg: #1E1B24;
+      --md-code-fg: #E8DEF8;
+      --shadow-1: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
+      --shadow-2: 0 4px 8px rgba(103, 80, 164, .15);
+      --radius: 12px;
+      --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --mono: "Cascadia Code", "JetBrains Mono", Consolas, "Noto Sans Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: linear-gradient(180deg, var(--md-surface) 0%, #EDE7F6 100%);
+      color: #1C1B1F;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: var(--md-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+    header.hero {
+      background: linear-gradient(135deg, var(--md-primary) 0%, #4F378B 100%);
+      color: var(--md-on-primary);
+      padding: 48px 24px 40px;
+      border-radius: 0 0 var(--radius) var(--radius);
+      box-shadow: var(--shadow-2);
+    }
+    header.hero h1 { margin: 0 0 12px; font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 600; letter-spacing: .02em; }
+    header.hero p { margin: 0; opacity: .92; max-width: 720px; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.18); padding: 6px 12px; border-radius: 999px;
+      font-size: .85rem; backdrop-filter: blur(4px);
+    }
+    nav.toc {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(254, 247, 255, .92); backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(103, 80, 164, .12);
+      margin: 0 -20px 24px; padding: 12px 20px;
+    }
+    nav.toc strong { color: var(--md-primary); font-size: .9rem; display: block; margin-bottom: 8px; }
+    nav.toc ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+    nav.toc a { font-size: .88rem; color: #49454F; }
+    nav.toc a:hover { color: var(--md-primary); }
+    section {
+      background: #fff; border-radius: var(--radius); padding: 24px 22px;
+      margin-bottom: 20px; box-shadow: var(--shadow-1); border: 1px solid rgba(103, 80, 164, .08);
+    }
+    section h2 {
+      margin: 0 0 16px; font-size: 1.35rem; color: var(--md-primary);
+      display: flex; align-items: center; gap: 10px;
+    }
+    section h3 { margin: 24px 0 12px; font-size: 1.1rem; color: #312A3D; }
+    section h4 { margin: 18px 0 8px; font-size: 1rem; color: #49454F; }
+    p { margin: 0 0 12px; }
+    ul, ol { margin: 0 0 12px; padding-left: 1.35em; }
+    li { margin-bottom: 6px; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: .92rem;
+      margin: 12px 0 20px;
+    }
+    th, td { border: 1px solid #E7E0EC; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 600; }
+    tr:nth-child(even) td { background: #FAF8FC; }
+    code.inline { font-family: var(--mono); background: #F3EDF7; padding: 2px 6px; border-radius: 4px; font-size: .9em; color: #381E72; }
+    pre {
+      font-family: var(--mono); font-size: .82rem; line-height: 1.5;
+      background: var(--md-code-bg); color: var(--md-code-fg);
+      padding: 16px; border-radius: 8px; overflow-x: auto;
+      margin: 12px 0; border: 1px solid #3B3550;
+    }
+    pre.grammar { white-space: pre; }
+    details.collapsible {
+      border: 1px solid #E7E0EC; border-radius: 8px; margin: 12px 0;
+      background: var(--md-surface-container);
+    }
+    details.collapsible > summary {
+      cursor: pointer; padding: 12px 16px; font-weight: 600; color: var(--md-primary);
+      list-style: none; display: flex; align-items: center; gap: 8px;
+    }
+    details.collapsible > summary::-webkit-details-marker { display: none; }
+    details.collapsible > summary::before { content: "▸"; transition: transform .2s; }
+    details.collapsible[open] > summary::before { transform: rotate(90deg); }
+    details.collapsible .inner { padding: 0 16px 16px; border-top: 1px solid #E7E0EC; }
+    .diagram {
+      background: #F7F2FA; border: 1px dashed var(--md-outline); border-radius: 8px;
+      padding: 16px; font-family: var(--mono); font-size: .78rem; line-height: 1.45;
+      overflow-x: auto; color: #1C1B1F;
+    }
+    .layer-stack {
+      display: grid; gap: 10px; margin: 16px 0;
+    }
+    .layer {
+      padding: 14px 16px; border-radius: 8px; border-left: 4px solid var(--md-primary);
+      background: linear-gradient(90deg, var(--md-primary-container), #fff);
+    }
+    .layer strong { display: block; color: var(--md-on-primary-container); margin-bottom: 4px; }
+    footer {
+      text-align: center; color: var(--md-outline); font-size: .85rem; margin-top: 32px;
+    }
+    @media (max-width: 600px) {
+      nav.toc ul { flex-direction: column; }
+      table { font-size: .85rem; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:960px;margin:0 auto;padding:0 20px;">
+      <h1>PandaGenie「计算器」模块技术文档</h1>
+      <p>本文档描述 <span class="badge" style="background:rgba(255,255,255,.2);">Calculator</span> 模块的架构、<code class="inline" style="background:rgba(255,255,255,.2);color:#fff;border:none;">Java Plugin</code>、<code class="inline" style="background:rgba(255,255,255,.2);color:#fff;border:none;">JNI</code> 与 <code class="inline" style="background:rgba(255,255,255,.2);color:#fff;border:none;">C++ Native</code> 实现细节，供维护与二次开发参考。</p>
+      <div class="badge-row">
+        <span class="badge">Module ID: calculator</span>
+        <span class="badge">Version 1.0</span>
+        <span class="badge">Material Design 风格</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <strong>目录 Table of Contents</strong>
+      <ul>
+        <li><a href="#overview">模块概览</a></li>
+        <li><a href="#architecture">四层架构</a></li>
+        <li><a href="#plugin">CalculatorPlugin</a></li>
+        <li><a href="#lib-java">CalculatorLib.java</a></li>
+        <li><a href="#lib-kt">CalculatorLib.kt</a></li>
+        <li><a href="#cpp">C++ Native</a></li>
+        <li><a href="#jni">calculator_jni.cpp</a></li>
+        <li><a href="#cmake">CMakeLists.txt</a></li>
+        <li><a href="#api">API 参考（17 项）</a></li>
+        <li><a href="#grammar">表达式文法 BNF</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+      </ul>
+    </nav>
+
+    <section id="overview">
+      <h2>模块概览 Module Overview</h2>
+      <table>
+        <thead><tr><th>字段</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Module ID</strong></td><td><code class="inline">calculator</code></td></tr>
+          <tr><td><strong>显示名称</strong></td><td>计算器</td></tr>
+          <tr><td><strong>Version</strong></td><td><code class="inline">1.0</code></td></tr>
+          <tr><td><strong>Description</strong></td><td>科学计算器模块，支持四则运算、三角函数、对数、阶乘、排列组合、表达式解析等。</td></tr>
+          <tr><td><strong>Native SO</strong></td><td><code class="inline">libcalculator.so</code>（通过 <code class="inline">System.loadLibrary("calculator")</code> 加载）</td></tr>
+          <tr><td><strong>Plugin Class</strong></td><td><code class="inline">ai.rorsch.moduleplugins.calculator.CalculatorPlugin</code>，实现 <code class="inline">ModulePlugin</code> 接口</td></tr>
+          <tr><td><strong>JNI Java 类</strong></td><td><code class="inline">ai.rorsch.pandagenie.nativelib.CalculatorLib</code>（与 Kotlin <code class="inline">external</code> 桥接包名一致）</td></tr>
+        </tbody>
+      </table>
+      <p>上层 Agent / Task 通过 <code class="inline">action</code> 字符串与 JSON <code class="inline">params</code> 调用插件；插件将结果序列化为 JSON，其中成功时常包含人类可读的 <code class="inline">_displayText</code>（含 emoji）以便 UI 展示。</p>
+    </section>
+
+    <section id="architecture">
+      <h2>架构：四层 Architecture（4-Layer）</h2>
+      <p>自顶向下：UI / 自动化编排（可为 HTML 或 App 内 WebView）→ <strong>Java <code class="inline">ModulePlugin</code></strong> → <strong>JNI</strong> → <strong>C++ <code class="inline">calc::Calculator</code></strong>。</p>
+      <div class="layer-stack">
+        <div class="layer"><strong>Layer 1 — Presentation / Orchestration</strong>调用方构造 <code class="inline">action</code> + <code class="inline">paramsJson</code>，解析返回 JSON（<code class="inline">success</code>、<code class="inline">output</code>、可选 <code class="inline">_displayText</code>）。</div>
+        <div class="layer"><strong>Layer 2 — Java Plugin</strong><code class="inline">CalculatorPlugin</code>：校验 <code class="inline">action</code>，从 <code class="inline">JSONObject</code> 读取参数，调用 <code class="inline">CalculatorLib</code> 的 <code class="inline">native</code> 方法。</div>
+        <div class="layer"><strong>Layer 3 — JNI Bridge</strong><code class="inline">calculator_jni.cpp</code>：C 链接名 <code class="inline">Java_ai_rorsch_pandagenie_nativelib_CalculatorLib_*</code>，将 Java 类型映射到 <code class="inline">calc::Calculator</code>；错误路径映射为 <code class="inline">ArithmeticException</code> 或 <code class="inline">RuntimeException</code>。</div>
+        <div class="layer"><strong>Layer 4 — Native Core</strong><code class="inline">calculator.cpp</code>：基于 <code class="inline">&lt;cmath&gt;</code> 的数学实现；<code class="inline">ExpressionParser</code> 递归下降解析表达式字符串。</div>
+      </div>
+    </section>
+
+    <section id="plugin">
+      <h2>CalculatorPlugin.java</h2>
+      <p><strong>路径：</strong><code class="inline">plugin_src/ai/rorsch/moduleplugins/calculator/CalculatorPlugin.java</code>（当前源码约 <strong>194</strong> 行，含 Javadoc）。</p>
+      <ul>
+        <li><strong>implements</strong> <code class="inline">ModulePlugin</code>。</li>
+        <li><strong>字段：</strong><code class="inline">private final CalculatorLib lib = new CalculatorLib();</code> — 单实例封装全部 native 调用。</li>
+        <li><strong><code class="inline">invoke(Context context, String action, String paramsJson)</code></strong>：将 <code class="inline">paramsJson</code> 经 <code class="inline">emptyJson</code> 规范为 <code class="inline">"{}"</code> 后构造 <code class="inline">JSONObject</code>；按 <code class="inline">action</code> 分发。</li>
+      </ul>
+
+      <details class="collapsible">
+        <summary>17 个 action 与 Native 映射（evaluate + 16 项运算）</summary>
+        <div class="inner">
+          <table>
+            <thead><tr><th>action</th><th>JSON 参数键</th><th>CalculatorLib 调用</th><th>_displayText 模式</th></tr></thead>
+            <tbody>
+              <tr><td><code class="inline">evaluate</code></td><td><code class="inline">expression</code>（字符串，默认 ""）</td><td><code class="inline">lib.evaluate(...)</code></td><td><code class="inline">🔢 = &lt;结果&gt;</code>，结果经 <code class="inline">formatNumber</code></td></tr>
+              <tr><td><code class="inline">add</code></td><td><code class="inline">a</code>, <code class="inline">b</code>（<code class="inline">optDouble</code>）</td><td><code class="inline">lib.add</code></td><td><code class="inline">🔢 Result: …</code></td></tr>
+              <tr><td><code class="inline">subtract</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">lib.subtract</code></td><td>同上</td></tr>
+              <tr><td><code class="inline">multiply</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">lib.multiply</code></td><td>同上</td></tr>
+              <tr><td><code class="inline">divide</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">lib.divide</code></td><td>同上（除零等在 Native/JNI 抛 <code class="inline">ArithmeticException</code>）</td></tr>
+              <tr><td><code class="inline">power</code></td><td><code class="inline">base</code>, <code class="inline">exp</code></td><td><code class="inline">lib.power</code></td><td>同上</td></tr>
+              <tr><td><code class="inline">sqrt</code></td><td><code class="inline">x</code></td><td><code class="inline">lib.nSqrt(x)</code>（对应 Native <code class="inline">Calculator::sqrt</code>）</td><td><code class="inline">📐 sqrt(x) = …</code>，<code class="inline">formatParam(x)</code></td></tr>
+              <tr><td><code class="inline">sin</code> / <code class="inline">cos</code> / <code class="inline">tan</code></td><td><code class="inline">x</code></td><td><code class="inline">lib.sin</code> 等</td><td><code class="inline">📐 sin(x) = …</code> 等同系列</td></tr>
+              <tr><td><code class="inline">ln</code> / <code class="inline">log10</code></td><td><code class="inline">x</code></td><td><code class="inline">lib.ln</code> / <code class="inline">lib.log10</code></td><td><code class="inline">📐 ln(x) = …</code> / <code class="inline">log10</code></td></tr>
+              <tr><td><code class="inline">factorial</code></td><td><code class="inline">n</code>（<code class="inline">optInt</code>）</td><td><code class="inline">lib.factorial</code></td><td><code class="inline">🔢 Result: …</code></td></tr>
+              <tr><td><code class="inline">combination</code></td><td><code class="inline">n</code>, <code class="inline">r</code></td><td><code class="inline">lib.combination</code></td><td>同上</td></tr>
+              <tr><td><code class="inline">permutation</code></td><td><code class="inline">n</code>, <code class="inline">r</code></td><td><code class="inline">lib.permutation</code></td><td>同上</td></tr>
+              <tr><td><code class="inline">degToRad</code></td><td><code class="inline">deg</code></td><td><code class="inline">lib.degToRad</code></td><td><code class="inline">🔢 Result: …</code></td></tr>
+              <tr><td><code class="inline">radToDeg</code></td><td><code class="inline">rad</code></td><td><code class="inline">lib.radToDeg</code></td><td>同上</td></tr>
+            </tbody>
+          </table>
+          <p>未知 <code class="inline">action</code> 走 <code class="inline">default</code> 分支，返回 <code class="inline">error("Unsupported action: " + action)</code>。</p>
+        </div>
+      </details>
+
+      <h3>辅助方法 Helpers</h3>
+      <ul>
+        <li><code class="inline">emptyJson(String value)</code>：<code class="inline">null</code> 或空白 → <code class="inline">"{}"</code>，避免 <code class="inline">JSONObject</code> 构造失败。</li>
+        <li><code class="inline">formatParam(double value)</code> / <code class="inline">formatNumber(double value)</code>：若值为整型外观（<code class="inline">value == (long)value</code>），输出无小数；否则 <code class="inline">String.valueOf(double)</code>。</li>
+        <li><code class="inline">ok(String output)</code>：<code class="inline">success=true</code>，<code class="inline">output</code>。</li>
+        <li><code class="inline">ok(String output, String displayText)</code>：额外写入非空 <code class="inline">_displayText</code>。</li>
+        <li><code class="inline">error(String message)</code>：<code class="inline">success=false</code>，<code class="inline">error</code> 字段。</li>
+      </ul>
+    </section>
+
+    <section id="lib-java">
+      <h2>CalculatorLib.java</h2>
+      <p><strong>路径：</strong><code class="inline">plugin_src/ai/rorsch/pandagenie/nativelib/CalculatorLib.java</code>（当前约 <strong>37</strong> 行）。</p>
+      <ul>
+        <li><strong>static 块：</strong><code class="inline">System.loadLibrary("calculator");</code> 加载 <code class="inline">libcalculator.so</code>。</li>
+        <li><strong>native 方法数量：</strong>当前源码声明 <strong>26</strong> 个 <code class="inline">native</code> 方法（含 <code class="inline">listFunctions</code> 返回 <code class="inline">String[]</code>），覆盖算术、取模、幂与根、三角/反三角、双曲、对数、阶乘与排列组合、角度换算、表达式求值与函数列表。若与旧版「35 个」等口径不一致，以本仓库 <code class="inline">CalculatorLib.java</code> 为准。</li>
+      </ul>
+      <pre><code>// 方法清单（与源码一致）
+add, subtract, multiply, divide, modulo, power,
+nSqrt, cbrt,
+sin, cos, tan, asin, acos, atan,
+sinh, cosh, tanh,
+ln, log10, log2,
+factorial, permutation, combination,
+degToRad, radToDeg,
+evaluate(String), listFunctions()</code></pre>
+      <p>其中 <code class="inline">nSqrt</code> 在 JNI 层映射到 C++ <code class="inline">Calculator::sqrt</code>（含负数校验）。插件对外 action <code class="inline">sqrt</code> 即调用 <code class="inline">nSqrt</code>。</p>
+    </section>
+
+    <section id="lib-kt">
+      <h2>CalculatorLib.kt（Kotlin JNI 声明镜像）</h2>
+      <p><strong>路径：</strong><code class="inline">jni_bridge/ai/rorsch/pandagenie/nativelib/CalculatorLib.kt</code>（当前约 <strong>33</strong> 行，含包与类头）。</p>
+      <p>使用 <code class="inline">external fun</code> 与 Java 版 <code class="inline">native</code> 方法一一对应，便于 Kotlin 模块直接链接同一 <code class="inline">libcalculator.so</code>。方法签名与 Java 完全一致（<code class="inline">Double</code>/<code class="inline">Int</code>/<code class="inline">Array&lt;String&gt;</code>）。</p>
+    </section>
+
+    <section id="cpp">
+      <h2>C++ Native Layer</h2>
+
+      <h3>calculator.h（当前约 93 行）</h3>
+      <ul>
+        <li><strong>Namespace：</strong><code class="inline">calc</code>。</li>
+        <li><strong>Class <code class="inline">Calculator</code>：</strong>静态方法涵盖基础运算、<code class="inline">power</code>/<code class="inline">sqrt</code>/<code class="inline">cbrt</code>/<code class="inline">nthRoot</code>、三角（弧度）、<code class="inline">atan2</code>、双曲、对数（含 <code class="inline">logBase</code>）、<code class="inline">abs</code>/<code class="inline">ceil</code>/<code class="inline">floor</code>/<code class="inline">round</code>、阶乘与排列组合、角度换算、常量 <code class="inline">pi()</code>/<code class="inline">e()</code>、<code class="inline">evaluate(const std::string&amp;)</code>、<code class="inline">listFunctions()</code>。</li>
+        <li><strong>Class <code class="inline">ExpressionParser</code>（recursive-descent parser）：</strong>
+          <ul>
+            <li><strong>字段：</strong><code class="inline">expr_</code>（表达式字符串）、<code class="inline">pos_</code>（当前读取下标）。</li>
+            <li><strong>公开：</strong><code class="inline">explicit ExpressionParser(const std::string&amp; expr)</code>、<code class="inline">double parse()</code>。</li>
+            <li><strong>私有：</strong><code class="inline">parseExpression</code>、<code class="inline">parseTerm</code>、<code class="inline">parseUnary</code>、<code class="inline">parsePower</code>、<code class="inline">parseAtom</code>、<code class="inline">parseFunction</code>、<code class="inline">parseNumber</code>、<code class="inline">peek</code>、<code class="inline">get</code>、<code class="inline">skipWhitespace</code>、<code class="inline">match</code>。</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>calculator.cpp（当前约 308 行）</h3>
+      <ul>
+        <li>数学实现统一使用 <code class="inline">&lt;cmath&gt;</code>。</li>
+        <li><strong>Error handling（抛 <code class="inline">std::runtime_error</code>）：</strong>
+          <ul>
+            <li><code class="inline">divide</code> / <code class="inline">modulo</code>：除数为零。</li>
+            <li><code class="inline">sqrt</code>：<code class="inline">x &lt; 0</code>。</li>
+            <li><code class="inline">nthRoot</code>：<code class="inline">n==0</code>；偶次根号下为负。</li>
+            <li><code class="inline">asin</code> / <code class="inline">acos</code>：<code class="inline">x</code> 不在 <code class="inline">[-1,1]</code>。</li>
+            <li><code class="inline">ln</code> / <code class="inline">log10</code> / <code class="inline">log2</code>：<code class="inline">x &lt;= 0</code>；<code class="inline">logBase</code> 额外校验底数。</li>
+            <li><code class="inline">factorial</code>：<code class="inline">n &lt; 0</code>；<code class="inline">n &gt; 170</code> 视为 overflow。</li>
+            <li><code class="inline">permutation</code> / <code class="inline">combination</code>：<code class="inline">n,r</code> 非法（负或 <code class="inline">r &gt; n</code>）。</li>
+          </ul>
+        </li>
+        <li><strong>ExpressionParser 递归下降：</strong>
+          <ul>
+            <li><strong>结合性与优先级（从低到高）：</strong><code class="inline">parseExpression</code>（<code class="inline">+</code> <code class="inline">-</code>）→ <code class="inline">parseTerm</code>（<code class="inline">*</code> <code class="inline">/</code> <code class="inline">%</code>，操作数为 <code class="inline">parseUnary</code>）→ <code class="inline">parseUnary</code>（一元 <code class="inline">+</code>/<code class="inline">-</code>）→ <code class="inline">parsePower</code>（<code class="inline">^</code>，右侧为 <code class="inline">parseUnary</code>）→ <code class="inline">parseAtom</code>（数字、括号、常量 <code class="inline">pi</code>/<code class="inline">e</code>、函数调用）。</li>
+            <li><strong>函数名大小写不敏感</strong>（标识符读入后 <code class="inline">tolower</code>）。</li>
+            <li><strong>支持的函数（节选与插件文档对应）：</strong><code class="inline">sin</code>、<code class="inline">cos</code>、<code class="inline">tan</code>、<code class="inline">asin</code>、<code class="inline">acos</code>、<code class="inline">atan</code>、<code class="inline">atan2</code>、<code class="inline">sinh</code>、<code class="inline">cosh</code>、<code class="inline">tanh</code>、<code class="inline">sqrt</code>、<code class="inline">cbrt</code>、<code class="inline">abs</code>、<code class="inline">ceil</code>、<code class="inline">floor</code>、<code class="inline">round</code>、<code class="inline">ln</code>、<code class="inline">log</code>（实现为 <code class="inline">log10</code>）、<code class="inline">log10</code>、<code class="inline">log2</code>、<code class="inline">pow</code>/<code class="inline">power</code>（二参）、<code class="inline">mod</code>、<code class="inline">max</code>、<code class="inline">min</code>、<code class="inline">deg</code>/<code class="inline">rad</code>（角度换算）、<code class="inline">fact</code>、<code class="inline">perm</code>、<code class="inline">comb</code>。</li>
+            <li><strong>常量：</strong><code class="inline">pi</code>、<code class="inline">e</code> 映射 <code class="inline">M_PI</code>、<code class="inline">M_E</code>。</li>
+            <li><strong>解析结束：</strong>若仍有未消费字符则 <code class="inline">Unexpected character</code>。</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section id="jni">
+      <h2>calculator_jni.cpp（当前约 97 行）</h2>
+      <pre><code>#define JNI_METHOD(ret, name) \
+    extern "C" JNIEXPORT ret JNICALL \
+    Java_ai_rorsch_pandagenie_nativelib_CalculatorLib_##name</code></pre>
+      <ul>
+        <li>每个 JNI 函数体直接调用 <code class="inline">calc::Calculator::...</code>；<code class="inline">nSqrt</code> → <code class="inline">Calculator::sqrt</code>。</li>
+        <li><strong>try-catch + <code class="inline">ThrowNew ArithmeticException</code>：</strong><code class="inline">divide</code>、<code class="inline">modulo</code>、<code class="inline">nSqrt</code>、<code class="inline">asin</code>、<code class="inline">acos</code>、<code class="inline">ln</code>、<code class="inline">log10</code>、<code class="inline">log2</code>、<code class="inline">factorial</code>、<code class="inline">permutation</code>、<code class="inline">combination</code>（与源码一致）。</li>
+        <li><strong><code class="inline">evaluate</code>：</strong><code class="inline">GetStringUTFChars</code> → <code class="inline">std::string</code> → <code class="inline">Calculator::evaluate</code>；异常映射为 <code class="inline">java/lang/RuntimeException</code>（与 <code class="inline">ArithmeticException</code> 区分）。</li>
+        <li><strong><code class="inline">listFunctions</code>：</strong><code class="inline">Calculator::listFunctions()</code> → <code class="inline">NewObjectArray</code> + <code class="inline">NewStringUTF</code> 填充 <code class="inline">String[]</code>。</li>
+      </ul>
+    </section>
+
+    <section id="cmake">
+      <h2>CMakeLists.txt</h2>
+      <p><strong>路径：</strong><code class="inline">native/CMakeLists.txt</code>。</p>
+      <ul>
+        <li><code class="inline">add_library(calculator SHARED src/calculator.cpp src/calculator_jni.cpp)</code> 产出 <code class="inline">libcalculator.so</code>。</li>
+        <li><code class="inline">target_include_directories</code> 指向 <code class="inline">include</code>（含 <code class="inline">calculator.h</code>）。</li>
+        <li><code class="inline">find_library(log-lib log)</code> + <code class="inline">target_link_libraries(calculator ${log-lib})</code> — 仅链接 Android <code class="inline">log</code>（与「只链 log」一致；若需扩展可再加 libc++ 等，由 NDK 默认处理）。</li>
+      </ul>
+    </section>
+
+    <section id="api">
+      <h2>API 参考 — 17 项 Plugin <code class="inline">action</code></h2>
+      <p>以下均为 <code class="inline">CalculatorPlugin.invoke</code> 支持的 <code class="inline">action</code>。参数通过 <code class="inline">paramsJson</code> 传入；缺失键时 <code class="inline">optDouble</code> / <code class="inline">optInt</code> 默认为 <strong>0</strong>。</p>
+      <table>
+        <thead>
+          <tr><th>#</th><th>action</th><th>参数 Parameters（JSON keys）</th><th>返回 Return（<code class="inline">output</code>）</th><th>备注 Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td><code class="inline">evaluate</code></td><td><code class="inline">expression</code>: string</td><td>表达式求值结果字符串（整数外观无小数）</td><td>底层 <code class="inline">ExpressionParser</code>；语法见下文 BNF</td></tr>
+          <tr><td>2</td><td><code class="inline">add</code></td><td><code class="inline">a</code>, <code class="inline">b</code>: number</td><td><code class="inline">a + b</code></td><td>native <code class="inline">add</code></td></tr>
+          <tr><td>3</td><td><code class="inline">subtract</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">a - b</code></td><td></td></tr>
+          <tr><td>4</td><td><code class="inline">multiply</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">a * b</code></td><td></td></tr>
+          <tr><td>5</td><td><code class="inline">divide</code></td><td><code class="inline">a</code>, <code class="inline">b</code></td><td><code class="inline">a / b</code></td><td><code class="inline">b=0</code> → JNI <code class="inline">ArithmeticException</code></td></tr>
+          <tr><td>6</td><td><code class="inline">power</code></td><td><code class="inline">base</code>, <code class="inline">exp</code></td><td><code class="inline">pow(base, exp)</code></td><td></td></tr>
+          <tr><td>7</td><td><code class="inline">sqrt</code></td><td><code class="inline">x</code></td><td>平方根</td><td>Java <code class="inline">nSqrt</code> → C++ <code class="inline">sqrt</code>；<code class="inline">x&lt;0</code> 异常</td></tr>
+          <tr><td>8</td><td><code class="inline">sin</code></td><td><code class="inline">x</code></td><td><code class="inline">sin(x)</code></td><td>弧度</td></tr>
+          <tr><td>9</td><td><code class="inline">cos</code></td><td><code class="inline">x</code></td><td><code class="inline">cos(x)</code></td><td>弧度</td></tr>
+          <tr><td>10</td><td><code class="inline">tan</code></td><td><code class="inline">x</code></td><td><code class="inline">tan(x)</code></td><td>弧度</td></tr>
+          <tr><td>11</td><td><code class="inline">ln</code></td><td><code class="inline">x</code></td><td>自然对数</td><td><code class="inline">x&lt;=0</code> → <code class="inline">ArithmeticException</code></td></tr>
+          <tr><td>12</td><td><code class="inline">log10</code></td><td><code class="inline">x</code></td><td>常用对数</td><td>同上</td></tr>
+          <tr><td>13</td><td><code class="inline">factorial</code></td><td><code class="inline">n</code>: int</td><td><code class="inline">n!</code>（double 累积）</td><td><code class="inline">n&gt;170</code> 等与 Native 校验一致</td></tr>
+          <tr><td>14</td><td><code class="inline">combination</code></td><td><code class="inline">n</code>, <code class="inline">r</code>: int</td><td>组合数 C(n,r)</td><td></td></tr>
+          <tr><td>15</td><td><code class="inline">permutation</code></td><td><code class="inline">n</code>, <code class="inline">r</code>: int</td><td>排列数 P(n,r)</td><td></td></tr>
+          <tr><td>16</td><td><code class="inline">degToRad</code></td><td><code class="inline">deg</code>: number</td><td>度 → 弧度</td><td></td></tr>
+          <tr><td>17</td><td><code class="inline">radToDeg</code></td><td><code class="inline">rad</code>: number</td><td>弧度 → 度</td><td></td></tr>
+        </tbody>
+      </table>
+      <p><strong>成功 JSON 形状：</strong><code class="inline">{"success":true,"output":"&lt;string&gt;","_displayText":"…"}</code>（<code class="inline">_displayText</code> 可选）。<strong>失败：</strong><code class="inline">{"success":false,"error":"…"}</code>。</p>
+    </section>
+
+    <section id="grammar">
+      <h2>表达式解析器文法（BNF 风格）</h2>
+      <p>下列描述与 <code class="inline">calculator.cpp</code> 中 <code class="inline">ExpressionParser</code> 实现一致；<code class="inline">WS</code> 表示空白，在 token 间任意出现。</p>
+      <pre class="grammar"><code>expression   ::= WS term WS ( ('+' | '-') WS term WS )*
+term         ::= WS unary WS ( ('*' | '/' | '%') WS unary WS )*
+unary        ::= WS ('+' | '-')? WS power
+power        ::= WS atom WS ( '^' WS unary )?
+
+atom         ::= number
+              | '(' WS expression WS ')'
+              | identifier
+identifier   ::= name WS ( '(' WS arglist? WS ')' )?
+              | 'pi' | 'e'          // 无括号常量（在实现中与函数名统一为小写匹配）
+
+arglist      ::= expression ( ',' WS expression )*
+
+number       ::= digit+ ( '.' digit* )? | '.' digit+
+
+name         ::= [A-Za-z_][A-Za-z0-9_]*   // 解析时转为小写
+
+// 内置函数名（name 部分，小写）包括但不限于：
+// sin cos tan asin acos atan atan2 sinh cosh tanh
+// sqrt cbrt abs ceil floor round
+// ln log log10 log2
+// pow power mod max min deg rad fact perm comb</code></pre>
+      <p><strong>运算符优先级（从低到高）：</strong>加减 → 乘除取模 → 一元正负 → 幂 <code class="inline">^</code>（右操作数为 <code class="inline">unary</code>）→ 原子（数字/括号/常量/函数）。</p>
+    </section>
+
+    <section id="dataflow">
+      <h2>数据流图 Data Flow</h2>
+      <p>典型调用链：Caller → <code class="inline">ModulePlugin.invoke(action, paramsJson)</code> → <code class="inline">CalculatorLib.native</code> → JNI → <code class="inline">calc::Calculator</code> / <code class="inline">ExpressionParser</code> → 结果返回 Java → JSON 序列化。</p>
+      <div class="diagram" role="img" aria-label="Data flow diagram">
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Layer 1: Client (HTML UI / Task / Agent)                               │
+│ 输入: action 字符串 + paramsJson                                        │
+└───────────────────────────────────┬──────────────────────────────────────┘
+                                    │ invoke(context, action, paramsJson)
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Layer 2: CalculatorPlugin (Java)                                        │
+│ emptyJson → JSONObject · switch(action) → CalculatorLib               │
+│ formatNumber / formatParam · ok() / error() → JSON 字符串               │
+└───────────────────────────────────┬──────────────────────────────────────┘
+                                    │ JNI native 调用
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Layer 3: libcalculator.so — calculator_jni.cpp                           │
+│ Java_ai_rorsch_pandagenie_nativelib_CalculatorLib_*                     │
+│ jdouble ↔ double · jstring ↔ std::string (evaluate)                     │
+│ 异常映射: ArithmeticException（多数数值错误）· RuntimeException(evaluate) │
+└───────────────────────────────────┬──────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Layer 4: calc::Calculator + ExpressionParser (calculator.cpp / .h)     │
+│ 标量运算 · evaluate(expr) 内递归下降解析                                │
+└───────────────────────────────────┬──────────────────────────────────────┘
+                                    │ double 返回值
+                                    ▼
+                    JSON: {"success":true,"output":"…","_displayText":"…"}
+      </div>
+
+      <details class="collapsible">
+        <summary>Plugin 未单独暴露的 Native API（仍可通过 CalculatorLib 直接调用）</summary>
+        <div class="inner">
+          <p>以下方法在 <code class="inline">CalculatorLib</code> 中声明并在 JNI 中实现，但 <code class="inline">CalculatorPlugin</code> 的 17 个 <code class="inline">action</code> <strong>未</strong>逐项包装；若从 Java/Kotlin 直接持有 <code class="inline">CalculatorLib</code> 实例即可使用：<code class="inline">modulo</code>、<code class="inline">cbrt</code>、<code class="inline">asin</code>、<code class="inline">acos</code>、<code class="inline">atan</code>、<code class="inline">sinh</code>、<code class="inline">cosh</code>、<code class="inline">tanh</code>、<code class="inline">log2</code>、<code class="inline">listFunctions</code>。其中部分能力也可在 <code class="inline">evaluate</code> 的表达式中出现（如 <code class="inline">cbrt</code>、反三角函数等）。</p>
+        </div>
+      </details>
+    </section>
+
+    <footer>
+      PandaGenie Calculator Module · 技术文档 · 与源码同步请以仓库为准
+    </footer>
+  </div>
+</body>
+</html>

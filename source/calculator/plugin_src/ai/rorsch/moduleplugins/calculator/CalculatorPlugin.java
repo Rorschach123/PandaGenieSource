@@ -27,6 +27,14 @@ public class CalculatorPlugin implements ModulePlugin {
     /** 原生计算器库，执行具体数学运算与表达式解析 */
     private final CalculatorLib lib = new CalculatorLib();
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 根据 {@code action} 从参数 JSON 读取操作数并调用对应 Native 方法，结果格式化为字符串返回。
      *
@@ -48,24 +56,24 @@ public class CalculatorPlugin implements ModulePlugin {
             case "add": {
                 // 双精度浮点加法
                 String out = String.valueOf(lib.add(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "subtract": {
                 String out = String.valueOf(lib.subtract(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "multiply": {
                 String out = String.valueOf(lib.multiply(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "divide": {
                 // 除法由 Native 层处理除零等语义
                 String out = String.valueOf(lib.divide(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "power": {
                 String out = String.valueOf(lib.power(params.optDouble("base"), params.optDouble("exp")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "sqrt": {
                 // nSqrt：Native 实现的平方根
@@ -100,23 +108,23 @@ public class CalculatorPlugin implements ModulePlugin {
             }
             case "factorial": {
                 String out = String.valueOf(lib.factorial(params.optInt("n")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "combination": {
                 String out = String.valueOf(lib.combination(params.optInt("n"), params.optInt("r")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "permutation": {
                 String out = String.valueOf(lib.permutation(params.optInt("n"), params.optInt("r")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "degToRad": {
                 String out = String.valueOf(lib.degToRad(params.optDouble("deg")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             case "radToDeg": {
                 String out = String.valueOf(lib.radToDeg(params.optDouble("rad")));
-                return ok(out, "🔢 Result: " + out);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
             }
             default:
                 return error("Unsupported action: " + action);

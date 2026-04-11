@@ -46,6 +46,14 @@ public class ReminderPlugin implements ModulePlugin {
     /** 列表展示用完整日期时间：{@code yyyy-MM-dd HH:mm:ss}。 */
     private static final SimpleDateFormat SDF_DISPLAY = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 模块入口：按 {@code action} 分发到日历或闹钟相关逻辑。
      *
@@ -64,7 +72,7 @@ public class ReminderPlugin implements ModulePlugin {
             }
             case "listEvents": {
                 String out = listEvents(context, params);
-                return ok(out, formatListEventsDisplay(out, "📅 Upcoming Events"));
+                return ok(out, formatListEventsDisplay(out, false));
             }
             case "updateEvent":             return ok(updateEvent(context, params));
             case "deleteEvent": {
@@ -87,7 +95,7 @@ public class ReminderPlugin implements ModulePlugin {
             case "openCalendar":            return ok(openCalendar(context, params));
             case "getUpcoming": {
                 String out = getUpcoming(context, params);
-                return ok(out, formatListEventsDisplay(out, "📅 Next Events"));
+                return ok(out, formatListEventsDisplay(out, true));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -663,6 +671,9 @@ public class ReminderPlugin implements ModulePlugin {
             if (o.has("error")) return "";
             String title = o.optString("title", "");
             String time = o.optString("startTime", "");
+            if (isZh()) {
+                return "📅 事件已创建\n━━━━━━━━━━━━━━\n▸ 标题: " + title + "\n▸ 时间: " + time;
+            }
             return "📅 Event Created\n━━━━━━━━━━━━━━\n▸ Title: " + title + "\n▸ Time: " + time;
         } catch (Exception e) {
             return "";
@@ -673,21 +684,27 @@ public class ReminderPlugin implements ModulePlugin {
      * 将事件列表 JSON 格式化为多行展示。
      *
      * @param out         {@code listEvents} 或 {@code getUpcoming} 的 output JSON
-     * @param titlePrefix 标题前缀，例如「📅 Upcoming Events」或「📅 Next Events」
+     * @param nextEventsLabelEnglish {@code true} 时英文标题为 Next Events；{@code false} 时为 Upcoming Events。中文均用「即将到来的事件」。
      * @return 展示文本；错误时为空串
      */
-    private String formatListEventsDisplay(String out, String titlePrefix) {
+    private String formatListEventsDisplay(String out, boolean nextEventsLabelEnglish) {
         try {
             JSONObject o = new JSONObject(out);
             if (o.has("error")) return "";
             int count = o.optInt("count", 0);
             JSONArray events = o.optJSONArray("events");
             StringBuilder sb = new StringBuilder();
+            String titlePrefix;
+            if (isZh()) {
+                titlePrefix = "📅 即将到来的事件";
+            } else {
+                titlePrefix = nextEventsLabelEnglish ? "📅 Next Events" : "📅 Upcoming Events";
+            }
             sb.append(titlePrefix).append(" (").append(count).append(")\n━━━━━━━━━━━━━━\n");
             if (events != null) {
                 for (int i = 0; i < events.length(); i++) {
                     JSONObject ev = events.getJSONObject(i);
-                    String t = ev.optString("title", "(no title)");
+                    String t = ev.optString("title", isZh() ? "（无标题）" : "(no title)");
                     String start = ev.optString("startTime", "");
                     sb.append(i + 1).append(". ").append(t).append(" (").append(start).append(")\n");
                 }
@@ -708,7 +725,7 @@ public class ReminderPlugin implements ModulePlugin {
         try {
             JSONObject o = new JSONObject(out);
             if (o.has("error")) return "";
-            if (o.optBoolean("deleted", false)) return "🗑️ Event deleted";
+            if (o.optBoolean("deleted", false)) return isZh() ? "🗑️ 事件已删除" : "🗑️ Event deleted";
             return "";
         } catch (Exception e) {
             return "";
@@ -726,6 +743,9 @@ public class ReminderPlugin implements ModulePlugin {
             if (o.has("error")) return "";
             int hour = o.optInt("hour", 0);
             int minute = o.optInt("minute", 0);
+            if (isZh()) {
+                return String.format(Locale.getDefault(), "⏰ 闹钟已设置\n▸ 时间: %02d:%02d", hour, minute);
+            }
             return String.format(Locale.getDefault(), "⏰ Alarm Set\n▸ Time: %02d:%02d", hour, minute);
         } catch (Exception e) {
             return "";
@@ -745,6 +765,16 @@ public class ReminderPlugin implements ModulePlugin {
             int mins = seconds / 60;
             int secs = seconds % 60;
             String duration;
+            if (isZh()) {
+                if (secs == 0) {
+                    duration = mins + " 分钟";
+                } else if (mins == 0) {
+                    duration = secs + " 秒";
+                } else {
+                    duration = mins + " 分钟 " + secs + " 秒";
+                }
+                return "⏱️ 定时器已设置\n▸ 时长: " + duration;
+            }
             if (secs == 0) {
                 duration = mins + (mins == 1 ? " minute" : " minutes");
             } else if (mins == 0) {
@@ -767,7 +797,7 @@ public class ReminderPlugin implements ModulePlugin {
         try {
             JSONObject o = new JSONObject(out);
             if (o.has("error")) return "";
-            return "🎂 Birthday Reminder Created";
+            return isZh() ? "🎂 生日提醒已创建" : "🎂 Birthday Reminder Created";
         } catch (Exception e) {
             return "";
         }

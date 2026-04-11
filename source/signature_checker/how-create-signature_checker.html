@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>签名校验 (signature_checker) v1.2 — PandaGenie 模块文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-surface: #FEF7FF;
+      --md-on-surface: #1D1B20;
+      --md-outline: #CAC4D0;
+      --md-radius: 12px;
+      --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+      color: #fff; padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--md-shadow);
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.85rem); font-weight: 500; }
+    header.hero .meta { opacity: .92; font-size: .95rem; }
+    header.hero code { background: rgba(255,255,255,.15); padding: .15rem .4rem; border-radius: 6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: #fff; margin: -1.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: var(--md-radius);
+      box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: #4F378B; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff; border-radius: var(--md-radius); padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem; box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    section.card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+    p { margin: .6rem 0; }
+    table.api { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    table.api th, table.api td { border: 1px solid var(--md-outline); padding: .5rem .55rem; text-align: left; vertical-align: top; }
+    table.api th { background: var(--md-primary-container); color: #21005D; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
+    pre.json {
+      background: #2D2640; color: #E8DEF8; padding: 1rem; border-radius: 8px; overflow-x: auto;
+      font-size: .8rem; line-height: 1.45;
+    }
+    details.coll {
+      border: 1px solid var(--md-outline); border-radius: 8px; margin: .75rem 0; overflow: hidden;
+    }
+    details.coll > summary {
+      cursor: pointer; padding: .75rem 1rem; background: var(--md-primary-container); color: #21005D;
+      font-weight: 500;
+    }
+    details.coll .inner { padding: 1rem; background: #fff; }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; }
+    .flow { font-family: ui-monospace, monospace; background: #F3EDF7; padding: 1rem; border-radius: 8px; font-size: .82rem; white-space: pre-wrap; }
+    @media (max-width: 600px) { table.api { font-size: .75rem; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:920px;margin:0 auto;padding:0 1rem;">
+      <h1>签名校验 · Signature Checker</h1>
+      <div class="meta">
+        <span class="badge">v1.2</span>
+        <code>signature_checker</code> · Plugin: <code>SignatureCheckerPlugin</code> ·
+        <code>ai.rorsch.moduleplugins.signature_checker.SignatureCheckerPlugin</code>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#architecture">架构与信任根</a></li>
+        <li><a href="#class">类与方法</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#output">输出字段说明</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+        <li><a href="#manifest">manifest.json</a></li>
+      </ol>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述 Module overview</h2>
+      <p>
+        <strong>签名校验（signature_checker）</strong> 用于：读取<strong>当前宿主 APK</strong> 的签名证书（<code>PackageManager.GET_SIGNATURES</code>）并输出 SHA-256 fingerprint、Subject、Issuer；
+        对外部存储目录 <code>&lt;ExternalStorage&gt;/PandaGenie/modules/*.mod</code> 的模块包进行 <strong>JAR 校验</strong>（<code>JarFile(modFile, true)</code>），
+        比对条目证书与 assets 中内置 <strong>官方 PEM 证书</strong>（<code>module_signing/official_cert.pem</code>）是否一致，从而区分 <code>isOfficial</code> 与开发者证书指纹。
+      </p>
+      <p><strong>Capabilities：</strong> <code>file_read</code>。</p>
+    </section>
+
+    <section class="card" id="architecture">
+      <h2>架构 Architecture</h2>
+      <ul>
+        <li><strong>APK：</strong> 取 <code>signatures[0]</code>，<code>CertificateFactory</code> 解析为 <code>X509Certificate</code>，<code>sha256Fingerprint(getEncoded())</code>。</li>
+        <li><strong>模块 .mod：</strong> 作为 JAR/ZIP；逐条读取非 <code>META-INF/</code> 条目并读完流以触发 JAR 摘要验证；每条目须带 <code>Certificates</code>，否则失败。</li>
+        <li><strong>manifest.json：</strong> 自模块包内条目读取，解析 <code>id</code>、<code>name</code>、<code>version</code>、<code>developer</code>；BOM 会剥离。</li>
+        <li><strong>官方证书：</strong> <code>loadTrustedCert</code> 从 assets 读 PEM，Base64 解码后实例化 <code>X509Certificate</code>；失败则模块侧校验标记为未验证并带 error。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类与方法 SignatureCheckerPlugin</h2>
+      <table class="api">
+        <thead><tr><th>方法</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>invoke</code></td><td><code>verifyApk</code> | <code>verifyModule</code> | <code>verifyAllModules</code> | <code>verifyAll</code></td></tr>
+          <tr><td><code>verifyApkSignature</code></td><td>返回 verified, packageName, fingerprint, subject, issuer 或 error。</td></tr>
+          <tr><td><code>verifySingleModule</code></td><td>按 moduleId 匹配文件名或 manifest id 或 <code>id-</code> 前缀；调用 <code>verifyModSignature</code>。</td></tr>
+          <tr><td><code>verifyAllModules</code></td><td>目录下每个 .mod 一项。</td></tr>
+          <tr><td><code>verifyAll</code></td><td><code>{ apk, modules: JSONArray }</code>。</td></tr>
+          <tr><td><code>verifyModSignature</code></td><td>遍历条目 → 收集 <code>certMap</code>（指纹→证书）→ <code>isOfficial</code> → 选开发者指纹（非官方的第一条）。</td></tr>
+          <tr><td><code>loadTrustedCert</code></td><td>加载 PEM。</td></tr>
+          <tr><td><code>readManifestFromMod</code></td><td><code>JarFile(..., false)</code> 仅读 manifest 条目。</td></tr>
+          <tr><td><code>sha256Fingerprint</code></td><td>SHA-256，大写十六进制冒号分隔。</td></tr>
+          <tr><td><code>formatVerifyApkDisplay</code> 等</td><td><code>_displayText</code> Markdown 表格。</td></tr>
+          <tr><td><code>ok</code> / <code>error</code></td><td>标准封装。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="apis">
+      <h2>API Actions</h2>
+      <table class="api">
+        <thead><tr><th>action</th><th>params</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>verifyApk</code></td><td>无</td><td>当前应用包签名。</td></tr>
+          <tr><td><code>verifyModule</code></td><td><code>moduleId</code> 必填</td><td>匹配单个 .mod 文件。</td></tr>
+          <tr><td><code>verifyAllModules</code></td><td>无</td><td>目录内全部 .mod。</td></tr>
+          <tr><td><code>verifyAll</code></td><td>无</td><td>APK + 全部模块。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="output">
+      <h2>输出字段说明（模块校验成功时示例）</h2>
+      <p>成功校验且 <code>verified: true</code> 时常见字段：<code>file</code>, <code>id</code>, <code>name</code>, <code>version</code>, <code>developer</code>,
+      <code>verified</code>, <code>signerCount</code>, <code>isOfficial</code>, <code>officialFingerprint</code>, <code>officialSubject</code>,
+      <code>devFingerprint</code>, <code>devSubject</code>。失败时 <code>verified: false</code> 与 <code>error</code> 说明原因（未签名条目、篡改 SecurityException、无证书等）。</p>
+      <pre class="json">// 外层统一
+{ "success": true, "output": "&lt;JSON string&gt;", "_displayText": "..." }</pre>
+    </section>
+
+    <section class="card" id="dataflow">
+      <h2>数据流 Data flow</h2>
+      <div class="flow">ExternalStorage/PandaGenie/modules/*.mod
+  → JarFile 校验 + manifest.json
+  → 对比 assets official_cert.pem 指纹
+  → JSONObject 结果 → ok(output, displayText)</div>
+    </section>
+
+    <section class="card" id="manifest">
+      <h2>manifest.json 摘要</h2>
+      <ul>
+        <li><code>id</code>: signature_checker · <code>version</code>: 1.2</li>
+        <li><code>pluginClass</code>: ai.rorsch.moduleplugins.signature_checker.SignatureCheckerPlugin</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

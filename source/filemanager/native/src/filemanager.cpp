@@ -1,5 +1,4 @@
 #include "filemanager.h"
-#include "sandbox_guard.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -145,7 +144,6 @@ bool FileManager::deleteDirectoryRecursive(const std::string& path) {
 
 std::vector<FileInfo> FileManager::listDirectory(const std::string& path) {
     std::vector<FileInfo> entries;
-    if (!sandbox::SandboxGuard::checkRead(path)) return entries;
 
     DIR* d = opendir(path.c_str());
     if (!d) return entries;
@@ -176,17 +174,14 @@ std::vector<FileInfo> FileManager::listDirectory(const std::string& path) {
 }
 
 bool FileManager::createDirectory(const std::string& path) {
-    if (!sandbox::SandboxGuard::checkWrite(path)) return false;
     return mkdir(path.c_str(), 0755) == 0 || errno == EEXIST;
 }
 
 bool FileManager::deleteFile(const std::string& path) {
-    if (!sandbox::SandboxGuard::checkWrite(path)) return false;
     return ::remove(path.c_str()) == 0;
 }
 
 bool FileManager::deleteDirectory(const std::string& path, bool recursive) {
-    if (!sandbox::SandboxGuard::checkWrite(path)) return false;
     if (recursive) {
         return deleteDirectoryRecursive(path);
     }
@@ -194,8 +189,6 @@ bool FileManager::deleteDirectory(const std::string& path, bool recursive) {
 }
 
 bool FileManager::copyFile(const std::string& src, const std::string& dst) {
-    if (!sandbox::SandboxGuard::checkRead(src)) return false;
-    if (!sandbox::SandboxGuard::checkWrite(dst)) return false;
     FILE* in = fopen(src.c_str(), "rb");
     if (!in) return false;
 
@@ -230,9 +223,6 @@ bool FileManager::copyFile(const std::string& src, const std::string& dst) {
 }
 
 bool FileManager::moveFile(const std::string& src, const std::string& dst) {
-    if (!sandbox::SandboxGuard::checkRead(src)) return false;
-    if (!sandbox::SandboxGuard::checkWrite(src)) return false;
-    if (!sandbox::SandboxGuard::checkWrite(dst)) return false;
     if (::rename(src.c_str(), dst.c_str()) == 0) {
         return true;
     }
@@ -244,8 +234,6 @@ bool FileManager::moveFile(const std::string& src, const std::string& dst) {
 }
 
 bool FileManager::renameFile(const std::string& oldPath, const std::string& newPath) {
-    if (!sandbox::SandboxGuard::checkWrite(oldPath)) return false;
-    if (!sandbox::SandboxGuard::checkWrite(newPath)) return false;
     return ::rename(oldPath.c_str(), newPath.c_str()) == 0;
 }
 
@@ -254,8 +242,6 @@ FileInfo FileManager::getFileInfo(const std::string& path) {
     info.size = 0;
     info.lastModified = 0;
     info.isDirectory = false;
-
-    if (!sandbox::SandboxGuard::checkRead(path)) return info;
 
     struct stat st;
     if (stat(path.c_str(), &st) != 0) {
@@ -281,7 +267,6 @@ std::vector<std::string> FileManager::searchFiles(const std::string& dir,
                                                    const std::string& pattern,
                                                    bool recursive) {
     std::vector<std::string> results;
-    if (!sandbox::SandboxGuard::checkRead(dir)) return results;
 
     if (recursive) {
         searchFilesRecursive(dir, pattern, results);
@@ -309,7 +294,6 @@ std::vector<std::string> FileManager::searchFiles(const std::string& dir,
 }
 
 std::string FileManager::readTextFile(const std::string& path) {
-    if (!sandbox::SandboxGuard::checkRead(path)) return "";
     std::ifstream file(path, std::ios::in);
     if (!file.is_open()) return "";
 
@@ -319,7 +303,6 @@ std::string FileManager::readTextFile(const std::string& path) {
 }
 
 bool FileManager::writeTextFile(const std::string& path, const std::string& content) {
-    if (!sandbox::SandboxGuard::checkWrite(path)) return false;
     std::ofstream file(path, std::ios::out | std::ios::trunc);
     if (!file.is_open()) return false;
 
@@ -328,13 +311,11 @@ bool FileManager::writeTextFile(const std::string& path, const std::string& cont
 }
 
 bool FileManager::fileExists(const std::string& path) {
-    if (!sandbox::SandboxGuard::checkRead(path)) return false;
     struct stat st;
     return stat(path.c_str(), &st) == 0;
 }
 
 long long FileManager::getFileSize(const std::string& path) {
-    if (!sandbox::SandboxGuard::checkRead(path)) return -1;
     struct stat st;
     if (stat(path.c_str(), &st) != 0) return -1;
     return static_cast<long long>(st.st_size);

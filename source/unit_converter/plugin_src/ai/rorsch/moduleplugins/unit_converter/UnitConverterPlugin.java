@@ -141,6 +141,14 @@ public class UnitConverterPlugin implements ModulePlugin {
         CATEGORY_TITLES.put("data", "Data storage");
     }
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * 分发换算、列单位、列类别三类动作。
      *
@@ -176,7 +184,9 @@ public class UnitConverterPlugin implements ModulePlugin {
                 String prettyTo = displayUnitLabel(category, to);
                 String line = formatNumber(value) + " " + prettyFrom + " = " + outStr + " " + prettyTo;
                 String catTitle = categoryTitle(category);
-                String display = "📐 Unit Conversion\n" + line + "\nCategory: " + catTitle;
+                String display = isZh()
+                        ? ("📐 单位换算\n" + line + "\n类别: " + catTitle)
+                        : ("📐 Unit Conversion\n" + line + "\nCategory: " + catTitle);
                 return ok(out, display);
             }
             case "listUnits": {
@@ -201,7 +211,9 @@ public class UnitConverterPlugin implements ModulePlugin {
                     arr.put(c);
                 }
                 JSONObject out = new JSONObject().put("categories", arr);
-                return ok(out, "📋 Categories\n" + String.join(", ", keysList(CATEGORY_TITLES)));
+                return ok(out, isZh()
+                        ? ("📋 类别\n" + String.join(", ", keysList(CATEGORY_TITLES)))
+                        : ("📋 Categories\n" + String.join(", ", keysList(CATEGORY_TITLES))));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -215,8 +227,30 @@ public class UnitConverterPlugin implements ModulePlugin {
         return new ArrayList<>(map.keySet());
     }
 
-    /** 类别键对应的英文标题；未知则回显原键。 */
+    /** 类别键对应的展示标题；未知则回显原键。 */
     private static String categoryTitle(String category) {
+        if (isZh()) {
+            switch (category) {
+                case "length":
+                    return "长度";
+                case "weight":
+                    return "重量";
+                case "temperature":
+                    return "温度";
+                case "area":
+                    return "面积";
+                case "volume":
+                    return "体积";
+                case "speed":
+                    return "速度";
+                case "time":
+                    return "时间";
+                case "data":
+                    return "数据存储";
+                default:
+                    return category;
+            }
+        }
         return CATEGORY_TITLES.getOrDefault(category, category);
     }
 
@@ -224,6 +258,28 @@ public class UnitConverterPlugin implements ModulePlugin {
      * {@code listUnits} 展示用带图标的标题行。
      */
     private static String categoryListTitle(String category) {
+        if (isZh()) {
+            switch (category) {
+                case "length":
+                    return "📏 长度单位";
+                case "weight":
+                    return "⚖️ 重量单位";
+                case "temperature":
+                    return "🌡️ 温度单位";
+                case "area":
+                    return "⬛ 面积单位";
+                case "volume":
+                    return "🧴 体积单位";
+                case "speed":
+                    return "🚀 速度单位";
+                case "time":
+                    return "⏱️ 时间单位";
+                case "data":
+                    return "💾 数据单位";
+                default:
+                    return "📏 单位";
+            }
+        }
         switch (category) {
             case "length":
                 return "📏 Length Units";

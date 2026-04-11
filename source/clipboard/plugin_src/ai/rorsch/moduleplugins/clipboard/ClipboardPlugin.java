@@ -15,6 +15,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +54,38 @@ public class ClipboardPlugin implements ModulePlugin {
     private static final int DISPLAY_ITEM_MAX = 400;
     /** 搜索结果预览最多展示条数 */
     private static final int DISPLAY_SEARCH_PREVIEW = 5;
+
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static String pgTable(String title, String[] headers, List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) {
+                h.put(hdr);
+            }
+            t.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) {
+                JSONArray rowArr = new JSONArray();
+                for (String cell : row) {
+                    rowArr.put(cell);
+                }
+                r.put(rowArr);
+            }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) {
+            return title;
+        }
+    }
 
     /** 用于将剪贴板操作 post 到主线程执行 */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -188,28 +223,31 @@ public class ClipboardPlugin implements ModulePlugin {
      */
     private static String formatGetClipboardDisplay(JSONObject result) {
         String text = result.optString("text", "");
-        String body = text.isEmpty() ? "(empty)" : truncateForDisplay(text, DISPLAY_BODY_MAX);
-        return "📋 Clipboard Content\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Text | " + mdCell(body) + " |";
+        String emptyParen = "(" + (isZh() ? "空" : "empty") + ")";
+        String body = text.isEmpty() ? emptyParen : truncateForDisplay(text, DISPLAY_BODY_MAX);
+        String title = "📋 " + (isZh() ? "剪贴板内容" : "Clipboard Content");
+        return pgTable(title, new String[]{"Item", "Value"},
+                Collections.singletonList(new String[]{"Text", mdCell(body)}));
     }
 
     /**
      * @return 写入剪贴板成功时的固定提示语
      */
     private static String formatSetClipboardDisplay() {
-        return "✅ Copied to clipboard\n\n"
-                + "| Status | Message |\n|---|---|\n"
-                + "| OK | Copied to clipboard |";
+        String msg = isZh() ? "已复制到剪贴板" : "Copied to clipboard";
+        return pgTable("✅ " + msg,
+                new String[]{isZh() ? "状态" : "Status", isZh() ? "消息" : "Message"},
+                Collections.singletonList(new String[]{isZh() ? "成功" : "OK", msg}));
     }
 
     /**
      * @return 清空剪贴板成功时的固定提示语
      */
     private static String formatClearClipboardDisplay() {
-        return "🗑️ Clipboard cleared\n\n"
-                + "| Status | Message |\n|---|---|\n"
-                + "| OK | Clipboard cleared |";
+        String msg = isZh() ? "剪贴板已清空" : "Clipboard cleared";
+        return pgTable("🗑️ " + msg,
+                new String[]{isZh() ? "状态" : "Status", isZh() ? "消息" : "Message"},
+                Collections.singletonList(new String[]{isZh() ? "成功" : "OK", msg}));
     }
 
     /**
@@ -220,21 +258,23 @@ public class ClipboardPlugin implements ModulePlugin {
      */
     private static String formatGetClipboardHistoryDisplay(JSONObject result) {
         JSONArray items = result.optJSONArray("items");
+        String title = "📋 " + (isZh() ? "剪贴板历史" : "Clipboard History");
         if (items == null || items.length() == 0) {
-            return "📋 Clipboard History\n\n"
-                    + "| Item | Value |\n|---|---|\n"
-                    + "| Entries | (no entries) |";
+            String entriesLabel = isZh() ? "条记录" : "Entries";
+            String noEntries = isZh() ? "(无记录)" : "(no entries)";
+            return pgTable(title, new String[]{"Item", "Value"},
+                    Collections.singletonList(new String[]{entriesLabel, noEntries}));
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("📋 Clipboard History\n\n");
-        sb.append("| # | Preview |\n|---|---|\n");
+        String previewHeader = isZh() ? "预览" : "Preview";
+        String emptyParen = "(" + (isZh() ? "空" : "empty") + ")";
+        List<String[]> rows = new ArrayList<>();
         for (int i = 0; i < items.length(); i++) {
             JSONObject row = items.optJSONObject(i);
             String t = row != null ? row.optString("text", "") : "";
-            String line = t.isEmpty() ? "(empty)" : truncateForDisplay(t, DISPLAY_ITEM_MAX);
-            sb.append("| ").append(i + 1).append(" | ").append(mdCell(line)).append(" |\n");
+            String line = t.isEmpty() ? emptyParen : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            rows.add(new String[]{String.valueOf(i + 1), mdCell(line)});
         }
-        return sb.toString().trim();
+        return pgTable(title, new String[]{"#", previewHeader}, rows);
     }
 
     /**
@@ -245,9 +285,10 @@ public class ClipboardPlugin implements ModulePlugin {
      */
     private static String formatSaveToHistoryDisplay(JSONObject result) {
         int len = result.optInt("textLength", 0);
-        return "✅ Saved to clipboard history\n\n"
-                + "| Item | Value |\n|---|---|\n"
-                + "| Characters | " + len + " |";
+        String title = "✅ " + (isZh() ? "已保存到剪贴板历史" : "Saved to clipboard history");
+        String charsLabel = isZh() ? "字符" : "Characters";
+        return pgTable(title, new String[]{"Item", "Value"},
+                Collections.singletonList(new String[]{charsLabel, String.valueOf(len)}));
     }
 
     /**
@@ -259,34 +300,40 @@ public class ClipboardPlugin implements ModulePlugin {
     private static String formatSearchHistoryDisplay(JSONObject result) {
         int count = result.optInt("count", 0);
         JSONArray items = result.optJSONArray("items");
-        StringBuilder sb = new StringBuilder();
-        sb.append("🔍 Search Results\n\n");
-        sb.append("| Item | Value |\n|---|---|\n");
-        sb.append("| Matches found | ").append(count).append(" |\n\n");
+        String title = "🔍 " + (isZh() ? "搜索结果" : "Search Results");
+        String matchesLabel = isZh() ? "找到匹配" : "Matches found";
+        String part1 = pgTable(title, new String[]{"Item", "Value"},
+                Collections.singletonList(new String[]{matchesLabel, String.valueOf(count)}));
         if (items == null || items.length() == 0) {
-            return sb.toString().trim();
+            return part1;
         }
-        sb.append("| # | Preview |\n|---|---|\n");
+        String previewHeader = isZh() ? "预览" : "Preview";
+        String emptyParen = "(" + (isZh() ? "空" : "empty") + ")";
+        List<String[]> rows = new ArrayList<>();
         int show = Math.min(items.length(), DISPLAY_SEARCH_PREVIEW);
         for (int i = 0; i < show; i++) {
             JSONObject row = items.optJSONObject(i);
             String t = row != null ? row.optString("text", "") : "";
-            String line = t.isEmpty() ? "(empty)" : truncateForDisplay(t, DISPLAY_ITEM_MAX);
-            sb.append("| ").append(i + 1).append(" | ").append(mdCell(line)).append(" |\n");
+            String line = t.isEmpty() ? emptyParen : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            rows.add(new String[]{String.valueOf(i + 1), mdCell(line)});
         }
         if (items.length() > DISPLAY_SEARCH_PREVIEW) {
-            sb.append("| … | ").append(items.length() - DISPLAY_SEARCH_PREVIEW).append(" more not shown |");
+            String more = (items.length() - DISPLAY_SEARCH_PREVIEW) + " "
+                    + (isZh() ? "更多未显示" : "more not shown");
+            rows.add(new String[]{"…", more});
         }
-        return sb.toString().trim();
+        String part2 = pgTable("", new String[]{"#", previewHeader}, rows);
+        return part1 + "\n\n" + part2;
     }
 
     /**
      * @return 清空持久化历史后的固定提示语
      */
     private static String formatClearHistoryDisplay() {
-        return "🗑️ History cleared\n\n"
-                + "| Status | Message |\n|---|---|\n"
-                + "| OK | History cleared |";
+        String msg = isZh() ? "历史已清空" : "History cleared";
+        return pgTable("🗑️ " + msg,
+                new String[]{isZh() ? "状态" : "Status", isZh() ? "消息" : "Message"},
+                Collections.singletonList(new String[]{isZh() ? "成功" : "OK", msg}));
     }
 
     /**

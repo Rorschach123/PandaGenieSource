@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>笔记助手 (notes) — PandaGenie 模块文档</title>
+  <style>
+    :root {
+      --md-primary: #6750A4;
+      --md-primary-container: #EADDFF;
+      --md-surface: #FEF7FF;
+      --md-on-surface: #1D1B20;
+      --md-outline: #CAC4D0;
+      --md-radius: 12px;
+      --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Roboto", "Noto Sans SC", system-ui, sans-serif;
+      background: var(--md-surface); color: var(--md-on-surface); line-height: 1.65;
+    }
+    header.hero {
+      background: linear-gradient(135deg, #6750A4 0%, #4F378B 100%);
+      color: #fff; padding: 2rem 1.25rem 2.5rem;
+      box-shadow: var(--md-shadow);
+    }
+    header.hero h1 { margin: 0 0 .5rem; font-size: clamp(1.35rem, 4vw, 1.85rem); font-weight: 500; }
+    header.hero .meta { opacity: .92; font-size: .95rem; }
+    header.hero code { background: rgba(255,255,255,.15); padding: .15rem .4rem; border-radius: 6px; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 1rem 3rem; }
+    nav.toc {
+      background: #fff; margin: -1.5rem 0 1.5rem; padding: 1rem 1.25rem; border-radius: var(--md-radius);
+      box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    nav.toc h2 { margin: 0 0 .75rem; font-size: 1rem; color: var(--md-primary); }
+    nav.toc ol { margin: 0; padding-left: 1.25rem; }
+    nav.toc a { color: #4F378B; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section.card {
+      background: #fff; border-radius: var(--md-radius); padding: 1.25rem 1.35rem;
+      margin-bottom: 1rem; box-shadow: var(--md-shadow); border: 1px solid var(--md-outline);
+    }
+    section.card h2 { margin: 0 0 1rem; font-size: 1.2rem; color: var(--md-primary); border-bottom: 2px solid var(--md-primary-container); padding-bottom: .5rem; }
+    section.card h3 { margin: 1.25rem 0 .5rem; font-size: 1.05rem; color: #362863; }
+    p { margin: .6rem 0; }
+    table.api { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table.api th, table.api td { border: 1px solid var(--md-outline); padding: .55rem .65rem; text-align: left; vertical-align: top; }
+    table.api th { background: var(--md-primary-container); color: #21005D; }
+    code { font-family: ui-monospace, Consolas, monospace; font-size: .88em; }
+    pre.json {
+      background: #2D2640; color: #E8DEF8; padding: 1rem; border-radius: 8px; overflow-x: auto;
+      font-size: .82rem; line-height: 1.45;
+    }
+    details.coll {
+      border: 1px solid var(--md-outline); border-radius: 8px; margin: .75rem 0; overflow: hidden;
+    }
+    details.coll > summary {
+      cursor: pointer; padding: .75rem 1rem; background: var(--md-primary-container); color: #21005D;
+      font-weight: 500;
+    }
+    details.coll .inner { padding: 1rem; background: #fff; }
+    .badge { display: inline-block; background: var(--md-primary); color: #fff; padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; }
+    .flow { font-family: ui-monospace, monospace; background: #F3EDF7; padding: 1rem; border-radius: 8px; font-size: .85rem; white-space: pre-wrap; }
+    @media (max-width: 600px) { table.api { font-size: .8rem; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap" style="max-width:920px;margin:0 auto;padding:0 1rem;">
+      <h1>笔记助手 · Notes</h1>
+      <div class="meta">
+        <span class="badge">manifest v1.0</span>
+        <code>notes</code> · Plugin: <code>NotesPlugin</code> ·
+        <code>ai.rorsch.moduleplugins.notes.NotesPlugin</code>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="toc" aria-label="目录">
+      <h2>目录 Table of Contents</h2>
+      <ol>
+        <li><a href="#overview">模块概述</a></li>
+        <li><a href="#storage">数据模型与存储</a></li>
+        <li><a href="#architecture">架构</a></li>
+        <li><a href="#class">类与方法详解</a></li>
+        <li><a href="#apis">API Actions</a></li>
+        <li><a href="#response">响应封装</a></li>
+        <li><a href="#dataflow">数据流</a></li>
+        <li><a href="#manifest">manifest.json</a></li>
+      </ol>
+    </nav>
+
+    <section class="card" id="overview">
+      <h2>模块概述 Module overview</h2>
+      <p>
+        <strong>笔记（notes）</strong> 模块在固定目录 <code>/sdcard/PandaGenie/data/notes/</code> 下以 <strong>每篇笔记一个 JSON 文件</strong>（<code>{id}.json</code>）持久化数据。
+        支持创建、列表（含可选关键词过滤）、按 ID 读取全文、按字段更新、删除、搜索（关键词必填）以及导出为纯文本 <code>.txt</code>。
+      </p>
+      <p>
+        <strong>Capabilities：</strong> <code>file_read</code>、<code>file_write</code>。
+        <strong>Permissions：</strong> <code>MANAGE_EXTERNAL_STORAGE</code>（manifest 描述用于本地存储读写；实际以宿主权限为准）。
+      </p>
+      <p>文档说明：用户场景下亦称「便签/笔记」；本页以源码与 <code>manifest.json</code> 为准。</p>
+    </section>
+
+    <section class="card" id="storage">
+      <h2>数据模型与存储 Data model</h2>
+      <p>单篇笔记 JSON 字段（由 <code>createNote</code> / <code>updateNote</code> 维护）：</p>
+      <table class="api">
+        <thead><tr><th>字段</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>唯一 ID：毫秒时间戳 + 随机后缀，冲突时重试最多 256 次。</td></tr>
+          <tr><td><code>title</code></td><td>标题，创建时必填非空（trim 后）。</td></tr>
+          <tr><td><code>content</code></td><td>正文，可为空串。</td></tr>
+          <tr><td><code>createdAt</code></td><td>创建时间，格式 <code>yyyy-MM-dd HH:mm:ss</code>（默认 Locale）。</td></tr>
+          <tr><td><code>updatedAt</code></td><td>创建或每次更新时刷新。</td></tr>
+        </tbody>
+      </table>
+      <p><strong>列表排序：</strong> <code>loadAllNotes()</code> 按 <code>updatedAt</code> 字符串降序（字典序等价于时间先后，因格式固定）。</p>
+      <p><strong>预览：</strong> <code>PREVIEW_MAX = 120</code>，超出截断加 <code>...</code>。</p>
+    </section>
+
+    <section class="card" id="architecture">
+      <h2>架构 Architecture</h2>
+      <ul>
+        <li><strong>ModulePlugin</strong> 单类实现，无其它 Java 类文件。</li>
+        <li><strong>invoke</strong> 捕获 <code>IllegalArgumentException</code> 转为 <code>error(message)</code>；其它异常继续向上抛出（由宿主处理）。</li>
+        <li><strong>IO：</strong> <code>FileReader</code>/<code>FileWriter</code> 平台默认编码（注释写明与 UTF-8 命名差异，实际为平台 charset）。</li>
+        <li><strong>损坏文件：</strong> 扫描目录时解析失败的 <code>.json</code> 跳过，不中断列表。</li>
+      </ul>
+    </section>
+
+    <section class="card" id="class">
+      <h2>类与方法详解 NotesPlugin</h2>
+      <p>包：<code>ai.rorsch.moduleplugins.notes</code>。</p>
+      <details class="coll" open>
+        <summary>公开入口</summary>
+        <div class="inner">
+          <p><code>String invoke(Context context, String action, String paramsJson)</code> — <code>context</code> 当前实现未使用，保留接口一致性。</p>
+        </div>
+      </details>
+      <details class="coll">
+        <summary>响应与展示</summary>
+        <div class="inner">
+          <table class="api">
+            <tbody>
+              <tr><td><code>ok(output, displayText)</code></td><td><code>success</code>，可选 <code>_displayText</code>。</td></tr>
+              <tr><td><code>error(msg)</code></td><td><code>success: false</code>。</td></tr>
+              <tr><td><code>formatCreateNoteDisplay</code> … <code>formatExportNoteDisplay</code></td><td>各 action 的 UI 文案。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="coll">
+        <summary>文件与 ID</summary>
+        <div class="inner">
+          <table class="api">
+            <tbody>
+              <tr><td><code>ensureNotesDir()</code></td><td><code>mkdirs</code> 创建目录。</td></tr>
+              <tr><td><code>noteFile(String id)</code></td><td><code>NOTES_DIR + id + ".json"</code>。</td></tr>
+              <tr><td><code>generateNoteId()</code></td><td>时间戳 + 随机数，冲突重试。</td></tr>
+              <tr><td><code>readFileUtf8</code> / <code>writeFileUtf8</code></td><td>读写全文（注意方法名与编码注释）。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="coll">
+        <summary>业务逻辑</summary>
+        <div class="inner">
+          <table class="api">
+            <tbody>
+              <tr><td><code>loadAllNotes()</code></td><td>遍历 <code>.json</code>，解析、排序。</td></tr>
+              <tr><td><code>matchesKeyword(note, keywordLower)</code></td><td>标题或正文包含（小写）；空关键词视为全匹配。</td></tr>
+              <tr><td><code>toSummary(JSONObject)</code></td><td>生成列表行：id, title, createdAt, updatedAt, preview（无全文）。</td></tr>
+              <tr><td><code>createNote</code></td><td>校验 title、写入新文件。</td></tr>
+              <tr><td><code>listNotes</code></td><td>可选 <code>keyword</code> 过滤。</td></tr>
+              <tr><td><code>getNote</code></td><td>必填 <code>id</code>，文件须存在。</td></tr>
+              <tr><td><code>updateNote</code></td><td>必填 <code>id</code>，至少提供 <code>title</code> 或 <code>content</code> 键之一（可为空串）。</td></tr>
+              <tr><td><code>deleteNote</code></td><td>删除文件，返回 deleted, id。</td></tr>
+              <tr><td><code>searchNotes</code></td><td>必填非空 <code>keyword</code>。</td></tr>
+              <tr><td><code>exportNote</code></td><td><code>path</code> 以 <code>.txt</code> 结尾则写该文件；否则视为目录，写入 <code>{id}.txt</code>；内容第一行标题，空行后正文。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="apis">
+      <h2>API Actions（输入 / 输出）</h2>
+      <table class="api">
+        <thead><tr><th>action</th><th>参数 params</th><th>output 内嵌结构（业务 JSON 字符串 parse 后）</th></tr></thead>
+        <tbody>
+          <tr><td><code>createNote</code></td><td><code>title</code> 必填；<code>content</code> 可选</td><td>完整笔记对象</td></tr>
+          <tr><td><code>listNotes</code></td><td><code>keyword</code> 可选</td><td><code>{ notes: [summary], count }</code></td></tr>
+          <tr><td><code>getNote</code></td><td><code>id</code></td><td>文件原始 JSON 字符串内容</td></tr>
+          <tr><td><code>updateNote</code></td><td><code>id</code>；<code>title</code> / <code>content</code> 按需</td><td>更新后完整笔记</td></tr>
+          <tr><td><code>deleteNote</code></td><td><code>id</code></td><td><code>{ deleted: true, id }</code></td></tr>
+          <tr><td><code>searchNotes</code></td><td><code>keyword</code> 必填</td><td><code>{ notes, count }</code></td></tr>
+          <tr><td><code>exportNote</code></td><td><code>id</code>, <code>path</code></td><td><code>{ exported: true, path: 绝对路径 }</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="response">
+      <h2>响应封装</h2>
+      <pre class="json">// 成功
+{ "success": true, "output": "&lt;string&gt;", "_displayText": "..." }
+
+// 失败（IllegalArgumentException 或 invoke 未捕获前）
+{ "success": false, "error": "..." }</pre>
+    </section>
+
+    <section class="card" id="dataflow">
+      <h2>数据流 Data flow</h2>
+      <div class="flow">User / LLM → ModuleRuntime.invokePlugin("notes", action, paramsJson)
+  → NotesPlugin.invoke
+  → 读写 /sdcard/PandaGenie/data/notes/*.json
+  → ok(outputString, _displayText)
+  → 前端展示列表/摘要或导出路径</div>
+    </section>
+
+    <section class="card" id="manifest">
+      <h2>manifest.json 摘要</h2>
+      <ul>
+        <li><code>id</code>: notes · <code>version</code>: 1.0 · <code>pluginClass</code>: ai.rorsch.moduleplugins.notes.NotesPlugin</li>
+        <li><code>apis</code> 与源码 action 名称一致</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

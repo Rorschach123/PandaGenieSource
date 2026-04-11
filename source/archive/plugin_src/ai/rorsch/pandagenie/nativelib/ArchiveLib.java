@@ -15,7 +15,4 @@ public class ArchiveLib {
     public native boolean compressTarGz(String[] inputPaths, String outputPath);
     public native boolean decompressTarGz(String archivePath, String outputDir);
     public native String listContents(String archivePath);
-
-    public static native void nativeConfigureSandbox(String[] readPaths, String[] writePaths);
-    public static native void nativeClearSandbox();
 }

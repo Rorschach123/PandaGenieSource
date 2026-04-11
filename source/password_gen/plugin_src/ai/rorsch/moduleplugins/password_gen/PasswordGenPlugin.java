@@ -485,6 +485,20 @@ public class PasswordGenPlugin implements ModulePlugin {
         return s.replace("|", "\\|").replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
     }
 
+    private static String pgTable(String title, String[] headers, java.util.List<String[]> rows) {
+        try {
+            JSONObject t = new JSONObject();
+            t.put("title", title);
+            JSONArray h = new JSONArray();
+            for (String hdr : headers) h.put(hdr);
+            t.put("headers", h);
+            JSONArray r = new JSONArray();
+            for (String[] row : rows) { JSONArray a = new JSONArray(); for (String c : row) a.put(c); r.put(a); }
+            t.put("rows", r);
+            return "__pg_table__" + t.toString() + "__pg_table_end__";
+        } catch (Exception e) { return title; }
+    }
+
     /**
      * 单条生成结果的展示文案（掩码 + 长度 + 强度标签）。
      *
@@ -497,12 +511,14 @@ public class PasswordGenPlugin implements ModulePlugin {
         String lenKey = zh ? "长度" : "Length";
         String strKey = zh ? "强度" : "Strength";
         String hint = zh ? "（可使用剪贴板模块复制）" : "(Use clipboard module to copy)";
+        String[] headers = { zh ? "项目" : "Item", zh ? "值" : "Value" };
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { label, mdCell(maskForDisplay(out.optString("password"))) });
+        rows.add(new String[] { lenKey, String.valueOf(out.optInt("length")) });
+        rows.add(new String[] { strKey, mdCell(out.optString("strengthLabel")) });
+        rows.add(new String[] { zh ? "提示" : "Note", mdCell(hint) });
         return "\uD83D\uDD10 " + (zh ? "已生成密码" : "Password Generated") + "\n\n"
-                + "| " + (zh ? "项目" : "Item") + " | " + (zh ? "值" : "Value") + " |\n|---|---|\n"
-                + "| " + label + " | " + mdCell(maskForDisplay(out.optString("password"))) + " |\n"
-                + "| " + lenKey + " | " + out.optInt("length") + " |\n"
-                + "| " + strKey + " | " + mdCell(out.optString("strengthLabel")) + " |\n"
-                + "| " + (zh ? "提示" : "Note") + " | " + mdCell(hint) + " |";
+                + pgTable(zh ? "详情" : "Details", headers, rows);
     }
 
     /**
@@ -516,21 +532,25 @@ public class PasswordGenPlugin implements ModulePlugin {
         JSONArray arr = out.optJSONArray("passwords");
         int n = arr != null ? arr.length() : 0;
         String head = zh ? "已生成多条密码" : "Passwords Generated";
+        String hint = zh ? "（可使用剪贴板模块复制）" : "(Use clipboard module to copy)";
+        String[] headers1 = { zh ? "项目" : "Item", zh ? "值" : "Value" };
+        List<String[]> rows1 = new ArrayList<>();
+        rows1.add(new String[] { zh ? "数量" : "Count", String.valueOf(out.optInt("count")) });
+        rows1.add(new String[] { zh ? "每条长度" : "Length each", String.valueOf(out.optInt("length")) });
+        rows1.add(new String[] { zh ? "提示" : "Note", mdCell(hint) });
         StringBuilder sb = new StringBuilder();
         sb.append("\uD83D\uDD10 ").append(head).append("\n\n");
-        sb.append("| ").append(zh ? "项目" : "Item").append(" | ").append(zh ? "值" : "Value").append(" |\n|---|---|\n");
-        sb.append("| ").append(zh ? "数量" : "Count").append(" | ").append(out.optInt("count")).append(" |\n");
-        sb.append("| ").append(zh ? "每条长度" : "Length each").append(" | ").append(out.optInt("length")).append(" |\n");
-        String hint = zh ? "（可使用剪贴板模块复制）" : "(Use clipboard module to copy)";
-        sb.append("| ").append(zh ? "提示" : "Note").append(" | ").append(mdCell(hint)).append(" |\n\n");
-        sb.append("| # | ").append(zh ? "密码（预览）" : "Password (preview)").append(" |\n|---|---|\n");
+        sb.append(pgTable(zh ? "摘要" : "Summary", headers1, rows1));
+        String[] headers2 = { "#", zh ? "密码（预览）" : "Password (preview)" };
+        List<String[]> rows2 = new ArrayList<>();
         int show = Math.min(3, n);
         for (int i = 0; i < show; i++) {
-            sb.append("| ").append(i + 1).append(" | ").append(mdCell(maskForDisplay(arr.optString(i)))).append(" |\n");
+            rows2.add(new String[] { String.valueOf(i + 1), mdCell(maskForDisplay(arr.optString(i))) });
         }
         if (n > 3) {
-            sb.append("| … | ").append(zh ? "其余已省略显示" : "more hidden").append(" |\n");
+            rows2.add(new String[] { "…", zh ? "其余已省略显示" : "more hidden" });
         }
+        sb.append("\n\n").append(pgTable(zh ? "预览" : "Preview", headers2, rows2));
         return sb.toString().trim();
     }
 
@@ -543,11 +563,13 @@ public class PasswordGenPlugin implements ModulePlugin {
      */
     private String formatPassphraseDisplay(JSONObject out, boolean zh) {
         String phrase = out.optString("passphrase");
+        String[] headers = { zh ? "项目" : "Item", zh ? "值" : "Value" };
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "短语" : "Phrase", mdCell(phrase) });
+        rows.add(new String[] { zh ? "词数" : "Words", String.valueOf(out.optInt("wordCount")) });
+        rows.add(new String[] { zh ? "分隔符" : "Separator", mdCell(out.optString("separator")) });
         return "\uD83D\uDD10 " + (zh ? "助记短语" : "Passphrase") + "\n\n"
-                + "| " + (zh ? "项目" : "Item") + " | " + (zh ? "值" : "Value") + " |\n|---|---|\n"
-                + "| " + (zh ? "短语" : "Phrase") + " | " + mdCell(phrase) + " |\n"
-                + "| " + (zh ? "词数" : "Words") + " | " + out.optInt("wordCount") + " |\n"
-                + "| " + (zh ? "分隔符" : "Separator") + " | " + mdCell(out.optString("separator")) + " |";
+                + pgTable(zh ? "详情" : "Details", headers, rows);
     }
 
     /**
@@ -562,15 +584,16 @@ public class PasswordGenPlugin implements ModulePlugin {
         String label = out.optString("ratingLabel");
         StringBuilder sb = new StringBuilder();
         sb.append("\uD83D\uDD0D ").append(zh ? "密码强度" : "Password Strength").append("\n\n");
-        sb.append("| ").append(zh ? "指标" : "Metric").append(" | ").append(zh ? "值" : "Value").append(" |\n|---|---|\n");
-        sb.append("| ").append(zh ? "评级" : "Rating").append(" | ").append(mdCell(label)).append(" |\n");
-        sb.append("| ").append(zh ? "分数" : "Score").append(" | ").append(score).append("/100 |\n");
-        sb.append("| ").append(zh ? "熵（比特）" : "Entropy (bits)").append(" | ")
-                .append(out.optDouble("entropyBits")).append(" |\n");
-        sb.append("| ").append(zh ? "长度" : "Length").append(" | ").append(out.optInt("length")).append(" |\n\n");
+        String[] headers1 = { zh ? "指标" : "Metric", zh ? "值" : "Value" };
+        List<String[]> rows1 = new ArrayList<>();
+        rows1.add(new String[] { zh ? "评级" : "Rating", mdCell(label) });
+        rows1.add(new String[] { zh ? "分数" : "Score", score + "/100" });
+        rows1.add(new String[] { zh ? "熵（比特）" : "Entropy (bits)", String.valueOf(out.optDouble("entropyBits")) });
+        rows1.add(new String[] { zh ? "长度" : "Length", String.valueOf(out.optInt("length")) });
+        sb.append(pgTable(zh ? "概览" : "Overview", headers1, rows1));
 
-        sb.append("| ").append(zh ? "检查项" : "Check").append(" | ").append(zh ? "通过" : "Pass").append(" | ")
-                .append(zh ? "说明" : "Detail").append(" |\n|---|---|---|\n");
+        String[] headers2 = { zh ? "检查项" : "Check", zh ? "通过" : "Pass", zh ? "说明" : "Detail" };
+        List<String[]> rows2 = new ArrayList<>();
         JSONArray checks = out.optJSONArray("checks");
         if (checks != null) {
             for (int i = 0; i < checks.length(); i++) {
@@ -578,17 +601,19 @@ public class PasswordGenPlugin implements ModulePlugin {
                 if (c == null) continue;
                 boolean pass = c.optBoolean("pass");
                 String passStr = pass ? (zh ? "是" : "yes") : (zh ? "否" : "no");
-                sb.append("| ").append(mdCell(c.optString("key"))).append(" | ").append(passStr).append(" | ")
-                        .append(mdCell(c.optString("message"))).append(" |\n");
+                rows2.add(new String[] { mdCell(c.optString("key")), passStr, mdCell(c.optString("message")) });
             }
         }
+        sb.append("\n\n").append(pgTable(zh ? "检查" : "Checks", headers2, rows2));
 
         JSONArray rec = out.optJSONArray("recommendations");
         if (rec != null && rec.length() > 0) {
-            sb.append("\n| # | ").append(zh ? "建议" : "Tip").append(" |\n|---|---|\n");
+            String[] headers3 = { "#", zh ? "建议" : "Tip" };
+            List<String[]> rows3 = new ArrayList<>();
             for (int i = 0; i < rec.length(); i++) {
-                sb.append("| ").append(i + 1).append(" | ").append(mdCell(rec.optString(i))).append(" |\n");
+                rows3.add(new String[] { String.valueOf(i + 1), mdCell(rec.optString(i)) });
             }
+            sb.append("\n\n").append(pgTable(zh ? "建议" : "Tips", headers3, rows3));
         }
         return sb.toString().trim();
     }
