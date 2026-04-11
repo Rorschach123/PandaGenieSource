@@ -46,9 +46,14 @@ public class FileManagerPlugin implements ModulePlugin {
     private static String displayPath(String path) {
         String p = path.replace("/storage/emulated/0/", "/sdcard/")
                        .replace("/storage/emulated/0", "/sdcard");
-        if (p.length() <= PATH_MAX_DISPLAY) return p;
-        int keep = 18;
+        if (p.length() <= 20) return p;
+        int keep = 8;
         return p.substring(0, keep) + "…" + p.substring(p.length() - keep);
+    }
+
+    private static String fullDisplayPath(String path) {
+        return path.replace("/storage/emulated/0/", "/sdcard/")
+                   .replace("/storage/emulated/0", "/sdcard");
     }
 
     /**
@@ -164,14 +169,24 @@ public class FileManagerPlugin implements ModulePlugin {
         if (!srcFile.exists()) return error(op + ": source not found: " + src);
 
         File dstFile = new File(dst);
-        // 若目标是目录，则在目录下使用与源文件相同的文件名
         if (dstFile.isDirectory()) {
             dstFile = new File(dstFile, srcFile.getName());
             dst = dstFile.getAbsolutePath();
         }
 
+        // Skip move when source and destination resolve to the same path
+        if (isMove) {
+            try {
+                String srcCanonical = srcFile.getCanonicalPath();
+                String dstCanonical = dstFile.getCanonicalPath();
+                if (srcCanonical.equals(dstCanonical)) {
+                    String disp = "⏭ 源路径与目标路径相同，无需移动\n  " + srcCanonical;
+                    return ok("true", disp);
+                }
+            } catch (Exception ignored) {}
+        }
+
         File dstParent = dstFile.getParentFile();
-        // 目标父目录不存在时尝试递归创建，避免原生调用因目录缺失失败
         if (dstParent != null && !dstParent.exists()) {
             dstParent.mkdirs();
         }
@@ -316,8 +331,8 @@ public class FileManagerPlugin implements ModulePlugin {
     private static String formatCopyDisplay(String src, String dst) {
         boolean zh = isZh();
         return "📋 " + (zh ? "已复制" : "Copied")
-                + "\n▸ " + (zh ? "来源: " : "From: ") + displayPath(src)
-                + "\n▸ " + (zh ? "目标: " : "To: ") + displayPath(dst);
+                + "\n▸ " + (zh ? "来源: " : "From: ") + fullDisplayPath(src)
+                + "\n▸ " + (zh ? "目标: " : "To: ") + fullDisplayPath(dst);
     }
 
     /**
@@ -330,8 +345,8 @@ public class FileManagerPlugin implements ModulePlugin {
     private static String formatMoveDisplay(String src, String dst) {
         boolean zh = isZh();
         return "📦 " + (zh ? "已移动" : "Moved")
-                + "\n▸ " + (zh ? "来源: " : "From: ") + displayPath(src)
-                + "\n▸ " + (zh ? "目标: " : "To: ") + displayPath(dst);
+                + "\n▸ " + (zh ? "来源: " : "From: ") + fullDisplayPath(src)
+                + "\n▸ " + (zh ? "目标: " : "To: ") + fullDisplayPath(dst);
     }
 
     /**
