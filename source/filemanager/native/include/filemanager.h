@@ -38,8 +38,9 @@ private:
     static bool multiPatternMatch(const std::string& text, const std::string& pattern);
     static void searchFilesRecursive(const std::string& dir,
                                      const std::string& pattern,
-                                     std::vector<std::string>& results);
-    static bool deleteDirectoryRecursive(const std::string& path);
+                                     std::vector<std::string>& results,
+                                     int depth);
+    static bool deleteDirectoryRecursive(const std::string& path, int depth);
 };
 
 } // namespace filemgr

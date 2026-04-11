@@ -1,9 +1,9 @@
-{
+﻿{
     "id": "system_cleaner",
     "name": "系统清理",
     "name_en": "System Cleaner",
     "name_zh": "系统清理",
-    "version": "1.1",
+    "version": "1.2",
     "description": "系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间",
     "description_en": "System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space",
     "icon": "delete_sweep",

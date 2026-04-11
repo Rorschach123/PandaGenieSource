@@ -15,6 +15,7 @@
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 
 static constexpr size_t MAX_SEARCH_RESULTS = 5000;
+static constexpr int MAX_RECURSION_DEPTH = 20;
 
 namespace filemgr {
 
@@ -72,12 +73,16 @@ bool FileManager::multiPatternMatch(const std::string& text, const std::string& 
 
 void FileManager::searchFilesRecursive(const std::string& dir,
                                        const std::string& pattern,
-                                       std::vector<std::string>& results) {
+                                       std::vector<std::string>& results,
+                                       int depth) {
     if (results.size() >= MAX_SEARCH_RESULTS) return;
+    if (depth >= MAX_RECURSION_DEPTH) return;
 
     DIR* d = opendir(dir.c_str());
     if (!d) {
-        LOGW("opendir failed: %s errno=%d (%s)", dir.c_str(), errno, strerror(errno));
+        if (depth < 3) {
+            LOGW("opendir failed: %s errno=%d (%s)", dir.c_str(), errno, strerror(errno));
+        }
         return;
     }
 
@@ -98,14 +103,19 @@ void FileManager::searchFilesRecursive(const std::string& dir,
         }
 
         if (S_ISDIR(st.st_mode)) {
-            searchFilesRecursive(fullPath, pattern, results);
+            searchFilesRecursive(fullPath, pattern, results, depth + 1);
         }
     }
 
     closedir(d);
 }
 
-bool FileManager::deleteDirectoryRecursive(const std::string& path) {
+bool FileManager::deleteDirectoryRecursive(const std::string& path, int depth) {
+    if (depth >= MAX_RECURSION_DEPTH) {
+        LOGW("deleteDirectoryRecursive: max depth reached at %s", path.c_str());
+        return false;
+    }
+
     DIR* d = opendir(path.c_str());
     if (!d) return false;
 
@@ -127,7 +137,7 @@ bool FileManager::deleteDirectoryRecursive(const std::string& path) {
         }
 
         if (S_ISDIR(st.st_mode)) {
-            if (!deleteDirectoryRecursive(fullPath)) ok = false;
+            if (!deleteDirectoryRecursive(fullPath, depth + 1)) ok = false;
         } else {
             if (::remove(fullPath.c_str()) != 0) ok = false;
         }
@@ -183,7 +193,7 @@ bool FileManager::deleteFile(const std::string& path) {
 
 bool FileManager::deleteDirectory(const std::string& path, bool recursive) {
     if (recursive) {
-        return deleteDirectoryRecursive(path);
+        return deleteDirectoryRecursive(path, 0);
     }
     return rmdir(path.c_str()) == 0;
 }
@@ -269,7 +279,7 @@ std::vector<std::string> FileManager::searchFiles(const std::string& dir,
     std::vector<std::string> results;
 
     if (recursive) {
-        searchFilesRecursive(dir, pattern, results);
+        searchFilesRecursive(dir, pattern, results, 0);
         return results;
     }
 

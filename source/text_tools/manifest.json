@@ -1,10 +1,10 @@
-{
+﻿{
   "id": "text_tools",
   "name": "文本工具",
   "name_en": "Text Tools",
   "description": "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希等",
   "description_en": "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "text_fields",
   "soLibraries": [],
   "h5Page": "index.html",

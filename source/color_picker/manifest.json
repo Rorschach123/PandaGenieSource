@@ -1,10 +1,10 @@
-{
+﻿{
   "id": "color_picker",
   "name": "颜色工具",
   "name_en": "Color Tools",
   "description": "颜色拾取与转换：HEX、RGB、HSL、CMYK 互转；和谐色板（互补、类似、三角、分裂互补、四色）；随机色；CSS 命名色匹配",
   "description_en": "Color picker and conversion across HEX, RGB, HSL, CMYK; harmonious palettes (complementary, analogous, triadic, split-complementary, tetradic); random colors; closest CSS named color lookup",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "palette",
   "soLibraries": [],
   "h5Page": "index.html",
