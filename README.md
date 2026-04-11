@@ -57,7 +57,7 @@ PandaGenie connects to your preferred LLM (GPT, Claude, DeepSeek, or any OpenAI-
 - **Any LLM backend** — OpenAI, Anthropic Claude, self-hosted, or any compatible API
 - **Hot-loadable modules** — drop a `.mod` file, restart, done. No APK rebuild needed
 - **AI auto-discovers** new capabilities from module manifests
-- **Sandboxed execution** — file access, network, and permission controls per module
+- **Sandboxed execution** — file access, network, and permission controls per module with two-tier enforcement
 - **Dual-signature security** — tamper-proof module verification
 
 ---
@@ -154,7 +154,7 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.2)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260404/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.4)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260411/app-release.apk)**
 
 ---
 
@@ -380,16 +380,14 @@ Visit **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** — the
 
 ### Ideas for New Modules
 
-The module ecosystem is still young — there's **so much to build**:
+The module ecosystem is growing fast — there's **still so much to build**:
 
-- &#x1F3A8; **Image tools** — resize, convert, watermark
-- &#x1F4DD; **Note taking** — create/search notes
 - &#x1F4E7; **SMS manager** — search, export messages
-- &#x1F4F6; **Network tools** — ping, DNS lookup, speed test
-- &#x1F50B; **Battery manager** — stats, optimization tips
 - &#x1F3B5; **Audio tools** — metadata, convert formats
-- &#x1F4CB; **Clipboard manager** — history, templates
 - &#x1F4CD; **Location tools** — nearby places, coordinates
+- &#x1F4C8; **Health tracker** — step count, sleep, exercise
+- &#x1F4B0; **Finance tools** — expense tracking, currency conversion
+- &#x1F4E2; **Social tools** — share content across platforms
 - ...and anything else you can imagine!
 
 > Every module you build makes PandaGenie smarter for everyone. **Let's build the future of AI-powered mobile together.**
