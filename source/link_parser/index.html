@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>链接解析 / Link Parser</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.feature-item { background: var(--surface-container-high); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
+.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🔗</div>
+  <h2>链接解析 / Link Parser</h2>
+  <p>解析链接内容，提取图片、文件、文字等信息</p>
+</div>
+
+<div class="info-card">
+  <h3>✨ 功能特性</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">🌐</span>网页全面解析</div>
+    <div class="feature-item"><span class="emoji">🖼</span>图片提取</div>
+    <div class="feature-item"><span class="emoji">📥</span>下载文件检测</div>
+    <div class="feature-item"><span class="emoji">🔗</span>链接分类整理</div>
+    <div class="feature-item"><span class="emoji">📄</span>正文内容提取</div>
+    <div class="feature-item"><span class="emoji">📋</span>元数据分析</div>
+    <div class="feature-item"><span class="emoji">🔍</span>URL可用性检查</div>
+    <div class="feature-item"><span class="emoji">🔒</span>SSL证书信息</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3>📡 功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">parseUrl</span> — 全面解析链接，提取标题、描述、图片、链接、下载文件等</li>
+    <li><span class="api-name">getHeaders</span> — 获取HTTP响应头信息</li>
+    <li><span class="api-name">extractImages</span> — 提取页面中所有图片</li>
+    <li><span class="api-name">extractLinks</span> — 提取并分类所有超链接</li>
+    <li><span class="api-name">extractDownloads</span> — 检测可下载文件</li>
+    <li><span class="api-name">extractText</span> — 提取纯文本正文内容</li>
+    <li><span class="api-name">checkUrl</span> — 检查链接可用性、重定向、SSL证书</li>
+    <li><span class="api-name">extractMeta</span> — 提取Open Graph、Twitter Card等元数据</li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "解析这个链接 https://example.com"</p>
+  <p>• "提取这个页面的所有图片"</p>
+  <p>• "检查这个网址是否可以访问"</p>
+  <p>• "这个页面有哪些可下载的文件"</p>
+  <p>• "获取这个网页的标题和描述信息"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>需要网络权限以发送HTTP/HTTPS请求</p>
+</div>
+</body>
+</html>

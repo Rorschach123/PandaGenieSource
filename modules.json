@@ -1,7 +1,7 @@
 ﻿{
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-04-11",
+    "updated_at":  "2026-04-13",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -4246,6 +4246,155 @@
                                      }
                                  ],
                         "api_count":  4
+                    },
+                    {
+                        "id":  "link_parser",
+                        "name":  {
+                                     "zh":  "链接解析",
+                                     "en":  "Link Parser"
+                                 },
+                        "description":  {
+                                            "zh":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，分析HTTP头部，检测内容类型，自动分类整理提取结果",
+                                            "en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and more. Analyzes HTTP headers, detects content types, and organizes extracted content by category"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "link",
+                        "filename":  "link_parser.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/link_parser",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/link_parser.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于发送HTTP/HTTPS请求抓取链接内容",
+                                                "desc_en":  "Send HTTP/HTTPS requests to fetch URL content"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "parseUrl",
+                                         "desc":  "解析链接，抓取网页内容并提取标题、描述、图片、链接、下载文件等全部信息，返回分类整理后的结果",
+                                         "desc_en":  "Parse a URL: fetch content, extract title, description, images, links, downloadable files, and return categorized results",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要解析的链接地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to parse"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getHeaders",
+                                         "desc":  "获取链接的HTTP响应头信息，包括Content-Type、Content-Length、Server、缓存策略、重定向等",
+                                         "desc_en":  "Get HTTP response headers: Content-Type, Content-Length, Server, cache policy, redirects, etc.",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要检查的链接地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to inspect"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractImages",
+                                         "desc":  "提取链接页面中的所有图片URL，包括img标签、og:image、背景图等",
+                                         "desc_en":  "Extract all image URLs from a page: img tags, og:image, background images, etc.",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要提取图片的链接地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to extract images from"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractLinks",
+                                         "desc":  "提取页面中的所有超链接，分类为内部链接和外部链接",
+                                         "desc_en":  "Extract all hyperlinks from a page, categorized as internal and external",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要提取链接的页面地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to extract links from"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractDownloads",
+                                         "desc":  "检测页面中的可下载文件链接（PDF、ZIP、APK、文档等），包括直接文件链接和下载按钮",
+                                         "desc_en":  "Detect downloadable file links (PDF, ZIP, APK, docs, etc.) including direct file links and download buttons",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要检测下载链接的页面地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to detect downloads from"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractText",
+                                         "desc":  "提取页面的纯文本内容，去除HTML标签和脚本，保留正文结构",
+                                         "desc_en":  "Extract plain text content from a page, stripping HTML tags and scripts while preserving structure",
+                                         "params":  [
+                                                        "url",
+                                                        "maxLength"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要提取文本的链接地址",
+                                                           "最大文本长度(默认5000)"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to extract text from",
+                                                              "Max text length (default 5000)"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "checkUrl",
+                                         "desc":  "检查链接是否可访问，返回状态码、响应时间、重定向链、SSL证书信息等",
+                                         "desc_en":  "Check URL accessibility: status code, response time, redirect chain, SSL certificate info",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要检查的链接地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to check"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractMeta",
+                                         "desc":  "提取页面的元数据：Open Graph、Twitter Card、favicon、RSS/Atom feed、结构化数据等",
+                                         "desc_en":  "Extract page metadata: Open Graph, Twitter Card, favicon, RSS/Atom feeds, structured data",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要提取元数据的链接地址"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to extract metadata from"
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  8
                     }
                 ]
 }
