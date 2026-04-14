@@ -110,11 +110,13 @@ public class NetworkToolsPlugin implements ModulePlugin {
             switch (action) {
                 case "ping": {
                     String out = ping(params.optString("host", "").trim());
-                    return ok(out, formatPingDisplay(out));
+                    return ok(out, formatPingDisplay(out),
+                            new JSONArray().put(richCode(diagnosticPingText(out), "text")));
                 }
                 case "dnsLookup": {
                     String out = dnsLookup(params.optString("domain", "").trim());
-                    return ok(out, formatDnsLookupDisplay(out));
+                    return ok(out, formatDnsLookupDisplay(out),
+                            new JSONArray().put(richCode(diagnosticDnsText(out), "text")));
                 }
                 case "getLocalIp": {
                     String out = getLocalIp();
@@ -510,6 +512,49 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @param outputJson {@link #ping} 返回的字符串
      * @return 展示文本；解析失败返回空串
      */
+    private static String diagnosticPingText(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            StringBuilder sb = new StringBuilder();
+            sb.append(o.optString("stdout", ""));
+            String err = o.optString("stderr", "");
+            if (!err.isEmpty()) {
+                sb.append("\n--- stderr ---\n").append(err);
+            }
+            sb.append("\n---\nexitCode: ").append(o.optInt("exitCode", Integer.MIN_VALUE));
+            sb.append("\ntimedOut: ").append(o.optBoolean("timedOut", false));
+            return sb.toString();
+        } catch (Exception e) {
+            return outputJson;
+        }
+    }
+
+    private static String diagnosticDnsText(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            String domain = o.optString("domain", "");
+            JSONArray arr = o.optJSONArray("addresses");
+            StringBuilder sb = new StringBuilder();
+            sb.append("domain: ").append(domain).append('\n');
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    sb.append(arr.optString(i)).append('\n');
+                }
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return outputJson;
+        }
+    }
+
+    private static JSONObject richCode(String code, String language) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "code");
+        rc.put("code", code == null ? "" : code);
+        rc.put("language", language != null ? language : "text");
+        return rc;
+    }
+
     private static String formatPingDisplay(String outputJson) {
         try {
             JSONObject o = new JSONObject(outputJson);
@@ -762,9 +807,16 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (richContent != null && richContent.length() > 0) {
+            r.put("_richContent", richContent);
         }
         return r.toString();
     }
@@ -777,7 +829,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
     /**

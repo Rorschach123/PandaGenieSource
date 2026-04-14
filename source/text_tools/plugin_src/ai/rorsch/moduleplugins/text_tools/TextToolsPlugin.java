@@ -60,23 +60,28 @@ public class TextToolsPlugin implements ModulePlugin {
                 }
                 case "base64Encode": {
                     JSONObject out = base64Encode(params.optString("text", ""));
-                    return ok(out, formatBase64BlockDisplay(out.optString("encoded")));
+                    return ok(out, formatBase64BlockDisplay(out.optString("encoded")),
+                            new JSONArray().put(richCode(out.optString("encoded"), "text")));
                 }
                 case "base64Decode": {
                     JSONObject out = base64Decode(params.optString("text", ""));
-                    return ok(out, formatBase64BlockDisplay(out.optString("decoded")));
+                    return ok(out, formatBase64BlockDisplay(out.optString("decoded")),
+                            new JSONArray().put(richCode(out.optString("decoded"), "text")));
                 }
                 case "urlEncode": {
                     JSONObject out = urlEncode(params.optString("text", ""));
-                    return ok(out, formatUrlBlockDisplay(out.optString("encoded")));
+                    return ok(out, formatUrlBlockDisplay(out.optString("encoded")),
+                            new JSONArray().put(richCode(out.optString("encoded"), "text")));
                 }
                 case "urlDecode": {
                     JSONObject out = urlDecode(params.optString("text", ""));
-                    return ok(out, formatUrlBlockDisplay(out.optString("decoded")));
+                    return ok(out, formatUrlBlockDisplay(out.optString("decoded")),
+                            new JSONArray().put(richCode(out.optString("decoded"), "text")));
                 }
                 case "regexMatch": {
                     JSONObject out = regexMatch(params.optString("text", ""), params.optString("pattern", ""));
-                    return ok(out, formatRegexMatchDisplay(out));
+                    return ok(out, formatRegexMatchDisplay(out),
+                            new JSONArray().put(richCode(formatRegexMatchCodeText(out), "text")));
                 }
                 case "regexReplace": {
                     JSONObject out = regexReplace(
@@ -92,11 +97,13 @@ public class TextToolsPlugin implements ModulePlugin {
                 }
                 case "generateUUID": {
                     JSONObject out = generateUuidJson();
-                    return ok(out, formatUuidDisplay(out.optString("uuid")));
+                    return ok(out, formatUuidDisplay(out.optString("uuid")),
+                            new JSONArray().put(richCode(out.optString("uuid"), "text")));
                 }
                 case "hashText": {
                     JSONObject out = hashText(params.optString("text", ""), params.optString("algorithm", ""));
-                    return ok(out, formatHashDisplay(out));
+                    return ok(out, formatHashDisplay(out),
+                            new JSONArray().put(richCode(out.optString("hex"), "text")));
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -502,6 +509,20 @@ public class TextToolsPlugin implements ModulePlugin {
         return "🔗 " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
+    /** 将正则匹配结果拼成纯文本，供 {@code code} 富内容展示。 */
+    private static String formatRegexMatchCodeText(JSONObject o) {
+        JSONArray matches = o.optJSONArray("matches");
+        if (matches == null || matches.length() == 0) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < matches.length(); i++) {
+            if (i > 0) sb.append('\n');
+            sb.append(matches.optString(i));
+        }
+        return sb.toString();
+    }
+
     /** 列出正则匹配到的各子串（带序号）。 */
     private static String formatRegexMatchDisplay(JSONObject o) {
         boolean zh = isZh();
@@ -569,7 +590,19 @@ public class TextToolsPlugin implements ModulePlugin {
      * {@link JSONObject} 形式业务结果包装为成功响应。
      */
     private static String ok(JSONObject output, String displayText) throws Exception {
-        return ok(output.toString(), displayText);
+        return ok(output.toString(), displayText, null);
+    }
+
+    private static String ok(JSONObject output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output.toString(), displayText, richContent);
+    }
+
+    private static JSONObject richCode(String code, String language) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "code");
+        rc.put("code", code == null ? "" : code);
+        rc.put("language", language != null ? language : "text");
+        return rc;
     }
 
     /**
@@ -579,11 +612,18 @@ public class TextToolsPlugin implements ModulePlugin {
      * @param displayText 展示文案
      */
     private static String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject()
                 .put("success", true)
                 .put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (richContent != null && richContent.length() > 0) {
+            r.put("_richContent", richContent);
         }
         return r.toString();
     }

@@ -116,12 +116,18 @@ public class FileManagerPlugin implements ModulePlugin {
             }
             case "readTextFile": {
                 String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
-                return ok(raw, formatReadTextFileDisplay(raw));
+                String codeBody = raw == null ? "" : raw;
+                if (codeBody.length() > 5000) {
+                    codeBody = codeBody.substring(0, 5000);
+                }
+                JSONArray rc = new JSONArray().put(richCode(codeBody, "text"));
+                return ok(raw, formatReadTextFileDisplay(raw), rc);
             }
             case "writeTextFile": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 boolean okb = lib.nativeWriteTextFile(path, params.optString("content", ""));
-                return boolResult(okb, "writeTextFile failed", okb ? "✅ " + (isZh() ? "已写入文件: " : "Written to file: ") + displayPath(path) : null);
+                JSONArray rc = okb ? new JSONArray().put(richFile(path, new File(path).getName())) : null;
+                return boolResult(okb, "writeTextFile failed", okb ? "✅ " + (isZh() ? "已写入文件: " : "Written to file: ") + displayPath(path) : null, rc);
             }
             case "fileExists": {
                 boolean ex = lib.nativeFileExists(resolveStoragePath(params.optString("path", "")));
@@ -207,7 +213,8 @@ public class FileManagerPlugin implements ModulePlugin {
             return error(detail);
         }
         String disp = isMove ? formatMoveDisplay(src, dst) : formatCopyDisplay(src, dst);
-        return ok(String.valueOf(result), disp);
+        JSONArray rc = new JSONArray().put(richFile(dst, new File(dst).getName()));
+        return ok(String.valueOf(result), disp, rc);
     }
 
     /**
@@ -228,7 +235,7 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
     /**
@@ -240,9 +247,39 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * 构造成功响应：可选 {@code _displayText} 与 {@code _richContent}。
+     *
+     * @param output       业务结果字符串
+     * @param displayText  供界面展示的摘要，可为 null 或空（此时不写该字段）
+     * @param richContent  富内容条目；null 或空则省略
+     * @return JSON 字符串
+     * @throws Exception JSON 构建异常
+     */
+    private String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) j.put("_displayText", displayText);
+        if (richContent != null && richContent.length() > 0) j.put("_richContent", richContent);
         return j.toString();
+    }
+
+    private static JSONObject richFile(String path, String title) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "file");
+        rc.put("path", path);
+        if (title != null && !title.isEmpty()) rc.put("title", title);
+        return rc;
+    }
+
+    private static JSONObject richCode(String code, String language) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "code");
+        rc.put("code", code == null ? "" : code);
+        rc.put("language", language != null ? language : "text");
+        return rc;
     }
 
     /**
@@ -255,9 +292,14 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String boolResult(boolean value, String errorMsg, String successDisplayText) throws Exception {
+        return boolResult(value, errorMsg, successDisplayText, null);
+    }
+
+    private String boolResult(boolean value, String errorMsg, String successDisplayText, JSONArray richContent) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
         if (!value) json.put("error", errorMsg);
         else if (successDisplayText != null && !successDisplayText.isEmpty()) json.put("_displayText", successDisplayText);
+        if (value && richContent != null && richContent.length() > 0) json.put("_richContent", richContent);
         return json.toString();
     }
 

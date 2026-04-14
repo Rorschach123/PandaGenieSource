@@ -68,27 +68,44 @@ public class ImageToolsPlugin implements ModulePlugin {
             switch (action) {
                 case "getImageInfo": {
                     String out = getImageInfo(params.optString("path", "").trim());
-                    return ok(out, formatGetImageInfoDisplay(out));
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(params.optString("path", "").trim(), isZh() ? "图片预览" : "Image preview"));
+                    return ok(out, formatGetImageInfoDisplay(out), rc);
                 }
                 case "resizeImage": {
                     String out = resizeImage(params);
-                    return ok(out, formatResizeImageDisplay(out));
+                    JSONObject outJson = new JSONObject(out);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(outJson.optString("outputPath"), isZh() ? "调整后的图片" : "Resized image"));
+                    return ok(out, formatResizeImageDisplay(out), rc);
                 }
                 case "compressImage": {
                     String out = compressImage(params);
-                    return ok(out, formatCompressImageDisplay(out));
+                    JSONObject outJson = new JSONObject(out);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(outJson.optString("outputPath"), isZh() ? "压缩后的图片" : "Compressed image"));
+                    return ok(out, formatCompressImageDisplay(out), rc);
                 }
                 case "convertFormat": {
                     String out = convertFormat(params);
-                    return ok(out, formatConvertFormatDisplay(out));
+                    JSONObject outJson = new JSONObject(out);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(outJson.optString("outputPath"), isZh() ? "转换后的图片" : "Converted image"));
+                    return ok(out, formatConvertFormatDisplay(out), rc);
                 }
                 case "rotateImage": {
                     String out = rotateImage(params);
-                    return ok(out, formatRotateImageDisplay(out));
+                    JSONObject outJson = new JSONObject(out);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(outJson.optString("outputPath"), isZh() ? "旋转后的图片" : "Rotated image"));
+                    return ok(out, formatRotateImageDisplay(out), rc);
                 }
                 case "cropImage": {
                     String out = cropImage(params);
-                    return ok(out, formatCropImageDisplay(out));
+                    JSONObject outJson = new JSONObject(out);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richImage(outJson.optString("outputPath"), isZh() ? "裁剪后的图片" : "Cropped image"));
+                    return ok(out, formatCropImageDisplay(out), rc);
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -1039,19 +1056,27 @@ public class ImageToolsPlugin implements ModulePlugin {
     }
 
     /**
-     * 构造成功响应 JSON，可选附带 {@code _displayText}。
+     * 构造成功响应 JSON，可选附带 {@code _displayText} 与 {@code _richContent}。
      *
      * @param output      业务结果字符串（常为嵌套 JSON）
      * @param displayText 可选的展示文案；null 或空则省略该字段
+     * @param richContent 可选的富媒体条目数组；null 或空则省略该字段
      * @return 完整响应 JSON 字符串
      * @throws Exception JSON 构造异常
      */
-    private static String ok(String output, String displayText) throws Exception {
+    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
         }
+        if (richContent != null && richContent.length() > 0) {
+            r.put("_richContent", richContent);
+        }
         return r.toString();
+    }
+
+    private static String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
     }
 
     /**
@@ -1062,7 +1087,17 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private static String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
+    }
+
+    private static JSONObject richImage(String path, String title) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "image");
+        rc.put("path", path);
+        if (title != null && !title.isEmpty()) {
+            rc.put("title", title);
+        }
+        return rc;
     }
 
     /**

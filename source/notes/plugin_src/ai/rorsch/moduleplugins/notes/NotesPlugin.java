@@ -98,7 +98,15 @@ public class NotesPlugin implements ModulePlugin {
                 }
                 case "exportNote": {
                     String out = exportNote(params);
-                    return ok(out, formatExportNoteDisplay(out));
+                    JSONObject root = new JSONObject(out);
+                    JSONArray rc = null;
+                    String path = root.optString("path", "");
+                    if (!path.isEmpty()) {
+                        rc = new JSONArray();
+                        String noteTitle = root.optString("noteTitle", "");
+                        rc.put(richFile(path, noteTitle.isEmpty() ? null : noteTitle, "text/plain"));
+                    }
+                    return ok(out, formatExportNoteDisplay(out), rc);
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -138,13 +146,40 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * 成功响应，可选附带展示文案与 {@code _richContent}。
+     *
+     * @param output       写入 {@code output} 字段的字符串
+     * @param displayText  非 null 时写入 {@code _displayText}
+     * @param richContent  非 null 且非空时写入 {@code _richContent}
+     * @return JSON 字符串
+     * @throws Exception JSON 异常
+     */
+    private String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject j = new JSONObject();
         j.put("success", true);
         j.put("output", output);
         if (displayText != null) {
             j.put("_displayText", displayText);
         }
+        if (richContent != null && richContent.length() > 0) {
+            j.put("_richContent", richContent);
+        }
         return j.toString();
+    }
+
+    private static JSONObject richFile(String path, String title, String mimeType) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "file");
+        rc.put("path", path);
+        if (title != null) rc.put("title", title);
+        if (mimeType != null) rc.put("mimeType", mimeType);
+        File f = new File(path);
+        if (f.exists()) rc.put("size", f.length());
+        return rc;
     }
 
     /**
@@ -650,6 +685,7 @@ public class NotesPlugin implements ModulePlugin {
         return new JSONObject()
                 .put("exported", true)
                 .put("path", outFile.getAbsolutePath())
+                .put("noteTitle", title)
                 .toString();
     }
 }

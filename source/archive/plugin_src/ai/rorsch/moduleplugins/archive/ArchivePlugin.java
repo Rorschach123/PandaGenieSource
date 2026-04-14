@@ -84,7 +84,12 @@ public class ArchivePlugin implements ModulePlugin {
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
                 boolean ok = lib.compressZip(inputs, output, pwd);
-                return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null);
+                JSONArray rc = null;
+                if (ok) {
+                    rc = new JSONArray();
+                    rc.put(richFile(output, null, "application/zip"));
+                }
+                return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "compressTar": {
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
@@ -94,7 +99,12 @@ public class ArchivePlugin implements ModulePlugin {
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
                 boolean ok = lib.compressTar(inputs, output);
-                return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null);
+                JSONArray rc = null;
+                if (ok) {
+                    rc = new JSONArray();
+                    rc.put(richFile(output, null, "application/x-tar"));
+                }
+                return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "compressTarGz": {
                 String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
@@ -104,7 +114,12 @@ public class ArchivePlugin implements ModulePlugin {
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
                 boolean ok = lib.compressTarGz(inputs, output);
-                return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null);
+                JSONArray rc = null;
+                if (ok) {
+                    rc = new JSONArray();
+                    rc.put(richFile(output, null, "application/gzip"));
+                }
+                return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "compressGz": {
                 String input = resolveStoragePath(params.optString("inputPath", params.optString("input", "")));
@@ -114,7 +129,12 @@ public class ArchivePlugin implements ModulePlugin {
                 if (!new File(input).exists()) return error("File not found: " + input);
                 ensureParentDir(output);
                 boolean ok = lib.compressGz(input, output);
-                return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null);
+                JSONArray rc = null;
+                if (ok) {
+                    rc = new JSONArray();
+                    rc.put(richFile(output, null, "application/gzip"));
+                }
+                return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "listContents": {
                 String raw = lib.listContents(resolveStoragePath(params.optString("archivePath", params.optString("path", ""))));
@@ -224,13 +244,41 @@ public class ArchivePlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private String boolResult(boolean value, String action, String successDisplayText) throws Exception {
+        return boolResult(value, action, successDisplayText, null);
+    }
+
+    /**
+     * 根据布尔结果构造 JSON：成功时可带展示文案与结构化 {@code _richContent}，失败时写入原生层失败提示。
+     *
+     * @param value               原生调用是否成功
+     * @param action              当前操作名，用于失败时的错误信息前缀
+     * @param successDisplayText  成功时的展示文案；失败时忽略
+     * @param richContent         成功时的富内容数组；失败或非空时仅在成功时写入
+     * @return JSON 字符串，含 {@code success} 与 {@code output}（布尔字符串形式）
+     * @throws Exception JSON 构造异常
+     */
+    private String boolResult(boolean value, String action, String successDisplayText, JSONArray richContent) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
         if (!value) {
             json.put("error", action + " failed in native code (check logcat tag=ArchiveModule for details)");
         } else if (successDisplayText != null && !successDisplayText.isEmpty()) {
             json.put("_displayText", successDisplayText);
         }
+        if (value && richContent != null && richContent.length() > 0) {
+            json.put("_richContent", richContent);
+        }
         return json.toString();
+    }
+
+    private static JSONObject richFile(String path, String title, String mimeType) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "file");
+        rc.put("path", path);
+        if (title != null) rc.put("title", title);
+        if (mimeType != null) rc.put("mimeType", mimeType);
+        File f = new File(path);
+        if (f.exists()) rc.put("size", f.length());
+        return rc;
     }
 
     /**

@@ -77,7 +77,15 @@ public class QrcodePlugin implements ModulePlugin {
             switch (action) {
                 case "generateQR": {
                     String out = generateQR(params);
-                    return ok(out, formatGenerateDisplay(out));
+                    JSONObject gen = new JSONObject(out);
+                    String path = gen.optString("path", "");
+                    JSONArray rich = new JSONArray();
+                    if (!path.isEmpty()) {
+                        String qrTitle = Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh")
+                                ? "二维码" : "QR Code";
+                        rich.put(richImage(path, qrTitle));
+                    }
+                    return ok(out, formatGenerateDisplay(out), rich);
                 }
                 case "decodeQR": {
                     String out = decodeQR(params);
@@ -85,7 +93,24 @@ public class QrcodePlugin implements ModulePlugin {
                 }
                 case "listGenerated": {
                     String out = listGenerated();
-                    return ok(out, formatListDisplay(out));
+                    JSONArray rich = new JSONArray();
+                    JSONObject lo = new JSONObject(out);
+                    JSONArray files = lo.optJSONArray("files");
+                    if (files != null) {
+                        String imgTitle = Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh")
+                                ? "二维码" : "QR Code";
+                        int max = Math.min(files.length(), 10);
+                        for (int i = 0; i < max; i++) {
+                            JSONObject item = files.optJSONObject(i);
+                            if (item != null) {
+                                String p = item.optString("path", "");
+                                if (!p.isEmpty()) {
+                                    rich.put(richImage(p, imgTitle));
+                                }
+                            }
+                        }
+                    }
+                    return ok(out, formatListDisplay(out), rich);
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -372,18 +397,38 @@ public class QrcodePlugin implements ModulePlugin {
     }
 
     /**
-     * 构造标准成功响应：业务结果放在 {@code output} 字符串中，可选 {@code _displayText} 供 UI 直接展示。
+     * 构造标准成功响应：业务结果放在 {@code output} 字符串中，可选 {@code _displayText}、{@code _richContent}。
      *
-     * @param output      业务层 JSON 或其它文本（字符串形式嵌入外层 JSON）
-     * @param displayText 可为 null；非空时写入 {@code _displayText}
+     * @param output       业务层 JSON 或其它文本（字符串形式嵌入外层 JSON）
+     * @param displayText  可为 null；非空时写入 {@code _displayText}
+     * @param richContent  可为 null；非空时写入 {@code _richContent}
      * @return 完整响应 JSON 字符串
      */
-    private static String ok(String output, String displayText) throws Exception {
+    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
         }
+        if (richContent != null && richContent.length() > 0) {
+            r.put("_richContent", richContent);
+        }
         return r.toString();
+    }
+
+    private static String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private static String ok(String output) throws Exception {
+        return ok(output, null, null);
+    }
+
+    private static JSONObject richImage(String path, String title) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "image");
+        rc.put("path", path);
+        if (title != null && !title.isEmpty()) rc.put("title", title);
+        return rc;
     }
 
     /**

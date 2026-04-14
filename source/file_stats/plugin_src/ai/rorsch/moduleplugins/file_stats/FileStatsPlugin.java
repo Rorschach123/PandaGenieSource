@@ -78,11 +78,36 @@ public class FileStatsPlugin implements ModulePlugin {
         switch (action) {
             case "getFileInfo": {
                 String out = getFileInfo(params);
-                return ok(out, formatStatsGetFileInfoDisplay(out));
+                JSONArray rc = null;
+                JSONObject parsed = parseOutputJson(out);
+                if (parsed != null && !parsed.has("error")) {
+                    String filePath = parsed.optString("path", "");
+                    if (!filePath.isEmpty() && parsed.optBoolean("isFile", false)) {
+                        String mime = parsed.optString("mimeType", "");
+                        rc = new JSONArray();
+                        if (mime.startsWith("image/")) {
+                            JSONObject img = new JSONObject();
+                            img.put("type", "image");
+                            img.put("path", filePath);
+                            img.put("title", isZh() ? "文件预览" : "File preview");
+                            rc.put(img);
+                        } else {
+                            rc.put(richFile(filePath, parsed.optString("name", "")));
+                        }
+                    }
+                }
+                return ok(out, formatStatsGetFileInfoDisplay(out), rc);
             }
             case "getFileHash": {
                 String out = getFileHash(params);
-                return ok(out, formatGetFileHashDisplay(out));
+                JSONArray rc = null;
+                JSONObject parsed = parseOutputJson(out);
+                if (parsed != null && !parsed.has("error") && parsed.has("hash")) {
+                    String codeText = parsed.optString("algorithm", "SHA-256") + ": " + parsed.optString("hash", "");
+                    rc = new JSONArray();
+                    rc.put(richCode(codeText, "text"));
+                }
+                return ok(out, formatGetFileHashDisplay(out), rc);
             }
             case "compareFiles": {
                 String out = compareFiles(params);
@@ -90,7 +115,18 @@ public class FileStatsPlugin implements ModulePlugin {
             }
             case "verifyChecksum": {
                 String out = verifyChecksum(params);
-                return ok(out, formatVerifyChecksumDisplay(out));
+                JSONArray rc = null;
+                JSONObject parsed = parseOutputJson(out);
+                if (parsed != null && !parsed.has("error") && parsed.has("actualHash")) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(parsed.optString("algorithm", "")).append("\n");
+                    sb.append(isZh() ? "期望: " : "Expected: ").append(parsed.optString("expectedHash", "")).append("\n");
+                    sb.append(isZh() ? "实际: " : "Actual:   ").append(parsed.optString("actualHash", "")).append("\n");
+                    sb.append(parsed.optString("message", ""));
+                    rc = new JSONArray();
+                    rc.put(richCode(sb.toString(), "text"));
+                }
+                return ok(out, formatVerifyChecksumDisplay(out), rc);
             }
             case "getDirStats": {
                 String out = getDirStats(params);
@@ -771,34 +807,47 @@ public class FileStatsPlugin implements ModulePlugin {
         return new JSONObject().put("error", msg).toString();
     }
 
-    /**
-     * @param output 业务输出 JSON 字符串
-     * @return 成功包装，无展示文案
-     * @throws Exception JSON 异常
-     */
     private String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
-    /**
-     * @param output      业务输出
-     * @param displayText {@code _displayText}，null 或空则不写入
-     * @return 标准成功响应
-     * @throws Exception JSON 异常
-     */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(String output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (richContent != null && richContent.length() > 0) r.put("_richContent", richContent);
         return r.toString();
     }
 
-    /**
-     * 顶层失败：{@code success=false}。
-     *
-     * @param message 错误信息（如未知 action）
-     * @return JSON 字符串
-     * @throws Exception JSON 异常
-     */
+    private static JSONObject richCode(String code, String language) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "code");
+        rc.put("code", code);
+        if (language != null && !language.isEmpty()) rc.put("language", language);
+        return rc;
+    }
+
+    private static JSONObject richFile(String path, String title) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "file");
+        rc.put("path", path);
+        if (title != null && !title.isEmpty()) rc.put("title", title);
+        File f = new File(path);
+        if (f.exists()) rc.put("size", f.length());
+        String ext = "";
+        int dot = path.lastIndexOf('.');
+        int slash = path.lastIndexOf('/');
+        if (dot > slash && dot < path.length() - 1) ext = path.substring(dot + 1).toLowerCase(Locale.ROOT);
+        if (!ext.isEmpty()) {
+            String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+            if (mime != null) rc.put("mimeType", mime);
+        }
+        return rc;
+    }
+
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
     }

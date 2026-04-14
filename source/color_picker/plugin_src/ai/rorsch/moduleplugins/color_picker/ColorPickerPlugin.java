@@ -170,7 +170,8 @@ public class ColorPickerPlugin implements ModulePlugin {
             out.put("result", single);
         }
         String display = formatDisplayBlocks(rgb, out);
-        return ok(out, display);
+        JSONArray rc = new JSONArray().put(richCode(formatColorJsonAsCodeBlock(out), "text"));
+        return ok(out, display, rc);
     }
 
     /**
@@ -238,7 +239,8 @@ public class ColorPickerPlugin implements ModulePlugin {
                 .put("baseHex", rgbToHex(rgb[0], rgb[1], rgb[2]))
                 .put("harmony", harmony)
                 .put("colors", colors);
-        return ok(out, formatPaletteDisplay(colors, harmony));
+        JSONArray rc = new JSONArray().put(richCode(formatPaletteCodeText(colors), "text"));
+        return ok(out, formatPaletteDisplay(colors, harmony), rc);
     }
 
     /**
@@ -312,7 +314,8 @@ public class ColorPickerPlugin implements ModulePlugin {
         String display = "🎨 " + title + "\n"
                 + blockLine(rgb[0], rgb[1], rgb[2]) + "\n\n"
                 + pgTable(title, headers, rows);
-        return ok(out, display);
+        JSONArray rc = new JSONArray().put(richCode(formatColorInfoCodeBlock(out), "text"));
+        return ok(out, display, rc);
     }
 
     /**
@@ -378,6 +381,45 @@ public class ColorPickerPlugin implements ModulePlugin {
             return "";
         }
         return s.replace("|", "\\|").replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
+    }
+
+    private static String formatColorJsonAsCodeBlock(JSONObject full) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("HEX: ").append(full.optString("hex")).append('\n');
+        sb.append("RGB: ").append(full.optString("rgb")).append('\n');
+        sb.append("RGB (CSS): ").append(full.optString("rgbCss")).append('\n');
+        sb.append("HSL: ").append(full.optString("hsl")).append('\n');
+        sb.append("HSL (CSS): ").append(full.optString("hslCss")).append('\n');
+        sb.append("CMYK: ").append(full.optString("cmyk"));
+        return sb.toString();
+    }
+
+    private static String formatColorInfoCodeBlock(JSONObject out) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Input HEX: #").append(out.optString("hex")).append('\n');
+        sb.append("Closest name: ").append(out.optString("closestName")).append('\n');
+        sb.append("Closest HEX: ").append(out.optString("closestHex")).append('\n');
+        sb.append("ΔRGB distance: ").append(out.optDouble("distance"));
+        return sb.toString();
+    }
+
+    private static String formatPaletteCodeText(JSONArray colors) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < colors.length(); i++) {
+            String hx = colors.optString(i, "");
+            if (!hx.startsWith("#")) hx = "#" + hx;
+            if (i > 0) sb.append('\n');
+            sb.append(hx);
+        }
+        return sb.toString();
+    }
+
+    private static JSONObject richCode(String code, String language) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "code");
+        rc.put("code", code == null ? "" : code);
+        rc.put("language", language != null ? language : "text");
+        return rc;
     }
 
     private static String formatDisplayBlocks(int[] rgb, JSONObject full) throws Exception {
@@ -958,11 +1000,18 @@ public class ColorPickerPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private static String ok(JSONObject output, String displayText, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (richContent != null && richContent.length() > 0) {
+            r.put("_richContent", richContent);
         }
         return r.toString();
     }

@@ -123,7 +123,13 @@ public class ContactsPlugin implements ModulePlugin {
                 if (exportObj.has("error")) {
                     return error(exportObj.getString("error"));
                 }
-                return ok(exportJson, formatExportContactsDisplay(exportObj));
+                JSONArray rc = null;
+                String exportPath = exportObj.optString("path", "");
+                if (!exportPath.isEmpty()) {
+                    rc = new JSONArray();
+                    rc.put(richFile(exportPath, null, "text/vcard"));
+                }
+                return ok(exportJson, formatExportContactsDisplay(exportObj), rc);
             }
             case "findDuplicates": {
                 String out = findDuplicates(context);
@@ -1067,7 +1073,7 @@ public class ContactsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output) throws Exception {
-        return new JSONObject().put("success", true).put("output", output).toString();
+        return ok(output, null, null);
     }
 
     /**
@@ -1077,11 +1083,36 @@ public class ContactsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
-        return new JSONObject()
-                .put("success", true)
-                .put("output", output)
-                .put("_displayText", displayText)
-                .toString();
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * @param output       业务输出
+     * @param displayText  人类可读摘要；null 时不写入 {@code _displayText}
+     * @param richContent  非 null 且非空时写入 {@code _richContent}
+     * @return 成功包装 JSON
+     * @throws Exception JSON 异常
+     */
+    private String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        JSONObject j = new JSONObject().put("success", true).put("output", output);
+        if (displayText != null) {
+            j.put("_displayText", displayText);
+        }
+        if (richContent != null && richContent.length() > 0) {
+            j.put("_richContent", richContent);
+        }
+        return j.toString();
+    }
+
+    private static JSONObject richFile(String path, String title, String mimeType) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "file");
+        rc.put("path", path);
+        if (title != null) rc.put("title", title);
+        if (mimeType != null) rc.put("mimeType", mimeType);
+        File f = new File(path);
+        if (f.exists()) rc.put("size", f.length());
+        return rc;
     }
 
     /**
