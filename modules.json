@@ -1,7 +1,7 @@
 ﻿{
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-04-13",
+    "updated_at":  "2026-04-15",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -3462,7 +3462,7 @@
                                             "zh":  "二维码工具模块，支持从文本/URL生成二维码、从图片识别解码二维码、查看和分享生成的二维码",
                                             "en":  "QR code tools: generate QR codes from text or URLs, decode QR codes from images, view and share generated codes"
                                         },
-                        "version":  "1.1",
+                        "version":  "1.2",
                         "icon":  "document_scanner",
                         "filename":  "qrcode.mod",
                         "download_url":  [

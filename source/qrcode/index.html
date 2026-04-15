@@ -17,7 +17,11 @@
   margin: 12px 0; padding: 16px;
 }
 .qr-preview-wrap img { max-width: 100%; height: auto; border-radius: 8px; background: #fff; }
-.qr-path { font-size: 11px; color: var(--on-surface-variant); word-break: break-all; margin-top: 8px; }
+.qr-path {
+  font-size: 11px; color: var(--on-surface-variant); word-break: break-all; margin-top: 8px;
+  padding: 8px 12px; background: var(--surface-variant); border-radius: 8px; cursor: pointer;
+}
+.qr-path:active { opacity: 0.6; }
 .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
 .gallery-item {
   background: var(--surface-variant); border-radius: 12px; overflow: hidden;
@@ -26,6 +30,40 @@
 .gallery-item img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; display: block; }
 .gallery-item .cap { padding: 6px 8px; font-size: 10px; color: var(--on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scan-preview { max-width: 100%; border-radius: 12px; margin: 10px 0; background: var(--surface-variant); }
+.btn-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.btn-row .btn { flex: 1; }
+.camera-wrap {
+  position: relative; width: 100%; border-radius: 14px; overflow: hidden;
+  background: #000; margin: 10px 0; display: none;
+}
+.camera-wrap video { width: 100%; display: block; border-radius: 14px; }
+.camera-wrap canvas { display: none; }
+.camera-overlay {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 60%; aspect-ratio: 1; border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 12px; pointer-events: none;
+}
+.camera-overlay::before {
+  content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border: 2px solid transparent; border-radius: 12px;
+  border-top-color: #4CAF50; animation: scan-line 2s linear infinite;
+}
+@keyframes scan-line { 0%,100% { border-top-color: #4CAF50; } 50% { border-top-color: #2196F3; } }
+.scan-result-card {
+  background: var(--surface-variant); border-radius: 12px; padding: 14px;
+  margin: 10px 0; border-left: 4px solid #4CAF50;
+}
+.scan-result-card.no-qr { border-left-color: #FF9800; }
+.scan-result-card .label { font-size: 11px; color: var(--on-surface-variant); margin-bottom: 4px; }
+.scan-result-card .content {
+  font-size: 14px; word-break: break-all; white-space: pre-wrap;
+  user-select: text; -webkit-user-select: text;
+}
+.scan-result-card .copy-btn {
+  margin-top: 8px; font-size: 12px; padding: 6px 14px;
+  background: var(--primary); color: var(--on-primary); border: none;
+  border-radius: 8px; cursor: pointer;
+}
 .toast {
   position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
   background: var(--on-surface); color: var(--surface); padding: 10px 18px;
@@ -67,7 +105,7 @@
     <span id="genPlaceholder" style="color:var(--on-surface-variant);font-size:13px" data-i18n="preview_placeholder"></span>
     <img id="genImg" alt="QR" style="display:none;max-height:min(70vw,360px)" />
   </div>
-  <p class="qr-path" id="genPath"></p>
+  <p class="qr-path" id="genPath" onclick="copyPath(this)" style="display:none"></p>
 </div>
 
 <div id="tab-scan" class="tab-content">
@@ -76,10 +114,18 @@
     <h2 data-i18n="scan_title"></h2>
     <p data-i18n="scan_desc"></p>
   </div>
-  <button type="button" class="btn btn-primary" style="width:100%;margin-bottom:10px" data-i18n="btn_pick" onclick="pickScanImage()"></button>
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary" data-i18n="btn_pick" onclick="pickScanImage()"></button>
+    <button type="button" class="btn btn-outline" data-i18n="btn_camera" onclick="toggleCamera()"></button>
+  </div>
+  <div class="camera-wrap" id="cameraWrap">
+    <video id="cameraVideo" playsinline autoplay muted></video>
+    <canvas id="cameraCanvas"></canvas>
+    <div class="camera-overlay"></div>
+  </div>
   <img id="scanImg" class="scan-preview" style="display:none" alt="" />
   <canvas id="scanCanvas" style="display:none"></canvas>
-  <div class="result-box" id="scanResult" style="display:none"></div>
+  <div id="scanResult"></div>
 </div>
 
 <div id="tab-gal" class="tab-content">
@@ -98,52 +144,40 @@
 var _lang = 'zh';
 var i18n = {
   zh: {
-    tab_generate: '生成',
-    tab_scan: '扫描',
-    tab_gallery: '图库',
+    tab_generate: '生成', tab_scan: '扫描', tab_gallery: '图库',
     title: '二维码工具',
     desc_short: '从文本或链接生成二维码，保存到 PandaGenie/qrcode',
-    label_text: '文本或链接',
-    label_size: '输出边长（像素）',
-    btn_generate: '生成并保存',
-    preview_placeholder: '生成后将显示预览',
-    scan_title: '扫描图片',
-    scan_desc: '选择含二维码的图片，在本地解析内容',
-    btn_pick: '选择图片',
-    gal_title: '已生成的二维码',
-    gal_desc: '插件保存的 PNG 列表',
+    label_text: '文本或链接', label_size: '输出边长（像素）',
+    btn_generate: '生成并保存', preview_placeholder: '生成后将显示预览',
+    scan_title: '扫描二维码', scan_desc: '从图片或相机扫描二维码内容',
+    btn_pick: '选择图片', btn_camera: '打开相机', btn_camera_stop: '关闭相机',
+    gal_title: '已生成的二维码', gal_desc: '插件保存的 PNG 列表',
     btn_refresh: '刷新列表',
-    err_bridge: 'NativeBridge 不可用',
-    err_gen: '生成失败',
+    err_bridge: 'NativeBridge 不可用', err_gen: '生成失败',
     err_scan_lib: 'jsQR 未加载，请检查网络后重试',
     scan_no_qr: '未识别到二维码，请换一张清晰的图片',
-    scan_data: '内容',
-    gal_empty: '暂无文件',
-    gen_placeholder_hint: '输入要编码的文字或 URL'
+    scan_result: '识别结果', scan_scanning: '正在扫描...',
+    btn_copy: '复制内容', copied: '已复制',
+    gal_empty: '暂无文件', gen_placeholder_hint: '输入要编码的文字或 URL',
+    path_copied: '路径已复制', err_camera: '无法打开相机'
   },
   en: {
-    tab_generate: 'Generate',
-    tab_scan: 'Scan',
-    tab_gallery: 'Gallery',
+    tab_generate: 'Generate', tab_scan: 'Scan', tab_gallery: 'Gallery',
     title: 'QR Code Tools',
     desc_short: 'Encode text or URLs; saved under PandaGenie/qrcode',
-    label_text: 'Text or URL',
-    label_size: 'Output size (px)',
-    btn_generate: 'Generate & save',
-    preview_placeholder: 'Preview appears after generate',
-    scan_title: 'Scan image',
-    scan_desc: 'Pick an image; decode runs locally in the page',
-    btn_pick: 'Choose image',
-    gal_title: 'Generated codes',
-    gal_desc: 'PNG files saved by the plugin',
+    label_text: 'Text or URL', label_size: 'Output size (px)',
+    btn_generate: 'Generate & save', preview_placeholder: 'Preview appears after generate',
+    scan_title: 'Scan QR Code', scan_desc: 'Scan QR codes from images or camera',
+    btn_pick: 'Choose image', btn_camera: 'Open camera', btn_camera_stop: 'Close camera',
+    gal_title: 'Generated codes', gal_desc: 'PNG files saved by the plugin',
     btn_refresh: 'Refresh',
-    err_bridge: 'NativeBridge not available',
-    err_gen: 'Generation failed',
+    err_bridge: 'NativeBridge not available', err_gen: 'Generation failed',
     err_scan_lib: 'jsQR not loaded — check network and retry',
     scan_no_qr: 'No QR code found; try a clearer image',
-    scan_data: 'Content',
-    gal_empty: 'No files yet',
-    gen_placeholder_hint: 'Enter text or URL to encode'
+    scan_result: 'Result', scan_scanning: 'Scanning...',
+    btn_copy: 'Copy', copied: 'Copied!',
+    gal_empty: 'No files yet', gen_placeholder_hint: 'Enter text or URL to encode',
+    path_copied: 'Path copied', err_camera: 'Cannot open camera'
   }
 };
 
@@ -155,33 +189,25 @@ function applyI18n() {
     if (t[k]) el.textContent = t[k];
   });
   var gh = document.getElementById('genText');
-  if (gh) gh.placeholder = (i18n[l] || i18n.en).gen_placeholder_hint;
+  if (gh) gh.placeholder = t.gen_placeholder_hint;
 }
 
-try {
-  _lang = NativeBridge.getLanguage().substring(0, 2);
-} catch (e) {
-  _lang = (navigator.language || 'en').substring(0, 2) === 'zh' ? 'zh' : 'en';
-}
+try { _lang = NativeBridge.getLanguage().substring(0, 2); }
+catch (e) { _lang = (navigator.language || 'en').substring(0, 2) === 'zh' ? 'zh' : 'en'; }
 applyI18n();
 
-function T(key) {
-  var t = i18n[_lang] || i18n.en;
-  return t[key] || i18n.en[key] || key;
-}
+function T(key) { var t = i18n[_lang] || i18n.en; return t[key] || i18n.en[key] || key; }
 
 function showToast(msg) {
   var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
   setTimeout(function() { el.classList.remove('show'); }, 2600);
 }
 
 function switchTab(name) {
+  if (name !== 'scan') stopCamera();
   var ids = ['gen', 'scan', 'gal'];
-  document.querySelectorAll('.tab').forEach(function(t, i) {
-    t.classList.toggle('active', ids[i] === name);
-  });
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.toggle('active', ids[i] === name); });
   document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'gal') loadGallery();
@@ -195,91 +221,197 @@ function invokePlugin(action, params) {
   return res.output;
 }
 
+function copyPath(el) {
+  var text = el.textContent || '';
+  if (!text) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast(T('path_copied'));
+  } catch(e) {}
+}
+
+function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast(T('copied'));
+  } catch(e) {}
+}
+
+// ─── Generate ────────────────────────────────────────
+
 function doGenerate() {
   var text = (document.getElementById('genText').value || '').trim();
-  if (!text) {
-    showToast(T('gen_placeholder_hint'));
-    return;
-  }
+  if (!text) { showToast(T('gen_placeholder_hint')); return; }
   var size = parseInt(document.getElementById('genSize').value, 10) || 512;
   try {
     var outStr = invokePlugin('generateQR', { text: text, size: size, includeBase64: true });
     var data = JSON.parse(outStr);
     var ph = document.getElementById('genPlaceholder');
     var img = document.getElementById('genImg');
+    var pathEl = document.getElementById('genPath');
     if (data.base64) {
-      ph.style.display = 'none';
-      img.style.display = 'block';
+      ph.style.display = 'none'; img.style.display = 'block';
       img.src = 'data:image/png;base64,' + data.base64;
-    } else {
-      ph.style.display = 'block';
-      ph.textContent = T('preview_placeholder');
-      img.style.display = 'none';
     }
-    document.getElementById('genPath').textContent = data.path || '';
-  } catch (e) {
-    showToast(T('err_gen') + ': ' + (e.message || e));
-  }
+    if (data.path) {
+      pathEl.textContent = data.path;
+      pathEl.style.display = 'block';
+    }
+  } catch (e) { showToast(T('err_gen') + ': ' + (e.message || e)); }
 }
 
+// ─── Scan (Image) ────────────────────────────────────
+
 function pickScanImage() {
-  if (!window.NativeBridge || !NativeBridge.pickImage) {
-    showToast(T('err_bridge'));
-    return;
-  }
-  try {
-    NativeBridge.pickImage();
-  } catch (e) {
-    showToast(e.message || String(e));
-  }
+  stopCamera();
+  if (!window.NativeBridge || !NativeBridge.pickImage) { showToast(T('err_bridge')); return; }
+  try { NativeBridge.pickImage(); } catch (e) { showToast(e.message || String(e)); }
 }
 
 function onImagePicked(path) {
   if (!path) return;
+  stopCamera();
   var imgEl = document.getElementById('scanImg');
   var resEl = document.getElementById('scanResult');
-  resEl.style.display = 'none';
+  resEl.innerHTML = '';
   imgEl.style.display = 'block';
+
   imgEl.onload = function() { runJsQrDecode(imgEl); };
   imgEl.onerror = function() {
     showToast('Cannot load image');
+    showScanResult(null, path);
   };
   imgEl.src = 'file://' + path.replace(/^\/+/, '/');
-
-  try {
-    var metaStr = invokePlugin('decodeQR', { imagePath: path });
-    JSON.parse(metaStr);
-  } catch (e) { /* optional validation */ }
 }
 
 function runJsQrDecode(imgEl) {
-  if (typeof jsQR !== 'function') {
-    showToast(T('err_scan_lib'));
-    return;
-  }
+  if (typeof jsQR !== 'function') { showToast(T('err_scan_lib')); return; }
   var canvas = document.getElementById('scanCanvas');
   var ctx = canvas.getContext('2d');
   var w = imgEl.naturalWidth || imgEl.width;
   var h = imgEl.naturalHeight || imgEl.height;
+  if (w <= 0 || h <= 0) { showScanResult(null); return; }
   var maxSide = 1200;
   var scale = Math.min(1, maxSide / Math.max(w, h));
   var cw = Math.max(1, Math.floor(w * scale));
   var ch = Math.max(1, Math.floor(h * scale));
-  canvas.width = cw;
-  canvas.height = ch;
+  canvas.width = cw; canvas.height = ch;
   ctx.drawImage(imgEl, 0, 0, cw, ch);
-  var imageData = ctx.getImageData(0, 0, cw, ch);
+  var imageData;
+  try { imageData = ctx.getImageData(0, 0, cw, ch); }
+  catch(e) { showScanResult(null); return; }
   var code = jsQR(imageData.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+  showScanResult(code && code.data ? code.data : null);
+}
+
+function showScanResult(text, sourcePath) {
   var box = document.getElementById('scanResult');
-  box.style.display = 'block';
-  if (code && code.data) {
-    box.className = 'result-box';
-    box.textContent = T('scan_data') + ':\n' + code.data;
+  if (text) {
+    box.innerHTML = '<div class="scan-result-card">' +
+      '<div class="label">' + esc(T('scan_result')) + '</div>' +
+      '<div class="content">' + esc(text) + '</div>' +
+      '<button class="copy-btn" onclick="copyText(\'' + escAttr(text.replace(/'/g, "\\'")) + '\')">' + esc(T('btn_copy')) + '</button>' +
+      '</div>';
   } else {
-    box.className = 'result-box error';
-    box.textContent = T('scan_no_qr');
+    box.innerHTML = '<div class="scan-result-card no-qr">' +
+      '<div class="content">' + esc(T('scan_no_qr')) + '</div>' +
+      '</div>';
   }
 }
+
+// ─── Camera Scan ─────────────────────────────────────
+
+var _cameraStream = null;
+var _cameraAnimFrame = null;
+
+function toggleCamera() {
+  if (_cameraStream) { stopCamera(); return; }
+  startCamera();
+}
+
+function startCamera() {
+  var wrap = document.getElementById('cameraWrap');
+  var video = document.getElementById('cameraVideo');
+  var btn = document.querySelector('[data-i18n="btn_camera"]');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast(T('err_camera'));
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+  }).then(function(stream) {
+    _cameraStream = stream;
+    video.srcObject = stream;
+    wrap.style.display = 'block';
+    if (btn) btn.textContent = T('btn_camera_stop');
+    document.getElementById('scanImg').style.display = 'none';
+    document.getElementById('scanResult').innerHTML = '';
+    requestAnimationFrame(scanCameraFrame);
+  }).catch(function(err) {
+    showToast(T('err_camera') + ': ' + (err.message || err));
+  });
+}
+
+function stopCamera() {
+  if (_cameraAnimFrame) { cancelAnimationFrame(_cameraAnimFrame); _cameraAnimFrame = null; }
+  if (_cameraStream) {
+    _cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    _cameraStream = null;
+  }
+  var wrap = document.getElementById('cameraWrap');
+  var video = document.getElementById('cameraVideo');
+  var btn = document.querySelector('[data-i18n="btn_camera"]');
+  wrap.style.display = 'none';
+  video.srcObject = null;
+  if (btn) btn.textContent = T('btn_camera');
+}
+
+function scanCameraFrame() {
+  if (!_cameraStream) return;
+  var video = document.getElementById('cameraVideo');
+  var canvas = document.getElementById('cameraCanvas');
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    _cameraAnimFrame = requestAnimationFrame(scanCameraFrame);
+    return;
+  }
+  var w = video.videoWidth, h = video.videoHeight;
+  if (w <= 0 || h <= 0) { _cameraAnimFrame = requestAnimationFrame(scanCameraFrame); return; }
+  canvas.width = w; canvas.height = h;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  var imageData;
+  try { imageData = ctx.getImageData(0, 0, w, h); } catch(e) {
+    _cameraAnimFrame = requestAnimationFrame(scanCameraFrame);
+    return;
+  }
+  if (typeof jsQR === 'function') {
+    var code = jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      showScanResult(code.data);
+      stopCamera();
+      return;
+    }
+  }
+  _cameraAnimFrame = requestAnimationFrame(scanCameraFrame);
+}
+
+// ─── Gallery ─────────────────────────────────────────
 
 function loadGallery() {
   var host = document.getElementById('galList');
@@ -287,10 +419,7 @@ function loadGallery() {
     var outStr = invokePlugin('listGenerated', {});
     var data = JSON.parse(outStr);
     var files = data.files || [];
-    if (!files.length) {
-      host.innerHTML = '<div class="empty">' + esc(T('gal_empty')) + '</div>';
-      return;
-    }
+    if (!files.length) { host.innerHTML = '<div class="empty">' + esc(T('gal_empty')) + '</div>'; return; }
     var html = '<div class="gallery-grid">';
     for (var i = 0; i < files.length; i++) {
       var p = files[i].path || '';
@@ -300,19 +429,13 @@ function loadGallery() {
     }
     html += '</div>';
     host.innerHTML = html;
-  } catch (e) {
-    host.innerHTML = '<div class="result-box error">' + esc(e.message || String(e)) + '</div>';
-  }
+  } catch (e) { host.innerHTML = '<div class="result-box error">' + esc(e.message || String(e)) + '</div>'; }
 }
 
-function esc(s) {
-  var d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-function escAttr(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-}
+// ─── Util ────────────────────────────────────────────
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/'/g,'&#39;'); }
 </script>
 </body>
 </html>
