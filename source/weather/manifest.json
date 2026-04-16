@@ -1,0 +1,53 @@
+{
+  "id": "weather",
+  "name": "天气助手",
+  "name_en": "Weather Assistant",
+  "description": "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
+  "description_en": "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API",
+  "version": "1.0",
+  "icon": "cloud",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.weather.WeatherPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["network"],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于查询天气API获取天气数据",
+      "desc_en": "Access weather API for weather data"
+    }
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getCurrentWeather",
+      "desc": "查询指定城市的当前天气，包括温度、湿度、风速、天气状况等",
+      "desc_en": "Get current weather for a city including temperature, humidity, wind speed, conditions",
+      "params": ["city"],
+      "paramDesc": ["城市名称，支持中文或英文"],
+      "paramDesc_en": ["City name in Chinese or English"]
+    },
+    {
+      "name": "getForecast",
+      "desc": "查询指定城市未来多日天气预报，包括每日最高/最低温度、天气状况、降水概率",
+      "desc_en": "Get multi-day forecast for a city with daily high/low temps, conditions, precipitation probability",
+      "params": ["city", "days"],
+      "paramDesc": ["城市名称", "预报天数（1-7），默认3"],
+      "paramDesc_en": ["City name", "Forecast days (1-7), default 3"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开天气助手界面并返回 _openModule 信号",
+      "desc_en": "Open Weather UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

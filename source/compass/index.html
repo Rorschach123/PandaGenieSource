@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>指南针 / Compass</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.compass-display {
+  width: 200px; height: 200px; margin: 20px auto;
+  border-radius: 50%; border: 3px solid var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; background: var(--surface);
+}
+.heading-text { text-align: center; font-size: 24px; font-weight: 700; color: var(--primary); margin: 8px 0; }
+.heading-sub { text-align: center; font-size: 14px; color: var(--on-surface-variant); }
+.refresh-btn {
+  display: block; width: 80%; margin: 16px auto;
+  padding: 12px; border: none; border-radius: 20px;
+  background: var(--primary); color: var(--on-primary);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.refresh-btn:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🧭</div>
+  <h2>指南针 / Compass</h2>
+  <p>利用设备传感器显示当前朝向</p>
+</div>
+
+<div class="card" style="text-align:center">
+  <div class="compass-display" id="compassIcon">🧭</div>
+  <div class="heading-text" id="heading">--°</div>
+  <div class="heading-sub" id="direction">--</div>
+  <button type="button" class="refresh-btn" onclick="readCompass()">刷新方向 / Refresh</button>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "现在朝哪个方向"</p>
+  <p>• "打开指南针"</p>
+  <p>• "我面朝哪里"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>无需额外权限，使用设备内置传感器</p>
+</div>
+
+<script>
+function readCompass() {
+  try {
+    var raw = NativeBridge.invoke('getDirection', '{}');
+    var res = JSON.parse(raw);
+    if (res.success) {
+      var out = JSON.parse(res.output);
+      document.getElementById('heading').textContent = out.azimuth + '°';
+      document.getElementById('direction').textContent = out.directionFull + ' (' + out.direction + ')';
+    } else {
+      document.getElementById('heading').textContent = 'Error';
+      document.getElementById('direction').textContent = res.error || 'Unknown error';
+    }
+  } catch (e) {
+    document.getElementById('direction').textContent = e.message || String(e);
+  }
+}
+try { readCompass(); } catch(e) {}
+</script>
+</body>
+</html>

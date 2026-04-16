@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>天气助手 / Weather</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
+.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🌤️</div>
+  <h2>天气助手 / Weather</h2>
+  <p>查询全球城市实时天气与预报</p>
+</div>
+
+<div class="info-card">
+  <h3>✨ 功能特性</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">🌡️</span>实时温度</div>
+    <div class="feature-item"><span class="emoji">💧</span>湿度数据</div>
+    <div class="feature-item"><span class="emoji">💨</span>风速风向</div>
+    <div class="feature-item"><span class="emoji">📅</span>7日预报</div>
+    <div class="feature-item"><span class="emoji">🌍</span>全球城市</div>
+    <div class="feature-item"><span class="emoji">🆓</span>免费无限</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3>📡 功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">getCurrentWeather</span> — 查询城市当前天气（温度、湿度、风速、气压等）</li>
+    <li><span class="api-name">getForecast</span> — 查询未来1-7天天气预报</li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "北京今天天气怎么样"</p>
+  <p>• "查询上海未来三天天气"</p>
+  <p>• "Tokyo weather forecast"</p>
+  <p>• "深圳这周天气预报"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>数据来源: Open-Meteo (免费开放API)</p>
+</div>
+</body>
+</html>

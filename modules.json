@@ -4395,6 +4395,414 @@
                                      }
                                  ],
                         "api_count":  8
+                    },
+                    {
+                        "id":  "weather",
+                        "name":  {
+                                     "zh":  "天气助手",
+                                     "en":  "Weather Assistant"
+                                 },
+                        "description":  {
+                                            "zh":  "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
+                                            "en":  "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "cloud",
+                        "filename":  "weather.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/weather",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/weather.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于查询天气API获取天气数据",
+                                                "desc_en":  "Access weather API for weather data"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "getCurrentWeather",
+                                         "desc":  "查询指定城市的当前天气，包括温度、湿度、风速、天气状况等",
+                                         "desc_en":  "Get current weather for a city including temperature, humidity, wind speed, conditions",
+                                         "params":  [
+                                                        "city"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "城市名称，支持中文或英文"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "City name in Chinese or English"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getForecast",
+                                         "desc":  "查询指定城市未来多日天气预报，包括每日最高/最低温度、天气状况、降水概率",
+                                         "desc_en":  "Get multi-day forecast for a city with daily high/low temps, conditions, precipitation probability",
+                                         "params":  [
+                                                        "city",
+                                                        "days"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "城市名称",
+                                                           "预报天数（1-7），默认3"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "City name",
+                                                              "Forecast days (1-7), default 3"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开天气助手界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Weather UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  3
+                    },
+                    {
+                        "id":  "ocr",
+                        "name":  {
+                                     "zh":  "文字识别",
+                                     "en":  "OCR Text Recognition"
+                                 },
+                        "description":  {
+                                            "zh":  "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测",
+                                            "en":  "OCR module for extracting text from images, supports Chinese and English with auto language detection"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "text_snippet",
+                        "filename":  "ocr.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/ocr",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/ocr.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.READ_EXTERNAL_STORAGE",
+                                                "desc":  "用于读取图片文件进行文字识别",
+                                                "desc_en":  "Read image files for text recognition"
+                                            },
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于调用OCR识别服务",
+                                                "desc_en":  "Access OCR recognition service"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "file_read",
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "recognizeText",
+                                         "desc":  "识别图片中的文字，支持中文和英文，返回提取的文本内容",
+                                         "desc_en":  "Recognize text in an image, supports Chinese and English, returns extracted text",
+                                         "params":  [
+                                                        "imagePath",
+                                                        "language"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "图片文件的绝对路径",
+                                                           "识别语言：zh(中文)、en(英文)、auto(自动检测)，默认auto"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Absolute path to the image file",
+                                                              "Language: zh(Chinese), en(English), auto(detect), default auto"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开文字识别界面并返回 _openModule 信号",
+                                         "desc_en":  "Open OCR UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  2
+                    },
+                    {
+                        "id":  "flashlight",
+                        "name":  {
+                                     "zh":  "手电筒",
+                                     "en":  "Flashlight"
+                                 },
+                        "description":  {
+                                            "zh":  "手电筒控制模块，支持开关闪光灯、切换状态、查询当前状态",
+                                            "en":  "Flashlight control module, toggle camera torch on/off, check current status"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "flashlight_on",
+                        "filename":  "flashlight.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/flashlight",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/flashlight.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.CAMERA",
+                                                "desc":  "用于控制相机闪光灯",
+                                                "desc_en":  "Control camera flashlight/torch"
+                                            }
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "turnOn",
+                                         "desc":  "打开手电筒（闪光灯）",
+                                         "desc_en":  "Turn on the flashlight (camera torch)",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "turnOff",
+                                         "desc":  "关闭手电筒",
+                                         "desc_en":  "Turn off the flashlight",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "toggle",
+                                         "desc":  "切换手电筒开关状态",
+                                         "desc_en":  "Toggle flashlight on/off",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getStatus",
+                                         "desc":  "获取手电筒当前状态（开/关）",
+                                         "desc_en":  "Get current flashlight status (on/off)",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开手电筒界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Flashlight UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  5
+                    },
+                    {
+                        "id":  "translator",
+                        "name":  {
+                                     "zh":  "翻译助手",
+                                     "en":  "Translator"
+                                 },
+                        "description":  {
+                                            "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
+                                            "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "translate",
+                        "filename":  "translator.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/translator",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/translator.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于调用翻译API",
+                                                "desc_en":  "Access translation API"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "translate",
+                                         "desc":  "翻译文本，支持指定源语言和目标语言",
+                                         "desc_en":  "Translate text with specified source and target languages",
+                                         "params":  [
+                                                        "text",
+                                                        "from",
+                                                        "to"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要翻译的文本",
+                                                           "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测",
+                                                           "目标语言代码，默认en"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to translate",
+                                                              "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto",
+                                                              "Target language code, default en"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "detectLanguage",
+                                         "desc":  "检测文本的语言",
+                                         "desc_en":  "Detect the language of given text",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要检测语言的文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to detect language for"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getSupportedLanguages",
+                                         "desc":  "获取支持的语言列表",
+                                         "desc_en":  "Get list of supported languages",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开翻译助手界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Translator UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  4
+                    },
+                    {
+                        "id":  "compass",
+                        "name":  {
+                                     "zh":  "指南针",
+                                     "en":  "Digital Compass"
+                                 },
+                        "description":  {
+                                            "zh":  "数字指南针模块，利用设备传感器显示当前方向，支持获取方位角和基本方位信息",
+                                            "en":  "Digital compass module using device sensors to show current heading, azimuth and cardinal direction"
+                                        },
+                        "version":  "1.0",
+                        "icon":  "explore",
+                        "filename":  "compass.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/compass",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/compass.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "Jarvan"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "getDirection",
+                                         "desc":  "获取当前设备朝向，返回方位角(度数)和基本方位名称",
+                                         "desc_en":  "Get current device heading, returns azimuth in degrees and cardinal direction name",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开指南针界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Compass UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  2
                     }
                 ]
 }

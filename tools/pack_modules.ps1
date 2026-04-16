@@ -1,9 +1,10 @@
 # Signed module packaging script
-# Usage: .\pack_modules.ps1 [-Modules "ocr"] [-Modules "ocr,calculator"] [-OutputDir "path"] [-SkipSigning]
+# Usage: .\pack_modules.ps1 [-Modules "ocr"] [-Modules "ocr,calculator"] [-OutputDir "path"] [-SkipSigning] [-DevKey "Keystore\dev_signing_jarvan"]
 
 param(
     [string]$OutputDir = "",
     [string]$Modules = "",
+    [string]$DevKey = "",
     [switch]$SkipSigning
 )
 
@@ -154,6 +155,22 @@ $devPrivateDir = Join-Path $devSigningRoot "private"
 $devMetadataPath = Join-Path $devSigningRoot "signing-metadata.json"
 $devKeystorePath = Join-Path $devPrivateDir "dev-keystore.p12"
 $devSecretPath = Join-Path $devPrivateDir "signing-secret.dpapi"
+
+if (-not [string]::IsNullOrWhiteSpace($DevKey)) {
+    $altDevRoot = if ([System.IO.Path]::IsPathRooted($DevKey)) { $DevKey } else { Join-Path $rootDir $DevKey }
+    if (-not (Test-Path $altDevRoot)) { throw "DevKey path not found: $altDevRoot" }
+    $devSigningRoot = $altDevRoot
+    $devPrivateDir = Join-Path $devSigningRoot "private"
+    $devMetadataPath = Join-Path $devSigningRoot "signing-metadata.json"
+    # Auto-detect keystore filename in private dir
+    $devKeystoreFile = Get-ChildItem (Join-Path $devPrivateDir "*.p12") -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($devKeystoreFile) { $devKeystorePath = $devKeystoreFile.FullName }
+    else { throw "No .p12 keystore found in $devPrivateDir" }
+    $devSecretFile = Get-ChildItem (Join-Path $devPrivateDir "*signing-secret.dpapi") -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($devSecretFile) { $devSecretPath = $devSecretFile.FullName }
+    else { throw "No signing-secret.dpapi found in $devPrivateDir" }
+    Write-Host "  Using alternate dev key: $devSigningRoot" -ForegroundColor Cyan
+}
 
 if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir -Force | Out-Null }
 if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }

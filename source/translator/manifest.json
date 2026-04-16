@@ -1,0 +1,61 @@
+{
+  "id": "translator",
+  "name": "翻译助手",
+  "name_en": "Translator",
+  "description": "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
+  "description_en": "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection",
+  "version": "1.0",
+  "icon": "translate",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.translator.TranslatorPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["network"],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于调用翻译API",
+      "desc_en": "Access translation API"
+    }
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "translate",
+      "desc": "翻译文本，支持指定源语言和目标语言",
+      "desc_en": "Translate text with specified source and target languages",
+      "params": ["text", "from", "to"],
+      "paramDesc": ["要翻译的文本", "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测", "目标语言代码，默认en"],
+      "paramDesc_en": ["Text to translate", "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto", "Target language code, default en"]
+    },
+    {
+      "name": "detectLanguage",
+      "desc": "检测文本的语言",
+      "desc_en": "Detect the language of given text",
+      "params": ["text"],
+      "paramDesc": ["要检测语言的文本"],
+      "paramDesc_en": ["Text to detect language for"]
+    },
+    {
+      "name": "getSupportedLanguages",
+      "desc": "获取支持的语言列表",
+      "desc_en": "Get list of supported languages",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "openPage",
+      "desc": "打开翻译助手界面并返回 _openModule 信号",
+      "desc_en": "Open Translator UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

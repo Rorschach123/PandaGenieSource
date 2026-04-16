@@ -1,0 +1,50 @@
+{
+  "id": "ocr",
+  "name": "文字识别",
+  "name_en": "OCR Text Recognition",
+  "description": "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测",
+  "description_en": "OCR module for extracting text from images, supports Chinese and English with auto language detection",
+  "version": "1.0",
+  "icon": "text_snippet",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.ocr.OcrPlugin",
+  "soLoadMode": "skip",
+  "capabilities": ["file_read", "network"],
+  "permissions": [
+    {
+      "name": "android.permission.READ_EXTERNAL_STORAGE",
+      "desc": "用于读取图片文件进行文字识别",
+      "desc_en": "Read image files for text recognition"
+    },
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于调用OCR识别服务",
+      "desc_en": "Access OCR recognition service"
+    }
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "recognizeText",
+      "desc": "识别图片中的文字，支持中文和英文，返回提取的文本内容",
+      "desc_en": "Recognize text in an image, supports Chinese and English, returns extracted text",
+      "params": ["imagePath", "language"],
+      "paramDesc": ["图片文件的绝对路径", "识别语言：zh(中文)、en(英文)、auto(自动检测)，默认auto"],
+      "paramDesc_en": ["Absolute path to the image file", "Language: zh(Chinese), en(English), auto(detect), default auto"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开文字识别界面并返回 _openModule 信号",
+      "desc_en": "Open OCR UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

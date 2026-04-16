@@ -1,0 +1,39 @@
+{
+  "id": "compass",
+  "name": "指南针",
+  "name_en": "Digital Compass",
+  "description": "数字指南针模块，利用设备传感器显示当前方向，支持获取方位角和基本方位信息",
+  "description_en": "Digital compass module using device sensors to show current heading, azimuth and cardinal direction",
+  "version": "1.0",
+  "icon": "explore",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.compass.CompassPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getDirection",
+      "desc": "获取当前设备朝向，返回方位角(度数)和基本方位名称",
+      "desc_en": "Get current device heading, returns azimuth in degrees and cardinal direction name",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "openPage",
+      "desc": "打开指南针界面并返回 _openModule 信号",
+      "desc_en": "Open Compass UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

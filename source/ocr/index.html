@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>文字识别 / OCR</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
+.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">📝</div>
+  <h2>文字识别 / OCR</h2>
+  <p>从图片中提取中英文文字</p>
+</div>
+
+<div class="info-card">
+  <h3>✨ 功能特性</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">🇨🇳</span>中文识别</div>
+    <div class="feature-item"><span class="emoji">🇬🇧</span>英文识别</div>
+    <div class="feature-item"><span class="emoji">🔍</span>自动检测语言</div>
+    <div class="feature-item"><span class="emoji">📷</span>支持多种图片格式</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3>📡 功能接口</h3>
+  <p><strong>recognizeText</strong> — 识别图片中的文字，支持指定语言(zh/en/auto)</p>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "识别这张图片上的文字"</p>
+  <p>• "提取图片中的中文内容"</p>
+  <p>• "OCR识别 /sdcard/photo.jpg"</p>
+  <p>• "读取截图上的英文文字"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>需要存储读取权限和网络权限</p>
+</div>
+</body>
+</html>

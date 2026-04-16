@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>手电筒 / Flashlight</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.torch-area { text-align: center; padding: 30px 0; }
+.torch-btn {
+  width: 140px; height: 140px; border-radius: 50%;
+  border: 4px solid var(--primary); background: var(--surface);
+  font-size: 56px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.3s;
+}
+.torch-btn.on {
+  background: linear-gradient(135deg, #FFD54F, #FFA726);
+  border-color: #FF9800;
+  box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+}
+.torch-status {
+  margin-top: 16px; font-size: 18px; font-weight: 600;
+  color: var(--on-surface-variant);
+}
+.torch-status.on { color: #FF9800; }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🔦</div>
+  <h2>手电筒 / Flashlight</h2>
+  <p>快速控制设备闪光灯</p>
+</div>
+
+<div class="card">
+  <div class="torch-area">
+    <button type="button" class="torch-btn" id="torchBtn" onclick="toggleTorch()">🔦</button>
+    <div class="torch-status" id="torchStatus">OFF</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "打开手电筒"</p>
+  <p>• "关闭闪光灯"</p>
+  <p>• "手电筒开了吗"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>需要相机权限以控制闪光灯</p>
+</div>
+
+<script>
+var isOn = false;
+function toggleTorch() {
+  try {
+    var raw = NativeBridge.invoke('toggle', '{}');
+    var res = JSON.parse(raw);
+    if (res.success) {
+      var out = JSON.parse(res.output);
+      isOn = out.on;
+      updateUI();
+    }
+  } catch(e) {}
+}
+function updateUI() {
+  var btn = document.getElementById('torchBtn');
+  var st = document.getElementById('torchStatus');
+  btn.className = 'torch-btn' + (isOn ? ' on' : '');
+  st.className = 'torch-status' + (isOn ? ' on' : '');
+  st.textContent = isOn ? 'ON' : 'OFF';
+}
+try {
+  var raw = NativeBridge.invoke('getStatus', '{}');
+  var res = JSON.parse(raw);
+  if (res.success) { isOn = JSON.parse(res.output).on; updateUI(); }
+} catch(e) {}
+</script>
+</body>
+</html>

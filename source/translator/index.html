@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>翻译助手 / Translator</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.mod-header { text-align: center; padding: 24px 0 16px; }
+.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
+.mod-header h2 { margin: 0; font-size: 20px; }
+.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
+.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
+.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
+.feature-item .emoji { font-size: 20px; display: block; margin-bottom: 4px; }
+.api-list { list-style: none; padding: 0; margin: 0; }
+.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline); font-size: 13px; }
+.api-list li:last-child { border-bottom: none; }
+.api-name { font-weight: 600; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">🌐</div>
+  <h2>翻译助手 / Translator</h2>
+  <p>多语言文本互译</p>
+</div>
+
+<div class="info-card">
+  <h3>✨ 支持语言</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">🇨🇳</span>中文</div>
+    <div class="feature-item"><span class="emoji">🇬🇧</span>英语</div>
+    <div class="feature-item"><span class="emoji">🇯🇵</span>日语</div>
+    <div class="feature-item"><span class="emoji">🇰🇷</span>韩语</div>
+    <div class="feature-item"><span class="emoji">🇫🇷</span>法语</div>
+    <div class="feature-item"><span class="emoji">🇩🇪</span>德语</div>
+    <div class="feature-item"><span class="emoji">🇪🇸</span>西班牙语</div>
+    <div class="feature-item"><span class="emoji">🇷🇺</span>俄语</div>
+    <div class="feature-item"><span class="emoji">🇸🇦</span>阿拉伯语</div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3>📡 功能接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">translate</span> — 翻译文本，支持指定源/目标语言</li>
+    <li><span class="api-name">detectLanguage</span> — 自动检测文本语言</li>
+    <li><span class="api-name">getSupportedLanguages</span> — 获取支持的语言列表</li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3>💡 使用示例</h3>
+  <p>• "把这段话翻译成英文: 今天天气真好"</p>
+  <p>• "translate hello world to Chinese"</p>
+  <p>• "这段文字是什么语言"</p>
+  <p>• "翻译成日语: 谢谢"</p>
+</div>
+
+<div class="info-card">
+  <h3>ℹ️ 关于</h3>
+  <p>开发者: Jarvan</p>
+  <p>版本: 1.0</p>
+  <p>翻译服务: MyMemory API (免费)</p>
+</div>
+</body>
+</html>

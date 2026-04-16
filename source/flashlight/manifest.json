@@ -1,0 +1,69 @@
+{
+  "id": "flashlight",
+  "name": "手电筒",
+  "name_en": "Flashlight",
+  "description": "手电筒控制模块，支持开关闪光灯、切换状态、查询当前状态",
+  "description_en": "Flashlight control module, toggle camera torch on/off, check current status",
+  "version": "1.0",
+  "icon": "flashlight_on",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.flashlight.FlashlightPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [
+    {
+      "name": "android.permission.CAMERA",
+      "desc": "用于控制相机闪光灯",
+      "desc_en": "Control camera flashlight/torch"
+    }
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "turnOn",
+      "desc": "打开手电筒（闪光灯）",
+      "desc_en": "Turn on the flashlight (camera torch)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "turnOff",
+      "desc": "关闭手电筒",
+      "desc_en": "Turn off the flashlight",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "toggle",
+      "desc": "切换手电筒开关状态",
+      "desc_en": "Toggle flashlight on/off",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "getStatus",
+      "desc": "获取手电筒当前状态（开/关）",
+      "desc_en": "Get current flashlight status (on/off)",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "openPage",
+      "desc": "打开手电筒界面并返回 _openModule 信号",
+      "desc_en": "Open Flashlight UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}
