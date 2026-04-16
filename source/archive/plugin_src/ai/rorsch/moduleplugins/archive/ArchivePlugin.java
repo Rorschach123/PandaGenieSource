@@ -76,7 +76,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null);
             }
             case "compressZip": {
-                String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
+                String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
                 String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String pwd = params.optString("password", "");
@@ -92,7 +92,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "compressTar": {
-                String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
+                String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
                 String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String preCheck = validateCompressArgs(inputs, output);
@@ -107,7 +107,7 @@ public class ArchivePlugin implements ModulePlugin {
                 return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null, rc);
             }
             case "compressTarGz": {
-                String[] inputs = splitPaths(params.optString("inputPaths", params.optString("input", "")));
+                String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
                 String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String preCheck = validateCompressArgs(inputs, output);
@@ -174,18 +174,60 @@ public class ArchivePlugin implements ModulePlugin {
     }
 
     /**
-     * 将逗号分隔的路径字符串拆分为去首尾空格的数组。
-     *
-     * @param raw 多个路径，英文逗号分隔；null 或空白视为无路径
-     * @return 路径片段数组；无有效内容时返回长度为 0 的数组
+     * 从 params 中提取路径数组，优先尝试 JSON 数组类型，回退到字符串拆分。
+     */
+    private String[] extractPaths(JSONObject params, String... keys) {
+        for (String key : keys) {
+            if (!params.has(key)) continue;
+            Object val = params.opt(key);
+            if (val instanceof JSONArray) {
+                JSONArray arr = (JSONArray) val;
+                String[] result = new String[arr.length()];
+                for (int i = 0; i < arr.length(); i++) {
+                    result[i] = arr.optString(i, "").trim();
+                }
+                return result;
+            }
+            String str = params.optString(key, "").trim();
+            if (!str.isEmpty()) return splitPaths(str);
+        }
+        return new String[0];
+    }
+
+    /**
+     * 将路径参数拆分为数组。支持两种格式：
+     * 1. JSON 数组字符串: ["/path/a", "/path/b"]
+     * 2. 逗号分隔字符串: /path/a,/path/b
      */
     private String[] splitPaths(String raw) {
         if (raw == null || raw.trim().isEmpty()) return new String[0];
-        String[] parts = raw.split(",");
-        for (int i = 0; i < parts.length; i++) {
-            parts[i] = parts[i].trim();
+        String trimmed = raw.trim();
+        if (trimmed.startsWith("[")) {
+            try {
+                JSONArray arr = new JSONArray(trimmed);
+                String[] result = new String[arr.length()];
+                for (int i = 0; i < arr.length(); i++) {
+                    result[i] = arr.getString(i).trim();
+                }
+                return result;
+            } catch (Exception ignored) {
+                // Not valid JSON array, strip brackets and fall through
+                if (trimmed.endsWith("]")) {
+                    trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+                }
+            }
         }
-        return parts;
+        // Strip surrounding quotes from individual paths
+        String[] parts = trimmed.split(",");
+        java.util.List<String> cleaned = new java.util.ArrayList<>();
+        for (String p : parts) {
+            String s = p.trim();
+            if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) {
+                s = s.substring(1, s.length() - 1).trim();
+            }
+            if (!s.isEmpty()) cleaned.add(s);
+        }
+        return cleaned.toArray(new String[0]);
     }
 
     /**
