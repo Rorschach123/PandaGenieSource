@@ -99,7 +99,13 @@ public class QrcodePlugin implements ModulePlugin {
                     r.put("success", true);
                     r.put("output", new JSONObject().put("page", page).toString());
                     r.put("_openModule", true);
-                    r.put("_displayText", isZh() ? "正在打开二维码工具..." : "Opening QR Code Tools...");
+                    String hint;
+                    if ("scan".equals(page)) {
+                        hint = isZh() ? "正在打开相机扫描（需要相机权限）..." : "Opening camera scan (camera permission required)...";
+                    } else {
+                        hint = isZh() ? "正在打开二维码工具..." : "Opening QR Code Tools...";
+                    }
+                    r.put("_displayText", hint);
                     return r.toString();
                 }
                 default:
