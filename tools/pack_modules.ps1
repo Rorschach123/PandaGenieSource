@@ -505,7 +505,8 @@ foreach ($modDir in $moduleDirs) {
         $tmpManifestText = [System.IO.File]::ReadAllText($tmpManifestPath, [System.Text.Encoding]::UTF8)
         $tmpManifest = $tmpManifestText | ConvertFrom-Json
         $tmpManifest | Add-Member -NotePropertyName "devCertFingerprint" -NotePropertyValue $devFp -Force
-        $tmpManifest | ConvertTo-Json -Depth 10 | Set-Content $tmpManifestPath -Encoding UTF8
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($tmpManifestPath, ($tmpManifest | ConvertTo-Json -Depth 10), $utf8NoBom)
         Write-Host "  + manifest.json (devCertFingerprint: $($devFp.Substring(0,16))...)"
     } else {
         Write-Host "  + manifest.json"
@@ -630,7 +631,8 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                 }
             }
         }
-        $index | ConvertTo-Json -Depth 20 | Set-Content $modulesJsonPath -Encoding UTF8
+        $utf8NoBom2 = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($modulesJsonPath, ($index | ConvertTo-Json -Depth 20), $utf8NoBom2)
         Write-Host "  modules.json updated (updated_at, versions)." -ForegroundColor Cyan
     } catch {
         Write-Host "  Warning: could not update modules.json: $_" -ForegroundColor Yellow
