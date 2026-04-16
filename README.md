@@ -146,6 +146,7 @@ Developer Mode allows loading DEV-only signed modules for testing.
 | &#x1F9E9; **Sudoku** | 9x9 Sudoku puzzle with hints | H5+Java |
 | &#x26AB; **Gomoku** | Five in a Row with AI opponent | H5+Java |
 | &#x274E; **Tic-Tac-Toe** | Classic Tic-Tac-Toe with AI | H5+Java |
+| &#x1F517; **Link Parser** | Parse URLs, extract titles/images/links/downloads, check accessibility | Java |
 | &#x1F331; **Farming Game** | Plant, water, harvest simulation | H5+Java |
 
 > &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
@@ -154,7 +155,7 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.4)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260411/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.5)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260416/app-release.apk)**
 
 ---
 

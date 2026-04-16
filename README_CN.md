@@ -146,6 +146,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F9E9; **数独** | 9x9数独谜题，支持提示 | H5+Java |
 | &#x26AB; **五子棋** | 五子棋人机对弈 | H5+Java |
 | &#x274E; **井字棋** | 经典井字棋人机对弈 | H5+Java |
+| &#x1F517; **链接解析** | 解析URL、提取标题/图片/链接/下载文件、检查可访问性 | Java |
 | &#x1F331; **开心农场** | 种植、浇水、收获模拟经营 | H5+Java |
 
 > &#x1F4E6; **[在模块市场浏览所有模块](https://cf.pandagenie.ai/marketplace)** — 或在下方了解如何**创建你自己的模块**！
@@ -154,7 +155,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.4)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260411/app-release.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.5)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260416/app-release.apk)**
 
 ---
 
