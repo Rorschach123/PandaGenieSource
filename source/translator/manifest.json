@@ -4,7 +4,7 @@
   "name_en": "Translator",
   "description": "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
   "description_en": "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "translate",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -30,8 +30,8 @@
       "desc": "翻译文本，支持指定源语言和目标语言",
       "desc_en": "Translate text with specified source and target languages",
       "params": ["text", "from", "to"],
-      "paramDesc": ["要翻译的文本", "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测", "目标语言代码，默认en"],
-      "paramDesc_en": ["Text to translate", "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto", "Target language code, default en"]
+      "paramDesc": ["要翻译的文本", "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测", "目标语言代码，支持多种语言逗号分隔如'en,ja,ko'，传'all'翻译成所有支持的语言，默认en"],
+      "paramDesc_en": ["Text to translate", "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto", "Target language code, supports multiple comma-separated like 'en,ja,ko', pass 'all' to translate into all supported languages, default en"]
     },
     {
       "name": "detectLanguage",

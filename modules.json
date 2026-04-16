@@ -4660,7 +4660,7 @@
                                             "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
                                             "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection"
                                         },
-                        "version":  "1.0",
+                        "version":  "1.1",
                         "icon":  "translate",
                         "filename":  "translator.mod",
                         "download_url":  [

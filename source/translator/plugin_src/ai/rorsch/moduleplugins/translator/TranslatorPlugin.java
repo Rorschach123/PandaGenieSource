@@ -77,15 +77,48 @@ public class TranslatorPlugin implements ModulePlugin {
         }
 
         String from = params.optString("from", "").trim().toLowerCase(Locale.ROOT);
-        String to = params.optString("to", "").trim().toLowerCase(Locale.ROOT);
+        String toRaw = params.optString("to", "").trim().toLowerCase(Locale.ROOT);
 
         if (from.isEmpty()) {
             from = detectLangCode(text);
         }
-        if (to.isEmpty()) {
-            to = from.equals("en") ? "zh" : "en";
-        }
 
+        // Support batch: "to" can be comma-separated, e.g. "en,ja,ko" or "all"
+        String[] targets = parseTargetLanguages(toRaw, from);
+
+        if (targets.length == 1) {
+            return translateSingle(text, from, targets[0]);
+        }
+        return translateBatch(text, from, targets);
+    }
+
+    private String[] parseTargetLanguages(String toRaw, String from) {
+        if (toRaw.isEmpty()) {
+            return new String[]{ from.equals("en") ? "zh" : "en" };
+        }
+        if (toRaw.equals("all") || toRaw.equals("*")) {
+            java.util.List<String> all = new java.util.ArrayList<>();
+            for (String code : LANGUAGES.keySet()) {
+                if (!code.equals(from)) all.add(code);
+            }
+            return all.toArray(new String[0]);
+        }
+        // Split by comma, semicolon, space, slash, or pipe
+        String[] parts = toRaw.split("[,;\\s/|]+");
+        java.util.List<String> valid = new java.util.ArrayList<>();
+        for (String p : parts) {
+            String code = p.trim();
+            if (!code.isEmpty() && LANGUAGES.containsKey(code) && !code.equals(from)) {
+                valid.add(code);
+            }
+        }
+        if (valid.isEmpty()) {
+            return new String[]{ from.equals("en") ? "zh" : "en" };
+        }
+        return valid.toArray(new String[0]);
+    }
+
+    private String translateSingle(String text, String from, String to) throws Exception {
         String langPair = from + "|" + to;
         String url = API_URL + "?q=" + URLEncoder.encode(text, "UTF-8")
                 + "&langpair=" + URLEncoder.encode(langPair, "UTF-8");
@@ -133,6 +166,66 @@ public class TranslatorPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        return r.toString();
+    }
+
+    private String translateBatch(String text, String from, String[] targets) throws Exception {
+        String fromName = getLangName(from);
+        JSONArray results = new JSONArray();
+        StringBuilder display = new StringBuilder();
+        if (isZh()) {
+            display.append("\uD83C\uDF10 多语言翻译\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n");
+            display.append("\u25B8 原文 (").append(fromName).append("): ").append(text.length() > 60 ? text.substring(0, 60) + "\u2026" : text).append("\n\n");
+        } else {
+            display.append("\uD83C\uDF10 Multi-language Translation\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n");
+            display.append("\u25B8 Source (").append(fromName).append("): ").append(text.length() > 60 ? text.substring(0, 60) + "\u2026" : text).append("\n\n");
+        }
+
+        int success = 0, failed = 0;
+        for (String to : targets) {
+            try {
+                String langPair = from + "|" + to;
+                String url = API_URL + "?q=" + URLEncoder.encode(text, "UTF-8")
+                        + "&langpair=" + URLEncoder.encode(langPair, "UTF-8");
+                JSONObject resp = new JSONObject(httpGet(url));
+                JSONObject respData = resp.optJSONObject("responseData");
+                if (respData == null) {
+                    failed++;
+                    continue;
+                }
+                String translated = respData.optString("translatedText", "");
+                if (translated.isEmpty()) {
+                    failed++;
+                    continue;
+                }
+                String toName = getLangName(to);
+                JSONObject item = new JSONObject();
+                item.put("to", to);
+                item.put("toName", toName);
+                item.put("translatedText", translated);
+                results.put(item);
+                display.append("\u25B8 ").append(toName).append(" (").append(to).append("): ").append(translated).append("\n");
+                success++;
+            } catch (Exception e) {
+                failed++;
+            }
+        }
+
+        if (failed > 0) {
+            display.append("\n").append(isZh() ? "(\u26A0 " + failed + " 种语言翻译失败)" : "(\u26A0 " + failed + " language(s) failed)");
+        }
+
+        JSONObject out = new JSONObject();
+        out.put("originalText", text);
+        out.put("from", from);
+        out.put("translations", results);
+        out.put("successCount", success);
+        out.put("failedCount", failed);
+
+        JSONObject r = new JSONObject();
+        r.put("success", success > 0);
+        r.put("output", out.toString());
+        r.put("_displayText", display.toString().trim());
         return r.toString();
     }
 
