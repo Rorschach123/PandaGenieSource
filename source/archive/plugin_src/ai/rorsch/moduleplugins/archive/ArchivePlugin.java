@@ -6,7 +6,9 @@ import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.ArchiveLib;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Locale;
 
 /**
@@ -80,16 +82,33 @@ public class ArchivePlugin implements ModulePlugin {
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
                 String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
                 String pwd = params.optString("password", "");
-                String preCheck = validateCompressArgs(inputs, output);
-                if (preCheck != null) return error(preCheck);
+                if (inputs.length == 0) return error("inputPaths is empty");
+                if (output.isEmpty()) return error("outputPath is empty");
+                int totalRequested = inputs.length;
+                String[] validInputs = filterExistingFiles(inputs);
+                if (validInputs.length == 0) {
+                    return error(isZh() ? "所有文件均不存在或无法读取" : "All files not found or unreadable");
+                }
                 ensureParentDir(output);
-                boolean ok = lib.compressZip(inputs, output, pwd);
+                boolean ok;
+                if (pwd != null && !pwd.isEmpty()) {
+                    ok = compressZipWithPassword(validInputs, output, pwd);
+                } else {
+                    ok = lib.compressZip(validInputs, output, "");
+                }
                 JSONArray rc = null;
                 if (ok) {
                     rc = new JSONArray();
                     rc.put(richFile(output, null, "application/zip"));
                 }
-                return boolResult(ok, "compressZip", ok ? formatCompressDisplay(output) : null, rc);
+                String display = ok ? formatCompressDisplay(output) : null;
+                if (ok && validInputs.length < totalRequested) {
+                    int skipped = totalRequested - validInputs.length;
+                    display += (isZh()
+                            ? "\n\u26A0 " + skipped + " 个文件未找到已跳过"
+                            : "\n\u26A0 " + skipped + " file(s) not found, skipped");
+                }
+                return boolResult(ok, "compressZip", display, rc);
             }
             case "compressTar": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
@@ -146,6 +165,27 @@ public class ArchivePlugin implements ModulePlugin {
     }
 
     /**
+     * Standard ZipCrypto password-protected ZIP (compatible with WinZip, 7-Zip, etc.)
+     */
+    private boolean compressZipWithPassword(String[] inputs, String outputPath, String password) {
+        try {
+            ZipCryptoOutputStream zcos = new ZipCryptoOutputStream(
+                    new BufferedOutputStream(new FileOutputStream(outputPath)), password);
+            for (String path : inputs) {
+                File f = new File(path);
+                if (!f.isFile()) continue;
+                zcos.addFile(f, f.getName());
+            }
+            zcos.finish();
+            zcos.close();
+            return true;
+        } catch (Exception e) {
+            new File(outputPath).delete();
+            return false;
+        }
+    }
+
+    /**
      * 校验压缩操作的输入文件列表与输出路径是否合法。
      *
      * @param inputs 待打包的本地文件路径数组
@@ -156,11 +196,24 @@ public class ArchivePlugin implements ModulePlugin {
         if (inputs.length == 0) return "inputPaths is empty";
         if (output.isEmpty()) return "outputPath is empty";
         for (String p : inputs) {
-            // 每个待打包路径必须存在且可读，避免原生层出现难排查错误
             if (!new File(p).exists()) return "File not found: " + p;
             if (!new File(p).canRead()) return "Cannot read file: " + p;
         }
         return null;
+    }
+
+    /**
+     * Filter out non-existent files, returning only valid paths.
+     * Allows compression to proceed with available files.
+     */
+    private String[] filterExistingFiles(String[] inputs) {
+        java.util.List<String> valid = new java.util.ArrayList<>();
+        for (String p : inputs) {
+            if (new File(p).isFile() && new File(p).canRead()) {
+                valid.add(p);
+            }
+        }
+        return valid.toArray(new String[0]);
     }
 
     /**
