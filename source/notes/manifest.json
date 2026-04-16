@@ -1,10 +1,10 @@
-﻿{
+{
   "id": "notes",
   "name": "笔记助手",
   "name_en": "Notes",
   "description": "笔记助手模块，支持创建、查看、编辑、删除、搜索和导出笔记，数据本地存储",
   "description_en": "Note-taking module: create, view, edit, delete, search and export notes with local file storage",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "note",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -72,6 +72,14 @@
       "params": ["id", "path"],
       "paramDesc": ["笔记 ID", "输出文件路径或目录"],
       "paramDesc_en": ["Note id", "Output file path or directory"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开笔记助手界面并返回 _openModule 信号",
+      "desc_en": "Open the Notes UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
     }
   ]
 }

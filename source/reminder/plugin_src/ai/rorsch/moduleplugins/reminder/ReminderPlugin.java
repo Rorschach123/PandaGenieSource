@@ -97,6 +97,15 @@ public class ReminderPlugin implements ModulePlugin {
                 String out = getUpcoming(context, params);
                 return ok(out, formatListEventsDisplay(out, true));
             }
+            case "openPage": {
+                String page = params.optString("page", "tools").trim();
+                JSONObject r = new JSONObject();
+                r.put("success", true);
+                r.put("output", new JSONObject().put("page", page).toString());
+                r.put("_openModule", true);
+                r.put("_displayText", isZh() ? "正在打开提醒助手..." : "Opening Reminder...");
+                return r.toString();
+            }
             default:
                 return error("Unsupported action: " + action);
         }

@@ -215,6 +215,14 @@ public class UnitConverterPlugin implements ModulePlugin {
                         ? ("📋 类别\n" + String.join(", ", keysList(CATEGORY_TITLES)))
                         : ("📋 Categories\n" + String.join(", ", keysList(CATEGORY_TITLES))));
             }
+            case "openPage": {
+                JSONObject r = new JSONObject();
+                r.put("success", true);
+                r.put("output", "{}");
+                r.put("_openModule", true);
+                r.put("_displayText", isZh() ? "正在打开单位转换..." : "Opening Unit Converter...");
+                return r.toString();
+            }
             default:
                 return error("Unsupported action: " + action);
         }

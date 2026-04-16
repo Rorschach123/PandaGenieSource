@@ -48,6 +48,14 @@ public class LinkParserPlugin implements ModulePlugin {
             case "extractText":    return extractText(params);
             case "checkUrl":       return checkUrl(params);
             case "extractMeta":    return extractMeta(params);
+            case "openPage": {
+                JSONObject r = new JSONObject();
+                r.put("success", true);
+                r.put("output", "{}");
+                r.put("_openModule", true);
+                r.put("_displayText", "Opening Link Parser...");
+                return r.toString();
+            }
             default:
                 return error("Unknown action: " + action);
         }

@@ -88,6 +88,14 @@
       "params": ["url"],
       "paramDesc": ["要提取元数据的链接地址"],
       "paramDesc_en": ["URL to extract metadata from"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开链接解析界面并返回 _openModule 信号",
+      "desc_en": "Open the Link Parser UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
     }
   ]
 }

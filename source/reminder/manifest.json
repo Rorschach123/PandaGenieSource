@@ -1,10 +1,10 @@
-﻿{
+{
   "id": "reminder",
   "name": "提醒助手",
   "name_en": "Reminder",
   "description": "提醒助手模块，支持创建/查询/修改/删除日历事件、设置闹钟和倒计时、生日提醒、查看近期日程等",
   "description_en": "Reminder assistant: create/query/update/delete calendar events, set alarms and timers, birthday reminders, view upcoming schedule",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "notifications_active",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -39,6 +39,7 @@
     {"name":"setTimer","desc":"设置倒计时，会打开系统倒计时界面","desc_en":"Set a countdown timer, opens system timer UI","params":["seconds","label"],"paramDesc":["倒计时秒数","倒计时标签(可为空)"],"paramDesc_en":["Countdown seconds","Timer label (optional)"]},
     {"name":"createBirthdayReminder","desc":"创建每年重复的生日提醒事件，自动设置为全天事件并每年重复","desc_en":"Create a yearly recurring birthday reminder as an all-day event","params":["name","date","reminderMinutes"],"paramDesc":["姓名","生日日期，格式: MM-dd 或 yyyy-MM-dd","提前提醒分钟数(默认1440即1天前)"],"paramDesc_en":["Person name","Birthday date, format: MM-dd or yyyy-MM-dd","Reminder minutes before (default 1440 = 1 day)"]},
     {"name":"openCalendar","desc":"打开系统日历应用，可指定跳转到某一天","desc_en":"Open the system calendar app, optionally jump to a specific date","params":["date"],"paramDesc":["要查看的日期，格式: yyyy-MM-dd(可为空，打开当天)"],"paramDesc_en":["Date to view, format: yyyy-MM-dd (optional, opens today)"]},
-    {"name":"getUpcoming","desc":"获取未来N天内的所有日历事件摘要","desc_en":"Get a summary of all calendar events in the next N days","params":["days"],"paramDesc":["查询未来几天的事件(默认7天)"],"paramDesc_en":["Number of days to look ahead (default 7)"]}
+    {"name":"getUpcoming","desc":"获取未来N天内的所有日历事件摘要","desc_en":"Get a summary of all calendar events in the next N days","params":["days"],"paramDesc":["查询未来几天的事件(默认7天)"],"paramDesc_en":["Number of days to look ahead (default 7)"]},
+    {"name":"openPage","desc":"打开提醒助手的指定页面并返回 _openModule 信号，页面值: tools(提醒工具), upcoming(近期日程)","desc_en":"Open a specific Reminder page and return _openModule signal. Pages: tools, upcoming","params":["page"],"paramDesc":["要打开的页面：tools/upcoming"],"paramDesc_en":["Page to open: tools/upcoming"]}
   ]
 }

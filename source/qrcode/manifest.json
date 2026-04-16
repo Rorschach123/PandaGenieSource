@@ -4,7 +4,7 @@
   "name_en": "QR Code Tools",
   "description": "二维码工具模块，支持生成二维码、扫描解码二维码（图片或相机）、检测图片是否含二维码、查看和分享已生成的二维码",
   "description_en": "QR code tools: generate, decode from image or camera, detect QR presence, view and share generated codes",
-  "version": "1.2",
+  "version": "1.3",
   "icon": "document_scanner",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -22,6 +22,11 @@
       "name": "android.permission.READ_EXTERNAL_STORAGE",
       "desc": "用于读取图片以解码二维码",
       "desc_en": "Read image files for QR decoding"
+    },
+    {
+      "name": "android.permission.CAMERA",
+      "desc": "用于相机实时扫描二维码",
+      "desc_en": "Camera access for live QR code scanning"
     }
   ],
   "developer": {
@@ -61,6 +66,14 @@
       "params": [],
       "paramDesc": [],
       "paramDesc_en": []
+    },
+    {
+      "name": "openPage",
+      "desc": "打开二维码工具的指定页面并返回 _openModule 信号，页面值: gen(生成), scan(相机扫描), gal(图库)",
+      "desc_en": "Open a specific QR tool page and return _openModule signal. Pages: gen(generate), scan(camera scan), gal(gallery)",
+      "params": ["page"],
+      "paramDesc": ["要打开的页面：gen/scan/gal"],
+      "paramDesc_en": ["Page to open: gen/scan/gal"]
     }
   ]
 }

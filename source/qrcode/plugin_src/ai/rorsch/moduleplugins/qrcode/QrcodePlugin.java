@@ -93,6 +93,15 @@ public class QrcodePlugin implements ModulePlugin {
                     }
                     return ok(out, formatListDisplay(out), rich);
                 }
+                case "openPage": {
+                    String page = params.optString("page", "gen").trim();
+                    JSONObject r = new JSONObject();
+                    r.put("success", true);
+                    r.put("output", new JSONObject().put("page", page).toString());
+                    r.put("_openModule", true);
+                    r.put("_displayText", isZh() ? "正在打开二维码工具..." : "Opening QR Code Tools...");
+                    return r.toString();
+                }
                 default:
                     return error("Unsupported action: " + action);
             }

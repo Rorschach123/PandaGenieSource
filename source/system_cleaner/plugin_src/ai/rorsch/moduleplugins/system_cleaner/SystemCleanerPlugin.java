@@ -99,6 +99,14 @@ public class SystemCleanerPlugin implements ModulePlugin {
                 String out = findLargeFiles(params);
                 return ok(out, formatFindLargeFilesDisplay(out));
             }
+            case "openPage": {
+                JSONObject r = new JSONObject();
+                r.put("success", true);
+                r.put("output", "{}");
+                r.put("_openModule", true);
+                r.put("_displayText", isZh() ? "正在打开系统清理..." : "Opening System Cleaner...");
+                return r.toString();
+            }
             default:
                 return error("Unsupported action: " + action);
         }

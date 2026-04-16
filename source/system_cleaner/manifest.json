@@ -1,9 +1,9 @@
-﻿{
+{
     "id": "system_cleaner",
     "name": "系统清理",
     "name_en": "System Cleaner",
     "name_zh": "系统清理",
-    "version": "1.2",
+    "version": "1.3",
     "description": "系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间",
     "description_en": "System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space",
     "icon": "delete_sweep",
@@ -52,6 +52,13 @@
             "description": "Find large files that may be candidates for cleanup",
             "params": ["minSizeMB", "path"],
             "paramDesc": ["Minimum file size in MB (default 50)", "Path to scan (default /sdcard)"]
+        },
+        {
+            "name": "openPage",
+            "desc": "打开系统清理界面并返回 _openModule 信号",
+            "desc_en": "Open the System Cleaner UI and return _openModule signal",
+            "params": [],
+            "paramDesc": []
         }
     ]
 }

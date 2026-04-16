@@ -108,6 +108,14 @@ public class NotesPlugin implements ModulePlugin {
                     }
                     return ok(out, formatExportNoteDisplay(out), rc);
                 }
+                case "openPage": {
+                    JSONObject r = new JSONObject();
+                    r.put("success", true);
+                    r.put("output", "{}");
+                    r.put("_openModule", true);
+                    r.put("_displayText", isZh() ? "正在打开笔记助手..." : "Opening Notes...");
+                    return r.toString();
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
