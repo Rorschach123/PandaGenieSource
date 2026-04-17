@@ -80,9 +80,24 @@ public class FileManagerPlugin implements ModulePlugin {
                 return boolResult(okb, "createDirectory failed", okb ? "📁 " + (isZh() ? "目录已创建: " : "Directory created: ") + displayPath(path) : null);
             }
             case "deleteFile": {
-                String path = resolveStoragePath(params.optString("path", ""));
-                boolean okb = lib.nativeDeleteFile(path);
-                return boolResult(okb, "deleteFile failed", okb ? "🗑️ " + (isZh() ? "已删除: " : "Deleted: ") + displayPath(path) : null);
+                java.util.List<String> paths = extractPaths(params, "path", "src", "file");
+                if (paths.size() <= 1) {
+                    String path = resolveStoragePath(paths.isEmpty() ? "" : paths.get(0));
+                    boolean okb = lib.nativeDeleteFile(path);
+                    return boolResult(okb, "deleteFile failed: " + path, okb ? "🗑️ " + (isZh() ? "已删除: " : "Deleted: ") + displayPath(path) : null);
+                }
+                int ok2 = 0, fail2 = 0;
+                boolean zh = isZh();
+                StringBuilder dsb = new StringBuilder();
+                dsb.append("🗑️ ").append(zh ? "批量删除" : "Batch delete").append(" (").append(paths.size()).append(")\n");
+                for (String rp : paths) {
+                    String p = resolveStoragePath(rp);
+                    if (new File(p).exists() && lib.nativeDeleteFile(p)) { ok2++; dsb.append("  ✅ ").append(displayPath(p)).append("\n"); }
+                    else { fail2++; dsb.append("  ❌ ").append(displayPath(p)).append("\n"); }
+                }
+                dsb.append("━━━━━━━━━━\n✅ ").append(ok2).append(zh ? " 成功" : " ok");
+                if (fail2 > 0) dsb.append("  ❌ ").append(fail2).append(zh ? " 失败" : " failed");
+                return ok("deleted=" + ok2 + " failed=" + fail2, dsb.toString().trim());
             }
             case "deleteDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
@@ -162,10 +177,117 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception 构建响应 JSON 时可能抛出
      */
     private String handleCopyOrMove(JSONObject params, boolean isMove) throws Exception {
-        String src = resolveStoragePath(params.optString("src", params.optString("source", params.optString("path", ""))));
-        String dst = resolveStoragePath(params.optString("dst", params.optString("destination", params.optString("target", ""))));
         String op = isMove ? "moveFile" : "copyFile";
 
+        // Parse src — may be a single path string or a JSON array of paths
+        java.util.List<String> srcPaths = extractPaths(params, "src", "source", "path");
+        String dstRaw = cleanPath(params.optString("dst", params.optString("destination", params.optString("target", ""))));
+
+        if (srcPaths.isEmpty()) return error(op + ": src is empty");
+        if (dstRaw.isEmpty()) return error(op + ": dst is empty");
+
+        String dst = resolveStoragePath(dstRaw);
+
+        // Single file: original behavior
+        if (srcPaths.size() == 1) {
+            return doSingleCopyOrMove(resolveStoragePath(srcPaths.get(0)), dst, isMove, op);
+        }
+
+        // Batch: process each file, skip failures, collect results
+        int success = 0, failed = 0, skipped = 0;
+        StringBuilder sb = new StringBuilder();
+        boolean zh = isZh();
+        sb.append(isMove ? "📦 " : "📋 ").append(zh ? "批量" : "Batch ").append(isMove ? (zh ? "移动" : "Move") : (zh ? "复制" : "Copy"))
+          .append(" (").append(srcPaths.size()).append(zh ? " 个文件)\n" : " files)\n");
+
+        for (String rawSrc : srcPaths) {
+            String src = resolveStoragePath(rawSrc);
+            File srcFile = new File(src);
+            if (!srcFile.exists()) {
+                skipped++;
+                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (不存在)\n" : " (not found)\n");
+                continue;
+            }
+            if (srcFile.isDirectory()) {
+                skipped++;
+                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (是目录)\n" : " (is directory)\n");
+                continue;
+            }
+            try {
+                File dstDir = new File(dst);
+                if (!dstDir.exists()) dstDir.mkdirs();
+                File dstFile = dstDir.isDirectory() ? new File(dstDir, srcFile.getName()) : dstDir;
+                File dstParent = dstFile.getParentFile();
+                if (dstParent != null && !dstParent.exists()) dstParent.mkdirs();
+
+                boolean result = isMove ? lib.nativeMoveFile(src, dstFile.getAbsolutePath())
+                                        : lib.nativeCopyFile(src, dstFile.getAbsolutePath());
+                if (result) {
+                    success++;
+                    sb.append("  ✅ ").append(displayPath(src)).append("\n");
+                } else {
+                    failed++;
+                    sb.append("  ❌ ").append(displayPath(src)).append("\n");
+                }
+            } catch (Exception e) {
+                failed++;
+                sb.append("  ❌ ").append(displayPath(src)).append(" (").append(e.getMessage()).append(")\n");
+            }
+        }
+        sb.append("━━━━━━━━━━\n")
+          .append("✅ ").append(success).append(zh ? " 成功" : " ok");
+        if (failed > 0) sb.append("  ❌ ").append(failed).append(zh ? " 失败" : " failed");
+        if (skipped > 0) sb.append("  ⏭ ").append(skipped).append(zh ? " 跳过" : " skipped");
+
+        boolean allOk = failed == 0 && skipped == 0;
+        JSONObject j = new JSONObject()
+                .put("success", success > 0)
+                .put("output", sanitize("moved=" + success + " failed=" + failed + " skipped=" + skipped))
+                .put("_displayText", sanitize(sb.toString().trim()));
+        return j.toString();
+    }
+
+    /**
+     * Extract path(s) from params: handles single string, JSON array string, or JSONArray value.
+     */
+    private java.util.List<String> extractPaths(JSONObject params, String... keys) {
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (String key : keys) {
+            Object val = params.opt(key);
+            if (val == null) continue;
+            if (val instanceof JSONArray) {
+                JSONArray arr = (JSONArray) val;
+                for (int i = 0; i < arr.length(); i++) result.add(cleanPath(arr.optString(i, "")));
+                return result;
+            }
+            String s = cleanPath(val.toString());
+            if (s.isEmpty()) continue;
+            if (s.startsWith("[")) {
+                try {
+                    JSONArray arr = new JSONArray(s);
+                    for (int i = 0; i < arr.length(); i++) result.add(cleanPath(arr.optString(i, "")));
+                    return result;
+                } catch (Exception ignored) {}
+            }
+            result.add(s);
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * Strip decorative quotes/brackets that LLMs sometimes wrap around paths.
+     */
+    private static String cleanPath(String path) {
+        if (path == null) return "";
+        String p = path.trim();
+        // Strip decorative quotes/brackets: Chinese 「」『』【】《》, full-width ""'', standard "'<>
+        p = p.replaceAll("^[\u300c\u300e\u3010\u300a\u201c\u2018\"'<]+", "")
+             .replaceAll("[\u300d\u300f\u3011\u300b\u201d\u2019\"'>]+$", "");
+        return p.trim();
+    }
+
+    private String doSingleCopyOrMove(String src, String dst, boolean isMove, String op) throws Exception {
         if (src.isEmpty()) return error(op + ": src is empty");
         if (dst.isEmpty()) return error(op + ": dst is empty");
 
@@ -177,8 +299,6 @@ public class FileManagerPlugin implements ModulePlugin {
             dstFile = new File(dstFile, srcFile.getName());
             dst = dstFile.getAbsolutePath();
         } else {
-            // Guard against LLM constructing dst by joining target dir with full source path,
-            // e.g. dst="/sdcard/1/sdcard/123.txt" when moving src="/sdcard/123.txt" to dir "/sdcard/1/"
             String srcName = srcFile.getName();
             String dstName = dstFile.getName();
             if (srcName.equals(dstName)) {
@@ -187,7 +307,6 @@ public class FileManagerPlugin implements ModulePlugin {
                 if (dstParentPath != null && srcParentPath != null) {
                     String srcParentName = new File(srcParentPath).getAbsolutePath();
                     if (dstParentPath.endsWith(srcParentName) && !dstParentPath.equals(srcParentName)) {
-                        // dst looks like targetDir + full source path; fix to targetDir + filename
                         String realTargetDir = dstParentPath.substring(0, dstParentPath.length() - srcParentName.length());
                         if (realTargetDir.endsWith("/")) realTargetDir = realTargetDir.substring(0, realTargetDir.length() - 1);
                         dstFile = new File(realTargetDir, srcName);
@@ -197,36 +316,22 @@ public class FileManagerPlugin implements ModulePlugin {
             }
         }
 
-        // Skip move when source and destination resolve to the same path
         if (isMove) {
             try {
-                String srcCanonical = srcFile.getCanonicalPath();
-                String dstCanonical = dstFile.getCanonicalPath();
-                if (srcCanonical.equals(dstCanonical)) {
-                    String disp = "⏭ 源路径与目标路径相同，无需移动\n  " + srcCanonical;
-                    return ok("true", disp);
+                if (srcFile.getCanonicalPath().equals(dstFile.getCanonicalPath())) {
+                    return ok("true", "⏭ " + (isZh() ? "源路径与目标路径相同，无需移动" : "Same path, skip") + "\n  " + srcFile.getCanonicalPath());
                 }
             } catch (Exception ignored) {}
         }
 
         File dstParent = dstFile.getParentFile();
-        if (dstParent != null && !dstParent.exists()) {
-            dstParent.mkdirs();
-        }
+        if (dstParent != null && !dstParent.exists()) dstParent.mkdirs();
 
-        boolean result;
-        if (isMove) {
-            result = lib.nativeMoveFile(src, dst);
-        } else {
-            result = lib.nativeCopyFile(src, dst);
-        }
-
+        boolean result = isMove ? lib.nativeMoveFile(src, dst) : lib.nativeCopyFile(src, dst);
         if (!result) {
             String detail = op + " failed: " + src + " -> " + dst;
-            if (dstParent != null && !dstParent.canWrite())
-                detail += " (dst dir not writable)";
-            if (!srcFile.canRead())
-                detail += " (src not readable)";
+            if (dstParent != null && !dstParent.canWrite()) detail += " (dst dir not writable)";
+            if (!srcFile.canRead()) detail += " (src not readable)";
             return error(detail);
         }
         String disp = isMove ? formatMoveDisplay(src, dst) : formatCopyDisplay(src, dst);
@@ -495,7 +600,7 @@ public class FileManagerPlugin implements ModulePlugin {
 
     private static String resolveStoragePath(String path) {
         if (path == null) return "";
-        String canonical = path.trim().replace("\\", "/");
+        String canonical = cleanPath(path).replace("\\", "/");
         if (canonical.isEmpty()) return "";
         if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
             String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
