@@ -4,7 +4,7 @@
   "name_en": "File Manager",
   "description": "文件管理器模块，支持目录遍历、文件增删改查、搜索等操作",
   "description_en": "File manager with directory browsing, file CRUD, search and more",
-  "version": "1.7",
+  "version": "1.8",
   "icon": "folder",
   "soLibraries": ["libfilemanager.so"],
   "h5Page": "index.html",

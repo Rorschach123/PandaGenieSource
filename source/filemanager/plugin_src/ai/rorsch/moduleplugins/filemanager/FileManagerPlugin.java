@@ -28,8 +28,8 @@ import java.util.Locale;
  * </p>
  */
 public class FileManagerPlugin implements ModulePlugin {
-    private static final int DISPLAY_LIST_MAX = 20;
-    private static final int READ_TEXT_DISPLAY_MAX = 2000;
+    private static final int DISPLAY_LIST_MAX = 50;
+    private static final int READ_TEXT_DISPLAY_MAX = 4000;
     private static final int PATH_MAX_DISPLAY = 45;
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
@@ -72,7 +72,8 @@ public class FileManagerPlugin implements ModulePlugin {
             case "listDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
                 String raw = lib.nativeListDirectory(path);
-                return ok(raw, formatListDirectoryDisplay(path, raw));
+                String filtered = filterListDirectory(raw);
+                return ok(filtered, formatListDirectoryDisplay(path, filtered));
             }
             case "createDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
@@ -134,7 +135,7 @@ public class FileManagerPlugin implements ModulePlugin {
             case "readTextFile": {
                 String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
                 String safe = sanitize(raw);
-                String codeBody = safe.length() > 5000 ? safe.substring(0, 5000) : safe;
+                String codeBody = safe.length() > 20000 ? safe.substring(0, 20000) : safe;
                 JSONArray rc = new JSONArray().put(richCode(codeBody, "text"));
                 return ok(safe, formatReadTextFileDisplay(safe), rc);
             }
@@ -205,6 +206,11 @@ public class FileManagerPlugin implements ModulePlugin {
         for (String rawSrc : srcPaths) {
             String src = resolveStoragePath(rawSrc);
             File srcFile = new File(src);
+            if (isHiddenPath(src)) {
+                skipped++;
+                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (隐藏文件)\n" : " (hidden)\n");
+                continue;
+            }
             if (!srcFile.exists()) {
                 skipped++;
                 sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (不存在)\n" : " (not found)\n");
@@ -555,17 +561,51 @@ public class FileManagerPlugin implements ModulePlugin {
      * @return 展示文本
      */
     /**
-     * Filter native search results by type: "file" (default), "dir", or "all".
+     * Filter listDirectory results to exclude hidden entries (name starting with '.').
+     */
+    private static String filterListDirectory(String rawJson) {
+        try {
+            JSONArray arr = new JSONArray(rawJson);
+            JSONArray out = new JSONArray();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject e = arr.optJSONObject(i);
+                if (e == null) continue;
+                String name = e.optString("name", "");
+                if (name.startsWith(".")) continue;
+                out.put(e);
+            }
+            return out.toString();
+        } catch (Exception ex) {
+            return rawJson;
+        }
+    }
+
+    /**
+     * Check if a path contains any hidden component (directory or file starting with '.').
+     */
+    private static boolean isHiddenPath(String path) {
+        if (path == null || path.isEmpty()) return false;
+        String[] parts = path.split("/");
+        for (String part : parts) {
+            if (part.startsWith(".") && part.length() > 1) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Filter native search results by type and skip hidden paths.
      */
     private static String filterSearchResults(String rawJson, String typeFilter) {
-        if ("all".equals(typeFilter)) return rawJson;
         try {
             JSONArray arr = new JSONArray(rawJson);
             JSONArray out = new JSONArray();
             boolean wantFile = "file".equals(typeFilter);
+            boolean wantAll = "all".equals(typeFilter);
             for (int i = 0; i < arr.length(); i++) {
                 String p = arr.optString(i, "");
                 if (p.isEmpty()) continue;
+                if (isHiddenPath(p)) continue;
+                if (wantAll) { out.put(p); continue; }
                 File f = new File(p);
                 if (wantFile && f.isFile()) out.put(p);
                 else if (!wantFile && f.isDirectory()) out.put(p);
@@ -635,7 +675,7 @@ public class FileManagerPlugin implements ModulePlugin {
     private static String sanitize(String s) {
         if (s == null) return "";
         String clean = s.replace("\0", "");
-        if (clean.length() > 10000) clean = clean.substring(0, 10000) + "…(truncated)";
+        if (clean.length() > 50000) clean = clean.substring(0, 50000) + "…(truncated)";
         return clean;
     }
 
