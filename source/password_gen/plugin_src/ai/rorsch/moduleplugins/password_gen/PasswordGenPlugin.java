@@ -130,7 +130,17 @@ public class PasswordGenPlugin implements ModulePlugin {
                     boolean symbols = params.optBoolean("symbols", true);
                     String pwd = generatePassword(length, upper, lower, numbers, symbols);
                     JSONObject out = buildPasswordResult(pwd);
-                    return ok(out, formatGenerateDisplay(out, zh));
+                    String alias = params.optString("alias", "").trim();
+                    if (alias.isEmpty()) {
+                        alias = zh ? "密码 " + new java.text.SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(new java.util.Date())
+                                   : "Password " + new java.text.SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(new java.util.Date());
+                    }
+                    JSONObject vaultSave = new JSONObject();
+                    vaultSave.put("moduleId", "password_gen");
+                    vaultSave.put("value", pwd);
+                    vaultSave.put("defaultAlias", alias);
+                    vaultSave.put("category", "password");
+                    return okWithVaultSave(out, formatGenerateDisplay(out, zh), vaultSave);
                 }
                 case "generateMultiple": {
                     int count = clamp(params.optInt("count", 5), 1, 50);
@@ -656,6 +666,19 @@ public class PasswordGenPlugin implements ModulePlugin {
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        return result.toString();
+    }
+
+    private String okWithVaultSave(JSONObject output, String displayText, JSONObject vaultSave) throws Exception {
+        JSONObject result = new JSONObject()
+                .put("success", true)
+                .put("output", output.toString());
+        if (displayText != null && !displayText.isEmpty()) {
+            result.put("_displayText", displayText);
+        }
+        if (vaultSave != null) {
+            result.put("_vaultSave", vaultSave);
         }
         return result.toString();
     }

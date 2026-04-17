@@ -3342,7 +3342,7 @@
                                             "zh":  "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测",
                                             "en":  "Secure password generator: create strong passwords with customizable length, complexity, and character types. Also includes passphrase generation and password strength checker."
                                         },
-                        "version":  "1.2",
+                        "version":  "1.3",
                         "icon":  "vpn_key",
                         "filename":  "password_gen.mod",
                         "download_url":  [

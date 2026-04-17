@@ -1,14 +1,16 @@
-﻿{
+{
     "id": "password_gen",
-    "name": "密码生成器",
-    "name_en": "Password Generator",
-    "name_zh": "密码生成器",
-    "version": "1.2",
+    "name": {
+        "zh": "密码生成器",
+        "en": "Password Generator"
+    },
+    "version": "1.3",
     "icon": "vpn_key",
     "soLibraries": [],
-    "description": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测",
-    "description_en": "Secure password generator: create strong passwords with customizable length, complexity, and character types. Also includes passphrase generation and password strength checker.",
-    "description_zh": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测",
+    "description": {
+        "zh": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成、密码强度检测和密码安全保存",
+        "en": "Secure password generator: create strong passwords with customizable length, complexity, and character types. Includes passphrase generation, password strength checker, and secure vault save."
+    },
     "h5Page": "index.html",
     "pluginJar": "plugin.jar",
     "pluginFile": "plugin.dex",
@@ -28,9 +30,9 @@
             "desc": "生成加密安全的随机密码，可配置长度与字符类型",
             "desc_en": "Generate a random secure password",
             "description": "Generate a random secure password",
-            "params": ["length", "uppercase", "lowercase", "numbers", "symbols"],
-            "paramDesc": ["密码长度（默认 16）", "包含大写字母（默认 true）", "包含小写字母（默认 true）", "包含数字（默认 true）", "包含符号（默认 true）"],
-            "paramDesc_en": ["Password length (default 16)", "Include uppercase letters (default true)", "Include lowercase letters (default true)", "Include numbers (default true)", "Include symbols (default true)"]
+            "params": ["length", "uppercase", "lowercase", "numbers", "symbols", "alias"],
+            "paramDesc": ["密码长度（默认 16）", "包含大写字母（默认 true）", "包含小写字母（默认 true）", "包含数字（默认 true）", "包含符号（默认 true）", "保存别名（可选，用于安全保存时标记）"],
+            "paramDesc_en": ["Password length (default 16)", "Include uppercase letters (default true)", "Include lowercase letters (default true)", "Include numbers (default true)", "Include symbols (default true)", "Save alias (optional, label for secure vault)"]
         },
         {
             "name": "generateMultiple",
