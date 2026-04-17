@@ -116,12 +116,10 @@ public class FileManagerPlugin implements ModulePlugin {
             }
             case "readTextFile": {
                 String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
-                String codeBody = raw == null ? "" : raw;
-                if (codeBody.length() > 5000) {
-                    codeBody = codeBody.substring(0, 5000);
-                }
+                String safe = sanitize(raw);
+                String codeBody = safe.length() > 5000 ? safe.substring(0, 5000) : safe;
                 JSONArray rc = new JSONArray().put(richCode(codeBody, "text"));
-                return ok(raw, formatReadTextFileDisplay(raw), rc);
+                return ok(safe, formatReadTextFileDisplay(safe), rc);
             }
             case "writeTextFile": {
                 String path = resolveStoragePath(params.optString("path", ""));
@@ -279,8 +277,8 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String ok(String output, String displayText, JSONArray richContent) throws Exception {
-        JSONObject j = new JSONObject().put("success", true).put("output", output);
-        if (displayText != null && !displayText.isEmpty()) j.put("_displayText", displayText);
+        JSONObject j = new JSONObject().put("success", true).put("output", sanitize(output));
+        if (displayText != null && !displayText.isEmpty()) j.put("_displayText", sanitize(displayText));
         if (richContent != null && richContent.length() > 0) j.put("_richContent", richContent);
         return j.toString();
     }
@@ -316,8 +314,8 @@ public class FileManagerPlugin implements ModulePlugin {
 
     private String boolResult(boolean value, String errorMsg, String successDisplayText, JSONArray richContent) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
-        if (!value) json.put("error", errorMsg);
-        else if (successDisplayText != null && !successDisplayText.isEmpty()) json.put("_displayText", successDisplayText);
+        if (!value) json.put("error", sanitize(errorMsg));
+        else if (successDisplayText != null && !successDisplayText.isEmpty()) json.put("_displayText", sanitize(successDisplayText));
         if (value && richContent != null && richContent.length() > 0) json.put("_richContent", richContent);
         return json.toString();
     }
@@ -481,17 +479,30 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String error(String message) throws Exception {
-        return new JSONObject().put("success", false).put("error", message).toString();
+        return new JSONObject().put("success", false).put("error", sanitize(message)).toString();
+    }
+
+    /**
+     * Sanitize a string for safe inclusion in JSON values:
+     * strip null bytes, limit length, and ensure no unmatched surrogates.
+     */
+    private static String sanitize(String s) {
+        if (s == null) return "";
+        String clean = s.replace("\0", "");
+        if (clean.length() > 10000) clean = clean.substring(0, 10000) + "…(truncated)";
+        return clean;
     }
 
     private static String resolveStoragePath(String path) {
-        String canonical = path.replace("\\", "/");
+        if (path == null) return "";
+        String canonical = path.trim().replace("\\", "/");
+        if (canonical.isEmpty()) return "";
         if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
             String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
             if (!realRoot.equals("/sdcard")) {
                 return canonical.replaceFirst("/sdcard", realRoot);
             }
         }
-        return path;
+        return canonical;
     }
 }
