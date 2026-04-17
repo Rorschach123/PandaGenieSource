@@ -372,7 +372,7 @@
                                             "zh":  "文件管理器模块，支持目录遍历、文件增删改查、搜索等操作",
                                             "en":  "File manager with directory browsing, file CRUD, search and more"
                                         },
-                        "version":  "1.5",
+                        "version":  "1.6",
                         "icon":  "folder",
                         "filename":  "filemanager.mod",
                         "download_url":  [

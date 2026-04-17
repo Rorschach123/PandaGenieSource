@@ -122,12 +122,14 @@ public class FileManagerPlugin implements ModulePlugin {
                 String dir = params.optString("dir", "").trim();
                 if (dir.isEmpty()) dir = "/sdcard";
                 dir = resolveStoragePath(dir);
+                String typeFilter = params.optString("type", "file").toLowerCase();
                 String raw = lib.nativeSearchFiles(
                         dir,
                         params.optString("pattern", "*"),
                         parseBoolean(params.opt("recursive"), true)
                 );
-                return ok(raw, formatSearchFilesDisplay(raw));
+                String filtered = filterSearchResults(raw, typeFilter);
+                return ok(filtered, formatSearchFilesDisplay(filtered, typeFilter));
             }
             case "readTextFile": {
                 String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
@@ -542,18 +544,47 @@ public class FileManagerPlugin implements ModulePlugin {
      * @param rawJson 原生返回的路径 JSON 数组字符串
      * @return 展示文本
      */
-    private static String formatSearchFilesDisplay(String rawJson) {
+    /**
+     * Filter native search results by type: "file" (default), "dir", or "all".
+     */
+    private static String filterSearchResults(String rawJson, String typeFilter) {
+        if ("all".equals(typeFilter)) return rawJson;
+        try {
+            JSONArray arr = new JSONArray(rawJson);
+            JSONArray out = new JSONArray();
+            boolean wantFile = "file".equals(typeFilter);
+            for (int i = 0; i < arr.length(); i++) {
+                String p = arr.optString(i, "");
+                if (p.isEmpty()) continue;
+                File f = new File(p);
+                if (wantFile && f.isFile()) out.put(p);
+                else if (!wantFile && f.isDirectory()) out.put(p);
+            }
+            return out.toString();
+        } catch (Exception e) {
+            return rawJson;
+        }
+    }
+
+    private static String formatSearchFilesDisplay(String rawJson, String typeFilter) {
         boolean zh = isZh();
+        String label;
+        if ("dir".equals(typeFilter)) label = zh ? "目录" : "directories";
+        else if ("all".equals(typeFilter)) label = zh ? "条目" : "entries";
+        else label = zh ? "文件" : "files";
         try {
             JSONArray arr = new JSONArray(rawJson);
             int n = arr.length();
             StringBuilder sb = new StringBuilder();
             sb.append("🔍 ").append(zh ? "搜索结果" : "Search Results")
               .append("\n━━━━━━━━━━━━━━\n")
-              .append(zh ? "找到 " : "Found ").append(n).append(zh ? " 个文件" : " files").append("\n");
+              .append(zh ? "找到 " : "Found ").append(n).append(" ").append(label).append("\n");
             int show = Math.min(DISPLAY_LIST_MAX, n);
             for (int i = 0; i < show; i++) {
-                sb.append(i + 1).append(". ").append(displayPath(arr.optString(i, "?"))).append("\n");
+                String p = arr.optString(i, "?");
+                File f = new File(p);
+                String icon = f.isDirectory() ? "📁" : "📄";
+                sb.append(i + 1).append(". ").append(icon).append(" ").append(displayPath(p)).append("\n");
             }
             if (n > show) sb.append("… (+").append(n - show).append(zh ? " 更多)" : " more)");
             return sb.toString().trim();
