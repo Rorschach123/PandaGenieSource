@@ -74,7 +74,7 @@ public class NotesPlugin implements ModulePlugin {
             switch (action) {
                 case "createNote": {
                     String out = createNote(params);
-                    return ok(out, formatCreateNoteDisplay(out));
+                    return okWithVaultSave(out, formatCreateNoteDisplay(out), buildNoteVaultSave(out));
                 }
                 case "listNotes": {
                     String out = listNotes(params);
@@ -177,6 +177,32 @@ public class NotesPlugin implements ModulePlugin {
             j.put("_richContent", richContent);
         }
         return j.toString();
+    }
+
+    private String okWithVaultSave(String output, String displayText, JSONObject vaultSave) throws Exception {
+        JSONObject j = new JSONObject();
+        j.put("success", true);
+        j.put("output", output);
+        if (displayText != null) j.put("_displayText", displayText);
+        if (vaultSave != null) j.put("_vaultSave", vaultSave);
+        return j.toString();
+    }
+
+    private JSONObject buildNoteVaultSave(String noteJson) {
+        try {
+            JSONObject note = new JSONObject(noteJson);
+            String title = note.optString("title", "");
+            String content = note.optString("content", "");
+            String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
+            JSONObject vs = new JSONObject();
+            vs.put("moduleId", "notes");
+            vs.put("value", content);
+            vs.put("defaultAlias", title.isEmpty() ? "Note" : title);
+            vs.put("category", "note");
+            return vs;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static JSONObject richFile(String path, String title, String mimeType) throws Exception {

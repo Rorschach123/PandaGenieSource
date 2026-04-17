@@ -178,6 +178,25 @@ public class FileManagerPlugin implements ModulePlugin {
         if (dstFile.isDirectory()) {
             dstFile = new File(dstFile, srcFile.getName());
             dst = dstFile.getAbsolutePath();
+        } else {
+            // Guard against LLM constructing dst by joining target dir with full source path,
+            // e.g. dst="/sdcard/1/sdcard/123.txt" when moving src="/sdcard/123.txt" to dir "/sdcard/1/"
+            String srcName = srcFile.getName();
+            String dstName = dstFile.getName();
+            if (srcName.equals(dstName)) {
+                String dstParentPath = dstFile.getParent();
+                String srcParentPath = srcFile.getParent();
+                if (dstParentPath != null && srcParentPath != null) {
+                    String srcParentName = new File(srcParentPath).getAbsolutePath();
+                    if (dstParentPath.endsWith(srcParentName) && !dstParentPath.equals(srcParentName)) {
+                        // dst looks like targetDir + full source path; fix to targetDir + filename
+                        String realTargetDir = dstParentPath.substring(0, dstParentPath.length() - srcParentName.length());
+                        if (realTargetDir.endsWith("/")) realTargetDir = realTargetDir.substring(0, realTargetDir.length() - 1);
+                        dstFile = new File(realTargetDir, srcName);
+                        dst = dstFile.getAbsolutePath();
+                    }
+                }
+            }
         }
 
         // Skip move when source and destination resolve to the same path
