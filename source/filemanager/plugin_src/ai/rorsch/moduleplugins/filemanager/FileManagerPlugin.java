@@ -219,6 +219,16 @@ public class FileManagerPlugin implements ModulePlugin {
                 File dstDir = new File(dst);
                 if (!dstDir.exists()) dstDir.mkdirs();
                 File dstFile = dstDir.isDirectory() ? new File(dstDir, srcFile.getName()) : dstDir;
+
+                // Skip if source is already in the target directory
+                try {
+                    if (srcFile.getCanonicalPath().equals(dstFile.getCanonicalPath())) {
+                        skipped++;
+                        sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (已在目标目录)\n" : " (already in target)\n");
+                        continue;
+                    }
+                } catch (Exception ignored) {}
+
                 File dstParent = dstFile.getParentFile();
                 if (dstParent != null && !dstParent.exists()) dstParent.mkdirs();
 
