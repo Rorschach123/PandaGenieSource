@@ -31,6 +31,7 @@ public class FileManagerPlugin implements ModulePlugin {
     private static final int DISPLAY_LIST_MAX = 50;
     private static final int READ_TEXT_DISPLAY_MAX = 4000;
     private static final int PATH_MAX_DISPLAY = 45;
+    private static final int BATCH_DISPLAY_MAX = 5;
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
     private final FileManagerLib lib = new FileManagerLib();
@@ -87,17 +88,26 @@ public class FileManagerPlugin implements ModulePlugin {
                     boolean okb = lib.nativeDeleteFile(path);
                     return boolResult(okb, "deleteFile failed: " + path, okb ? "🗑️ " + (isZh() ? "已删除: " : "Deleted: ") + displayPath(path) : null);
                 }
-                int ok2 = 0, fail2 = 0;
+                int ok2 = 0, fail2 = 0, dShown = 0;
                 boolean zh = isZh();
                 StringBuilder dsb = new StringBuilder();
-                dsb.append("🗑️ ").append(zh ? "批量删除" : "Batch delete").append(" (").append(paths.size()).append(")\n");
+                dsb.append("\ud83d\uddd1\ufe0f ").append(zh ? "\u6279\u91cf\u5220\u9664" : "Batch delete").append(" (").append(paths.size()).append(")\n");
                 for (String rp : paths) {
                     String p = resolveStoragePath(rp);
-                    if (new File(p).exists() && lib.nativeDeleteFile(p)) { ok2++; dsb.append("  ✅ ").append(displayPath(p)).append("\n"); }
-                    else { fail2++; dsb.append("  ❌ ").append(displayPath(p)).append("\n"); }
+                    if (new File(p).exists() && lib.nativeDeleteFile(p)) {
+                        ok2++;
+                        if (dShown < BATCH_DISPLAY_MAX) { dShown++; dsb.append("  \u2705 ").append(displayPath(p)).append("\n"); }
+                    } else {
+                        fail2++;
+                        if (dShown < BATCH_DISPLAY_MAX) { dShown++; dsb.append("  \u274c ").append(displayPath(p)).append("\n"); }
+                    }
                 }
-                dsb.append("━━━━━━━━━━\n✅ ").append(ok2).append(zh ? " 成功" : " ok");
-                if (fail2 > 0) dsb.append("  ❌ ").append(fail2).append(zh ? " 失败" : " failed");
+                int dTotal = ok2 + fail2;
+                if (dTotal > BATCH_DISPLAY_MAX) {
+                    dsb.append("  ... ").append(zh ? ("\u53ca\u5176\u4ed6 " + (dTotal - BATCH_DISPLAY_MAX) + " \u4e2a\u6587\u4ef6\uff0c\u8be6\u89c1\u4efb\u52a1\u8be6\u60c5\n") : ("and " + (dTotal - BATCH_DISPLAY_MAX) + " more, see task details\n"));
+                }
+                dsb.append("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u2705 ").append(ok2).append(zh ? " \u6210\u529f" : " ok");
+                if (fail2 > 0) dsb.append("  \u274c ").append(fail2).append(zh ? " \u5931\u8d25" : " failed");
                 return ok("deleted=" + ok2 + " failed=" + fail2, dsb.toString().trim());
             }
             case "deleteDirectory": {
@@ -198,27 +208,26 @@ public class FileManagerPlugin implements ModulePlugin {
 
         // Batch: process each file, skip failures, collect results
         int success = 0, failed = 0, skipped = 0;
+        int displayed = 0;
         StringBuilder sb = new StringBuilder();
         boolean zh = isZh();
-        sb.append(isMove ? "📦 " : "📋 ").append(zh ? "批量" : "Batch ").append(isMove ? (zh ? "移动" : "Move") : (zh ? "复制" : "Copy"))
-          .append(" (").append(srcPaths.size()).append(zh ? " 个文件)\n" : " files)\n");
+        sb.append(isMove ? "\ud83d\udce6 " : "\ud83d\udccb ").append(zh ? "\u6279\u91cf" : "Batch ").append(isMove ? (zh ? "\u79fb\u52a8" : "Move") : (zh ? "\u590d\u5236" : "Copy"))
+          .append(" (").append(srcPaths.size()).append(zh ? " \u4e2a\u6587\u4ef6)\n" : " files)\n");
 
         for (String rawSrc : srcPaths) {
             String src = resolveStoragePath(rawSrc);
             File srcFile = new File(src);
             if (isHiddenPath(src)) {
                 skipped++;
-                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (隐藏文件)\n" : " (hidden)\n");
                 continue;
             }
             if (!srcFile.exists()) {
                 skipped++;
-                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (不存在)\n" : " (not found)\n");
+                if (displayed < BATCH_DISPLAY_MAX) { displayed++; sb.append("  \u23ed ").append(displayPath(src)).append(zh ? " (\u4e0d\u5b58\u5728)\n" : " (not found)\n"); }
                 continue;
             }
             if (srcFile.isDirectory()) {
                 skipped++;
-                sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (是目录)\n" : " (is directory)\n");
                 continue;
             }
             try {
@@ -226,11 +235,9 @@ public class FileManagerPlugin implements ModulePlugin {
                 if (!dstDir.exists()) dstDir.mkdirs();
                 File dstFile = dstDir.isDirectory() ? new File(dstDir, srcFile.getName()) : dstDir;
 
-                // Skip if source is already in the target directory
                 try {
                     if (srcFile.getCanonicalPath().equals(dstFile.getCanonicalPath())) {
                         skipped++;
-                        sb.append("  ⏭ ").append(displayPath(src)).append(zh ? " (已在目标目录)\n" : " (already in target)\n");
                         continue;
                     }
                 } catch (Exception ignored) {}
@@ -242,22 +249,25 @@ public class FileManagerPlugin implements ModulePlugin {
                                         : lib.nativeCopyFile(src, dstFile.getAbsolutePath());
                 if (result) {
                     success++;
-                    sb.append("  ✅ ").append(displayPath(src)).append("\n");
+                    if (displayed < BATCH_DISPLAY_MAX) { displayed++; sb.append("  \u2705 ").append(displayPath(src)).append("\n"); }
                 } else {
                     failed++;
-                    sb.append("  ❌ ").append(displayPath(src)).append("\n");
+                    if (displayed < BATCH_DISPLAY_MAX) { displayed++; sb.append("  \u274c ").append(displayPath(src)).append("\n"); }
                 }
             } catch (Exception e) {
                 failed++;
-                sb.append("  ❌ ").append(displayPath(src)).append(" (").append(e.getMessage()).append(")\n");
+                if (displayed < BATCH_DISPLAY_MAX) { displayed++; sb.append("  \u274c ").append(displayPath(src)).append(" (").append(e.getMessage()).append(")\n"); }
             }
         }
-        sb.append("━━━━━━━━━━\n")
-          .append("✅ ").append(success).append(zh ? " 成功" : " ok");
-        if (failed > 0) sb.append("  ❌ ").append(failed).append(zh ? " 失败" : " failed");
-        if (skipped > 0) sb.append("  ⏭ ").append(skipped).append(zh ? " 跳过" : " skipped");
+        int total = success + failed + skipped;
+        if (total > BATCH_DISPLAY_MAX) {
+            sb.append("  ... ").append(zh ? ("\u53ca\u5176\u4ed6 " + (total - BATCH_DISPLAY_MAX) + " \u4e2a\u6587\u4ef6\uff0c\u8be6\u89c1\u4efb\u52a1\u8be6\u60c5\n") : ("and " + (total - BATCH_DISPLAY_MAX) + " more, see task details\n"));
+        }
+        sb.append("\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n")
+          .append("\u2705 ").append(success).append(zh ? " \u6210\u529f" : " ok");
+        if (failed > 0) sb.append("  \u274c ").append(failed).append(zh ? " \u5931\u8d25" : " failed");
+        if (skipped > 0) sb.append("  \u23ed ").append(skipped).append(zh ? " \u8df3\u8fc7" : " skipped");
 
-        boolean allOk = failed == 0 && skipped == 0;
         JSONObject j = new JSONObject()
                 .put("success", success > 0)
                 .put("output", sanitize("moved=" + success + " failed=" + failed + " skipped=" + skipped))

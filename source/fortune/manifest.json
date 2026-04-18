@@ -4,7 +4,7 @@
   "name_en": "Daily Fortune",
   "description": "每日运势模块，支持查询今日运势、指定日期运势、农历日期转换，基于日期和姓名生成个性化运势结果，含七个运势等级和丰富的运势词库",
   "description_en": "Daily fortune module with personalized fortune by date and name, lunar calendar conversion, seven fortune levels and rich fortune vocabulary",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "auto_awesome",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -46,7 +46,7 @@
     {
       "name": "getFortuneLevel",
       "desc": "查询运势等级详情，等级 1-7 分别对应大吉、吉、中吉、小吉、末吉、凶、大凶",
-      "desc_en": "Get fortune level details. Level 1-7: Great luck, Good luck, Medium luck, Small luck, End luck, Bad luck, Terrible luck",
+      "desc_en": "Get fortune level details. Level 1-7: Excellent, Good, Fair, Moderate, Slight, Poor, Terrible",
       "params": ["level"],
       "paramDesc": ["运势等级 1-7"],
       "paramDesc_en": ["Fortune level 1-7"]

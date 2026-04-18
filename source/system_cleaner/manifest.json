@@ -2,8 +2,7 @@
     "id": "system_cleaner",
     "name": "系统清理",
     "name_en": "System Cleaner",
-    "name_zh": "系统清理",
-    "version": "1.3",
+    "version": "1.4",
     "description": "系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间",
     "description_en": "System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space",
     "icon": "delete_sweep",
@@ -25,40 +24,41 @@
             "name": "scanJunk",
             "desc": "扫描可清理的垃圾文件，按分类返回数量与占用空间汇总",
             "desc_en": "Scan for junk files and return summary of what can be cleaned",
-            "description": "Scan for junk files and return summary of what can be cleaned",
             "params": ["categories"],
-            "paramDesc": ["Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)"]
+            "paramDesc": ["扫描分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs（默认全部）"],
+            "paramDesc_en": ["Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)"]
         },
         {
             "name": "cleanJunk",
             "desc": "按指定分类删除扫描到的垃圾文件并返回删除数量与释放空间",
             "desc_en": "Delete junk files in the specified categories",
-            "description": "Delete junk files in the specified categories",
             "params": ["categories"],
-            "paramDesc": ["Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs"]
+            "paramDesc": ["清理分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs"],
+            "paramDesc_en": ["Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs"]
         },
         {
             "name": "getStorageInfo",
             "desc": "使用 StatFs 获取设备存储总量、已用与可用空间",
             "desc_en": "Get current device storage usage information",
-            "description": "Get current device storage usage information",
             "params": [],
-            "paramDesc": []
+            "paramDesc": [],
+            "paramDesc_en": []
         },
         {
             "name": "findLargeFiles",
             "desc": "在指定路径递归查找超过阈值的大文件，按大小降序返回",
             "desc_en": "Find large files that may be candidates for cleanup",
-            "description": "Find large files that may be candidates for cleanup",
             "params": ["minSizeMB", "path"],
-            "paramDesc": ["Minimum file size in MB (default 50)", "Path to scan (default /sdcard)"]
+            "paramDesc": ["最小文件大小（MB，默认50）", "扫描路径（默认/sdcard）"],
+            "paramDesc_en": ["Minimum file size in MB (default 50)", "Path to scan (default /sdcard)"]
         },
         {
             "name": "openPage",
             "desc": "打开系统清理界面并返回 _openModule 信号",
             "desc_en": "Open the System Cleaner UI and return _openModule signal",
             "params": [],
-            "paramDesc": []
+            "paramDesc": [],
+            "paramDesc_en": []
         }
     ]
 }

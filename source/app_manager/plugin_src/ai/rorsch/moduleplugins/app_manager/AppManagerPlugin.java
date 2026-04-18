@@ -80,6 +80,10 @@ public class AppManagerPlugin implements ModulePlugin {
                 String out = listApps(context, params);
                 return ok(out, formatListAppsDisplay(new JSONObject(out)));
             }
+            case "listRecentApps": {
+                String out = listRecentApps(context, params);
+                return ok(out, formatRecentAppsDisplay(new JSONObject(out)));
+            }
             case "openApp":
                 return openApp(context, params);
             case "getAppInfo": {
@@ -112,7 +116,6 @@ public class AppManagerPlugin implements ModulePlugin {
         List<JSONObject> apps = new ArrayList<>();
 
         for (PackageInfo pi : packages) {
-            // 默认跳过系统应用，除非调用方显式要求包含
             if (!includeSystem && isSystemApp(pi)) continue;
             JSONObject app = new JSONObject();
             app.put("packageName", pi.packageName);
@@ -131,6 +134,44 @@ public class AppManagerPlugin implements ModulePlugin {
         JSONArray arr = new JSONArray();
         for (JSONObject app : apps) arr.put(app);
         result.put("count", apps.size());
+        result.put("apps", arr);
+        return result.toString();
+    }
+
+    private String listRecentApps(Context context, JSONObject params) throws Exception {
+        int days = params.optInt("days", 30);
+        boolean includeSystem = params.optBoolean("includeSystem", false);
+        String dateField = params.optString("dateField", "firstInstallTime");
+        boolean useInstall = "firstInstallTime".equals(dateField);
+        PackageManager pm = context.getPackageManager();
+        List<PackageInfo> packages = pm.getInstalledPackages(0);
+        long cutoff = System.currentTimeMillis() - (long) days * 24 * 3600 * 1000;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+        List<JSONObject> apps = new ArrayList<>();
+
+        for (PackageInfo pi : packages) {
+            if (!includeSystem && isSystemApp(pi)) continue;
+            long ts = useInstall ? pi.firstInstallTime : pi.lastUpdateTime;
+            if (ts < cutoff) continue;
+            JSONObject app = new JSONObject();
+            app.put("packageName", pi.packageName);
+            app.put("appName", pm.getApplicationLabel(pi.applicationInfo).toString());
+            app.put("versionName", pi.versionName != null ? pi.versionName : "");
+            app.put("firstInstallTime", sdf.format(new Date(pi.firstInstallTime)));
+            app.put("lastUpdateTime", sdf.format(new Date(pi.lastUpdateTime)));
+            app.put("_sortTs", ts);
+            apps.add(app);
+        }
+
+        Collections.sort(apps, (a, b) -> Long.compare(b.optLong("_sortTs", 0), a.optLong("_sortTs", 0)));
+        for (JSONObject app : apps) app.remove("_sortTs");
+
+        JSONObject result = new JSONObject();
+        JSONArray arr = new JSONArray();
+        for (JSONObject app : apps) arr.put(app);
+        result.put("count", apps.size());
+        result.put("days", days);
+        result.put("dateField", dateField);
         result.put("apps", arr);
         return result.toString();
     }
@@ -362,10 +403,10 @@ public class AppManagerPlugin implements ModulePlugin {
         JSONArray apps = obj.optJSONArray("apps");
         boolean zh = isZh();
         String title = zh
-                ? ("📱 已安装应用（共 " + count + "）")
-                : ("📱 Installed Apps (" + count + " total)");
+                ? ("\ud83d\udcf1 \u5df2\u5b89\u88c5\u5e94\u7528\uff08\u5171 " + count + "\uff09")
+                : ("\ud83d\udcf1 Installed Apps (" + count + " total)");
         String[] headers = zh
-                ? new String[]{"名称", "包名", "版本"}
+                ? new String[]{"\u540d\u79f0", "\u5305\u540d", "\u7248\u672c"}
                 : new String[]{"Name", "Package", "Version"};
         List<String[]> rowList = new ArrayList<>();
         if (apps != null) {
@@ -374,6 +415,32 @@ public class AppManagerPlugin implements ModulePlugin {
                 rowList.add(new String[]{
                         mdCell(app.optString("appName", "")),
                         mdCell(app.optString("packageName", "")),
+                        mdCell(app.optString("versionName", ""))
+                });
+            }
+        }
+        return pgTable(title, headers, rowList);
+    }
+
+    private String formatRecentAppsDisplay(JSONObject obj) throws Exception {
+        int count = obj.optInt("count", 0);
+        int days = obj.optInt("days", 30);
+        JSONArray apps = obj.optJSONArray("apps");
+        boolean zh = isZh();
+        String title = zh
+                ? ("\ud83d\udcf1 \u8fd1 " + days + " \u5929\u5b89\u88c5/\u66f4\u65b0\u7684\u5e94\u7528\uff08\u5171 " + count + "\uff09")
+                : ("\ud83d\udcf1 Apps installed/updated in last " + days + " days (" + count + " total)");
+        String[] headers = zh
+                ? new String[]{"\u540d\u79f0", "\u5b89\u88c5\u65f6\u95f4", "\u6700\u540e\u66f4\u65b0", "\u7248\u672c"}
+                : new String[]{"Name", "Installed", "Updated", "Version"};
+        List<String[]> rowList = new ArrayList<>();
+        if (apps != null) {
+            for (int i = 0; i < apps.length(); i++) {
+                JSONObject app = apps.getJSONObject(i);
+                rowList.add(new String[]{
+                        mdCell(app.optString("appName", "")),
+                        mdCell(app.optString("firstInstallTime", "")),
+                        mdCell(app.optString("lastUpdateTime", "")),
                         mdCell(app.optString("versionName", ""))
                 });
             }
