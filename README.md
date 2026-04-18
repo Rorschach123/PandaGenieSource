@@ -155,7 +155,42 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.5)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260416/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.6)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260418/app-release.apk)**
+
+---
+
+## Changelog
+
+<details>
+<summary><b>v1.0.6</b> (2026-04-18)</summary>
+
+- **Config Market Scheduling** — Conditional execution now uses the full task scheduler (once / daily / weekly / monthly / event trigger)
+- **Config Market Delete** — Own uploaded configurations show a prominent delete button
+- **Local Capability Response** — When no LLM is configured, asking "what can you do?" returns a local capability list with setup instructions
+- **Chat Feedback** — Submit feedback directly from the chat input bar
+- **Data Vault** — Secure encrypted storage with master password, accessible from Security settings
+- **File Manager v1.8** — Batch move/copy/delete, hidden file filtering, same-directory skip, search type filter (`file`/`dir`/`all`), increased display limits
+- **Sandbox Permission Fix** — "Allow all directories" grants now work correctly across `/sdcard` ↔ `/storage/emulated/0` path formats
+- **Module Name Fix** — i18n module names display correctly in sandbox prompts instead of raw JSON
+- **Update Check** — Interval reduced to 30 minutes for faster update delivery
+- 35+ modules updated in marketplace
+
+</details>
+
+<details>
+<summary><b>v1.0.5</b> (2026-04-16)</summary>
+
+- Multi-conversation support with sidebar drawer
+- Conditional task isolation (scheduled tasks write to dedicated conversations)
+- Android runtime permission auto-request (Calendar, Contacts, etc.)
+- Unified JSON response format (no more parse errors in chat)
+- Six new themes (Bamboo Breeze, Sunset Lava, etc.) + localized audit log
+- QR Code module v1.2: image scan, camera scan, detect API
+- Link Parser module (community developer Jarvan)
+- Variable reference enhancements: `_random` pick, smart JSON object unpack
+- Multiple bug fixes and UX improvements
+
+</details>
 
 ---
 
