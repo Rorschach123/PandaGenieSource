@@ -278,15 +278,18 @@ public class FileManagerPlugin implements ModulePlugin {
                 for (int i = 0; i < arr.length(); i++) result.add(cleanPath(arr.optString(i, "")));
                 return result;
             }
-            String s = cleanPath(val.toString());
-            if (s.isEmpty()) continue;
-            if (s.startsWith("[")) {
+            String raw = val.toString().trim();
+            if (raw.isEmpty()) continue;
+            // Try parsing as JSON array BEFORE cleanPath (which may strip brackets)
+            if (raw.startsWith("[")) {
                 try {
-                    JSONArray arr = new JSONArray(s);
+                    JSONArray arr = new JSONArray(raw);
                     for (int i = 0; i < arr.length(); i++) result.add(cleanPath(arr.optString(i, "")));
                     return result;
                 } catch (Exception ignored) {}
             }
+            String s = cleanPath(raw);
+            if (s.isEmpty()) continue;
             result.add(s);
             return result;
         }
@@ -310,6 +313,12 @@ public class FileManagerPlugin implements ModulePlugin {
         if (dst.isEmpty()) return error(op + ": dst is empty");
 
         File srcFile = new File(src);
+        if (isHiddenPath(src)) {
+            return ok("true", "\u23ed " + (isZh() ? "\u9690\u85cf\u6587\u4ef6\u5df2\u8df3\u8fc7" : "Hidden file skipped") + ": " + displayPath(src));
+        }
+        if (srcFile.isDirectory()) {
+            return ok("true", "\u23ed " + (isZh() ? "\u76ee\u5f55\u5df2\u8df3\u8fc7" : "Directory skipped") + ": " + displayPath(src));
+        }
         if (!srcFile.exists()) return error(op + ": source not found: " + src);
 
         File dstFile = new File(dst);
@@ -681,7 +690,13 @@ public class FileManagerPlugin implements ModulePlugin {
 
     private static String resolveStoragePath(String path) {
         if (path == null) return "";
-        String canonical = cleanPath(path).replace("\\", "/");
+        String canonical = cleanPath(path)
+                .replace("\\/", "/")   // JSON-escaped slash
+                .replace("\\", "/");   // Windows backslash
+        // Collapse any double slashes (except protocol://)
+        while (canonical.contains("//") && !canonical.contains("://")) {
+            canonical = canonical.replace("//", "/");
+        }
         if (canonical.isEmpty()) return "";
         if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
             String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
