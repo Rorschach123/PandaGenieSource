@@ -1,13 +1,12 @@
 param(
     [Parameter(Mandatory=$true)][string]$modPath,
     [string]$changelog = "",
-    [string]$changelogZh = ""
+    [string]$changelogZh = "",
+    [string]$serverUrl = "https://cf.pandagenie.ai"
 )
 
-$serverUrl = "https://pandagenie-server.rorschach123.workers.dev"
-
 Write-Host "Uploading: $modPath"
-$uploadResp = curl.exe -s -X POST "$serverUrl/module-market/submit/upload" -F "file=@$modPath"
+$uploadResp = curl.exe -s -X POST "$serverUrl/submit/upload" -F "modfile=@$modPath"
 Write-Host "Upload: $uploadResp"
 
 if ($uploadResp -match '"temp_key"\s*:\s*"([^"]+)"') {
@@ -23,7 +22,7 @@ if ($uploadResp -match '"temp_key"\s*:\s*"([^"]+)"') {
     $tempFile = Join-Path $env:TEMP "pub_body.json"
     [System.IO.File]::WriteAllText($tempFile, $bodyJson, (New-Object System.Text.UTF8Encoding $false))
 
-    $pubResp = curl.exe -s -X POST "$serverUrl/module-market/submit/publish" -H "Content-Type: application/json" -d "@$tempFile"
+    $pubResp = curl.exe -s -X POST "$serverUrl/submit/publish" -H "Content-Type: application/json" -d "@$tempFile"
     Write-Host "Publish: $pubResp"
 } else {
     Write-Host "ERROR: Could not extract temp_key"
