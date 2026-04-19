@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.calculator;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.CalculatorLib;
 import org.json.JSONObject;
@@ -50,81 +51,108 @@ public class CalculatorPlugin implements ModulePlugin {
         switch (action) {
             case "evaluate": {
                 // 解析并计算完整算术表达式字符串
-                String out = formatNumber(lib.evaluate(params.optString("expression", "")));
-                return ok(out, "🔢 = " + out);
+                String expr = params.optString("expression", "");
+                String out = formatNumber(lib.evaluate(expr));
+                return ok(out, "🔢 = " + out, htmlMetricResult(out, expr));
             }
             case "add": {
                 // 双精度浮点加法
-                String out = String.valueOf(lib.add(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double a = params.optDouble("a"), b = params.optDouble("b");
+                String out = String.valueOf(lib.add(a, b));
+                String lbl = formatParam(a) + " + " + formatParam(b);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "subtract": {
-                String out = String.valueOf(lib.subtract(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double a = params.optDouble("a"), b = params.optDouble("b");
+                String out = String.valueOf(lib.subtract(a, b));
+                String lbl = formatParam(a) + " − " + formatParam(b);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "multiply": {
-                String out = String.valueOf(lib.multiply(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double a = params.optDouble("a"), b = params.optDouble("b");
+                String out = String.valueOf(lib.multiply(a, b));
+                String lbl = formatParam(a) + " × " + formatParam(b);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "divide": {
                 // 除法由 Native 层处理除零等语义
-                String out = String.valueOf(lib.divide(params.optDouble("a"), params.optDouble("b")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double a = params.optDouble("a"), b = params.optDouble("b");
+                String out = String.valueOf(lib.divide(a, b));
+                String lbl = formatParam(a) + " ÷ " + formatParam(b);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "power": {
-                String out = String.valueOf(lib.power(params.optDouble("base"), params.optDouble("exp")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double base = params.optDouble("base"), exp = params.optDouble("exp");
+                String out = String.valueOf(lib.power(base, exp));
+                String lbl = formatParam(base) + "^" + formatParam(exp);
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "sqrt": {
                 // nSqrt：Native 实现的平方根
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.nSqrt(x));
-                return ok(out, String.format(Locale.US, "📐 sqrt(%s) = %s", formatParam(x), out));
+                String lbl = "sqrt(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 sqrt(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "sin": {
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.sin(x));
-                return ok(out, String.format(Locale.US, "📐 sin(%s) = %s", formatParam(x), out));
+                String lbl = "sin(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 sin(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "cos": {
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.cos(x));
-                return ok(out, String.format(Locale.US, "📐 cos(%s) = %s", formatParam(x), out));
+                String lbl = "cos(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 cos(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "tan": {
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.tan(x));
-                return ok(out, String.format(Locale.US, "📐 tan(%s) = %s", formatParam(x), out));
+                String lbl = "tan(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 tan(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "ln": {
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.ln(x));
-                return ok(out, String.format(Locale.US, "📐 ln(%s) = %s", formatParam(x), out));
+                String lbl = "ln(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 ln(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "log10": {
                 double x = params.optDouble("x");
                 String out = String.valueOf(lib.log10(x));
-                return ok(out, String.format(Locale.US, "📐 log10(%s) = %s", formatParam(x), out));
+                String lbl = "log10(" + formatParam(x) + ")";
+                return ok(out, String.format(Locale.US, "📐 log10(%s) = %s", formatParam(x), out), htmlMetricResult(out, lbl));
             }
             case "factorial": {
-                String out = String.valueOf(lib.factorial(params.optInt("n")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                int n = params.optInt("n");
+                String out = String.valueOf(lib.factorial(n));
+                String lbl = n + "!";
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "combination": {
-                String out = String.valueOf(lib.combination(params.optInt("n"), params.optInt("r")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                int n = params.optInt("n"), r = params.optInt("r");
+                String out = String.valueOf(lib.combination(n, r));
+                String lbl = "C(" + n + "," + r + ")";
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "permutation": {
-                String out = String.valueOf(lib.permutation(params.optInt("n"), params.optInt("r")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                int n = params.optInt("n"), r = params.optInt("r");
+                String out = String.valueOf(lib.permutation(n, r));
+                String lbl = "P(" + n + "," + r + ")";
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "degToRad": {
-                String out = String.valueOf(lib.degToRad(params.optDouble("deg")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double deg = params.optDouble("deg");
+                String out = String.valueOf(lib.degToRad(deg));
+                String lbl = "deg→rad(" + formatParam(deg) + ")";
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             case "radToDeg": {
-                String out = String.valueOf(lib.radToDeg(params.optDouble("rad")));
-                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out));
+                double rad = params.optDouble("rad");
+                String out = String.valueOf(lib.radToDeg(rad));
+                String lbl = "rad→deg(" + formatParam(rad) + ")";
+                return ok(out, isZh() ? ("🔢 结果: " + out) : ("🔢 Result: " + out), htmlMetricResult(out, lbl));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -163,6 +191,15 @@ public class CalculatorPlugin implements ModulePlugin {
         return value == (double) longValue ? String.valueOf(longValue) : String.valueOf(value);
     }
 
+    /** Mini-card: large value = result, small label = expression or operation label. */
+    private String htmlMetricResult(String result, String labelOrExpression) {
+        String lbl = labelOrExpression == null || labelOrExpression.trim().isEmpty()
+                ? (isZh() ? "表达式" : "Expression")
+                : labelOrExpression.trim();
+        return HtmlOutputHelper.card("🔢", isZh() ? "计算结果" : "Result",
+                HtmlOutputHelper.metricGrid(new String[][]{{result, lbl}}));
+    }
+
     /**
      * 成功响应，仅含 {@code success} 与 {@code output}。
      *
@@ -183,8 +220,13 @@ public class CalculatorPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
     }
 

@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.translator;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import org.json.JSONArray;
@@ -9,7 +10,9 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -162,11 +165,8 @@ public class TranslatorPlugin implements ModulePlugin {
                     + "\u25B8 Translation: " + translated;
         }
 
-        JSONObject r = new JSONObject();
-        r.put("success", true);
-        r.put("output", out.toString());
-        r.put("_displayText", display);
-        return r.toString();
+        String displayHtml = formatTranslateSingleHtml(text, translated, fromName, toName, matchScore);
+        return successResponse(out, display, displayHtml);
     }
 
     private String translateBatch(String text, String from, String[] targets) throws Exception {
@@ -222,11 +222,8 @@ public class TranslatorPlugin implements ModulePlugin {
         out.put("successCount", success);
         out.put("failedCount", failed);
 
-        JSONObject r = new JSONObject();
-        r.put("success", success > 0);
-        r.put("output", out.toString());
-        r.put("_displayText", display.toString().trim());
-        return r.toString();
+        String displayHtml = formatTranslateBatchHtml(text, fromName, results, success, failed);
+        return successResponse(out, display.toString().trim(), displayHtml, success > 0);
     }
 
     private String detectLanguage(JSONObject params) throws Exception {
@@ -248,11 +245,8 @@ public class TranslatorPlugin implements ModulePlugin {
             display = "\uD83D\uDD0D Language Detected: " + langName + " (" + detected + ")";
         }
 
-        JSONObject r = new JSONObject();
-        r.put("success", true);
-        r.put("output", out.toString());
-        r.put("_displayText", display);
-        return r.toString();
+        String displayHtml = formatDetectLanguageHtml(detected, langName, text);
+        return successResponse(out, display, displayHtml);
     }
 
     private String getSupportedLanguages() throws Exception {
@@ -274,11 +268,74 @@ public class TranslatorPlugin implements ModulePlugin {
             sb.append("\u25B8 ").append(e.getKey()).append(" - ").append(e.getValue()[0]).append(" / ").append(e.getValue()[1]).append("\n");
         }
 
+        String displayHtml = formatSupportedLanguagesHtml();
+        return successResponse(out, sb.toString().trim(), displayHtml);
+    }
+
+    private static String successResponse(JSONObject output, String displayText, String displayHtml) throws Exception {
+        return successResponse(output, displayText, displayHtml, true);
+    }
+
+    private static String successResponse(JSONObject output, String displayText, String displayHtml, boolean success) throws Exception {
         JSONObject r = new JSONObject();
-        r.put("success", true);
-        r.put("output", out.toString());
-        r.put("_displayText", sb.toString().trim());
+        r.put("success", success);
+        r.put("output", output.toString());
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
+    }
+
+    private String formatTranslateSingleHtml(String source, String translated, String fromName, String toName, double matchScore) {
+        String srcShow = source.length() > 500 ? source.substring(0, 500) + "\u2026" : source;
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u65b9\u5411" : "Direction", fromName + " \u2192 " + toName},
+                {isZh() ? "\u539f\u6587" : "Source", srcShow},
+                {isZh() ? "\u8bd1\u6587" : "Translation", translated},
+                {isZh() ? "\u5339\u914d\u5ea6" : "Match", String.format(Locale.US, "%.2f", matchScore)}
+        });
+        return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u7ffb\u8bd1\u5b8c\u6210" : "Translation complete", body);
+    }
+
+    private String formatTranslateBatchHtml(String originalText, String fromName, JSONArray results, int success, int failed) throws Exception {
+        String head = HtmlOutputHelper.muted(isZh()
+                ? ("\u539f\u6587 (" + fromName + "): " + (originalText.length() > 120 ? originalText.substring(0, 120) + "\u2026" : originalText))
+                : ("Source (" + fromName + "): " + (originalText.length() > 120 ? originalText.substring(0, 120) + "\u2026" : originalText)));
+        List<String[]> rows = new ArrayList<>();
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject item = results.getJSONObject(i);
+            rows.add(new String[]{
+                    item.optString("toName", "") + " (" + item.optString("to", "") + ")",
+                    item.optString("translatedText", "")
+            });
+        }
+        String table = HtmlOutputHelper.table(
+                new String[]{isZh() ? "\u76ee\u6807\u8bed\u8a00" : "Target", isZh() ? "\u8bd1\u6587" : "Translation"},
+                rows);
+        String footer = failed > 0
+                ? HtmlOutputHelper.muted(isZh() ? ("\u26a0 " + failed + " \u79cd\u8bed\u8a00\u7ffb\u8bd1\u5931\u8d25") : ("\u26a0 " + failed + " language(s) failed"))
+                : HtmlOutputHelper.successBadge();
+        return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u591a\u8bed\u8a00\u7ffb\u8bd1" : "Multi-language translation", head + table + footer);
+    }
+
+    private String formatDetectLanguageHtml(String code, String langName, String textSample) {
+        String preview = textSample.length() > 100 ? textSample.substring(0, 100) + "\u2026" : textSample;
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u8bed\u8a00" : "Language", langName + " (" + code + ")"},
+                {isZh() ? "\u6587\u672c\u9884\u89c8" : "Preview", preview}
+        });
+        return HtmlOutputHelper.card("\uD83D\uDD0D", isZh() ? "\u8bed\u8a00\u68c0\u6d4b" : "Language detected", body);
+    }
+
+    private String formatSupportedLanguagesHtml() {
+        List<String[]> rows = new ArrayList<>();
+        for (Map.Entry<String, String[]> e : LANGUAGES.entrySet()) {
+            String label = isZh() ? e.getValue()[0] : e.getValue()[1];
+            rows.add(new String[]{e.getKey(), label});
+        }
+        String table = HtmlOutputHelper.table(
+                new String[]{isZh() ? "\u4ee3\u7801" : "Code", isZh() ? "\u8bed\u8a00" : "Language"},
+                rows);
+        return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u652f\u6301\u7684\u8bed\u8a00" : "Supported languages", table);
     }
 
     private static String detectLangCode(String text) {

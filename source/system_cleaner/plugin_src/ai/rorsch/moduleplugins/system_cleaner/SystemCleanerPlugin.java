@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -85,19 +86,19 @@ public class SystemCleanerPlugin implements ModulePlugin {
         switch (action) {
             case "scanJunk": {
                 String out = scanJunk(params);
-                return ok(out, formatScanJunkDisplay(out));
+                return ok(out, formatScanJunkDisplay(out), formatScanJunkHtml(out));
             }
             case "cleanJunk": {
                 String out = cleanJunk(params);
-                return ok(out, formatCleanJunkDisplay(out));
+                return ok(out, formatCleanJunkDisplay(out), formatCleanJunkHtml(out));
             }
             case "getStorageInfo": {
                 String out = getStorageInfo();
-                return ok(out, formatStorageInfoDisplay(out));
+                return ok(out, formatStorageInfoDisplay(out), formatStorageInfoHtml(out));
             }
             case "findLargeFiles": {
                 String out = findLargeFiles(params);
-                return ok(out, formatFindLargeFilesDisplay(out));
+                return ok(out, formatFindLargeFilesDisplay(out), formatFindLargeFilesHtml(out));
             }
             case "openPage": {
                 JSONObject r = new JSONObject();
@@ -834,15 +835,19 @@ public class SystemCleanerPlugin implements ModulePlugin {
     }
 
     /**
-     * 成功响应，附带可选 {@code _displayText}。
+     * 成功响应，附带可选 {@code _displayText} 与 {@code _displayHtml}。
      *
-     * @param output      业务 JSON 字符串
-     * @param displayText 简短 UI 文案
+     * @param output       业务 JSON 字符串
+     * @param displayText  简短 UI 文案
+     * @param displayHtml  可选 HTML5 迷你卡片
      */
-    private String ok(String output, String displayText) throws Exception {
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         return r.toString();
     }
@@ -1039,6 +1044,142 @@ public class SystemCleanerPlugin implements ModulePlugin {
             sb.append("\n\n… (+").append(files.length() - show).append(zh ? " 更多)" : " more)");
         }
         return sb.toString().trim();
+    }
+
+    private static String formatScanJunkHtml(String output) {
+        boolean zh = isZh();
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔍", zh ? "垃圾扫描" : "Junk Scan",
+                    HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p(o.optString("error")));
+        }
+        JSONObject cats = o.optJSONObject("categories");
+        if (cats == null) {
+            return "";
+        }
+        String[] h1 = zh ? new String[]{"类别", "数量", "大小"} : new String[]{"Category", "Count", "Size"};
+        List<String[]> rows1 = new ArrayList<>();
+        appendScanCategoryRow(rows1, cats, "temp", zh ? "临时文件" : "Temp files");
+        appendScanCategoryRow(rows1, cats, "cache", zh ? "缓存" : "Cache");
+        appendScanCategoryRow(rows1, cats, "apk", "APK");
+        appendScanCategoryRow(rows1, cats, "thumbs", zh ? "缩略图" : "Thumbs");
+        appendScanCategoryRow(rows1, cats, "empty_dirs", zh ? "空目录" : "Empty dirs");
+        appendScanCategoryRow(rows1, cats, "logs", zh ? "日志" : "Logs");
+        String totalFmt = o.optString("totalSizeFormatted", formatSizeBytes(o.optLong("totalSizeBytes", 0)));
+        String totalLabel = zh ? "可回收总计" : "Total reclaimable";
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.table(h1, rows1));
+        body.append(HtmlOutputHelper.metricGrid(new String[][]{{totalFmt, totalLabel}}));
+        return HtmlOutputHelper.card("🔍", zh ? "垃圾扫描结果" : "Junk Scan Results", body.toString());
+    }
+
+    private static String formatCleanJunkHtml(String output) {
+        boolean zh = isZh();
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🧹", zh ? "清理" : "Cleanup",
+                    HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p(o.optString("error")));
+        }
+        int items = o.optInt("deletedItems", o.optInt("deletedFiles", 0));
+        String freed = o.optString("freedFormatted", formatSizeBytes(o.optLong("freedBytes", 0)));
+        String title = zh ? "清理完成" : "Cleanup Complete";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.metricGrid(new String[][]{
+                {freed, zh ? "释放空间" : "Space freed"},
+                {String.valueOf(items), zh ? "已移除项目" : "Items removed"}
+        });
+        return HtmlOutputHelper.card("🧹", title, body);
+    }
+
+    private static String gaugeColorForUsedPercent(double pct) {
+        if (pct >= 90.0) {
+            return "#F44336";
+        }
+        if (pct >= 70.0) {
+            return "#FF9800";
+        }
+        return "#4CAF50";
+    }
+
+    private static String formatStorageInfoHtml(String output) {
+        boolean zh = isZh();
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("💾", zh ? "存储" : "Storage",
+                    HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p(o.optString("error")));
+        }
+        JSONObject part = o.optJSONObject("externalPrimary");
+        if (part == null || part == JSONObject.NULL) {
+            part = o.optJSONObject("internal");
+        }
+        if (part == null || part == JSONObject.NULL) {
+            return HtmlOutputHelper.card("💾", zh ? "存储信息" : "Storage Info",
+                    HtmlOutputHelper.muted("—"));
+        }
+        double pct = part.optDouble("usedPercent", 0);
+        int gaugePct = (int) Math.round(Math.max(0, Math.min(100, pct)));
+        String total = part.optString("totalFormatted", "—");
+        String used = part.optString("usedFormatted", "—");
+        String free = part.optString("freeFormatted", "—");
+        String title = zh ? "存储信息" : "Storage Info";
+        String labelTotal = zh ? "总计" : "Total";
+        String labelUsed = zh ? "已用" : "Used";
+        String labelFree = zh ? "可用" : "Free";
+        String labelUse = zh ? "已用占比" : "Used";
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.metricGrid(new String[][]{
+                {total, labelTotal},
+                {used, labelUsed},
+                {free, labelFree}
+        }));
+        body.append(HtmlOutputHelper.muted(labelUse + ": " + String.format(Locale.US, "%.1f%%", pct)));
+        body.append(HtmlOutputHelper.gauge(gaugePct, gaugeColorForUsedPercent(pct)));
+        return HtmlOutputHelper.card("💾", title, body.toString());
+    }
+
+    private static String formatFindLargeFilesHtml(String output) {
+        boolean zh = isZh();
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📦", zh ? "大文件" : "Large Files",
+                    HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p(o.optString("error")));
+        }
+        JSONArray files = o.optJSONArray("files");
+        if (files == null) {
+            return "";
+        }
+        String[] headers = zh ? new String[]{"名称", "大小", "路径"} : new String[]{"Name", "Size", "Path"};
+        List<String[]> rows = new ArrayList<>();
+        for (int i = 0; i < files.length(); i++) {
+            JSONObject f = files.optJSONObject(i);
+            if (f == null) {
+                continue;
+            }
+            rows.add(new String[]{
+                    f.optString("name", "?"),
+                    f.optString("sizeFormatted", ""),
+                    f.optString("path", "")
+            });
+        }
+        String dir = o.optString("directory", "");
+        String banner = (zh ? "目录: " : "Dir: ") + dir + " · "
+                + (zh ? "最小 " : "min ") + o.optDouble("minSizeMB", 0) + " MB · "
+                + (zh ? "找到 " : "found ") + o.optInt("found", 0) + " · "
+                + (zh ? "显示 " : "showing ") + o.optInt("showing", rows.size());
+        String body = HtmlOutputHelper.muted(banner) + HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("📦", zh ? "大文件" : "Large Files", body);
     }
 
     /** 扫描阶段某一类别的文件数与总字节（空目录仅计 count）。 */

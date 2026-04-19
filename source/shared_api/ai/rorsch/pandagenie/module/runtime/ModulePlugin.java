@@ -9,9 +9,19 @@ import android.content.Context;
  * </p>
  * <p>
  * <b>提供的 API 契约：</b>实现类须提供 {@link #invoke(Context, String, String)}，通过 {@code action} 区分操作，
- * 通过 {@code paramsJson} 传递 JSON 参数；返回值通常为 JSON 字符串（含 {@code success}、{@code output}、
- * {@code error} 等字段，部分模块还会附带 {@code _displayText} 供界面展示）。
+ * 通过 {@code paramsJson} 传递 JSON 参数；返回值通常为 JSON 字符串，支持以下字段：
  * </p>
+ * <ul>
+ *   <li>{@code success} (boolean) — 操作是否成功</li>
+ *   <li>{@code output} (string/object) — 主要业务数据</li>
+ *   <li>{@code error} (string) — 失败时的错误信息</li>
+ *   <li>{@code _displayText} (string) — 人类可读的文本摘要（向后兼容）</li>
+ *   <li>{@code _displayHtml} (string) — HTML5 片段，在聊天气泡中以 WebView mini-card 渲染（优先于 _displayText）。
+ *       使用 {@link HtmlOutputHelper} 的静态方法生成一致的 HTML。</li>
+ *   <li>{@code _displayHtmlFull} (string, optional) — 点击"查看详情"时展示的完整 HTML 页面；
+ *       若缺省，则使用 {@code _displayHtml} 全屏展示。</li>
+ *   <li>{@code _openModule} (boolean) — 为 true 时打开模块的 H5 页面</li>
+ * </ul>
  * <p>
  * <b>加载方式：</b>由 {@code ModuleRuntime} 通过反射实例化具体实现类并调用本接口方法，插件类名与包路径由模块清单配置。
  * </p>

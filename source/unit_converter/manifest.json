@@ -4,7 +4,7 @@
   "name_en": "Unit Converter",
   "description": "万能单位转换模块，支持长度、重量、温度、面积、体积、速度、时间、数据存储等多种单位互转",
   "description_en": "Universal unit converter: length, weight, temperature, area, volume, speed, time, data storage, and more",
-  "version": "1.2",
+  "version": "1.3",
   "icon": "straighten",
   "soLibraries": [],
   "h5Page": "index.html",

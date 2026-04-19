@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -15,7 +16,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -120,11 +123,12 @@ public class ClipboardPlugin implements ModulePlugin {
             switch (action) {
                 case "getClipboard": {
                     String out = getClipboard(context);
-                    return ok(out, formatGetClipboardDisplay(new JSONObject(out)));
+                    JSONObject parsed = new JSONObject(out);
+                    return ok(out, formatGetClipboardDisplay(parsed), formatGetClipboardHtml(parsed));
                 }
                 case "setClipboard": {
                     String out = setClipboard(context, params);
-                    return ok(out, formatSetClipboardDisplay());
+                    return ok(out, formatSetClipboardDisplay(), formatSetClipboardHtml());
                 }
                 case "clearClipboard": {
                     String out = clearClipboard(context);
@@ -132,7 +136,8 @@ public class ClipboardPlugin implements ModulePlugin {
                 }
                 case "getClipboardHistory": {
                     String out = getClipboardHistory(params);
-                    return ok(out, formatGetClipboardHistoryDisplay(new JSONObject(out)));
+                    JSONObject parsed = new JSONObject(out);
+                    return ok(out, formatGetClipboardHistoryDisplay(parsed), formatGetClipboardHistoryHtml(parsed));
                 }
                 case "saveToHistory": {
                     String out = saveToHistory(context);
@@ -140,7 +145,8 @@ public class ClipboardPlugin implements ModulePlugin {
                 }
                 case "searchHistory": {
                     String out = searchHistory(params);
-                    return ok(out, formatSearchHistoryDisplay(new JSONObject(out)));
+                    JSONObject parsed = new JSONObject(out);
+                    return ok(out, formatSearchHistoryDisplay(parsed), formatSearchHistoryHtml(parsed));
                 }
                 case "clearHistory": {
                     String out = clearHistory();
@@ -184,11 +190,21 @@ public class ClipboardPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
-        return new JSONObject()
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * 成功响应，写入 {@code _displayText}，可选 {@code _displayHtml}。
+     */
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
+        JSONObject j = new JSONObject()
                 .put("success", true)
                 .put("output", output)
-                .put("_displayText", displayText)
-                .toString();
+                .put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            j.put("_displayHtml", displayHtml);
+        }
+        return j.toString();
     }
 
     /**
@@ -334,6 +350,78 @@ public class ClipboardPlugin implements ModulePlugin {
         return pgTable("🗑️ " + msg,
                 new String[]{isZh() ? "状态" : "Status", isZh() ? "消息" : "Message"},
                 Collections.singletonList(new String[]{isZh() ? "成功" : "OK", msg}));
+    }
+
+    private static String formatClipboardTimestamp(long ms) {
+        if (ms <= 0) {
+            return "—";
+        }
+        String pat = isZh() ? "yyyy-MM-dd HH:mm:ss" : "MMM d, yyyy HH:mm:ss";
+        SimpleDateFormat fmt = new SimpleDateFormat(pat, Locale.getDefault());
+        return fmt.format(new Date(ms));
+    }
+
+    private static String formatGetClipboardHtml(JSONObject result) {
+        String text = result.optString("text", "");
+        boolean zh = isZh();
+        String emptyParen = "(" + (zh ? "空" : "empty") + ")";
+        String bodyText = text.isEmpty() ? emptyParen : truncateForDisplay(text, DISPLAY_BODY_MAX);
+        String title = zh ? "剪贴板内容" : "Clipboard Content";
+        String body = HtmlOutputHelper.p(bodyText);
+        return HtmlOutputHelper.card("📋", title, body);
+    }
+
+    private static String formatSetClipboardHtml() {
+        boolean zh = isZh();
+        String msg = zh ? "已复制到剪贴板" : "Copied to clipboard";
+        String body = HtmlOutputHelper.successBadge() + HtmlOutputHelper.p(msg);
+        return HtmlOutputHelper.card("✅", zh ? "剪贴板" : "Clipboard", body);
+    }
+
+    private static String formatGetClipboardHistoryHtml(JSONObject result) {
+        JSONArray items = result.optJSONArray("items");
+        boolean zh = isZh();
+        String title = zh ? "剪贴板历史" : "Clipboard History";
+        if (items == null || items.length() == 0) {
+            String empty = zh ? "无记录" : "No entries";
+            return HtmlOutputHelper.card("📋", title, HtmlOutputHelper.muted(empty));
+        }
+        String[] headers = zh ? new String[]{"预览", "时间"} : new String[]{"Preview", "Time"};
+        List<String[]> rows = new ArrayList<>();
+        String emptyParen = "(" + (zh ? "空" : "empty") + ")";
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject row = items.optJSONObject(i);
+            String t = row != null ? row.optString("text", "") : "";
+            String line = t.isEmpty() ? emptyParen : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            long ts = row != null ? row.optLong("timestamp", 0L) : 0L;
+            rows.add(new String[]{line, formatClipboardTimestamp(ts)});
+        }
+        String body = HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("📋", title, body);
+    }
+
+    private static String formatSearchHistoryHtml(JSONObject result) {
+        int count = result.optInt("count", 0);
+        JSONArray items = result.optJSONArray("items");
+        boolean zh = isZh();
+        String title = zh ? "搜索结果" : "Search Results";
+        String summary = (zh ? "匹配 " : "Matches: ") + count;
+        if (items == null || items.length() == 0) {
+            return HtmlOutputHelper.card("🔍", title,
+                    HtmlOutputHelper.muted(summary) + HtmlOutputHelper.p(zh ? "无条目" : "No entries"));
+        }
+        String[] headers = zh ? new String[]{"预览", "时间"} : new String[]{"Preview", "Time"};
+        List<String[]> rows = new ArrayList<>();
+        String emptyParen = "(" + (zh ? "空" : "empty") + ")";
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject row = items.optJSONObject(i);
+            String t = row != null ? row.optString("text", "") : "";
+            String line = t.isEmpty() ? emptyParen : truncateForDisplay(t, DISPLAY_ITEM_MAX);
+            long ts = row != null ? row.optLong("timestamp", 0L) : 0L;
+            rows.add(new String[]{line, formatClipboardTimestamp(ts)});
+        }
+        String body = HtmlOutputHelper.muted(summary) + HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("🔍", title, body);
     }
 
     /**

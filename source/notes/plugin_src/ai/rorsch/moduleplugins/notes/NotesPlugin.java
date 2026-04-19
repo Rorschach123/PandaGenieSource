@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.notes;
 
 import android.content.Context;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -74,27 +75,28 @@ public class NotesPlugin implements ModulePlugin {
             switch (action) {
                 case "createNote": {
                     String out = createNote(params);
-                    return okWithVaultSave(out, formatCreateNoteDisplay(out), buildNoteVaultSave(out));
+                    return okWithVaultSave(out, formatCreateNoteDisplay(out), buildNoteVaultSave(out), formatCreateNoteHtml(out));
                 }
                 case "listNotes": {
                     String out = listNotes(params);
-                    return ok(out, formatListNotesDisplay(out));
+                    return ok(out, formatListNotesDisplay(out), formatListNotesHtml(out));
                 }
                 case "getNote": {
                     String out = getNote(params);
-                    return ok(out, formatGetNoteDisplay(out));
+                    return ok(out, formatGetNoteDisplay(out), formatGetNoteHtml(out));
                 }
                 case "updateNote": {
                     String out = updateNote(params);
-                    return ok(out, formatUpdateNoteDisplay());
+                    return ok(out, formatUpdateNoteDisplay(), formatUpdateNoteHtml(out));
                 }
                 case "deleteNote": {
                     String out = deleteNote(params);
-                    return ok(out, formatDeleteNoteDisplay());
+                    return ok(out, formatDeleteNoteDisplay(), formatDeleteNoteHtml(out));
                 }
                 case "searchNotes": {
                     String out = searchNotes(params);
-                    return ok(out, formatSearchNotesDisplay(out, params.optString("keyword", "").trim()));
+                    String kw = params.optString("keyword", "").trim();
+                    return ok(out, formatSearchNotesDisplay(out, kw), formatSearchNotesHtml(out, kw));
                 }
                 case "exportNote": {
                     String out = exportNote(params);
@@ -106,7 +108,7 @@ public class NotesPlugin implements ModulePlugin {
                         String noteTitle = root.optString("noteTitle", "");
                         rc.put(richFile(path, noteTitle.isEmpty() ? null : noteTitle, "text/plain"));
                     }
-                    return ok(out, formatExportNoteDisplay(out), rc);
+                    return ok(out, formatExportNoteDisplay(out), rc, formatExportNoteHtml(out));
                 }
                 case "openPage": {
                     JSONObject r = new JSONObject();
@@ -142,7 +144,7 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null, null);
     }
 
     /**
@@ -154,7 +156,14 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
+    }
+
+    /**
+     * 成功响应，可选附带展示文案与 {@code _displayHtml}。
+     */
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, null, displayHtml);
     }
 
     /**
@@ -167,11 +176,18 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, richContent, null);
+    }
+
+    private String ok(String output, String displayText, JSONArray richContent, String displayHtml) throws Exception {
         JSONObject j = new JSONObject();
         j.put("success", true);
         j.put("output", output);
         if (displayText != null) {
             j.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            j.put("_displayHtml", displayHtml);
         }
         if (richContent != null && richContent.length() > 0) {
             j.put("_richContent", richContent);
@@ -179,11 +195,12 @@ public class NotesPlugin implements ModulePlugin {
         return j.toString();
     }
 
-    private String okWithVaultSave(String output, String displayText, JSONObject vaultSave) throws Exception {
+    private String okWithVaultSave(String output, String displayText, JSONObject vaultSave, String displayHtml) throws Exception {
         JSONObject j = new JSONObject();
         j.put("success", true);
         j.put("output", output);
         if (displayText != null) j.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) j.put("_displayHtml", displayHtml);
         if (vaultSave != null) j.put("_vaultSave", vaultSave);
         return j.toString();
     }
@@ -337,6 +354,95 @@ public class NotesPlugin implements ModulePlugin {
             return "📤 笔记已导出\n▸ 文件: " + path;
         }
         return "📤 Note exported\n▸ File: " + path;
+    }
+
+    private String formatCreateNoteHtml(String noteJson) throws Exception {
+        JSONObject note = new JSONObject(noteJson);
+        String title = note.optString("title", "");
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u6807\u9898" : "Title", title},
+                {isZh() ? "ID" : "ID", note.optString("id", "")}
+        });
+        return HtmlOutputHelper.card("\uD83D\uDCDD", isZh() ? "\u7b14\u8bb0\u5df2\u521b\u5efa" : "Note created", body + HtmlOutputHelper.successBadge());
+    }
+
+    private String formatListNotesHtml(String listJson) throws Exception {
+        JSONObject root = new JSONObject(listJson);
+        JSONArray notes = root.optJSONArray("notes");
+        List<String[]> rows = new ArrayList<>();
+        if (notes != null) {
+            for (int i = 0; i < notes.length(); i++) {
+                JSONObject row = notes.optJSONObject(i);
+                if (row == null) continue;
+                rows.add(new String[]{
+                        row.optString("title", ""),
+                        row.optString("preview", ""),
+                        row.optString("updatedAt", row.optString("createdAt", ""))
+                });
+            }
+        }
+        String table = HtmlOutputHelper.table(
+                new String[]{
+                        isZh() ? "\u6807\u9898" : "Title",
+                        isZh() ? "\u9884\u89c8" : "Preview",
+                        isZh() ? "\u66f4\u65b0" : "Updated"
+                },
+                rows);
+        String title = isZh() ? ("\u7b14\u8bb0\uff08" + root.optInt("count", rows.size()) + "\uff09") : ("Notes (" + root.optInt("count", rows.size()) + ")");
+        return HtmlOutputHelper.card("\uD83D\uDCCB", title, table);
+    }
+
+    private String formatGetNoteHtml(String noteJson) throws Exception {
+        JSONObject note = new JSONObject(noteJson);
+        String title = note.optString("title", "");
+        String preview = preview(note.optString("content", ""));
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u6807\u9898" : "Title", title},
+                {isZh() ? "ID" : "ID", note.optString("id", "")}
+        }) + HtmlOutputHelper.p(preview);
+        return HtmlOutputHelper.card("\uD83D\uDCDD", isZh() ? "\u7b14\u8bb0" : "Note", body);
+    }
+
+    private String formatUpdateNoteHtml(String noteJson) throws Exception {
+        JSONObject note = new JSONObject(noteJson);
+        String title = note.optString("title", "");
+        String body = HtmlOutputHelper.p(title);
+        return HtmlOutputHelper.card("\u2705", isZh() ? "\u7b14\u8bb0\u5df2\u66f4\u65b0" : "Note updated", body + HtmlOutputHelper.successBadge());
+    }
+
+    private String formatDeleteNoteHtml(String deleteJson) throws Exception {
+        JSONObject root = new JSONObject(deleteJson);
+        String id = root.optString("id", "");
+        return HtmlOutputHelper.card("\uD83D\uDDD1\uFE0F", isZh() ? "\u7b14\u8bb0\u5df2\u5220\u9664" : "Note deleted",
+                HtmlOutputHelper.muted("ID: " + id) + HtmlOutputHelper.successBadge());
+    }
+
+    private String formatSearchNotesHtml(String searchJson, String keyword) throws Exception {
+        JSONObject root = new JSONObject(searchJson);
+        JSONArray notes = root.optJSONArray("notes");
+        List<String[]> rows = new ArrayList<>();
+        if (notes != null) {
+            for (int i = 0; i < notes.length(); i++) {
+                JSONObject row = notes.optJSONObject(i);
+                if (row == null) continue;
+                rows.add(new String[]{
+                        row.optString("title", ""),
+                        row.optString("preview", "")
+                });
+            }
+        }
+        String table = HtmlOutputHelper.table(
+                new String[]{isZh() ? "\u6807\u9898" : "Title", isZh() ? "\u9884\u89c8" : "Preview"},
+                rows);
+        String head = HtmlOutputHelper.muted(isZh() ? ("\u5173\u952e\u8bcd: " + keyword) : ("Keyword: " + keyword));
+        return HtmlOutputHelper.card("\uD83D\uDD0D", isZh() ? "\u641c\u7d22\u7ed3\u679c" : "Search results", head + table);
+    }
+
+    private String formatExportNoteHtml(String exportJson) throws Exception {
+        JSONObject root = new JSONObject(exportJson);
+        String path = root.optString("path", "");
+        return HtmlOutputHelper.card("\uD83D\uDCE4", isZh() ? "\u5df2\u5bfc\u51fa" : "Exported",
+                HtmlOutputHelper.keyValue(new String[][]{{isZh() ? "\u6587\u4ef6" : "File", path}}) + HtmlOutputHelper.successBadge());
     }
 
     /**

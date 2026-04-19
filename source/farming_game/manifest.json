@@ -4,7 +4,7 @@
   "name_en": "Farming Game",
   "description": "种菜模拟游戏，选择种子种植，浇水、施肥、除草帮助植物生长，收获结果可保存记录，支持定时任务，只有一个存档",
   "description_en": "Farming simulation game. Plant seeds, water, fertilize and weed to help plants grow. Save harvest records. Supports scheduled tasks. Single save slot",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "eco",
   "soLibraries": [],
   "h5Page": "index.html",

@@ -1,10 +1,10 @@
-﻿{
+{
   "id": "calculator",
   "name": "计算器",
   "name_en": "Calculator",
   "description": "科学计算器模块，支持四则运算、三角函数、对数、阶乘、排列组合、表达式解析等",
   "description_en": "Scientific calculator with arithmetic, trigonometry, logarithms, factorials, combinations and expression parsing",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "calculate",
   "soLibraries": ["libcalculator.so"],
   "h5Page": "index.html",

@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.weather;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -12,6 +13,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class WeatherPlugin implements ModulePlugin {
@@ -115,6 +118,20 @@ public class WeatherPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        String html = HtmlOutputHelper.card("\uD83C\uDF24\uFE0F",
+                isZh() ? city + " 当前天气" : city + " Current Weather",
+                HtmlOutputHelper.metricGrid(new String[][]{
+                        {temp + "\u00B0C", isZh() ? "温度" : "Temperature"},
+                        {windSpeed + " km/h", isZh() ? "风速" : "Wind"},
+                        {humidity + "%", isZh() ? "湿度" : "Humidity"}
+                }) +
+                        HtmlOutputHelper.keyValue(new String[][]{
+                                {isZh() ? "天气" : "Condition", condition},
+                                {isZh() ? "体感温度" : "Feels Like", feelsLike + "\u00B0C"},
+                                {isZh() ? "风向" : "Wind Dir.", windDir + "\u00B0"}
+                        })
+        );
+        r.put("_displayHtml", html);
         return r.toString();
     }
 
@@ -147,6 +164,7 @@ public class WeatherPlugin implements ModulePlugin {
         JSONArray windMaxs = daily.getJSONArray("wind_speed_10m_max");
 
         JSONArray forecastArr = new JSONArray();
+        List<String[]> forecastRows = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         if (isZh()) {
             sb.append("\uD83D\uDCC5 ").append(city).append(" ").append(days).append("日天气预报\n");
@@ -175,6 +193,8 @@ public class WeatherPlugin implements ModulePlugin {
             dayObj.put("windSpeedMax", windMax);
             forecastArr.put(dayObj);
 
+            forecastRows.add(new String[]{date, String.valueOf(minT), String.valueOf(maxT), emoji + " " + cond});
+
             sb.append(emoji).append(" ").append(date).append(" | ").append(cond)
               .append(" | ").append(minT).append("~").append(maxT).append("\u00B0C");
             if (precip > 0) sb.append(" | \uD83C\uDF27").append(precip).append("%");
@@ -190,6 +210,14 @@ public class WeatherPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", sb.toString().trim());
+        String forecastHtml = HtmlOutputHelper.card("\uD83D\uDCC5",
+                isZh() ? city + " 天气预报" : city + " Forecast",
+                HtmlOutputHelper.table(
+                        new String[]{isZh() ? "日期" : "Date", isZh() ? "最低" : "Min", isZh() ? "最高" : "Max", isZh() ? "天气" : "Weather"},
+                        forecastRows
+                )
+        );
+        r.put("_displayHtml", forecastHtml);
         return r.toString();
     }
 
@@ -254,6 +282,20 @@ public class WeatherPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        String html = HtmlOutputHelper.card("\uD83C\uDF24\uFE0F",
+                isZh() ? label + " 当前天气" : label + " Current Weather",
+                HtmlOutputHelper.metricGrid(new String[][]{
+                        {temp + "\u00B0C", isZh() ? "温度" : "Temperature"},
+                        {windSpeed + " km/h", isZh() ? "风速" : "Wind"},
+                        {humidity + "%", isZh() ? "湿度" : "Humidity"}
+                }) +
+                        HtmlOutputHelper.keyValue(new String[][]{
+                                {isZh() ? "天气" : "Condition", condition},
+                                {isZh() ? "体感温度" : "Feels Like", feelsLike + "\u00B0C"},
+                                {isZh() ? "风向" : "Wind Dir.", windDir + "\u00B0"}
+                        })
+        );
+        r.put("_displayHtml", html);
         return r.toString();
     }
 

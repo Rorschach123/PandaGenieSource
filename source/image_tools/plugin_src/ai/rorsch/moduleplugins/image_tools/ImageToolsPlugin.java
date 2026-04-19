@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.image_tools;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import android.content.Context;
@@ -70,42 +71,42 @@ public class ImageToolsPlugin implements ModulePlugin {
                     String out = getImageInfo(params.optString("path", "").trim());
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(params.optString("path", "").trim(), isZh() ? "图片预览" : "Image preview"));
-                    return ok(out, formatGetImageInfoDisplay(out), rc);
+                    return ok(out, formatGetImageInfoDisplay(out), formatGetImageInfoHtml(out), rc);
                 }
                 case "resizeImage": {
                     String out = resizeImage(params);
                     JSONObject outJson = new JSONObject(out);
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "调整后的图片" : "Resized image"));
-                    return ok(out, formatResizeImageDisplay(out), rc);
+                    return ok(out, formatResizeImageDisplay(out), formatResizeImageHtml(out), rc);
                 }
                 case "compressImage": {
                     String out = compressImage(params);
                     JSONObject outJson = new JSONObject(out);
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "压缩后的图片" : "Compressed image"));
-                    return ok(out, formatCompressImageDisplay(out), rc);
+                    return ok(out, formatCompressImageDisplay(out), formatCompressImageHtml(out), rc);
                 }
                 case "convertFormat": {
                     String out = convertFormat(params);
                     JSONObject outJson = new JSONObject(out);
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "转换后的图片" : "Converted image"));
-                    return ok(out, formatConvertFormatDisplay(out), rc);
+                    return ok(out, formatConvertFormatDisplay(out), formatConvertFormatHtml(out), rc);
                 }
                 case "rotateImage": {
                     String out = rotateImage(params);
                     JSONObject outJson = new JSONObject(out);
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "旋转后的图片" : "Rotated image"));
-                    return ok(out, formatRotateImageDisplay(out), rc);
+                    return ok(out, formatRotateImageDisplay(out), formatRotateImageHtml(out), rc);
                 }
                 case "cropImage": {
                     String out = cropImage(params);
                     JSONObject outJson = new JSONObject(out);
                     JSONArray rc = new JSONArray();
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "裁剪后的图片" : "Cropped image"));
-                    return ok(out, formatCropImageDisplay(out), rc);
+                    return ok(out, formatCropImageDisplay(out), formatCropImageHtml(out), rc);
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -986,6 +987,168 @@ public class ImageToolsPlugin implements ModulePlugin {
         return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
+    // ==================== _displayHtml (HtmlOutputHelper) ====================
+
+    private static String formatGetImageInfoHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int w = o.optInt("width");
+        int h = o.optInt("height");
+        String formatLabel;
+        if (o.isNull("mimeType")) {
+            formatLabel = zh ? "未知" : "Unknown";
+        } else {
+            formatLabel = mimeTypeToDisplayFormat(o.optString("mimeType"), zh);
+        }
+        long sizeBytes = o.optLong("fileSizeBytes");
+        String path = o.optString("path", "");
+        String title = zh ? "图片信息" : "Image Info";
+        List<String[]> pairs = new ArrayList<>();
+        pairs.add(new String[] { zh ? "尺寸" : "Dimensions", w + "×" + h });
+        pairs.add(new String[] { zh ? "格式" : "Format", formatLabel });
+        pairs.add(new String[] { zh ? "文件大小" : "File size", formatFileSizeMb(sizeBytes) });
+        pairs.add(new String[] { zh ? "路径" : "Path", path });
+        JSONObject exif = o.optJSONObject("exif");
+        if (exif != null) {
+            if (exif.has("error") && !exif.isNull("error")) {
+                pairs.add(new String[] { "EXIF", exif.optString("error") });
+            } else {
+                pairs.add(new String[] { "EXIF orientation", String.valueOf(exif.optInt("orientation")) });
+                String dt = exif.isNull("dateTime") ? "—" : exif.optString("dateTime");
+                pairs.add(new String[] { "EXIF date/time", dt });
+                String dto = exif.isNull("dateTimeOriginal") ? "—" : exif.optString("dateTimeOriginal");
+                pairs.add(new String[] { "EXIF date/time (original)", dto });
+                if (!exif.isNull("gps")) {
+                    JSONObject gps = exif.optJSONObject("gps");
+                    if (gps != null) {
+                        pairs.add(new String[] { "GPS latitude", String.valueOf(gps.optDouble("latitude")) });
+                        pairs.add(new String[] { "GPS longitude", String.valueOf(gps.optDouble("longitude")) });
+                        if (gps.has("altitude") && !gps.isNull("altitude")) {
+                            pairs.add(new String[] { "GPS altitude", gps.optString("altitude") });
+                        }
+                    }
+                } else {
+                    pairs.add(new String[] { "GPS", "—" });
+                }
+            }
+        }
+        return HtmlOutputHelper.card("🖼️", title, HtmlOutputHelper.keyValue(pairs.toArray(new String[0][])));
+    }
+
+    private static String formatResizeImageHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int ow = o.optInt("outputWidth");
+        int oh = o.optInt("outputHeight");
+        String path = o.optString("outputPath");
+        String inPath = o.optString("inputPath");
+        String title = zh ? "图片已调整大小" : "Image resized";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "输入路径" : "Input path", inPath },
+                { zh ? "原始尺寸" : "Original size", o.optInt("originalWidth") + "×" + o.optInt("originalHeight") },
+                { zh ? "解码尺寸" : "Decoded size", o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") },
+                { zh ? "输出尺寸" : "Output size", ow + "×" + oh },
+                { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) },
+                { zh ? "格式" : "Format", o.optString("format") },
+                { zh ? "输出路径" : "Output path", path }
+        });
+        return HtmlOutputHelper.card("✅", title, body);
+    }
+
+    private static String formatCompressImageHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        String inPath = o.optString("inputPath");
+        long before = new File(inPath).length();
+        long after = o.optLong("outputSizeBytes");
+        long saved = Math.max(0L, before - after);
+        int pct = before > 0 ? (int) Math.min(100L, (saved * 100L / before)) : 0;
+        String path = o.optString("outputPath");
+        String title = zh ? "图片已压缩" : "Image compressed";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "输入路径" : "Input path", inPath },
+                { zh ? "压缩前大小" : "Size before", formatFileSizeMb(before) },
+                { zh ? "压缩后大小" : "Size after", formatFileSizeMb(after) },
+                { zh ? "节省" : "Saved", formatFileSizeMb(saved) + " (~" + pct + "%)" },
+                { zh ? "质量" : "Quality", String.valueOf(o.optInt("quality")) },
+                { zh ? "原始尺寸" : "Original size", o.optInt("originalWidth") + "×" + o.optInt("originalHeight") },
+                { zh ? "解码尺寸" : "Decoded size", o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") },
+                { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) },
+                { zh ? "格式" : "Format", o.optString("format") },
+                { zh ? "输出路径" : "Output path", path }
+        })
+                + HtmlOutputHelper.gauge(pct, "#4CAF50");
+        return HtmlOutputHelper.card("✅", title, body);
+    }
+
+    private static String formatConvertFormatHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        String fmt = o.optString("format");
+        String label = formatKeyToUpperLabel(fmt);
+        String path = o.optString("outputPath");
+        String inPath = o.optString("inputPath");
+        String title = zh ? "图片格式已转换" : "Image format converted";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "输入路径" : "Input path", inPath },
+                { zh ? "输出格式" : "Output format", label },
+                { zh ? "原始尺寸" : "Original size", o.optInt("originalWidth") + "×" + o.optInt("originalHeight") },
+                { zh ? "解码尺寸" : "Decoded size", o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") },
+                { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) },
+                { zh ? "输出大小（字节）" : "Output size (bytes)", String.valueOf(o.optLong("outputSizeBytes")) },
+                { zh ? "输出路径" : "Output path", path }
+        });
+        return HtmlOutputHelper.card("✅", title, body);
+    }
+
+    private static String formatRotateImageHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int deg = o.optInt("degrees");
+        String path = o.optString("outputPath");
+        String inPath = o.optString("inputPath");
+        String title = zh ? "图片已旋转" : "Image rotated";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "输入路径" : "Input path", inPath },
+                { zh ? "角度" : "Degrees", String.valueOf(deg) },
+                { zh ? "原始尺寸" : "Original size", o.optInt("originalWidth") + "×" + o.optInt("originalHeight") },
+                { zh ? "解码尺寸" : "Decoded size", o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") },
+                { zh ? "输出尺寸" : "Output size", o.optInt("outputWidth") + "×" + o.optInt("outputHeight") },
+                { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) },
+                { zh ? "格式" : "Format", o.optString("format") },
+                { zh ? "输出路径" : "Output path", path }
+        });
+        return HtmlOutputHelper.card("✅", title, body);
+    }
+
+    private static String formatCropImageHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        String path = o.optString("outputPath");
+        String inPath = o.optString("inputPath");
+        String title = zh ? "图片已裁剪" : "Image cropped";
+        String body = HtmlOutputHelper.successBadge()
+                + HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "输入路径" : "Input path", inPath },
+                { zh ? "请求区域" : "Requested region",
+                        o.optInt("requestedX") + "," + o.optInt("requestedY") + " "
+                                + o.optInt("requestedWidth") + "×" + o.optInt("requestedHeight") },
+                { zh ? "实际裁剪" : "Actual crop",
+                        o.optInt("cropX") + "," + o.optInt("cropY") + " "
+                                + o.optInt("cropWidth") + "×" + o.optInt("cropHeight") },
+                { zh ? "源图尺寸" : "Source image", o.optInt("imageWidth") + "×" + o.optInt("imageHeight") },
+                { zh ? "输出尺寸" : "Output size", o.optInt("outputWidth") + "×" + o.optInt("outputHeight") },
+                { zh ? "区域降采样" : "Region subsampled", yesNo(o.optBoolean("regionSubsample"), zh) },
+                { zh ? "格式" : "Format", o.optString("format") },
+                { zh ? "输出路径" : "Output path", path }
+        });
+        return HtmlOutputHelper.card("✅", title, body);
+    }
+
     /**
      * 将 MIME 类型转为简短展示用格式名（如 JPEG、PNG）。
      *
@@ -1056,18 +1219,22 @@ public class ImageToolsPlugin implements ModulePlugin {
     }
 
     /**
-     * 构造成功响应 JSON，可选附带 {@code _displayText} 与 {@code _richContent}。
+     * 构造成功响应 JSON，可选附带 {@code _displayText}、{@code _displayHtml} 与 {@code _richContent}。
      *
      * @param output      业务结果字符串（常为嵌套 JSON）
      * @param displayText 可选的展示文案；null 或空则省略该字段
+     * @param displayHtml 可选的 HTML 迷你卡片；null 或空则省略该字段
      * @param richContent 可选的富媒体条目数组；null 或空则省略该字段
      * @return 完整响应 JSON 字符串
      * @throws Exception JSON 构造异常
      */
-    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
+    private static String ok(String output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         if (richContent != null && richContent.length() > 0) {
             r.put("_richContent", richContent);
@@ -1076,7 +1243,7 @@ public class ImageToolsPlugin implements ModulePlugin {
     }
 
     private static String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
     }
 
     /**
@@ -1087,7 +1254,7 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private static String ok(String output) throws Exception {
-        return ok(output, null, null);
+        return ok(output, null, null, null);
     }
 
     private static JSONObject richImage(String path, String title) throws Exception {

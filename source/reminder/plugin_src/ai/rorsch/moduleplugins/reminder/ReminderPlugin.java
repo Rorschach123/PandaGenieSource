@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.AlarmClock;
 import android.provider.CalendarContract;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,6 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -68,34 +70,34 @@ public class ReminderPlugin implements ModulePlugin {
         switch (action) {
             case "createEvent": {
                 String out = createEvent(context, params);
-                return ok(out, formatCreateEventDisplay(out));
+                return ok(out, formatCreateEventDisplay(out), formatCreateEventHtml(out));
             }
             case "listEvents": {
                 String out = listEvents(context, params);
-                return ok(out, formatListEventsDisplay(out, false));
+                return ok(out, formatListEventsDisplay(out, false), formatListEventsHtml(out, false));
             }
             case "updateEvent":             return ok(updateEvent(context, params));
             case "deleteEvent": {
                 String out = deleteEvent(context, params);
-                return ok(out, formatDeleteEventDisplay(out));
+                return ok(out, formatDeleteEventDisplay(out), formatDeleteEventHtml(out));
             }
             case "getCalendars":            return ok(getCalendars(context));
             case "setAlarm": {
                 String out = setAlarm(context, params);
-                return ok(out, formatSetAlarmDisplay(out));
+                return ok(out, formatSetAlarmDisplay(out), formatSetAlarmHtml(out));
             }
             case "setTimer": {
                 String out = setTimer(context, params);
-                return ok(out, formatSetTimerDisplay(out));
+                return ok(out, formatSetTimerDisplay(out), formatSetTimerHtml(out));
             }
             case "createBirthdayReminder": {
                 String out = createBirthdayReminder(context, params);
-                return ok(out, formatBirthdayReminderDisplay(out));
+                return ok(out, formatBirthdayReminderDisplay(out), formatBirthdayReminderHtml(out));
             }
             case "openCalendar":            return ok(openCalendar(context, params));
             case "getUpcoming": {
                 String out = getUpcoming(context, params);
-                return ok(out, formatListEventsDisplay(out, true));
+                return ok(out, formatListEventsDisplay(out, true), formatListEventsHtml(out, true));
             }
             case "openPage": {
                 String page = params.optString("page", "tools").trim();
@@ -650,15 +652,21 @@ public class ReminderPlugin implements ModulePlugin {
     }
 
     /**
-     * 成功响应并附带 {@code _displayText}。
+     * 成功响应并附带 {@code _displayText} 与可选 {@code _displayHtml}。
      *
-     * @param output      业务 JSON 字符串
-     * @param displayText 可为 null；非空则写入 {@code _displayText}
+     * @param output       业务 JSON 字符串
+     * @param displayText  可为 null；非空则写入 {@code _displayText}
+     * @param displayHtml  可为 null；非空则写入 {@code _displayHtml}
      */
-    private String ok(String output, String displayText) throws Exception {
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
+    }
+
+    private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
     }
 
     /**
@@ -807,6 +815,133 @@ public class ReminderPlugin implements ModulePlugin {
             JSONObject o = new JSONObject(out);
             if (o.has("error")) return "";
             return isZh() ? "🎂 生日提醒已创建" : "🎂 Birthday Reminder Created";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatCreateEventHtml(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            String body = HtmlOutputHelper.keyValue(new String[][]{
+                    {isZh() ? "\u6807\u9898" : "Title", o.optString("title", "")},
+                    {isZh() ? "\u5f00\u59cb" : "Start", o.optString("startTime", "")},
+                    {isZh() ? "\u7ed3\u675f" : "End", o.optString("endTime", "")},
+                    {isZh() ? "\u91cd\u590d" : "Repeat", o.optString("repeat", "")}
+            });
+            return HtmlOutputHelper.card("\uD83D\uDCC5", isZh() ? "\u4e8b\u4ef6\u5df2\u521b\u5efa" : "Event created", body + HtmlOutputHelper.successBadge());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatListEventsHtml(String out, boolean nextEventsLabelEnglish) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            JSONArray events = o.optJSONArray("events");
+            List<String[]> rows = new ArrayList<>();
+            if (events != null) {
+                long now = System.currentTimeMillis();
+                for (int i = 0; i < events.length(); i++) {
+                    JSONObject ev = events.getJSONObject(i);
+                    String start = ev.optString("startTime", "");
+                    String status = eventStatusLabel(start, now);
+                    rows.add(new String[]{
+                            ev.optString("title", isZh() ? "\uff08\u65e0\u6807\u9898\uff09" : "(no title)"),
+                            start,
+                            status
+                    });
+                }
+            }
+            String table = HtmlOutputHelper.table(
+                    new String[]{
+                            isZh() ? "\u6807\u9898" : "Title",
+                            isZh() ? "\u5f00\u59cb\u65f6\u95f4" : "Start",
+                            isZh() ? "\u72b6\u6001" : "Status"
+                    },
+                    rows);
+            String cardTitle;
+            if (isZh()) {
+                cardTitle = "\uD83D\uDCC5 \u5373\u5c06\u5230\u6765\u7684\u4e8b\u4ef6 (" + o.optInt("count", 0) + ")";
+            } else {
+                cardTitle = (nextEventsLabelEnglish ? "\uD83D\uDCC5 Next Events (" : "\uD83D\uDCC5 Upcoming Events (")
+                        + o.optInt("count", 0) + ")";
+            }
+            return HtmlOutputHelper.card("\uD83D\uDCC5", cardTitle, table);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String eventStatusLabel(String startTimeStr, long nowMs) {
+        try {
+            Date d = SDF_DISPLAY.parse(startTimeStr);
+            if (d.getTime() < nowMs) {
+                return isZh() ? "\u5df2\u8fc7\u671f" : "Past";
+            }
+            long day = 86400000L;
+            if (d.getTime() - nowMs < day) {
+                return isZh() ? "\u4eca\u65e5/\u5373\u5c06" : "Due soon";
+            }
+            return isZh() ? "\u672a\u6765" : "Upcoming";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatDeleteEventHtml(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            if (!o.optBoolean("deleted", false)) return "";
+            return HtmlOutputHelper.card("\uD83D\uDDD1\uFE0F", isZh() ? "\u4e8b\u4ef6\u5df2\u5220\u9664" : "Event deleted",
+                    HtmlOutputHelper.muted("ID: " + o.optLong("eventId")) + HtmlOutputHelper.successBadge());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatSetAlarmHtml(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            int hour = o.optInt("hour", 0);
+            int minute = o.optInt("minute", 0);
+            String body = HtmlOutputHelper.keyValue(new String[][]{
+                    {isZh() ? "\u65f6\u95f4" : "Time", String.format(Locale.getDefault(), "%02d:%02d", hour, minute)},
+                    {isZh() ? "\u6807\u7b7e" : "Label", o.optString("label", "")}
+            });
+            return HtmlOutputHelper.card("\u23F0", isZh() ? "\u95f9\u949f\u5df2\u8bbe\u7f6e" : "Alarm set", body + HtmlOutputHelper.successBadge());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatSetTimerHtml(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            String body = HtmlOutputHelper.keyValue(new String[][]{
+                    {isZh() ? "\u65f6\u957f" : "Duration", o.optString("display", "")},
+                    {isZh() ? "\u6807\u7b7e" : "Label", o.optString("label", "")}
+            });
+            return HtmlOutputHelper.card("\u23F1\uFE0F", isZh() ? "\u5012\u8ba1\u65f6\u5df2\u8bbe\u7f6e" : "Timer set", body + HtmlOutputHelper.successBadge());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatBirthdayReminderHtml(String out) {
+        try {
+            JSONObject o = new JSONObject(out);
+            if (o.has("error")) return "";
+            String body = HtmlOutputHelper.keyValue(new String[][]{
+                    {isZh() ? "\u59d3\u540d" : "Name", o.optString("name", "")},
+                    {isZh() ? "\u65e5\u671f" : "Date", o.optString("date", "")}
+            });
+            return HtmlOutputHelper.card("\uD83C\uDF82", isZh() ? "\u751f\u65e5\u63d0\u9192\u5df2\u521b\u5efa" : "Birthday reminder created", body + HtmlOutputHelper.successBadge());
         } catch (Exception e) {
             return "";
         }

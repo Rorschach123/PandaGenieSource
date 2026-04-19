@@ -392,6 +392,66 @@ public class ExamplePlugin implements ModulePlugin {
 - 插件源码放在 `PandaGenieSource/source/<moduleId>/plugin_src/` 下 / Plugin source goes in `PandaGenieSource/source/<moduleId>/plugin_src/`
 - 包名推荐 `ai.rorsch.moduleplugins.<moduleId>` / Recommended package: `ai.rorsch.moduleplugins.<moduleId>`
 
+### Rich HTML Output (推荐 / Recommended)
+
+从 v1.0.8 起，模块可通过 `_displayHtml` 返回 HTML5 mini-card，在聊天气泡中以 WebView 渲染，提供更美观的输出体验。
+
+Since v1.0.8, modules can return an HTML5 mini-card via `_displayHtml`, rendered as a WebView in the chat bubble for a much better user experience.
+
+**可用字段 / Available fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `_displayHtml` | String | HTML fragment for inline display (priority over `_displayText`) |
+| `_displayHtmlFull` | String (optional) | Full HTML page for "View Details" screen |
+| `_displayText` | String | Legacy text fallback (backward compatible) |
+
+**使用 `HtmlOutputHelper` / Using `HtmlOutputHelper`:**
+
+```java
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+
+// Info card with key-value pairs
+String html = HtmlOutputHelper.card("🔋", "Battery Status",
+    HtmlOutputHelper.keyValue(new String[][]{
+        {"Level", "85%"},
+        {"Status", "Charging"},
+        {"Health", "Good"}
+    }) +
+    HtmlOutputHelper.gauge(85, "#4CAF50")
+);
+
+// Data table
+String tableHtml = HtmlOutputHelper.card("📱", "Installed Apps",
+    HtmlOutputHelper.table(
+        new String[]{"Name", "Version", "Size"},
+        rows  // List<String[]>
+    )
+);
+
+// Metric grid
+String gridHtml = HtmlOutputHelper.metricGrid(new String[][]{
+    {"85%", "Battery"},
+    {"32°C", "Temperature"},
+    {"WiFi", "Network"}
+});
+
+// Status badges
+String status = HtmlOutputHelper.badge("Connected", "green");
+
+// Return in JSON response
+JSONObject result = new JSONObject();
+result.put("success", true);
+result.put("output", businessData);
+result.put("_displayHtml", html);
+result.put("_displayHtmlFull", fullPageHtml);  // optional
+result.put("_displayText", "Battery: 85%");    // fallback
+```
+
+**CSS classes available** (injected by host app, no need to define):
+`pg-card`, `pg-card-title`, `pg-kv`, `pg-table`, `pg-badge`, `pg-badge-green/orange/red/blue`,
+`pg-grid`, `pg-grid-item`, `pg-gauge`, `pg-gauge-fill`, `pg-list`, `pg-muted`, `pg-truncate`
+
 ---
 
 ## 双重签名机制 / Dual-Signature System

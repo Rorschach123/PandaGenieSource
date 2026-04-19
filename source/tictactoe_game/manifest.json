@@ -4,7 +4,7 @@
   "name_en": "Tic-Tac-Toe",
   "description": "经典井字棋游戏，玩家（X）与程序（O）对战，在3x3网格中率先形成三连即获胜",
   "description_en": "Classic Tic-Tac-Toe game. Player (X) vs AI (O) on a 3x3 grid. First to get three in a row wins",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "tag",
   "soLibraries": [],
   "h5Page": "index.html",

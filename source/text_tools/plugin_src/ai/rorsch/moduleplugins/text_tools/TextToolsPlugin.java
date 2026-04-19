@@ -3,6 +3,7 @@ package ai.rorsch.moduleplugins.text_tools;
 import android.content.Context;
 import android.util.Base64;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -56,31 +57,31 @@ public class TextToolsPlugin implements ModulePlugin {
             switch (action) {
                 case "wordCount": {
                     JSONObject out = wordCountJson(params.optString("text", ""));
-                    return ok(out, formatWordCountDisplay(out));
+                    return ok(out, formatWordCountDisplay(out), formatWordCountHtml(out));
                 }
                 case "base64Encode": {
                     JSONObject out = base64Encode(params.optString("text", ""));
-                    return ok(out, formatBase64BlockDisplay(out.optString("encoded")),
+                    return ok(out, formatBase64BlockDisplay(out.optString("encoded")), formatBase64EncodeHtml(out),
                             new JSONArray().put(richCode(out.optString("encoded"), "text")));
                 }
                 case "base64Decode": {
                     JSONObject out = base64Decode(params.optString("text", ""));
-                    return ok(out, formatBase64BlockDisplay(out.optString("decoded")),
+                    return ok(out, formatBase64BlockDisplay(out.optString("decoded")), formatBase64DecodeHtml(out),
                             new JSONArray().put(richCode(out.optString("decoded"), "text")));
                 }
                 case "urlEncode": {
                     JSONObject out = urlEncode(params.optString("text", ""));
-                    return ok(out, formatUrlBlockDisplay(out.optString("encoded")),
+                    return ok(out, formatUrlBlockDisplay(out.optString("encoded")), formatUrlEncodeHtml(out),
                             new JSONArray().put(richCode(out.optString("encoded"), "text")));
                 }
                 case "urlDecode": {
                     JSONObject out = urlDecode(params.optString("text", ""));
-                    return ok(out, formatUrlBlockDisplay(out.optString("decoded")),
+                    return ok(out, formatUrlBlockDisplay(out.optString("decoded")), formatUrlDecodeHtml(out),
                             new JSONArray().put(richCode(out.optString("decoded"), "text")));
                 }
                 case "regexMatch": {
                     JSONObject out = regexMatch(params.optString("text", ""), params.optString("pattern", ""));
-                    return ok(out, formatRegexMatchDisplay(out),
+                    return ok(out, formatRegexMatchDisplay(out), formatRegexMatchHtml(out),
                             new JSONArray().put(richCode(formatRegexMatchCodeText(out), "text")));
                 }
                 case "regexReplace": {
@@ -88,21 +89,22 @@ public class TextToolsPlugin implements ModulePlugin {
                             params.optString("text", ""),
                             params.optString("pattern", ""),
                             params.optString("replacement", ""));
-                    return ok(out, formatRegexReplaceDisplay(out.optString("result")));
+                    return ok(out, formatRegexReplaceDisplay(out.optString("result")), formatRegexReplaceHtml(out.optString("result")));
                 }
                 case "textTransform": {
                     String transform = params.optString("transform", "");
                     JSONObject out = textTransform(params.optString("text", ""), transform);
-                    return ok(out, formatTextTransformDisplay(transform, out.optString("result")));
+                    return ok(out, formatTextTransformDisplay(transform, out.optString("result")),
+                            formatTextTransformHtml(transform, out.optString("result")));
                 }
                 case "generateUUID": {
                     JSONObject out = generateUuidJson();
-                    return ok(out, formatUuidDisplay(out.optString("uuid")),
+                    return ok(out, formatUuidDisplay(out.optString("uuid")), formatUuidHtml(out.optString("uuid")),
                             new JSONArray().put(richCode(out.optString("uuid"), "text")));
                 }
                 case "hashText": {
                     JSONObject out = hashText(params.optString("text", ""), params.optString("algorithm", ""));
-                    return ok(out, formatHashDisplay(out),
+                    return ok(out, formatHashDisplay(out), formatHashHtml(out),
                             new JSONArray().put(richCode(out.optString("hex"), "text")));
                 }
                 default:
@@ -586,15 +588,124 @@ public class TextToolsPlugin implements ModulePlugin {
         return "🔐 " + title + "\n\n" + pgTable(title, new String[] { zh ? "算法" : "Algorithm", zh ? "哈希" : "Hash" }, rows);
     }
 
+    // ==================== _displayHtml (HtmlOutputHelper) ====================
+
+    private static String formatWordCountHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "文本统计" : "Text Stats";
+        String[][] items = new String[][] {
+                { String.valueOf(o.optInt("words")), zh ? "单词" : "Words" },
+                { String.valueOf(o.optInt("characters")), zh ? "字符" : "Characters" },
+                { String.valueOf(o.optInt("lines")), zh ? "行" : "Lines" },
+                { String.valueOf(o.optInt("sentences")), zh ? "句子" : "Sentences" },
+                { String.valueOf(o.optInt("paragraphs")), zh ? "段落" : "Paragraphs" }
+        };
+        return HtmlOutputHelper.card("📝", title, HtmlOutputHelper.metricGrid(items));
+    }
+
+    private static String formatBase64EncodeHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "Base64 编码" : "Base64 encoded";
+        return HtmlOutputHelper.card("🔄", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "结果" : "Result", o.optString("encoded") }
+        }));
+    }
+
+    private static String formatBase64DecodeHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "Base64 解码" : "Base64 decoded";
+        return HtmlOutputHelper.card("🔄", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "结果" : "Result", o.optString("decoded") }
+        }));
+    }
+
+    private static String formatUrlEncodeHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "URL 编码" : "URL encoded";
+        return HtmlOutputHelper.card("🔗", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "结果" : "Result", o.optString("encoded") }
+        }));
+    }
+
+    private static String formatUrlDecodeHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "URL 解码" : "URL decoded";
+        return HtmlOutputHelper.card("🔗", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "结果" : "Result", o.optString("decoded") }
+        }));
+    }
+
+    private static String formatRegexMatchHtml(JSONObject o) {
+        boolean zh = isZh();
+        String mainTitle = zh ? "正则匹配" : "Regex Match";
+        int count = o.optInt("count", 0);
+        String summary = HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "找到匹配" : "Matches found", String.valueOf(count) }
+        });
+        JSONArray matches = o.optJSONArray("matches");
+        List<String[]> rows = new ArrayList<>();
+        if (matches != null) {
+            for (int i = 0; i < matches.length(); i++) {
+                rows.add(new String[] { String.valueOf(i + 1), matches.optString(i) });
+            }
+        }
+        String sub = zh ? "匹配列表" : "Matches";
+        String tableHtml = HtmlOutputHelper.table(new String[] { "#", zh ? "匹配" : "Match" }, rows);
+        return HtmlOutputHelper.card("🔍", mainTitle, summary + HtmlOutputHelper.p(sub) + tableHtml);
+    }
+
+    private static String formatRegexReplaceHtml(String resultText) {
+        boolean zh = isZh();
+        String title = zh ? "正则替换" : "Regex Replace";
+        return HtmlOutputHelper.card("✏️", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "结果" : "Result", resultText != null ? resultText : "" }
+        }));
+    }
+
+    private static String formatTextTransformHtml(String transform, String resultText) {
+        boolean zh = isZh();
+        String mode = transform == null ? "" : transform.trim();
+        String title = zh ? "文本转换" : "Text Transform";
+        return HtmlOutputHelper.card("🔤", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "模式" : "Mode", mode },
+                { zh ? "结果" : "Result", resultText != null ? resultText : "" }
+        }));
+    }
+
+    private static String formatUuidHtml(String uuid) {
+        boolean zh = isZh();
+        String title = zh ? "UUID 已生成" : "UUID Generated";
+        return HtmlOutputHelper.card("🔑", title, HtmlOutputHelper.keyValue(new String[][] {
+                { "UUID", uuid != null ? uuid : "" }
+        }));
+    }
+
+    private static String formatHashHtml(JSONObject o) {
+        boolean zh = isZh();
+        String title = zh ? "哈希结果" : "Hash Result";
+        return HtmlOutputHelper.card("🔐", title, HtmlOutputHelper.keyValue(new String[][] {
+                { zh ? "算法" : "Algorithm", o.optString("algorithm") },
+                { zh ? "哈希" : "Hash", o.optString("hex") }
+        }));
+    }
+
     /**
      * {@link JSONObject} 形式业务结果包装为成功响应。
      */
     private static String ok(JSONObject output, String displayText) throws Exception {
-        return ok(output.toString(), displayText, null);
+        return ok(output.toString(), displayText, null, null);
     }
 
     private static String ok(JSONObject output, String displayText, JSONArray richContent) throws Exception {
-        return ok(output.toString(), displayText, richContent);
+        return ok(output.toString(), displayText, null, richContent);
+    }
+
+    private static String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
+        return ok(output.toString(), displayText, displayHtml, null);
+    }
+
+    private static String ok(JSONObject output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
+        return ok(output.toString(), displayText, displayHtml, richContent);
     }
 
     private static JSONObject richCode(String code, String language) throws Exception {
@@ -612,15 +723,26 @@ public class TextToolsPlugin implements ModulePlugin {
      * @param displayText 展示文案
      */
     private static String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
+    }
+
+    private static String ok(String output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, displayHtml, null);
     }
 
     private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, null, richContent);
+    }
+
+    private static String ok(String output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject()
                 .put("success", true)
                 .put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         if (richContent != null && richContent.length() > 0) {
             r.put("_richContent", richContent);

@@ -6,6 +6,7 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONObject;
@@ -60,7 +61,7 @@ public class BatteryPlugin implements ModulePlugin {
      * @param context    用于注册/读取电池粘性广播
      * @param action     {@code getBatteryStatus} / {@code getBatteryHealth} / {@code getPowerSummary}
      * @param paramsJson 一般为空对象；未知 action 时若有额外键会在错误信息中提示已忽略
-     * @return JSON 字符串，成功时含 {@code success}、{@code output}（嵌套 JSON 字符串）、{@code _displayText}
+     * @return JSON 字符串，成功时含 {@code success}、{@code output}（嵌套 JSON 字符串）、{@code _displayText}、{@code _displayHtml}
      * @throws Exception 理论上内部已捕获，接口仍声明以兼容 {@link ModulePlugin}
      */
     @Override
@@ -70,15 +71,15 @@ public class BatteryPlugin implements ModulePlugin {
             switch (action) {
                 case "getBatteryStatus": {
                     JSONObject r = buildStatusJson(context);
-                    return ok(r.toString(), formatBatteryStatus(r));
+                    return ok(r.toString(), formatBatteryStatus(r), formatBatteryStatusHtml(r));
                 }
                 case "getBatteryHealth": {
                     JSONObject r = buildHealthReportJson(context);
-                    return ok(r.toString(), formatHealthReport(r));
+                    return ok(r.toString(), formatHealthReport(r), formatHealthReportHtml(r));
                 }
                 case "getPowerSummary": {
                     JSONObject r = buildPowerSummaryJson(context);
-                    return ok(r.toString(), formatPowerSummary(r));
+                    return ok(r.toString(), formatPowerSummary(r), formatPowerSummaryHtml(r));
                 }
                 default:
                     return error("Unsupported action: " + action
@@ -188,6 +189,9 @@ public class BatteryPlugin implements ModulePlugin {
         o.put("cycleEstimate_en", cycleEstimateEn);
         o.put("currentLevelPercent", pct);
         o.put("overallAssessment", overall);
+        o.put("voltageMilliVolts", base.opt("voltageMilliVolts"));
+        o.put("temperatureC", base.opt("temperatureC"));
+        o.put("technology", base.optString("technology", ""));
         return o;
     }
 
@@ -415,6 +419,79 @@ public class BatteryPlugin implements ModulePlugin {
         return title + "\n\n" + pgTable("", headers, rows);
     }
 
+    private String formatBatteryStatusHtml(JSONObject r) {
+        boolean zh = isZh();
+        int pct = r.optInt("levelPercent", -1);
+        int level = pct >= 0 ? pct : 0;
+        String color = level > 50 ? "#4CAF50" : level > 20 ? "#FF9800" : "#F44336";
+        String statusStr = r.optString("status", "—");
+        String plugStr = r.optString("pluggedType", "—");
+        String tempStr = r.isNull("temperatureC")
+                ? "—"
+                : String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"));
+        String levelStr = pct >= 0 ? pct + "%" : "—";
+        return HtmlOutputHelper.card("🔋", zh ? "电池状态" : "Battery Status",
+                HtmlOutputHelper.metricGrid(new String[][]{
+                        {levelStr, zh ? "电量" : "Level"},
+                        {statusStr, zh ? "状态" : "Status"},
+                        {tempStr, zh ? "温度" : "Temp"},
+                        {plugStr, zh ? "充电方式" : "Power"}
+                }) + HtmlOutputHelper.gauge(level, color)
+        );
+    }
+
+    private String formatHealthReportHtml(JSONObject r) {
+        boolean zh = isZh();
+        int pct = r.optInt("currentLevelPercent", -1);
+        String health = r.optString("healthStatus", r.optString("health", "—"));
+        String healthColor = health.toLowerCase(java.util.Locale.ROOT).contains("good") ? "green" : "orange";
+        String voltageStr = r.isNull("voltageMilliVolts") ? "—" : (r.optInt("voltageMilliVolts") + " mV");
+        String tempStr = r.isNull("temperatureC")
+                ? "—"
+                : String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"));
+        String techStr = r.optString("technology", "");
+        if (techStr.isEmpty()) techStr = "—";
+        return HtmlOutputHelper.card("🏥", zh ? "电池健康" : "Battery Health",
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {zh ? "健康状况" : "Health", health},
+                        {zh ? "当前电量" : "Level", pct >= 0 ? pct + "%" : "—"},
+                        {zh ? "电压" : "Voltage", voltageStr},
+                        {zh ? "温度" : "Temperature", tempStr},
+                        {zh ? "技术" : "Technology", techStr}
+                }) + HtmlOutputHelper.badge(health, healthColor)
+        );
+    }
+
+    private String formatPowerSummaryHtml(JSONObject r) {
+        boolean zh = isZh();
+        int pct = r.optInt("levelPercent", -1);
+        int level = pct >= 0 ? pct : 0;
+        String color = level > 50 ? "#4CAF50" : level > 20 ? "#FF9800" : "#F44336";
+        String tempStr = r.isNull("temperatureC")
+                ? "—"
+                : String.format(java.util.Locale.US, "%.1f°C", r.optDouble("temperatureC"));
+        String voltStr = r.isNull("voltageMilliVolts") ? "—" : (r.optInt("voltageMilliVolts") + " mV");
+        String statusStr = r.optString("status", "—");
+        String healthStr = r.optString("health", "—");
+        String plugStr = r.optString("pluggedType", "—");
+        String techStr = r.optString("technology", "");
+        if (techStr.isEmpty()) techStr = "—";
+        return HtmlOutputHelper.card("⚡", zh ? "电源概况" : "Power Summary",
+                HtmlOutputHelper.metricGrid(new String[][]{
+                        {pct >= 0 ? pct + "%" : "—", zh ? "电量" : "Level"},
+                        {tempStr, zh ? "温度" : "Temp"},
+                        {voltStr, zh ? "电压" : "Voltage"}
+                }) +
+                        HtmlOutputHelper.gauge(level, color) +
+                        HtmlOutputHelper.keyValue(new String[][]{
+                                {zh ? "状态" : "Status", statusStr},
+                                {zh ? "健康" : "Health", healthStr},
+                                {zh ? "充电方式" : "Power Source", plugStr},
+                                {zh ? "技术" : "Technology", techStr}
+                        })
+        );
+    }
+
     /**
      * 根据百分比生成 10 格块状电量条（用于展示）。
      *
@@ -449,8 +526,22 @@ public class BatteryPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * 成功响应：可选 {@code _displayText} 与 {@code _displayHtml}。
+     *
+     * @param output        写入 {@code output}
+     * @param displayText   可选 {@code _displayText}
+     * @param displayHtml   可选 {@code _displayHtml}
+     * @return 完整响应 JSON
+     * @throws Exception JSON 异常
+     */
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
     }
 

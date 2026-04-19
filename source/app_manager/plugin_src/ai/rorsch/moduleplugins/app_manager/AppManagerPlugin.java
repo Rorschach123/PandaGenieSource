@@ -7,6 +7,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.Settings;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -77,20 +78,20 @@ public class AppManagerPlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "listApps": {
-                String out = listApps(context, params);
-                return ok(out, formatListAppsDisplay(new JSONObject(out)));
+                String output = listApps(context, params);
+                return ok(output, formatListAppsDisplay(new JSONObject(output)), formatListAppsHtml(output));
             }
             case "listRecentApps": {
-                String out = listRecentApps(context, params);
-                return ok(out, formatRecentAppsDisplay(new JSONObject(out)));
+                String output = listRecentApps(context, params);
+                return ok(output, formatRecentAppsDisplay(new JSONObject(output)), formatListRecentAppsHtml(output));
             }
             case "openApp":
                 return openApp(context, params);
             case "getAppInfo": {
-                String out = getAppInfo(context, params);
-                JSONObject probe = new JSONObject(out);
-                if (probe.has("success") && !probe.optBoolean("success", true)) return out;
-                return ok(out, formatGetAppInfoDisplay(probe));
+                String output = getAppInfo(context, params);
+                JSONObject probe = new JSONObject(output);
+                if (probe.has("success") && !probe.optBoolean("success", true)) return output;
+                return ok(output, formatGetAppInfoDisplay(probe), formatGetAppInfoHtml(output));
             }
             case "uninstallApp":
                 return uninstallApp(context, params);
@@ -422,6 +423,87 @@ public class AppManagerPlugin implements ModulePlugin {
         return pgTable(title, headers, rowList);
     }
 
+    private String formatListAppsHtml(String output) throws Exception {
+        boolean zh = isZh();
+        JSONObject j = new JSONObject(output);
+        JSONArray apps = j.optJSONArray("apps");
+        if (apps == null) return "";
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        int limit = Math.min(apps.length(), 30);
+        for (int i = 0; i < limit; i++) {
+            JSONObject app = apps.optJSONObject(i);
+            if (app != null) {
+                rows.add(new String[]{
+                        app.optString("appName", "—"),
+                        app.optString("versionName", "—"),
+                        app.optString("packageName", "—")
+                });
+            }
+        }
+        String body = HtmlOutputHelper.table(
+                new String[]{zh ? "名称" : "Name", zh ? "版本" : "Version", zh ? "包名" : "Package"},
+                rows
+        );
+        int total = j.optInt("count", apps.length());
+        if (total > limit) {
+            body += HtmlOutputHelper.muted((zh ? "显示前 " : "Showing first ") + limit
+                    + (zh ? " 个，共 " : " of ") + total + (zh ? " 个" : ""));
+        }
+        return HtmlOutputHelper.card("📱", zh ? "已安装应用" : "Installed Apps", body);
+    }
+
+    private String formatListRecentAppsHtml(String output) throws Exception {
+        boolean zh = isZh();
+        JSONObject j = new JSONObject(output);
+        JSONArray apps = j.optJSONArray("apps");
+        if (apps == null) return "";
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        int limit = Math.min(apps.length(), 30);
+        for (int i = 0; i < limit; i++) {
+            JSONObject app = apps.optJSONObject(i);
+            if (app != null) {
+                rows.add(new String[]{
+                        app.optString("appName", "—"),
+                        app.optString("firstInstallTime", "—"),
+                        app.optString("lastUpdateTime", "—"),
+                        app.optString("versionName", "—")
+                });
+            }
+        }
+        String body = HtmlOutputHelper.table(
+                new String[]{
+                        zh ? "名称" : "Name",
+                        zh ? "安装时间" : "Installed",
+                        zh ? "最后更新" : "Updated",
+                        zh ? "版本" : "Version"
+                },
+                rows
+        );
+        int total = j.optInt("count", apps.length());
+        if (total > limit) {
+            body += HtmlOutputHelper.muted((zh ? "显示前 " : "Showing first ") + limit
+                    + (zh ? " 个，共 " : " of ") + total + (zh ? " 个" : ""));
+        }
+        int days = j.optInt("days", 30);
+        String title = zh ? ("最近 " + days + " 天的应用") : ("Apps in last " + days + " days");
+        return HtmlOutputHelper.card("📱", title, body);
+    }
+
+    private String formatGetAppInfoHtml(String output) throws Exception {
+        boolean zh = isZh();
+        JSONObject j = new JSONObject(output);
+        return HtmlOutputHelper.card("📦", j.optString("appName", "App"),
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {zh ? "包名" : "Package", j.optString("packageName", "—")},
+                        {zh ? "版本" : "Version", j.optString("versionName", "—") + " (" + j.optInt("versionCode", 0) + ")"},
+                        {zh ? "安装时间" : "Installed", j.optString("firstInstallTime", "—")},
+                        {zh ? "更新时间" : "Updated", j.optString("lastUpdateTime", "—")},
+                        {zh ? "大小" : "Size", j.optString("apkSize", "—")},
+                        {zh ? "系统应用" : "System", j.optBoolean("isSystemApp") ? (zh ? "是" : "Yes") : (zh ? "否" : "No")}
+                })
+        );
+    }
+
     private String formatRecentAppsDisplay(JSONObject obj) throws Exception {
         int count = obj.optInt("count", 0);
         int days = obj.optInt("days", 30);
@@ -496,8 +578,13 @@ public class AppManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
     }
 

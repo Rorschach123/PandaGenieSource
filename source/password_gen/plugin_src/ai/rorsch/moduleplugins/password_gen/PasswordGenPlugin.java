@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.password_gen;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -140,7 +141,7 @@ public class PasswordGenPlugin implements ModulePlugin {
                     vaultSave.put("value", pwd);
                     vaultSave.put("defaultAlias", alias);
                     vaultSave.put("category", "password");
-                    return okWithVaultSave(out, formatGenerateDisplay(out, zh), vaultSave);
+                    return okWithVaultSave(out, formatGenerateDisplay(out, zh), vaultSave, formatGenerateHtml(out, zh));
                 }
                 case "generateMultiple": {
                     int count = clamp(params.optInt("count", 5), 1, 50);
@@ -157,7 +158,7 @@ public class PasswordGenPlugin implements ModulePlugin {
                     out.put("passwords", arr);
                     out.put("count", count);
                     out.put("length", length);
-                    return ok(out, formatMultipleDisplay(out, zh));
+                    return ok(out, formatMultipleDisplay(out, zh), formatMultipleHtml(out, zh));
                 }
                 case "generatePassphrase": {
                     int wordCount = clamp(params.optInt("wordCount", 4), 2, 16);
@@ -168,12 +169,12 @@ public class PasswordGenPlugin implements ModulePlugin {
                     out.put("passphrase", phrase);
                     out.put("wordCount", wordCount);
                     out.put("separator", sep);
-                    return ok(out, formatPassphraseDisplay(out, zh));
+                    return ok(out, formatPassphraseDisplay(out, zh), formatPassphraseHtml(out, zh));
                 }
                 case "checkStrength": {
                     String password = params.optString("password", "");
                     JSONObject out = analyzeStrength(password);
-                    return ok(out, formatStrengthDisplay(out, zh));
+                    return ok(out, formatStrengthDisplay(out, zh), formatStrengthHtml(out, zh));
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -531,6 +532,108 @@ public class PasswordGenPlugin implements ModulePlugin {
                 + pgTable(zh ? "详情" : "Details", headers, rows);
     }
 
+    private String formatGenerateHtml(JSONObject out, boolean zh) {
+        String title = zh ? "已生成密码" : "Password generated";
+        int score = out.optInt("strengthScore");
+        String rating = out.optString("strengthRating", "weak");
+        String badgeColor = ratingBadgeClass(rating);
+        String gaugeColor = strengthGaugeColor(rating);
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {maskForDisplay(out.optString("password")), zh ? "密码（掩码）" : "Password (masked)"},
+                {String.valueOf(out.optInt("length")), zh ? "长度" : "Length"}
+        })
+                + HtmlOutputHelper.gauge(score, gaugeColor)
+                + HtmlOutputHelper.badge(out.optString("strengthLabel"), badgeColor)
+                + HtmlOutputHelper.muted(zh ? "可使用剪贴板模块复制" : "Use clipboard module to copy");
+        return HtmlOutputHelper.card("\uD83D\uDD10", title, body);
+    }
+
+    private static String ratingBadgeClass(String rating) {
+        if ("weak".equals(rating)) return "red";
+        if ("fair".equals(rating)) return "orange";
+        if ("good".equals(rating)) return "blue";
+        return "green";
+    }
+
+    private static String strengthGaugeColor(String rating) {
+        if ("weak".equals(rating)) return "#E53935";
+        if ("fair".equals(rating)) return "#FB8C00";
+        if ("good".equals(rating)) return "#1E88E5";
+        if ("strong".equals(rating)) return "#43A047";
+        return "#2E7D32";
+    }
+
+    private String formatMultipleHtml(JSONObject out, boolean zh) {
+        JSONArray arr = out.optJSONArray("passwords");
+        int n = arr != null ? arr.length() : 0;
+        String title = zh ? "多条密码" : "Passwords";
+        String head = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "数量" : "Count", String.valueOf(out.optInt("count"))},
+                {zh ? "每条长度" : "Length", String.valueOf(out.optInt("length"))}
+        });
+        String[] headers = new String[]{"#", zh ? "预览" : "Preview"};
+        List<String[]> rows = new ArrayList<>();
+        int show = Math.min(3, n);
+        for (int i = 0; i < show; i++) {
+            rows.add(new String[]{String.valueOf(i + 1), maskForDisplay(arr.optString(i))});
+        }
+        if (n > 3) {
+            rows.add(new String[]{"…", zh ? "其余已省略" : "more hidden"});
+        }
+        String body = head + HtmlOutputHelper.table(headers, rows)
+                + HtmlOutputHelper.muted(zh ? "可使用剪贴板模块复制" : "Use clipboard module to copy");
+        return HtmlOutputHelper.card("\uD83D\uDD10", title, body);
+    }
+
+    private String formatPassphraseHtml(JSONObject out, boolean zh) {
+        String title = zh ? "助记短语" : "Passphrase";
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "短语" : "Phrase", out.optString("passphrase")},
+                {zh ? "词数" : "Words", String.valueOf(out.optInt("wordCount"))},
+                {zh ? "分隔符" : "Separator", out.optString("separator")}
+        });
+        return HtmlOutputHelper.card("\uD83D\uDD10", title, body);
+    }
+
+    private String formatStrengthHtml(JSONObject out, boolean zh) {
+        int score = out.optInt("score");
+        String rating = out.optString("rating", "weak");
+        String title = zh ? "密码强度" : "Password strength";
+        String badgeColor = ratingBadgeClass(rating);
+        String body = HtmlOutputHelper.badge(out.optString("ratingLabel"), badgeColor)
+                + HtmlOutputHelper.gauge(score, strengthGaugeColor(rating))
+                + HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "分数" : "Score", score + "/100"},
+                {zh ? "熵（比特）" : "Entropy (bits)", String.valueOf(out.optDouble("entropyBits"))},
+                {zh ? "长度" : "Length", String.valueOf(out.optInt("length"))}
+        });
+        String[] ch = new String[]{zh ? "检查项" : "Check", zh ? "通过" : "Pass", zh ? "说明" : "Detail"};
+        List<String[]> chRows = new ArrayList<>();
+        JSONArray checks = out.optJSONArray("checks");
+        if (checks != null) {
+            for (int i = 0; i < checks.length(); i++) {
+                JSONObject c = checks.optJSONObject(i);
+                if (c == null) continue;
+                String passStr = c.optBoolean("pass")
+                        ? (zh ? "是" : "yes")
+                        : (zh ? "否" : "no");
+                chRows.add(new String[]{c.optString("key"), passStr, c.optString("message")});
+            }
+        }
+        String tablePart = chRows.isEmpty() ? "" : HtmlOutputHelper.table(ch, chRows);
+        JSONArray rec = out.optJSONArray("recommendations");
+        String tips = "";
+        if (rec != null && rec.length() > 0) {
+            String[][] items = new String[rec.length()][2];
+            for (int i = 0; i < rec.length(); i++) {
+                items[i][0] = "💡";
+                items[i][1] = rec.optString(i);
+            }
+            tips = HtmlOutputHelper.iconList(items);
+        }
+        return HtmlOutputHelper.card("\uD83D\uDD0D", title, body + tablePart + tips);
+    }
+
     /**
      * 多条生成结果展示：仅显示前 3 条掩码预览。
      *
@@ -661,21 +764,35 @@ public class PasswordGenPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
         }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
+        }
         return result.toString();
     }
 
     private String okWithVaultSave(JSONObject output, String displayText, JSONObject vaultSave) throws Exception {
+        return okWithVaultSave(output, displayText, vaultSave, null);
+    }
+
+    private String okWithVaultSave(JSONObject output, String displayText, JSONObject vaultSave, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         if (vaultSave != null) {
             result.put("_vaultSave", vaultSave);

@@ -4,7 +4,7 @@
   "name_en": "QR Code Tools",
   "description": "二维码工具模块，支持生成二维码、扫描解码二维码（图片或相机）、检测图片是否含二维码、查看和分享已生成的二维码",
   "description_en": "QR code tools: generate, decode from image or camera, detect QR presence, view and share generated codes",
-  "version": "1.4",
+  "version": "1.5",
   "icon": "document_scanner",
   "soLibraries": [],
   "h5Page": "index.html",

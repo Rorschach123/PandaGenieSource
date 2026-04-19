@@ -4,7 +4,7 @@
   "name_en": "Weather Assistant",
   "description": "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
   "description_en": "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "cloud",
   "soLibraries": [],
   "h5Page": "index.html",

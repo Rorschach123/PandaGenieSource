@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.file_stats;
 
 import android.content.Context;
 import android.webkit.MimeTypeMap;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -96,7 +97,7 @@ public class FileStatsPlugin implements ModulePlugin {
                         }
                     }
                 }
-                return ok(out, formatStatsGetFileInfoDisplay(out), rc);
+                return ok(out, formatStatsGetFileInfoDisplay(out), formatGetFileInfoHtml(out), rc);
             }
             case "getFileHash": {
                 String out = getFileHash(params);
@@ -107,11 +108,11 @@ public class FileStatsPlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richCode(codeText, "text"));
                 }
-                return ok(out, formatGetFileHashDisplay(out), rc);
+                return ok(out, formatGetFileHashDisplay(out), formatGetFileHashHtml(out), rc);
             }
             case "compareFiles": {
                 String out = compareFiles(params);
-                return ok(out, formatCompareFilesDisplay(out));
+                return ok(out, formatCompareFilesDisplay(out), formatCompareFilesHtml(out));
             }
             case "verifyChecksum": {
                 String out = verifyChecksum(params);
@@ -126,31 +127,31 @@ public class FileStatsPlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richCode(sb.toString(), "text"));
                 }
-                return ok(out, formatVerifyChecksumDisplay(out), rc);
+                return ok(out, formatVerifyChecksumDisplay(out), formatVerifyChecksumHtml(out), rc);
             }
             case "getDirStats": {
                 String out = getDirStats(params);
-                return ok(out, formatGetDirStatsDisplay(out));
+                return ok(out, formatGetDirStatsDisplay(out), formatGetDirStatsHtml(out));
             }
             case "findDuplicates": {
                 String out = findDuplicates(params);
-                return ok(out, formatFindDuplicatesDisplay(out));
+                return ok(out, formatFindDuplicatesDisplay(out), formatFindDuplicatesHtml(out));
             }
             case "findLargeFiles": {
                 String out = findLargeFiles(params);
-                return ok(out, formatFindLargeFilesDisplay(out));
+                return ok(out, formatFindLargeFilesDisplay(out), formatFindLargeFilesHtml(out));
             }
             case "searchByName": {
                 String out = searchByName(params);
-                return ok(out, formatSearchByNameDisplay(out));
+                return ok(out, formatSearchByNameDisplay(out), formatSearchByNameHtml(out));
             }
             case "getTextStats": {
                 String out = getTextStats(params);
-                return ok(out, formatGetTextStatsDisplay(out));
+                return ok(out, formatGetTextStatsDisplay(out), formatGetTextStatsHtml(out));
             }
             case "batchFileInfo": {
                 String out = batchFileInfo(params);
-                return ok(out, formatBatchFileInfoDisplay(out));
+                return ok(out, formatBatchFileInfoDisplay(out), formatBatchFileInfoHtml(out));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -808,16 +809,26 @@ public class FileStatsPlugin implements ModulePlugin {
     }
 
     private String ok(String output) throws Exception {
-        return ok(output, null, null);
+        return ok(output, null, null, null);
     }
 
     private String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
+    }
+
+    /** Success with text + HTML display (no rich content). */
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, displayHtml, null);
     }
 
     private String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, null, richContent);
+    }
+
+    private String ok(String output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         if (richContent != null && richContent.length() > 0) r.put("_richContent", richContent);
         return r.toString();
     }
@@ -1290,5 +1301,356 @@ public class FileStatsPlugin implements ModulePlugin {
             }
         }
         return "📋 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, fileRows);
+    }
+
+    // ==================== _displayHtml (HtmlOutputHelper) ====================
+
+    private static String formatGetFileInfoHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件信息" : "File Info";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📄", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            String[][] pairs = new String[][]{{zh ? "错误" : "Error", o.optString("error", "—")}};
+            return HtmlOutputHelper.card("📄", title, HtmlOutputHelper.keyValue(pairs));
+        }
+        List<String[]> pairList = new ArrayList<>();
+        pairList.add(new String[]{zh ? "路径" : "Path", o.optString("path", "—")});
+        pairList.add(new String[]{zh ? "名称" : "Name", o.optString("name", "—")});
+        boolean isDir = o.optBoolean("isDirectory", false);
+        boolean isFile = o.optBoolean("isFile", false);
+        pairList.add(new String[]{zh ? "类型" : "Type",
+                isDir ? (zh ? "目录" : "Directory") : (isFile ? (zh ? "文件" : "File") : "—")});
+        pairList.add(new String[]{zh ? "大小" : "Size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))});
+        pairList.add(new String[]{zh ? "修改时间" : "Modified", o.optString("lastModified", "—")});
+        pairList.add(new String[]{zh ? "可读" : "Readable", o.optBoolean("canRead", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        pairList.add(new String[]{zh ? "可写" : "Writable", o.optBoolean("canWrite", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        pairList.add(new String[]{zh ? "可执行" : "Executable", o.optBoolean("canExecute", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        pairList.add(new String[]{zh ? "隐藏" : "Hidden", o.optBoolean("isHidden", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        String parent = o.optString("parent", "");
+        pairList.add(new String[]{zh ? "父目录" : "Parent", parent.isEmpty() ? "—" : parent});
+        String ext = o.optString("extension", "");
+        pairList.add(new String[]{zh ? "扩展名" : "Extension", ext.isEmpty() ? "—" : ext});
+        pairList.add(new String[]{"MIME", o.optString("mimeType", "—")});
+        if (o.optBoolean("isDirectory", false) && o.has("childCount")) {
+            pairList.add(new String[]{zh ? "子项数" : "Child count", String.valueOf(o.optInt("childCount", 0))});
+        }
+        return HtmlOutputHelper.card("📄", title, HtmlOutputHelper.keyValue(pairList.toArray(new String[0][])));
+    }
+
+    private static String formatGetFileHashHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件哈希" : "File Hash";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("🔐", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔐", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String[][] pairs = new String[][]{
+                {zh ? "路径" : "Path", o.optString("path", "—")},
+                {zh ? "名称" : "Name", o.optString("name", "—")},
+                {zh ? "算法" : "Algorithm", o.optString("algorithm", "—")},
+                {zh ? "哈希" : "Hash", o.optString("hash", "—")},
+                {zh ? "大小" : "Size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))}
+        };
+        return HtmlOutputHelper.card("🔐", title, HtmlOutputHelper.keyValue(pairs));
+    }
+
+    private static String formatCompareFilesHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文件比较" : "File Comparison";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("🔍", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔍", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        boolean same = o.optBoolean("identical", false);
+        List<String[]> pairList = new ArrayList<>();
+        pairList.add(new String[]{zh ? "相同" : "Identical", same ? (zh ? "✅ 是" : "✅ Yes") : (zh ? "❌ 否" : "❌ No")});
+        pairList.add(new String[]{zh ? "原因" : "Reason", o.optString("reason", "—")});
+        pairList.add(new String[]{zh ? "文件 1" : "File 1", o.optString("file1", "—")});
+        pairList.add(new String[]{zh ? "文件 2" : "File 2", o.optString("file2", "—")});
+        pairList.add(new String[]{zh ? "大小 1" : "Size 1", o.optString("size1Formatted", String.valueOf(o.optLong("size1", 0)))});
+        pairList.add(new String[]{zh ? "大小 2" : "Size 2", o.optString("size2Formatted", String.valueOf(o.optLong("size2", 0)))});
+        if (o.has("hash1")) {
+            pairList.add(new String[]{zh ? "SHA-256（文件 1）" : "SHA-256 (file 1)", o.optString("hash1", "—")});
+        }
+        if (o.has("hash2")) {
+            pairList.add(new String[]{zh ? "SHA-256（文件 2）" : "SHA-256 (file 2)", o.optString("hash2", "—")});
+        }
+        return HtmlOutputHelper.card("🔍", title, HtmlOutputHelper.keyValue(pairList.toArray(new String[0][])));
+    }
+
+    private static String formatVerifyChecksumHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "校验和验证" : "Verify Checksum";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return "";
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔐", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        boolean verified = o.optBoolean("verified", false);
+        String body = (verified ? HtmlOutputHelper.successBadge() : HtmlOutputHelper.errorBadge())
+                + HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "路径" : "Path", o.optString("path", "—")},
+                {zh ? "算法" : "Algorithm", o.optString("algorithm", "—")},
+                {zh ? "期望值" : "Expected", o.optString("expectedHash", "—")},
+                {zh ? "实际值" : "Actual", o.optString("actualHash", "—")},
+                {zh ? "消息" : "Message", o.optString("message", "—")}
+        });
+        return HtmlOutputHelper.card("🔐", title, body);
+    }
+
+    private static String formatGetDirStatsHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "目录统计" : "Directory Stats";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📊", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📊", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String[][] metrics = new String[][]{
+                {o.optString("totalSizeFormatted", "—"), zh ? "总大小" : "Total size"},
+                {String.valueOf(o.optLong("fileCount", 0)), zh ? "文件" : "Files"},
+                {String.valueOf(o.optLong("directoryCount", 0)), zh ? "子目录" : "Directories"}
+        };
+        String topKv = HtmlOutputHelper.keyValue(new String[][]{{zh ? "路径" : "Path", o.optString("path", "—")}});
+        String grid = HtmlOutputHelper.metricGrid(metrics);
+        String sub = zh ? "按扩展名" : "By extension";
+        List<String[]> extRows = new ArrayList<>();
+        JSONArray breakdown = o.optJSONArray("extensionBreakdown");
+        if (breakdown != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, breakdown.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject row = breakdown.optJSONObject(i);
+                if (row == null) {
+                    continue;
+                }
+                extRows.add(new String[]{
+                        row.optString("extension", "—"),
+                        String.valueOf(row.optLong("count", 0)),
+                        row.optString("totalSizeFormatted", "—")});
+            }
+            if (breakdown.length() > show) {
+                extRows.add(new String[]{"…", "+" + (breakdown.length() - show) + (zh ? " 更多" : " more"), "—"});
+            }
+        }
+        String[] h3 = new String[]{zh ? "扩展名" : "Extension", zh ? "数量" : "Count", zh ? "总大小" : "Total size"};
+        String tableHtml = extRows.isEmpty() ? "" : HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, extRows);
+        return HtmlOutputHelper.card("📊", title, topKv + grid + tableHtml);
+    }
+
+    private static String formatFindDuplicatesHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "重复文件" : "Duplicate Files";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("🔁", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔁", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String summary = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "目录" : "Directory", o.optString("directory", "—")},
+                {zh ? "重复组" : "Duplicate groups", String.valueOf(o.optInt("duplicateGroups", 0))},
+                {zh ? "扫描文件" : "Files scanned", String.valueOf(o.optLong("filesScanned", 0))},
+                {zh ? "浪费空间" : "Wasted space", o.optString("wastedSpaceFormatted", "—")}
+        });
+        String sub = zh ? "分组列表" : "Group list";
+        List<String[]> detailRows = new ArrayList<>();
+        JSONArray dups = o.optJSONArray("duplicates");
+        if (dups != null) {
+            int showG = Math.min(DISPLAY_LIST_MAX, dups.length());
+            for (int g = 0; g < showG; g++) {
+                JSONObject grp = dups.optJSONObject(g);
+                if (grp == null) {
+                    continue;
+                }
+                int cnt = grp.optInt("count", 0);
+                String sz = grp.optString("fileSizeFormatted", "—");
+                JSONArray files = grp.optJSONArray("files");
+                String first = (files != null && files.length() > 0) ? files.optString(0, "") : "—";
+                detailRows.add(new String[]{String.valueOf(g + 1), String.valueOf(cnt), sz, first});
+            }
+            if (dups.length() > showG) {
+                detailRows.add(new String[]{"…", "+" + (dups.length() - showG) + (zh ? " 组" : " groups"), "—", "—"});
+            }
+        }
+        String[] h3 = new String[]{"#", zh ? "数量" : "Count", zh ? "大小" : "Size", zh ? "示例路径" : "Example path"};
+        return HtmlOutputHelper.card("🔁", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, detailRows));
+    }
+
+    private static String formatFindLargeFilesHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "大文件" : "Large Files";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📦", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📦", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String summary = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "目录" : "Directory", o.optString("directory", "—")},
+                {zh ? "最小大小 (MB)" : "Min size (MB)", String.valueOf(o.optDouble("minSizeMB", 0))},
+                {zh ? "找到" : "Found", String.valueOf(o.optLong("found", 0))},
+                {zh ? "显示" : "Showing", String.valueOf(o.optLong("showing", 0))}
+        });
+        String sub = zh ? "文件列表" : "Files";
+        List<String[]> fileRows = new ArrayList<>();
+        JSONArray files = o.optJSONArray("files");
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject f = files.optJSONObject(i);
+                if (f == null) {
+                    continue;
+                }
+                fileRows.add(new String[]{
+                        f.optString("name", "?"),
+                        f.optString("sizeFormatted", "—"),
+                        f.optString("lastModified", "—")});
+            }
+            if (files.length() > show) {
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—"});
+            }
+        }
+        String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+        return HtmlOutputHelper.card("📦", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, fileRows));
+    }
+
+    private static String formatSearchByNameHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "找到文件" : "Files Found";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("🔍", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("🔍", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String summary = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "目录" : "Directory", o.optString("directory", "—")},
+                {zh ? "关键词" : "Keywords", o.optString("keywords", "—")},
+                {zh ? "匹配" : "Matches", String.valueOf(o.optInt("found", 0))}
+        });
+        String sub = zh ? "结果" : "Results";
+        List<String[]> fileRows = new ArrayList<>();
+        JSONArray files = o.optJSONArray("files");
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject f = files.optJSONObject(i);
+                if (f == null) {
+                    continue;
+                }
+                String type = f.optBoolean("isDirectory", false)
+                        ? (zh ? "目录" : "Dir")
+                        : (zh ? "文件" : "File");
+                fileRows.add(new String[]{
+                        f.optString("name", "?"),
+                        f.optString("path", "—"),
+                        type,
+                        f.optString("sizeFormatted", "—"),
+                        f.optString("lastModified", "—")});
+            }
+            if (files.length() > show) {
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—", "—", "—"});
+            }
+        }
+        String[] h3 = new String[]{
+                zh ? "名称" : "Name", zh ? "路径" : "Path", zh ? "类型" : "Type",
+                zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
+        return HtmlOutputHelper.card("🔍", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, fileRows));
+    }
+
+    private static String formatGetTextStatsHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "文本统计" : "Text Stats";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📝", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📝", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String headerKv = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "路径" : "Path", o.optString("path", "—")},
+                {zh ? "名称" : "Name", o.optString("name", "—")},
+                {zh ? "文件大小" : "File size", o.optString("sizeFormatted", String.valueOf(o.optLong("size", 0)))}
+        });
+        String[][] metrics = new String[][]{
+                {String.valueOf(o.optLong("totalLines", 0)), zh ? "总行数" : "Total lines"},
+                {String.valueOf(o.optLong("nonBlankLines", 0)), zh ? "非空行" : "Non-blank lines"},
+                {String.valueOf(o.optLong("blankLines", 0)), zh ? "空行" : "Blank lines"},
+                {String.valueOf(o.optLong("words", 0)), zh ? "词数" : "Words"},
+                {String.valueOf(o.optLong("characters", 0)), zh ? "字符" : "Characters"}
+        };
+        return HtmlOutputHelper.card("📝", title, headerKv + HtmlOutputHelper.metricGrid(metrics));
+    }
+
+    private static String formatBatchFileInfoHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "批量文件信息" : "Batch File Info";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📋", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📋", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String summary = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "数量" : "Count", String.valueOf(o.optInt("count", 0))},
+                {zh ? "算法" : "Algorithm", o.optString("algorithm", "—")}
+        });
+        String sub = zh ? "文件" : "Files";
+        List<String[]> fileRows = new ArrayList<>();
+        JSONArray files = o.optJSONArray("files");
+        if (files != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, files.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject it = files.optJSONObject(i);
+                if (it == null) {
+                    continue;
+                }
+                String path = it.optString("path", "—");
+                boolean ex = it.optBoolean("exists", false);
+                if (!ex) {
+                    fileRows.add(new String[]{path, zh ? "否" : "No", "—", "—", "—", "—"});
+                    continue;
+                }
+                String name = it.optString("name", "—");
+                String size = it.optString("sizeFormatted", String.valueOf(it.optLong("size", 0)));
+                String mod = it.optString("lastModified", "—");
+                String hash = it.optBoolean("isDirectory", false) ? "—" : it.optString("hash", "—");
+                fileRows.add(new String[]{path, zh ? "是" : "Yes", name, size, mod, hash});
+            }
+            if (files.length() > show) {
+                fileRows.add(new String[]{"…", "+" + (files.length() - show) + (zh ? " 更多" : " more"), "—", "—", "—", "—"});
+            }
+        }
+        String[] h3 = new String[]{
+                zh ? "路径" : "Path", zh ? "存在" : "Exists", zh ? "名称" : "Name",
+                zh ? "大小" : "Size", zh ? "修改时间" : "Modified", zh ? "哈希" : "Hash"};
+        return HtmlOutputHelper.card("📋", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, fileRows));
     }
 }

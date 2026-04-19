@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.compass;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import android.hardware.Sensor;
@@ -28,7 +29,10 @@ public class CompassPlugin implements ModulePlugin {
                     r.put("success", true);
                     r.put("output", "{}");
                     r.put("_openModule", true);
-                    r.put("_displayText", isZh() ? "正在打开指南针..." : "Opening Compass...");
+                    String dt = isZh() ? "正在打开指南针..." : "Opening Compass...";
+                    r.put("_displayText", dt);
+                    r.put("_displayHtml", HtmlOutputHelper.card("🧭", isZh() ? "指南针" : "Compass",
+                            HtmlOutputHelper.muted(dt)));
                     return r.toString();
                 }
                 default:
@@ -133,10 +137,17 @@ public class CompassPlugin implements ModulePlugin {
                     + "\u25B8 Direction: " + cardinalFull + " (" + cardinal + ")";
         }
 
+        String html = HtmlOutputHelper.card("🧭", isZh() ? "当前方向" : "Heading",
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {isZh() ? "方位角" : "Azimuth", azInt + "°"},
+                        {isZh() ? "方向" : "Direction", cardinalFull + " (" + cardinal + ")"}
+                }));
+
         JSONObject r = new JSONObject();
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        r.put("_displayHtml", html);
         return r.toString();
     }
 

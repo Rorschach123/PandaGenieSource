@@ -9,6 +9,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.text.TextUtils;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -110,29 +111,33 @@ public class NetworkToolsPlugin implements ModulePlugin {
             switch (action) {
                 case "ping": {
                     String out = ping(params.optString("host", "").trim());
+                    JSONObject pingObj = new JSONObject(out);
                     return ok(out, formatPingDisplay(out),
-                            new JSONArray().put(richCode(diagnosticPingText(out), "text")));
+                            new JSONArray().put(richCode(diagnosticPingText(out), "text")),
+                            formatPingHtml(pingObj));
                 }
                 case "dnsLookup": {
                     String out = dnsLookup(params.optString("domain", "").trim());
+                    JSONObject dnsObj = new JSONObject(out);
                     return ok(out, formatDnsLookupDisplay(out),
-                            new JSONArray().put(richCode(diagnosticDnsText(out), "text")));
+                            new JSONArray().put(richCode(diagnosticDnsText(out), "text")),
+                            formatDnsLookupHtml(dnsObj));
                 }
                 case "getLocalIp": {
                     String out = getLocalIp();
-                    return ok(out, formatLocalIpDisplay(out));
+                    return ok(out, formatLocalIpDisplay(out), null, formatLocalIpHtml(new JSONObject(out)));
                 }
                 case "getPublicIp": {
                     String out = getPublicIp();
-                    return ok(out, formatPublicIpDisplay(out));
+                    return ok(out, formatPublicIpDisplay(out), null, formatPublicIpHtml(new JSONObject(out)));
                 }
                 case "checkConnectivity": {
                     String out = checkConnectivity(context);
-                    return ok(out, formatConnectivityDisplay(out));
+                    return ok(out, formatConnectivityDisplay(out), null, formatConnectivityHtml(new JSONObject(out)));
                 }
                 case "getNetworkInfo": {
                     String out = getNetworkInfo(context);
-                    return ok(out, formatNetworkInfoDisplay(out));
+                    return ok(out, formatNetworkInfoDisplay(out), null, formatNetworkInfoHtml(new JSONObject(out)));
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -768,6 +773,125 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    private static String formatPingHtml(JSONObject out) {
+        boolean zh = isZh();
+        String host = out.optString("host", "—");
+        boolean success = out.optInt("exitCode", 1) == 0;
+        String stdout = out.optString("stdout", "").trim();
+        return HtmlOutputHelper.card("📡", zh ? "Ping " + host : "Ping " + host,
+                HtmlOutputHelper.badge(success ? (zh ? "连通" : "Reachable") : (zh ? "不可达" : "Unreachable"),
+                        success ? "green" : "red")
+                        + "<pre style='font-size:11px;overflow-x:auto;margin:6px 0;color:var(--fg2)'>"
+                        + stdout.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        .replace("\n", "<br>") + "</pre>"
+        );
+    }
+
+    private static String formatDnsLookupHtml(JSONObject out) {
+        boolean zh = isZh();
+        String host = out.optString("domain", "—");
+        JSONArray ips = out.optJSONArray("addresses");
+        ArrayList<String[]> rows = new ArrayList<>();
+        if (ips != null) {
+            for (int i = 0; i < ips.length(); i++) {
+                rows.add(new String[]{String.valueOf(i + 1), ips.optString(i, "")});
+            }
+        }
+        return HtmlOutputHelper.card("🔍", zh ? "DNS 解析: " + host : "DNS Lookup: " + host,
+                HtmlOutputHelper.table(new String[]{"#", zh ? "IP 地址" : "IP Address"}, rows)
+        );
+    }
+
+    private static String formatLocalIpHtml(JSONObject out) {
+        boolean zh = isZh();
+        ArrayList<String[]> rows = new ArrayList<>();
+        JSONArray v4 = out.optJSONArray("ipv4");
+        if (v4 != null) {
+            for (int i = 0; i < v4.length(); i++) {
+                rows.add(new String[]{"—", v4.optString(i, ""), zh ? "IPv4" : "IPv4"});
+            }
+        }
+        JSONArray v6 = out.optJSONArray("ipv6");
+        if (v6 != null) {
+            for (int i = 0; i < v6.length(); i++) {
+                rows.add(new String[]{"—", v6.optString(i, ""), zh ? "IPv6" : "IPv6"});
+            }
+        }
+        if (rows.isEmpty()) {
+            rows.add(new String[]{"—", "—", "—"});
+        }
+        return HtmlOutputHelper.card("🏠", zh ? "本机 IP" : "Local IP",
+                HtmlOutputHelper.table(
+                        new String[]{zh ? "网卡" : "Interface", zh ? "地址" : "Address", zh ? "类型" : "Type"},
+                        rows)
+        );
+    }
+
+    private static String formatPublicIpHtml(JSONObject out) {
+        boolean zh = isZh();
+        String source = out.optString("source", "");
+        if (source.isEmpty()) {
+            source = "api.ipify.org";
+        }
+        return HtmlOutputHelper.card("🌐", zh ? "公网 IP" : "Public IP",
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {"IP", out.optString("ip", "—")},
+                        {zh ? "来源" : "Source", source}
+                })
+        );
+    }
+
+    private static String formatConnectivityHtml(JSONObject out) {
+        boolean zh = isZh();
+        if (!out.optBoolean("hasConnectivityService", false)) {
+            return HtmlOutputHelper.card("📶", zh ? "网络连接" : "Connectivity",
+                    HtmlOutputHelper.badge(zh ? "不可用" : "Unavailable", "red")
+                            + HtmlOutputHelper.keyValue(new String[][]{
+                            {zh ? "计费" : "Metered", "—"},
+                            {zh ? "传输类型" : "Transport", "—"},
+                            {zh ? "能力" : "Capabilities", "—"}
+                    })
+            );
+        }
+        boolean connected = out.optBoolean("activeNetwork", false);
+        String transportsStr = transportsToFriendly(out.optJSONArray("transports"));
+        String caps = (zh ? "互联网: " : "Internet: ")
+                + (out.optBoolean("hasInternetCapability", false) ? (zh ? "是" : "yes") : (zh ? "否" : "no"))
+                + ", " + (zh ? "已验证: " : "Validated: ")
+                + (out.optBoolean("validated", false) ? (zh ? "是" : "yes") : (zh ? "否" : "no"));
+        return HtmlOutputHelper.card("📶", zh ? "网络连接" : "Connectivity",
+                HtmlOutputHelper.badge(connected ? (zh ? "已连接" : "Connected") : (zh ? "未连接" : "Disconnected"),
+                        connected ? "green" : "red")
+                        + HtmlOutputHelper.keyValue(new String[][]{
+                        {zh ? "计费" : "Metered", out.optBoolean("metered") ? (zh ? "是" : "Yes") : (zh ? "否" : "No")},
+                        {zh ? "传输类型" : "Transport", transportsStr},
+                        {zh ? "能力" : "Capabilities", caps}
+                })
+        );
+    }
+
+    private static String formatNetworkInfoHtml(JSONObject out) {
+        boolean zh = isZh();
+        String rawType = out.optString("networkType", "unknown");
+        String typeLine = networkTypeToDisplay(rawType);
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "网络类型" : "Type", typeLine},
+                {zh ? "子类型" : "Subtype", "—"}
+        });
+        if ("wifi".equals(rawType)) {
+            String ssid = out.optString("wifiSsid", "");
+            int link = out.optInt("linkSpeedMbps", -1);
+            int freq = out.optInt("frequencyMhz", 0);
+            body += HtmlOutputHelper.keyValue(new String[][]{
+                    {"SSID", ssid.isEmpty() ? "—" : ssid},
+                    {zh ? "速率" : "Speed", link >= 0 ? link + " Mbps" : "—"},
+                    {zh ? "频率" : "Freq", freq > 0 ? freq + " MHz" : "—"},
+                    {zh ? "信号" : "Signal", "—"}
+            });
+        }
+        return HtmlOutputHelper.card("📡", zh ? "网络信息" : "Network Info", body);
+    }
+
     /**
      * 网络类型代码到展示文案。
      *
@@ -807,16 +931,24 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
     }
 
     private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, richContent, null);
+    }
+
+    private static String ok(String output, String displayText, JSONArray richContent, String displayHtml)
+            throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
         }
         if (richContent != null && richContent.length() > 0) {
             r.put("_richContent", richContent);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         return r.toString();
     }
@@ -829,7 +961,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(String output) throws Exception {
-        return ok(output, null, null);
+        return ok(output, null, null, null);
     }
 
     /**

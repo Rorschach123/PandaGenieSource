@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.snake_game;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -49,7 +50,7 @@ public class SnakePlugin implements ModulePlugin {
         difficulty = Math.max(1, Math.min(3, diff));
         random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private void initGame() {
@@ -88,7 +89,7 @@ public class SnakePlugin implements ModulePlugin {
             return error("Game not started. Call startGame first.");
         }
         if (gameOver) {
-            return ok(buildState(), formatDisplay());
+            return ok(buildState(), formatDisplay(), formatDisplayHtml());
         }
 
         if (dir == null || dir.isEmpty()) {
@@ -116,13 +117,13 @@ public class SnakePlugin implements ModulePlugin {
 
         if (newX < 0 || newX >= BOARD_WIDTH || newY < 0 || newY >= BOARD_HEIGHT) {
             gameOver = true;
-            return ok(buildState(), formatDisplay());
+            return ok(buildState(), formatDisplay(), formatDisplayHtml());
         }
 
         for (int[] seg : snake) {
             if (seg[0] == newX && seg[1] == newY) {
                 gameOver = true;
-                return ok(buildState(), formatDisplay());
+                return ok(buildState(), formatDisplay(), formatDisplayHtml());
             }
         }
 
@@ -136,21 +137,21 @@ public class SnakePlugin implements ModulePlugin {
             snake.remove(snake.size() - 1);
         }
 
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String getState() throws Exception {
         if (!gameStarted) {
             return error("Game not started. Call startGame first.");
         }
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String restart() throws Exception {
         if (difficulty == 0) difficulty = 2;
         if (random == null) random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private JSONObject buildState() throws Exception {
@@ -240,20 +241,38 @@ public class SnakePlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatDisplayHtml() {
+        String[] diffNames = {"简单", "普通", "困难"};
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {String.valueOf(score), "得分"},
+                {String.valueOf(snake.size()), "长度"},
+                {diffNames[difficulty - 1], "难度"}
+        });
+        body += HtmlOutputHelper.keyValue(new String[][]{
+                {"方向", direction},
+                {"状态", gameOver ? "游戏结束" : "进行中"}
+        });
+        if (gameOver) {
+            body += HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p("最终得分: " + score + " · restart 重开");
+        } else {
+            body += HtmlOutputHelper.muted("move: up / down / left / right");
+        }
+        return HtmlOutputHelper.card("🐍", "贪吃蛇", body);
+    }
+
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private String ok(JSONObject output) throws Exception {
-        return ok(output, null);
-    }
-
-    private String ok(JSONObject output, String displayText) throws Exception {
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

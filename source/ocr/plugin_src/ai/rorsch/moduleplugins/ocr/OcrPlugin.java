@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.ocr;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -151,11 +152,27 @@ public class OcrPlugin implements ModulePlugin {
             }
         }
 
+        String displayHtml = formatRecognizeHtml(recognized, imagePath, ocrLang);
         JSONObject r = new JSONObject();
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
+    }
+
+    private String formatRecognizeHtml(String recognized, String imagePath, String ocrLang) {
+        if (recognized.isEmpty()) {
+            return HtmlOutputHelper.card("\u274C", isZh() ? "\u672a\u8bc6\u522b\u5230\u6587\u5b57" : "No text found",
+                    HtmlOutputHelper.muted(imagePath) + HtmlOutputHelper.errorBadge());
+        }
+        String preview = recognized.length() > 1200 ? recognized.substring(0, 1200) + "\u2026" : recognized;
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u8bed\u8a00" : "Language", ocrLang},
+                {isZh() ? "\u5b57\u6570" : "Characters", String.valueOf(recognized.length())},
+                {isZh() ? "\u56fe\u7247" : "Image", imagePath}
+        }) + HtmlOutputHelper.p(preview);
+        return HtmlOutputHelper.card("\u2705", isZh() ? "\u6587\u5b57\u8bc6\u522b" : "Text recognized", body + HtmlOutputHelper.successBadge());
     }
 
     private static Bitmap loadScaledBitmap(String path, int maxSide) {

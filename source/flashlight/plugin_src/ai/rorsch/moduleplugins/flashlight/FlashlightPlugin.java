@@ -1,5 +1,6 @@
 package ai.rorsch.moduleplugins.flashlight;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import android.hardware.camera2.CameraAccessException;
@@ -39,7 +40,10 @@ public class FlashlightPlugin implements ModulePlugin {
                     r.put("success", true);
                     r.put("output", "{}");
                     r.put("_openModule", true);
-                    r.put("_displayText", isZh() ? "正在打开手电筒..." : "Opening Flashlight...");
+                    String dt = isZh() ? "正在打开手电筒..." : "Opening Flashlight...";
+                    r.put("_displayText", dt);
+                    r.put("_displayHtml", HtmlOutputHelper.card("🔦", isZh() ? "手电筒" : "Flashlight",
+                            HtmlOutputHelper.muted(dt)));
                     return r.toString();
                 }
                 default:
@@ -73,6 +77,10 @@ public class FlashlightPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        String badgeText = torchOn ? (isZh() ? "开启" : "ON") : (isZh() ? "关闭" : "OFF");
+        String badgeColor = torchOn ? "green" : "orange";
+        r.put("_displayHtml", HtmlOutputHelper.card("🔦", isZh() ? "手电筒" : "Flashlight",
+                HtmlOutputHelper.badge(badgeText, badgeColor)));
         return r.toString();
     }
 
@@ -91,6 +99,11 @@ public class FlashlightPlugin implements ModulePlugin {
         r.put("success", true);
         r.put("output", out.toString());
         r.put("_displayText", display);
+        String badgeText = torchOn ? (isZh() ? "当前：开启" : "Status: ON")
+                : (isZh() ? "当前：关闭" : "Status: OFF");
+        String badgeColor = torchOn ? "green" : "orange";
+        r.put("_displayHtml", HtmlOutputHelper.card("🔦", isZh() ? "手电筒" : "Flashlight",
+                HtmlOutputHelper.badge(badgeText, badgeColor)));
         return r.toString();
     }
 

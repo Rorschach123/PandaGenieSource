@@ -4,7 +4,7 @@
   "name_en": "Dice Tool",
   "description": "骰子工具模块，支持掷骰子（1-6颗）、指定目标总数掷骰、大小判定、豹子（全同）、组合枚举和概率统计",
   "description_en": "Dice tool module: roll 1-6 dice, roll with target sum, big/small judgment, all-same (leopard), combination enumeration and probability statistics",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "casino",
   "soLibraries": [],
   "h5Page": "index.html",

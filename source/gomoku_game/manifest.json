@@ -4,7 +4,7 @@
   "name_en": "Gomoku",
   "description": "经典五子棋游戏，玩家（黑子）与程序（白子）在15x15棋盘上对战，率先五子连珠者获胜",
   "description_en": "Classic Gomoku (Five in a Row) game. Player (black) vs AI (white) on a 15x15 board. First to get five in a row wins",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "blur_circular",
   "soLibraries": [],
   "h5Page": "index.html",

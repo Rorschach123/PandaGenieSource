@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.gomoku_game;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -50,7 +51,7 @@ public class GomokuPlugin implements ModulePlugin {
     private String startGame() throws Exception {
         random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private void initGame() {
@@ -63,7 +64,7 @@ public class GomokuPlugin implements ModulePlugin {
 
     private String placeStone(int row, int col) throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
         if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return error("无效位置，行列范围为 0-14");
         if (board[row][col] != EMPTY) return error("该位置已有棋子");
 
@@ -72,13 +73,13 @@ public class GomokuPlugin implements ModulePlugin {
         if (checkWin(row, col, BLACK)) {
             winner = 1;
             gameOver = true;
-            return ok(buildState(), formatDisplay());
+            return ok(buildState(), formatDisplay(), formatDisplayHtml());
         }
 
         if (moveCount >= SIZE * SIZE) {
             winner = 3;
             gameOver = true;
-            return ok(buildState(), formatDisplay());
+            return ok(buildState(), formatDisplay(), formatDisplayHtml());
         }
 
         int[] aiMove = findAiMove();
@@ -96,7 +97,7 @@ public class GomokuPlugin implements ModulePlugin {
             gameOver = true;
         }
 
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private boolean checkWin(int row, int col, int player) {
@@ -240,13 +241,13 @@ public class GomokuPlugin implements ModulePlugin {
 
     private String getState() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String restart() throws Exception {
         if (random == null) random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private JSONObject buildState() throws Exception {
@@ -323,16 +324,43 @@ public class GomokuPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatDisplayHtml() {
+        String statusLine;
+        if (gameOver) {
+            switch (winner) {
+                case 1: statusLine = "你赢了"; break;
+                case 2: statusLine = "程序获胜"; break;
+                case 3: statusLine = "平局"; break;
+                default: statusLine = "已结束";
+            }
+        } else {
+            statusLine = "轮到黑子";
+        }
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {"落子数", String.valueOf(moveCount)},
+                {"状态", statusLine}
+        });
+        if (gameOver) {
+            body += HtmlOutputHelper.p("输入 restart 重新开始");
+        } else {
+            body += HtmlOutputHelper.muted("你: ● 先手 · 程序: ○ · placeStone(row,col)");
+        }
+        return HtmlOutputHelper.card("⚫", "五子棋", body);
+    }
+
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private String ok(JSONObject output, String displayText) throws Exception {
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

@@ -4,7 +4,7 @@
   "name_en": "Sudoku",
   "description": "经典数独游戏，在9x9网格中填入1-9，使每行、每列和每个3x3子网格都不重复，支持设置难度自动生成题目",
   "description_en": "Classic Sudoku game. Fill a 9x9 grid with digits 1-9 so each row, column and 3x3 box is unique. Supports difficulty-based puzzle generation",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "grid_on",
   "soLibraries": [],
   "h5Page": "index.html",

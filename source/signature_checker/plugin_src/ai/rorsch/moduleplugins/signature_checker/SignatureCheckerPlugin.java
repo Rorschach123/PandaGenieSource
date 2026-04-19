@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.Environment;
 import android.util.Base64;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -79,22 +80,22 @@ public class SignatureCheckerPlugin implements ModulePlugin {
             case "verifyApk": {
                 JSONObject apk = verifyApkSignature(context);
                 String out = apk.toString();
-                return ok(out, formatVerifyApkDisplay(apk));
+                return ok(out, formatVerifyApkDisplay(apk), formatVerifyApkDisplayHtml(apk));
             }
             case "verifyModule": {
                 JSONObject mod = verifySingleModule(context, params);
                 String out = mod.toString();
-                return ok(out, formatVerifyModuleDisplay(mod));
+                return ok(out, formatVerifyModuleDisplay(mod), formatVerifyModuleDisplayHtml(mod));
             }
             case "verifyAllModules": {
                 JSONArray arr = verifyAllModules(context);
                 String out = arr.toString();
-                return ok(out, formatVerifyAllModulesDisplay(arr));
+                return ok(out, formatVerifyAllModulesDisplay(arr), formatVerifyAllModulesDisplayHtml(arr));
             }
             case "verifyAll": {
                 JSONObject all = verifyAll(context);
                 String out = all.toString();
-                return ok(out, formatVerifyAllDisplay(all));
+                return ok(out, formatVerifyAllDisplay(all), formatVerifyAllDisplayHtml(all));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -505,6 +506,89 @@ public class SignatureCheckerPlugin implements ModulePlugin {
         return ("🔐 " + title + "\n\n" + pgTable(title, headers, rows)).trim();
     }
 
+    private String formatVerifyApkDisplayHtml(JSONObject apk) {
+        boolean zh = isZh();
+        boolean v = apk.optBoolean("verified", false);
+        String title = zh ? "APK 签名" : "APK Signature";
+        String body;
+        if (v) {
+            body = HtmlOutputHelper.successBadge()
+                    + HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "包名" : "Package", apk.optString("packageName", "")},
+                    {zh ? "SHA-256" : "SHA-256", apk.optString("fingerprint", "")},
+                    {zh ? "主体" : "Subject", apk.optString("subject", "")},
+                    {zh ? "签发者" : "Issuer", apk.optString("issuer", "")}
+            });
+        } else {
+            body = HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p(apk.optString("error", ""));
+        }
+        return HtmlOutputHelper.card("🔐", title, body);
+    }
+
+    private String formatVerifyModuleDisplayHtml(JSONObject mod) {
+        boolean zh = isZh();
+        String moduleName = mod.optString("name", "");
+        if (moduleName.isEmpty()) moduleName = mod.optString("id", mod.optString("file", ""));
+        boolean v = mod.optBoolean("verified", false);
+        String title = zh ? "模块签名" : "Module Signature";
+        List<String[]> kv = new ArrayList<>();
+        kv.add(new String[]{zh ? "模块" : "Module", moduleName});
+        kv.add(new String[]{zh ? "文件" : "File", mod.optString("file", "")});
+        kv.add(new String[]{"ID", mod.optString("id", "")});
+        kv.add(new String[]{zh ? "版本" : "Version", mod.optString("version", "")});
+        kv.add(new String[]{zh ? "状态" : "Status", v ? (zh ? "有效" : "Valid") : (zh ? "无效" : "Invalid")});
+        String head = HtmlOutputHelper.badge(v ? (zh ? "已验证" : "Verified") : (zh ? "未通过" : "Failed"),
+                v ? "green" : "red");
+        if (v) {
+            kv.add(new String[]{zh ? "官方" : "Official", String.valueOf(mod.optBoolean("isOfficial", false))});
+            kv.add(new String[]{zh ? "签名者数量" : "Signer count", String.valueOf(mod.optInt("signerCount", 0))});
+            kv.add(new String[]{zh ? "官方指纹" : "Official FP", mod.optString("officialFingerprint", "")});
+            kv.add(new String[]{zh ? "开发者指纹" : "Dev FP", mod.optString("devFingerprint", "")});
+        } else {
+            kv.add(new String[]{zh ? "错误" : "Error", mod.optString("error", "")});
+        }
+        String[][] pairs = kv.toArray(new String[0][]);
+        return HtmlOutputHelper.card("🔐", title, head + HtmlOutputHelper.keyValue(pairs));
+    }
+
+    private String formatVerifyAllModulesDisplayHtml(JSONArray results) {
+        boolean zh = isZh();
+        String headTitle = zh ? "所有模块" : "All modules";
+        int valid = 0;
+        int invalid = 0;
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject o = results.optJSONObject(i);
+            if (o != null && o.optBoolean("verified", false)) valid++;
+            else invalid++;
+        }
+        String summary = HtmlOutputHelper.muted((zh ? "有效 " : "Valid ") + valid + " · " + (zh ? "无效 " : "Invalid ") + invalid);
+        String[] headers = new String[]{
+                zh ? "模块" : "Module", zh ? "文件" : "File", zh ? "状态" : "Status", zh ? "详情" : "Details"};
+        List<String[]> rows = new ArrayList<>();
+        for (int i = 0; i < results.length(); i++) {
+            JSONObject o = results.optJSONObject(i);
+            if (o == null) continue;
+            String name = o.optString("name", "");
+            if (name.isEmpty()) name = o.optString("id", o.optString("file", "?"));
+            boolean v = o.optBoolean("verified", false);
+            String st = v ? (zh ? "有效" : "OK") : (zh ? "无效" : "Bad");
+            String details = v
+                    ? (o.optBoolean("isOfficial", false) ? (zh ? "官方" : "Official") : (zh ? "已验证" : "OK"))
+                    : o.optString("error", "—");
+            rows.add(new String[]{name, o.optString("file", ""), st, details});
+        }
+        String body = summary + HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("🔐", headTitle, body);
+    }
+
+    private String formatVerifyAllDisplayHtml(JSONObject all) {
+        JSONArray modules = all.optJSONArray("modules");
+        if (modules != null) {
+            return formatVerifyAllModulesDisplayHtml(modules);
+        }
+        return formatVerifyAllModulesDisplayHtml(new JSONArray());
+    }
+
     /**
      * 格式化单模块校验摘要。
      *
@@ -623,8 +707,13 @@ public class SignatureCheckerPlugin implements ModulePlugin {
      * @param displayText 界面展示用短文本
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
     }
 

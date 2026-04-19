@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.filemanager;
 
 import android.content.Context;
 import android.os.Environment;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.FileManagerLib;
 import org.json.JSONArray;
@@ -74,7 +75,9 @@ public class FileManagerPlugin implements ModulePlugin {
                 String path = resolveStoragePath(params.optString("path", ""));
                 String raw = lib.nativeListDirectory(path);
                 String filtered = filterListDirectory(raw);
-                return ok(filtered, formatListDirectoryDisplay(path, filtered));
+                String display = formatListDirectoryDisplay(path, filtered);
+                String html = formatListDirectoryHtml(path, filtered);
+                return ok(filtered, display, null, html);
             }
             case "createDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
@@ -127,7 +130,9 @@ public class FileManagerPlugin implements ModulePlugin {
             }
             case "getFileInfo": {
                 String raw = lib.nativeGetFileInfo(resolveStoragePath(params.optString("path", "")));
-                return ok(raw, formatGetFileInfoDisplay(raw));
+                String display = formatGetFileInfoDisplay(raw);
+                String html = formatGetFileInfoHtml(raw);
+                return ok(raw, display, null, html);
             }
             case "searchFiles": {
                 String dir = params.optString("dir", "").trim();
@@ -140,7 +145,9 @@ public class FileManagerPlugin implements ModulePlugin {
                         parseBoolean(params.opt("recursive"), true)
                 );
                 String filtered = filterSearchResults(raw, typeFilter);
-                return ok(filtered, formatSearchFilesDisplay(filtered, typeFilter));
+                String display = formatSearchFilesDisplay(filtered, typeFilter);
+                String html = formatSearchFilesHtml(filtered);
+                return ok(filtered, display, null, html);
             }
             case "readTextFile": {
                 String raw = lib.nativeReadTextFile(resolveStoragePath(params.optString("path", "")));
@@ -419,10 +426,19 @@ public class FileManagerPlugin implements ModulePlugin {
      * @throws Exception JSON 构建异常
      */
     private String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, richContent, null);
+    }
+
+    private String ok(String output, String displayText, JSONArray richContent, String displayHtml) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", sanitize(output));
         if (displayText != null && !displayText.isEmpty()) j.put("_displayText", sanitize(displayText));
         if (richContent != null && richContent.length() > 0) j.put("_richContent", richContent);
+        if (displayHtml != null && !displayHtml.isEmpty()) j.put("_displayHtml", displayHtml);
         return j.toString();
+    }
+
+    private String okHtml(String output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, null, displayHtml);
     }
 
     private static JSONObject richFile(String path, String title) throws Exception {
@@ -632,6 +648,91 @@ public class FileManagerPlugin implements ModulePlugin {
             return out.toString();
         } catch (Exception e) {
             return rawJson;
+        }
+    }
+
+    private String formatListDirectoryHtml(String path, String output) {
+        try {
+            boolean zh = isZh();
+            JSONArray items = new JSONArray(output);
+            int total = items.length();
+            StringBuilder body = new StringBuilder();
+            body.append(HtmlOutputHelper.muted(displayPath(path) + " — " + total + (zh ? " 项" : " items")));
+            java.util.List<String[]> rows = new java.util.ArrayList<>();
+            int limit = Math.min(items.length(), 25);
+            for (int i = 0; i < limit; i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item != null) {
+                    boolean isDir = item.optBoolean("isDirectory");
+                    String icon = isDir ? "📁" : "📄";
+                    String name = item.optString("name", "?");
+                    String size;
+                    if (isDir) {
+                        size = "—";
+                    } else {
+                        String sf = item.optString("sizeFormatted", "");
+                        size = !sf.isEmpty() ? sf : formatSizeBytes(item.optLong("size", 0));
+                    }
+                    rows.add(new String[]{icon + " " + name, size});
+                }
+            }
+            body.append(HtmlOutputHelper.table(new String[]{zh ? "名称" : "Name", zh ? "大小" : "Size"}, rows));
+            if (total > limit) {
+                body.append(HtmlOutputHelper.muted("+" + (total - limit) + (zh ? " 项未显示" : " more")));
+            }
+            return HtmlOutputHelper.card("📂", zh ? "文件列表" : "Directory", body.toString());
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatGetFileInfoHtml(String output) {
+        try {
+            boolean zh = isZh();
+            JSONObject j = new JSONObject(output);
+            String name = j.optString("name", "—");
+            String sizeStr = j.optString("sizeFormatted", "");
+            if (sizeStr.isEmpty()) sizeStr = formatSizeBytes(j.optLong("size", 0));
+            long lm = j.optLong("lastModified", 0);
+            String modified;
+            if (lm > 0) {
+                modified = SDF.format(new Date(lm));
+            } else {
+                String ms = j.optString("lastModified", "");
+                modified = ms.isEmpty() || "0".equals(ms) ? "—" : ms;
+            }
+            return HtmlOutputHelper.card("📄", name,
+                    HtmlOutputHelper.keyValue(new String[][]{
+                            {zh ? "路径" : "Path", displayPath(j.optString("path", ""))},
+                            {zh ? "大小" : "Size", sizeStr},
+                            {zh ? "修改时间" : "Modified", modified},
+                            {zh ? "类型" : "Type", j.optBoolean("isDirectory") ? (zh ? "目录" : "Directory") : (zh ? "文件" : "File")},
+                            {zh ? "可读" : "Readable", j.optBoolean("canRead") ? "✓" : "✗"},
+                            {zh ? "可写" : "Writable", j.optBoolean("canWrite") ? "✓" : "✗"}
+                    })
+            );
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String formatSearchFilesHtml(String output) {
+        try {
+            boolean zh = isZh();
+            JSONArray files = new JSONArray(output);
+            int total = files.length();
+            if (total == 0) return "";
+            java.util.List<String[]> rows = new java.util.ArrayList<>();
+            int limit = Math.min(files.length(), 20);
+            for (int i = 0; i < limit; i++) {
+                String path = files.optString(i, "");
+                rows.add(new String[]{displayPath(path)});
+            }
+            String body = HtmlOutputHelper.table(new String[]{zh ? "文件" : "File"}, rows);
+            if (total > limit) body += HtmlOutputHelper.muted("+" + (total - limit) + (zh ? " 个文件" : " more files"));
+            return HtmlOutputHelper.card("🔍", (zh ? "搜索结果" : "Search Results") + " (" + total + ")", body);
+        } catch (Exception e) {
+            return "";
         }
     }
 

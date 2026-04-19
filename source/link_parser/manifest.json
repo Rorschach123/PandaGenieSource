@@ -4,7 +4,7 @@
   "name_en": "Link Parser",
   "description": "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，分析HTTP头部，检测内容类型，自动分类整理提取结果",
   "description_en": "Parse URLs to extract titles, descriptions, images, links, downloadable files, and more. Analyzes HTTP headers, detects content types, and organizes extracted content by category",
-  "version": "1.0",
+  "version": "1.1",
   "icon": "link",
   "soLibraries": [],
   "h5Page": "index.html",

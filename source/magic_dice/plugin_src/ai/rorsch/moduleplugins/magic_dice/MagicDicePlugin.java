@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.magic_dice;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -33,6 +34,10 @@ import java.util.Random;
  */
 public class MagicDicePlugin implements ModulePlugin {
 
+    private static boolean isZh() {
+        return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+    }
+
     /** 用于生成骰子点数的伪随机源（每实例独立）。 */
     private final Random random = new Random();
 
@@ -55,25 +60,30 @@ public class MagicDicePlugin implements ModulePlugin {
             switch (action) {
                 case "roll": {
                     JSONObject r = roll(params.optInt("count", 1));
-                    return ok(r, formatDiceDisplay(r, null));
+                    return ok(r, formatDiceDisplay(r, null), formatDiceHtml(r, null));
                 }
                 case "rollWithSum": {
                     JSONObject r = rollWithSum(params.optInt("count", 1), params.optInt("targetSum", 0));
-                    return ok(r, formatDiceDisplay(r, null));
+                    return ok(r, formatDiceDisplay(r, null), formatDiceHtml(r, null));
                 }
                 case "rollBigOrSmall": {
                     JSONObject r = rollBigOrSmall(params.optInt("count", 1));
-                    return ok(r, formatDiceDisplay(r, r.optString("size", "") + " (" + r.optString("size_en", "") + ")"));
+                    String extra = r.optString("size", "") + " (" + r.optString("size_en", "") + ")";
+                    return ok(r, formatDiceDisplay(r, extra), formatDiceHtml(r, extra));
                 }
                 case "rollAllSame": {
                     JSONObject r = rollAllSame(params.optInt("count", 2), params.optInt("value", 0));
                     String extra = r.optBoolean("isLeopard", false) ? "\uD83C\uDFB0 豹子！" : null;
-                    return ok(r, formatDiceDisplay(r, extra));
+                    return ok(r, formatDiceDisplay(r, extra), formatDiceHtml(r, extra));
                 }
-                case "getCombinations":
-                    return ok(getCombinations(params.optInt("count", 1), params.optInt("targetSum", 0)));
-                case "getStats":
-                    return ok(getStats(params.optInt("count", 1)));
+                case "getCombinations": {
+                    JSONObject r = getCombinations(params.optInt("count", 1), params.optInt("targetSum", 0));
+                    return ok(r, null, formatCombinationsHtml(r));
+                }
+                case "getStats": {
+                    JSONObject r = getStats(params.optInt("count", 1));
+                    return ok(r, null, formatStatsHtml(r));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -112,6 +122,85 @@ public class MagicDicePlugin implements ModulePlugin {
             sb.append("\n").append(extraLine);
         }
         return sb.toString();
+    }
+
+    private String formatDiceHtml(JSONObject result, String extraLine) throws Exception {
+        boolean zh = isZh();
+        StringBuilder diceLine = new StringBuilder();
+        JSONArray dice = result.optJSONArray("dice");
+        if (dice != null) {
+            for (int i = 0; i < dice.length(); i++) {
+                int val = dice.getInt(i);
+                if (i > 0) diceLine.append(" ");
+                diceLine.append(DICE_EMOJI[val - 1]);
+            }
+        }
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {String.valueOf(result.optInt("total", 0)), zh ? "总和" : "Total"}
+        }) + HtmlOutputHelper.p(diceLine.toString());
+        if (extraLine != null && !extraLine.isEmpty()) {
+            body += HtmlOutputHelper.muted(extraLine);
+        }
+        return HtmlOutputHelper.card("🎲", zh ? "骰子" : "Dice", body);
+    }
+
+    private String formatCombinationsHtml(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        String[][] kv = zh
+                ? new String[][]{
+                {"骰子数", String.valueOf(r.optInt("diceCount"))},
+                {"目标和", String.valueOf(r.optInt("targetSum"))},
+                {"组合数", String.valueOf(r.optInt("combinationCount"))},
+                {"排列数", String.valueOf(r.optInt("permutationCount"))},
+                {"概率", r.optString("probability")}
+        }
+                : new String[][]{
+                {"Dice", String.valueOf(r.optInt("diceCount"))},
+                {"Target", String.valueOf(r.optInt("targetSum"))},
+                {"Combinations", String.valueOf(r.optInt("combinationCount"))},
+                {"Permutations", String.valueOf(r.optInt("permutationCount"))},
+                {"P", r.optString("probability")}
+        };
+        return HtmlOutputHelper.card("🎲", zh ? "组合枚举" : "Combinations", HtmlOutputHelper.keyValue(kv));
+    }
+
+    private String formatStatsHtml(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        String[][] head = zh
+                ? new String[][]{
+                {"骰子数", String.valueOf(r.optInt("diceCount"))},
+                {"最小", String.valueOf(r.optInt("min"))},
+                {"最大", String.valueOf(r.optInt("max"))},
+                {"期望", String.format(Locale.US, "%.1f", r.optDouble("expected"))}
+        }
+                : new String[][]{
+                {"Dice", String.valueOf(r.optInt("diceCount"))},
+                {"Min", String.valueOf(r.optInt("min"))},
+                {"Max", String.valueOf(r.optInt("max"))},
+                {"E[X]", String.format(Locale.US, "%.1f", r.optDouble("expected"))}
+        };
+        JSONArray dist = r.optJSONArray("distribution");
+        List<String[]> rows = new ArrayList<>();
+        if (dist != null) {
+            int maxRows = Math.min(12, dist.length());
+            for (int i = 0; i < maxRows; i++) {
+                JSONObject e = dist.optJSONObject(i);
+                if (e == null) continue;
+                rows.add(new String[]{
+                        String.valueOf(e.optInt("sum")),
+                        String.valueOf(e.optInt("ways")),
+                        e.optString("probability")
+                });
+            }
+        }
+        String table = rows.isEmpty() ? "" : HtmlOutputHelper.table(
+                new String[]{zh ? "总和" : "Sum", zh ? "方式数" : "Ways", zh ? "概率" : "P"},
+                rows);
+        String body = HtmlOutputHelper.keyValue(head) + table;
+        if (dist != null && dist.length() > 12) {
+            body += HtmlOutputHelper.muted(zh ? "（仅显示前 12 行）" : "(First 12 sums shown)");
+        }
+        return HtmlOutputHelper.card("🎲", zh ? "统计" : "Statistics", body);
     }
 
     /**
@@ -444,7 +533,7 @@ public class MagicDicePlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(JSONObject output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
     /**
@@ -456,11 +545,18 @@ public class MagicDicePlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

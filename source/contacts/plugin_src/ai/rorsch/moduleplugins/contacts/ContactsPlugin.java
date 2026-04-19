@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -95,7 +96,8 @@ public class ContactsPlugin implements ModulePlugin {
         switch (action) {
             case "searchContacts": {
                 String out = searchContacts(context, params);
-                return ok(out, formatSearchContactsDisplay(new JSONObject(out)));
+                JSONObject parsed = new JSONObject(out);
+                return ok(out, formatSearchContactsDisplay(parsed), formatSearchContactsHtml(parsed), null);
             }
             case "getContactDetail": {
                 String contactId = params.optString("contactId", "").trim();
@@ -107,15 +109,18 @@ public class ContactsPlugin implements ModulePlugin {
                 if (detailObj.has("error")) {
                     return error(detailObj.getString("error"));
                 }
-                return ok(detailJson, formatGetContactDetailDisplay(detailObj));
+                return ok(detailJson, formatGetContactDetailDisplay(detailObj),
+                        formatGetContactDetailHtml(detailObj), null);
             }
             case "listContacts": {
                 String out = listContacts(context, params);
-                return ok(out, formatListContactsDisplay(new JSONObject(out)));
+                JSONObject parsed = new JSONObject(out);
+                return ok(out, formatListContactsDisplay(parsed), formatListContactsHtml(parsed), null);
             }
             case "getContactCount": {
                 String out = getContactCount(context);
-                return ok(out, formatGetContactCountDisplay(new JSONObject(out)));
+                JSONObject parsed = new JSONObject(out);
+                return ok(out, formatGetContactCountDisplay(parsed), formatGetContactCountHtml(parsed), null);
             }
             case "exportContacts": {
                 String exportJson = exportContacts(context, params);
@@ -129,11 +134,12 @@ public class ContactsPlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richFile(exportPath, null, "text/vcard"));
                 }
-                return ok(exportJson, formatExportContactsDisplay(exportObj), rc);
+                return ok(exportJson, formatExportContactsDisplay(exportObj), null, rc);
             }
             case "findDuplicates": {
                 String out = findDuplicates(context);
-                return ok(out, formatFindDuplicatesDisplay(new JSONObject(out)));
+                JSONObject parsed = new JSONObject(out);
+                return ok(out, formatFindDuplicatesDisplay(parsed), formatFindDuplicatesHtml(parsed), null);
             }
             default:
                 return error("Unsupported action: " + action);
@@ -1073,7 +1079,7 @@ public class ContactsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output) throws Exception {
-        return ok(output, null, null);
+        return ok(output, null, null, null);
     }
 
     /**
@@ -1083,20 +1089,24 @@ public class ContactsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
     }
 
     /**
      * @param output       业务输出
      * @param displayText  人类可读摘要；null 时不写入 {@code _displayText}
+     * @param displayHtml  可选 HTML5 迷你卡片；null 或空时不写入 {@code _displayHtml}
      * @param richContent  非 null 且非空时写入 {@code _richContent}
      * @return 成功包装 JSON
      * @throws Exception JSON 异常
      */
-    private String ok(String output, String displayText, JSONArray richContent) throws Exception {
+    private String ok(String output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", output);
         if (displayText != null) {
             j.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            j.put("_displayHtml", displayHtml);
         }
         if (richContent != null && richContent.length() > 0) {
             j.put("_richContent", richContent);
@@ -1354,6 +1364,217 @@ public class ContactsPlugin implements ModulePlugin {
             sb.append("\n\n… (+").append(totalLines - DISPLAY_MAX_DUP_GROUPS).append(zh ? " 更多组)" : " more groups)");
         }
         return sb.toString().trim();
+    }
+
+    private static String formatSearchContactsHtml(JSONObject result) throws Exception {
+        JSONArray contacts = result.optJSONArray("contacts");
+        int total = result.optInt("total", contacts != null ? contacts.length() : 0);
+        if (contacts == null) {
+            contacts = new JSONArray();
+        }
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"姓名", "电话"} : new String[]{"Name", "Phone"};
+        List<String[]> rows = new ArrayList<>();
+        int show = Math.min(contacts.length(), DISPLAY_MAX_SEARCH_LINES);
+        for (int i = 0; i < show; i++) {
+            JSONObject c = contacts.getJSONObject(i);
+            String name = c.optString("name", "").trim();
+            if (name.isEmpty()) {
+                name = zh ? "(无名称)" : "(no name)";
+            }
+            String phone = c.optString("primaryPhone", "").trim();
+            if (phone.isEmpty()) {
+                phone = "—";
+            }
+            rows.add(new String[]{name, phone});
+        }
+        String title = zh ? "联系人搜索" : "Contact Search";
+        String subtitle = zh ? ("找到 " + total + " 个联系人") : ("Found " + total + " contacts");
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.muted(subtitle));
+        body.append(HtmlOutputHelper.table(headers, rows));
+        if (contacts.length() > DISPLAY_MAX_SEARCH_LINES) {
+            int rest = contacts.length() - DISPLAY_MAX_SEARCH_LINES;
+            body.append(HtmlOutputHelper.muted("… +" + rest + (zh ? " 更多" : " more")));
+        }
+        return HtmlOutputHelper.card("🔍", title, body.toString());
+    }
+
+    private static String formatListContactsHtml(JSONObject result) throws Exception {
+        JSONArray contacts = result.optJSONArray("contacts");
+        int total = result.optInt("total", 0);
+        if (contacts == null) {
+            contacts = new JSONArray();
+        }
+        boolean zh = isZh();
+        String[] headers = zh ? new String[]{"姓名", "电话"} : new String[]{"Name", "Phone"};
+        List<String[]> rows = new ArrayList<>();
+        int show = Math.min(contacts.length(), DISPLAY_MAX_LIST_LINES);
+        for (int i = 0; i < show; i++) {
+            JSONObject c = contacts.getJSONObject(i);
+            String name = c.optString("name", "").trim();
+            if (name.isEmpty()) {
+                name = zh ? "(无名称)" : "(no name)";
+            }
+            String phone = c.optString("primaryPhone", "").trim();
+            if (phone.isEmpty()) {
+                phone = "—";
+            }
+            rows.add(new String[]{name, phone});
+        }
+        String title = zh ? "联系人列表" : "Contact List";
+        String subtitle = zh ? ("共 " + total + " 个联系人") : (total + " contacts total");
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.muted(subtitle));
+        body.append(HtmlOutputHelper.table(headers, rows));
+        if (contacts.length() > DISPLAY_MAX_LIST_LINES) {
+            int rest = contacts.length() - DISPLAY_MAX_LIST_LINES;
+            body.append(HtmlOutputHelper.muted("… +" + rest + (zh ? " 更多" : " more")));
+        }
+        return HtmlOutputHelper.card("📇", title, body.toString());
+    }
+
+    private static String formatGetContactCountHtml(JSONObject result) {
+        int n = result.optInt("count", 0);
+        boolean zh = isZh();
+        String label = zh ? "联系人总数" : "Total contacts";
+        String title = zh ? "联系人数量" : "Contact Count";
+        String body = HtmlOutputHelper.metricGrid(new String[][]{{String.valueOf(n), label}});
+        return HtmlOutputHelper.card("📇", title, body);
+    }
+
+    private static String formatGetContactDetailHtml(JSONObject d) throws Exception {
+        boolean zh = isZh();
+        String name = d.optString("displayName", "").trim();
+        if (name.isEmpty()) {
+            name = zh ? "(无名称)" : "(no name)";
+        }
+        String contactId = d.optString("contactId", "").trim();
+        String lookupKey = d.optString("lookupKey", "").trim();
+        List<String[]> kv = new ArrayList<>();
+        kv.add(new String[]{zh ? "联系人 ID" : "Contact ID", contactId.isEmpty() ? "—" : contactId});
+        kv.add(new String[]{zh ? "姓名" : "Name", name});
+        kv.add(new String[]{zh ? "查找键" : "Lookup key", lookupKey.isEmpty() ? "—" : lookupKey});
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.keyValue(kv.toArray(new String[0][])));
+
+        JSONArray phones = d.optJSONArray("phones");
+        if (phones != null && phones.length() > 0) {
+            String[] ph = zh ? new String[]{"号码", "类型", "主号码"} : new String[]{"Number", "Type", "Primary"};
+            List<String[]> pr = new ArrayList<>();
+            for (int i = 0; i < phones.length(); i++) {
+                JSONObject p = phones.getJSONObject(i);
+                pr.add(new String[]{
+                        p.optString("number", ""),
+                        String.valueOf(p.optInt("type")),
+                        p.optBoolean("isPrimary") ? (zh ? "是" : "Yes") : (zh ? "否" : "No")
+                });
+            }
+            body.append(HtmlOutputHelper.p(zh ? "电话" : "Phones"));
+            body.append(HtmlOutputHelper.table(ph, pr));
+        }
+        JSONArray emails = d.optJSONArray("emails");
+        if (emails != null && emails.length() > 0) {
+            String[] eh = zh ? new String[]{"邮箱", "类型", "主邮箱"} : new String[]{"Address", "Type", "Primary"};
+            List<String[]> er = new ArrayList<>();
+            for (int i = 0; i < emails.length(); i++) {
+                JSONObject e = emails.getJSONObject(i);
+                er.add(new String[]{
+                        e.optString("address", ""),
+                        String.valueOf(e.optInt("type")),
+                        e.optBoolean("isPrimary") ? (zh ? "是" : "Yes") : (zh ? "否" : "No")
+                });
+            }
+            body.append(HtmlOutputHelper.p(zh ? "邮箱" : "Emails"));
+            body.append(HtmlOutputHelper.table(eh, er));
+        }
+        JSONArray addresses = d.optJSONArray("addresses");
+        if (addresses != null && addresses.length() > 0) {
+            String[] ah = zh
+                    ? new String[]{"格式化", "街道", "城市", "地区", "邮编", "国家"}
+                    : new String[]{"Formatted", "Street", "City", "Region", "Postcode", "Country"};
+            List<String[]> ar = new ArrayList<>();
+            for (int i = 0; i < addresses.length(); i++) {
+                JSONObject a = addresses.getJSONObject(i);
+                ar.add(new String[]{
+                        a.optString("formatted", ""),
+                        a.optString("street", ""),
+                        a.optString("city", ""),
+                        a.optString("region", ""),
+                        a.optString("postcode", ""),
+                        a.optString("country", "")
+                });
+            }
+            body.append(HtmlOutputHelper.p(zh ? "地址" : "Addresses"));
+            body.append(HtmlOutputHelper.table(ah, ar));
+        }
+        JSONArray orgs = d.optJSONArray("organizations");
+        if (orgs != null && orgs.length() > 0) {
+            String[] oh = zh ? new String[]{"公司", "职务", "部门"} : new String[]{"Company", "Title", "Department"};
+            List<String[]> or = new ArrayList<>();
+            for (int i = 0; i < orgs.length(); i++) {
+                JSONObject o = orgs.getJSONObject(i);
+                or.add(new String[]{
+                        o.optString("company", ""),
+                        o.optString("title", ""),
+                        o.optString("department", "")
+                });
+            }
+            body.append(HtmlOutputHelper.p(zh ? "组织" : "Organization"));
+            body.append(HtmlOutputHelper.table(oh, or));
+        }
+        return HtmlOutputHelper.card("👤", zh ? "联系人详情" : "Contact Detail", body.toString());
+    }
+
+    private static String formatFindDuplicatesHtml(JSONObject result) throws Exception {
+        JSONArray nameGroups = result.optJSONArray("duplicateNameGroups");
+        JSONArray phoneGroups = result.optJSONArray("duplicatePhoneGroups");
+        if (nameGroups == null) {
+            nameGroups = new JSONArray();
+        }
+        if (phoneGroups == null) {
+            phoneGroups = new JSONArray();
+        }
+        int groupCount = nameGroups.length() + phoneGroups.length();
+        boolean zh = isZh();
+        String[] headers = zh
+                ? new String[]{"类型", "关键字", "数量", "联系人 ID"}
+                : new String[]{"Type", "Key", "Count", "Contact IDs"};
+        List<String[]> rows = new ArrayList<>();
+        int lines = 0;
+        for (int i = 0; i < nameGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
+            JSONObject g = nameGroups.getJSONObject(i);
+            String norm = g.optString("normalizedName", "").trim();
+            if (norm.isEmpty()) {
+                norm = zh ? "(未命名)" : "(unnamed)";
+            }
+            int cnt = g.optInt("count", 0);
+            String ids = joinContactIds(g.optJSONArray("contactIds"));
+            rows.add(new String[]{zh ? "姓名" : "Name", norm, String.valueOf(cnt), ids});
+            lines++;
+        }
+        for (int i = 0; i < phoneGroups.length() && lines < DISPLAY_MAX_DUP_GROUPS; i++) {
+            JSONObject g = phoneGroups.getJSONObject(i);
+            String norm = g.optString("normalizedPhone", "").trim();
+            if (norm.isEmpty()) {
+                norm = "—";
+            }
+            int cnt = g.optInt("count", 0);
+            String ids = joinContactIds(g.optJSONArray("contactIds"));
+            rows.add(new String[]{zh ? "电话" : "Phone", norm, String.valueOf(cnt), ids});
+            lines++;
+        }
+        String title = zh ? "重复联系人" : "Duplicate Contacts";
+        String subtitle = zh ? ("找到 " + groupCount + " 组") : ("Found " + groupCount + " groups");
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.muted(subtitle));
+        body.append(HtmlOutputHelper.table(headers, rows));
+        int totalLines = nameGroups.length() + phoneGroups.length();
+        if (totalLines > DISPLAY_MAX_DUP_GROUPS) {
+            body.append(HtmlOutputHelper.muted("… +" + (totalLines - DISPLAY_MAX_DUP_GROUPS)
+                    + (zh ? " 更多组" : " more groups")));
+        }
+        return HtmlOutputHelper.card("🔁", title, body.toString());
     }
 
     private static String joinContactIds(JSONArray ids) throws Exception {

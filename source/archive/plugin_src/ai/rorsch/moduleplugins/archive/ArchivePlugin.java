@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.archive;
 
 import android.content.Context;
 import android.os.Environment;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import ai.rorsch.pandagenie.nativelib.ArchiveLib;
 import org.json.JSONArray;
@@ -9,6 +10,8 @@ import org.json.JSONObject;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -51,7 +54,8 @@ public class ArchivePlugin implements ModulePlugin {
                         outDir,
                         params.optString("password", "")
                 );
-                return boolResult(ok, "decompressZip", ok ? formatDecompressDisplay(outDir, false) : null);
+                return boolResult(ok, "decompressZip", ok ? formatDecompressDisplay(outDir, false) : null, null,
+                        ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressTar": {
                 String outDir = resolveStoragePath(params.optString("outputDir", ""));
@@ -59,7 +63,8 @@ public class ArchivePlugin implements ModulePlugin {
                         resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outDir
                 );
-                return boolResult(ok, "decompressTar", ok ? formatDecompressDisplay(outDir, false) : null);
+                return boolResult(ok, "decompressTar", ok ? formatDecompressDisplay(outDir, false) : null, null,
+                        ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressTarGz": {
                 String outDir = resolveStoragePath(params.optString("outputDir", ""));
@@ -67,7 +72,8 @@ public class ArchivePlugin implements ModulePlugin {
                         resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outDir
                 );
-                return boolResult(ok, "decompressTarGz", ok ? formatDecompressDisplay(outDir, false) : null);
+                return boolResult(ok, "decompressTarGz", ok ? formatDecompressDisplay(outDir, false) : null, null,
+                        ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressGz": {
                 String outPath = resolveStoragePath(params.optString("outputPath", ""));
@@ -75,7 +81,8 @@ public class ArchivePlugin implements ModulePlugin {
                         resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
                         outPath
                 );
-                return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null);
+                return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null, null,
+                        ok ? formatDecompressHtml(outPath, true) : null);
             }
             case "compressZip": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
@@ -102,13 +109,19 @@ public class ArchivePlugin implements ModulePlugin {
                     rc.put(richFile(output, null, "application/zip"));
                 }
                 String display = ok ? formatCompressDisplay(output) : null;
+                String html = ok ? formatCompressHtml(output) : null;
                 if (ok && validInputs.length < totalRequested) {
                     int skipped = totalRequested - validInputs.length;
                     display += (isZh()
                             ? "\n\u26A0 " + skipped + " 个文件未找到已跳过"
                             : "\n\u26A0 " + skipped + " file(s) not found, skipped");
+                    if (html != null) {
+                        html += HtmlOutputHelper.muted(isZh()
+                                ? ("\u26A0 " + skipped + " 个文件未找到已跳过")
+                                : ("\u26A0 " + skipped + " file(s) not found, skipped"));
+                    }
                 }
-                return boolResult(ok, "compressZip", display, rc);
+                return boolResult(ok, "compressZip", display, rc, html);
             }
             case "compressTar": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
@@ -123,7 +136,8 @@ public class ArchivePlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richFile(output, null, "application/x-tar"));
                 }
-                return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null, rc);
+                return boolResult(ok, "compressTar", ok ? formatCompressDisplay(output) : null, rc,
+                        ok ? formatCompressHtml(output) : null);
             }
             case "compressTarGz": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
@@ -138,7 +152,8 @@ public class ArchivePlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richFile(output, null, "application/gzip"));
                 }
-                return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null, rc);
+                return boolResult(ok, "compressTarGz", ok ? formatCompressDisplay(output) : null, rc,
+                        ok ? formatCompressHtml(output) : null);
             }
             case "compressGz": {
                 String input = resolveStoragePath(params.optString("inputPath", params.optString("input", "")));
@@ -153,11 +168,12 @@ public class ArchivePlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richFile(output, null, "application/gzip"));
                 }
-                return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null, rc);
+                return boolResult(ok, "compressGz", ok ? formatCompressDisplay(output) : null, rc,
+                        ok ? formatCompressHtml(output) : null);
             }
             case "listContents": {
                 String raw = lib.listContents(resolveStoragePath(params.optString("archivePath", params.optString("path", ""))));
-                return ok(raw, formatListContentsDisplay(raw));
+                return ok(raw, formatListContentsDisplay(raw), formatListContentsHtml(raw));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -312,7 +328,7 @@ public class ArchivePlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private String ok(String output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
     /**
@@ -324,8 +340,13 @@ public class ArchivePlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject j = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) j.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) j.put("_displayHtml", displayHtml);
         return j.toString();
     }
 
@@ -339,7 +360,7 @@ public class ArchivePlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private String boolResult(boolean value, String action, String successDisplayText) throws Exception {
-        return boolResult(value, action, successDisplayText, null);
+        return boolResult(value, action, successDisplayText, null, null);
     }
 
     /**
@@ -353,6 +374,11 @@ public class ArchivePlugin implements ModulePlugin {
      * @throws Exception JSON 构造异常
      */
     private String boolResult(boolean value, String action, String successDisplayText, JSONArray richContent) throws Exception {
+        return boolResult(value, action, successDisplayText, richContent, null);
+    }
+
+    private String boolResult(boolean value, String action, String successDisplayText, JSONArray richContent,
+                              String displayHtml) throws Exception {
         JSONObject json = new JSONObject().put("success", value).put("output", String.valueOf(value));
         if (!value) {
             json.put("error", action + " failed in native code (check logcat tag=ArchiveModule for details)");
@@ -361,6 +387,9 @@ public class ArchivePlugin implements ModulePlugin {
         }
         if (value && richContent != null && richContent.length() > 0) {
             json.put("_richContent", richContent);
+        }
+        if (value && displayHtml != null && !displayHtml.isEmpty()) {
+            json.put("_displayHtml", displayHtml);
         }
         return json.toString();
     }
@@ -473,6 +502,55 @@ public class ArchivePlugin implements ModulePlugin {
             return sb.toString().trim();
         } catch (Exception ignored) {
             return isZh() ? "📦 压缩包内容\n━━━━━━━━━━━━━━\n" : "📦 Archive Contents\n━━━━━━━━━━━━━━\n";
+        }
+    }
+
+    private static String formatDecompressHtml(String outputPath, boolean singleFile) {
+        int n = countExtractedFiles(new File(outputPath), singleFile);
+        String title = isZh() ? "解压完成" : "Extracted";
+        String[][] kv = isZh()
+                ? new String[][]{{"文件数", String.valueOf(n)}, {"输出", outputPath}}
+                : new String[][]{{"Files", String.valueOf(n)}, {"Output", outputPath}};
+        return HtmlOutputHelper.card("📦", title, HtmlOutputHelper.keyValue(kv) + HtmlOutputHelper.successBadge());
+    }
+
+    private static String formatCompressHtml(String outputPath) {
+        long len = new File(outputPath).length();
+        double mb = len / (1024.0 * 1024.0);
+        String sizeStr = len < 1024 * 1024
+                ? String.format(Locale.US, "%.2f KB", len / 1024.0)
+                : String.format(Locale.US, "%.2f MB", mb);
+        String title = isZh() ? "已压缩" : "Compressed";
+        String[][] kv = isZh()
+                ? new String[][]{{"输出", outputPath}, {"大小", sizeStr}}
+                : new String[][]{{"Output", outputPath}, {"Size", sizeStr}};
+        return HtmlOutputHelper.card("📦", title, HtmlOutputHelper.keyValue(kv) + HtmlOutputHelper.successBadge());
+    }
+
+    private static String formatListContentsHtml(String rawJson) {
+        try {
+            JSONArray arr = new JSONArray(rawJson);
+            int total = arr.length();
+            int show = Math.min(DISPLAY_LIST_MAX, total);
+            List<String[]> rows = new ArrayList<>();
+            for (int i = 0; i < show; i++) {
+                JSONObject e = arr.optJSONObject(i);
+                String name = e != null ? e.optString("name", "?") : "?";
+                rows.add(new String[]{String.valueOf(i + 1), name});
+            }
+            String title = isZh() ? ("压缩包 · " + total + " 项") : ("Archive · " + total + " entries");
+            String body = HtmlOutputHelper.table(
+                    new String[]{isZh() ? "#" : "#", isZh() ? "名称" : "Name"},
+                    rows);
+            if (total > show) {
+                body += HtmlOutputHelper.muted(isZh()
+                        ? ("… 还有 " + (total - show) + " 项")
+                        : ("… +" + (total - show) + " more"));
+            }
+            return HtmlOutputHelper.card("📦", title, body + HtmlOutputHelper.successBadge());
+        } catch (Exception ignored) {
+            return HtmlOutputHelper.card("📦", isZh() ? "压缩包" : "Archive",
+                    HtmlOutputHelper.muted(isZh() ? "无法解析列表" : "Could not parse listing"));
         }
     }
 

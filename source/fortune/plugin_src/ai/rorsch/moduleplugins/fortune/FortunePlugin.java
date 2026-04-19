@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.fortune;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,6 +25,10 @@ import java.util.TimeZone;
  * </p>
  */
 public class FortunePlugin implements ModulePlugin {
+
+    private static boolean isZh() {
+        return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+    }
 
     /** 七个等级的中文名称，与 {@link #FORTUNE_WORDS} 等数组下标一一对应（1-based level 时需减 1） */
     private static final String[] LEVEL_NAMES_ZH = {"大吉", "吉", "中吉", "小吉", "末吉", "凶", "大凶"};
@@ -122,16 +127,21 @@ public class FortunePlugin implements ModulePlugin {
             switch (action) {
                 case "getDailyFortune": {
                     JSONObject r = getDailyFortune(params.optString("name", ""));
-                    return ok(r, formatFortuneDisplay(r));
+                    return ok(r, formatFortuneDisplay(r), formatFortuneHtml(r));
                 }
                 case "getFortuneByDate": {
                     JSONObject r = getFortuneByDate(params.optString("date", ""), params.optString("name", ""));
-                    return ok(r, formatFortuneDisplay(r));
+                    return ok(r, formatFortuneDisplay(r), formatFortuneHtml(r));
                 }
-                case "getLunarDate":
-                    return ok(getLunarDate(params.optString("date", "")));
-                case "getFortuneLevel":
-                    return ok(getFortuneLevel(params.optInt("level", 0)));
+                case "getLunarDate": {
+                    JSONObject r = getLunarDate(params.optString("date", ""));
+                    return ok(r, formatLunarDisplay(r), formatLunarHtml(r));
+                }
+                case "getFortuneLevel": {
+                    int level = params.optInt("level", 0);
+                    JSONObject r = getFortuneLevel(level);
+                    return ok(r, formatFortuneLevelDisplay(r), formatFortuneLevelHtml(r));
+                }
                 default:
                     return error("Unsupported action: " + action);
             }
@@ -164,6 +174,79 @@ public class FortunePlugin implements ModulePlugin {
             sb.append("\n\uD83D\uDCC5 ").append(lunar.optString("lunarDateString", ""));
         }
         return sb.toString();
+    }
+
+    private String formatFortuneHtml(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        String levelName = zh ? r.optString("levelName") : r.optString("levelName_en", r.optString("levelName"));
+        String[][] kv = zh
+                ? new String[][]{
+                {"日期", r.optString("date")},
+                {"等级", r.optString("symbol", "") + " " + levelName},
+                {"吉语", r.optString("fortuneWord")},
+                {"幸运数字", String.valueOf(r.optInt("luckyNumber"))},
+                {"幸运色", r.optString("luckyColor")},
+                {"宜", r.optString("adviceDo")},
+                {"忌", r.optString("adviceDont")}
+        }
+                : new String[][]{
+                {"Date", r.optString("date")},
+                {"Level", r.optString("symbol", "") + " " + levelName},
+                {"Word", r.optString("fortuneWord")},
+                {"Lucky #", String.valueOf(r.optInt("luckyNumber"))},
+                {"Color", r.optString("luckyColor")},
+                {"Do", r.optString("adviceDo")},
+                {"Don't", r.optString("adviceDont")}
+        };
+        String body = HtmlOutputHelper.keyValue(kv);
+        JSONObject lunar = r.optJSONObject("lunar");
+        if (lunar != null) {
+            body += HtmlOutputHelper.muted(lunar.optString("lunarDateString", ""));
+        }
+        return HtmlOutputHelper.card("🔮", zh ? "运势" : "Fortune", body);
+    }
+
+    private String formatLunarDisplay(JSONObject r) throws Exception {
+        return r.optString("lunarDateString", "");
+    }
+
+    private String formatLunarHtml(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        String[][] kv = zh
+                ? new String[][]{
+                {"农历", r.optString("lunarDateString")},
+                {"生肖", r.optString("zodiac")}
+        }
+                : new String[][]{
+                {"Lunar", r.optString("lunarDateString")},
+                {"Zodiac", r.optString("zodiac")}
+        };
+        return HtmlOutputHelper.card("📅", zh ? "农历" : "Lunar calendar", HtmlOutputHelper.keyValue(kv));
+    }
+
+    private String formatFortuneLevelDisplay(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        return (zh ? "等级详情: " : "Level: ")
+                + r.optString("symbol", "") + " "
+                + r.optString(zh ? "name" : "name_en", r.optString("name"));
+    }
+
+    private String formatFortuneLevelHtml(JSONObject r) throws Exception {
+        boolean zh = isZh();
+        String name = r.optString(zh ? "name" : "name_en", r.optString("name"));
+        JSONArray words = r.optJSONArray("fortuneWords");
+        StringBuilder preview = new StringBuilder();
+        if (words != null) {
+            int n = Math.min(4, words.length());
+            for (int i = 0; i < n; i++) {
+                if (i > 0) preview.append(zh ? "、" : ", ");
+                preview.append(words.optString(i));
+            }
+            if (words.length() > n) preview.append(zh ? "…" : "…");
+        }
+        String body = HtmlOutputHelper.p(r.optString("symbol", "") + " " + name)
+                + (preview.length() > 0 ? HtmlOutputHelper.muted(preview.toString()) : "");
+        return HtmlOutputHelper.card("🔮", zh ? "运势等级" : "Fortune level", body);
     }
 
     /**
@@ -505,7 +588,7 @@ public class FortunePlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(JSONObject output) throws Exception {
-        return ok(output, null);
+        return ok(output, null, null);
     }
 
     /**
@@ -517,11 +600,18 @@ public class FortunePlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

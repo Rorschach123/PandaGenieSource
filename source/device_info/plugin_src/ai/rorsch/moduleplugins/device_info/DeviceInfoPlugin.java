@@ -10,6 +10,7 @@ import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -89,27 +90,33 @@ public class DeviceInfoPlugin implements ModulePlugin {
         switch (action) {
             case "getDeviceInfo": {
                 String output = getDeviceInfo();
-                return ok(output, formatDeviceInfoDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatDeviceInfoDisplay(j), formatDeviceInfoHtml(j));
             }
             case "getCpuInfo": {
                 String output = getCpuInfo();
-                return ok(output, formatCpuInfoDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatCpuInfoDisplay(j), formatCpuInfoHtml(j));
             }
             case "getMemoryInfo": {
                 String output = getMemoryInfo(context);
-                return ok(output, formatMemoryInfoDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatMemoryInfoDisplay(j), formatMemoryInfoHtml(j));
             }
             case "getStorageInfo": {
                 String output = getStorageInfo();
-                return ok(output, formatStorageInfoDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatStorageInfoDisplay(j), formatStorageInfoHtml(j));
             }
             case "getDisplayInfo": {
                 String output = getDisplayInfo(context);
-                return ok(output, formatDisplayInfoDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatDisplayInfoDisplay(j), formatDisplayInfoHtml(j));
             }
             case "getSystemSummary": {
                 String output = getSystemSummary(context);
-                return ok(output, formatSystemSummaryDisplay(new JSONObject(output)));
+                JSONObject j = new JSONObject(output);
+                return ok(output, formatSystemSummaryDisplay(j), formatSystemSummaryHtml(j));
             }
             default:
                 return error("Unsupported action: " + action
@@ -666,6 +673,197 @@ public class DeviceInfoPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private static String formatDeviceInfoHtml(JSONObject d) {
+        boolean zh = isZh();
+        String fp = d.optString("fingerprint", "");
+        if (fp.length() > 96) {
+            fp = fp.substring(0, 93) + "…";
+        }
+        return HtmlOutputHelper.card("📱", zh ? "设备信息" : "Device Info",
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {zh ? "型号" : "Model", d.optString("model", "—")},
+                        {zh ? "品牌" : "Brand", d.optString("brand", "—")},
+                        {zh ? "制造商" : "Manufacturer", d.optString("manufacturer", "—")},
+                        {"Android", d.optString("androidVersion", "—")},
+                        {"SDK", String.valueOf(d.optInt("sdkInt", 0))},
+                        {zh ? "版本号" : "Build", d.optString("buildNumber", "—")},
+                        {zh ? "增量版本" : "Incremental", d.optString("buildIncremental", "—")},
+                        {zh ? "指纹" : "Fingerprint", fp.isEmpty() ? "—" : fp}
+                })
+        );
+    }
+
+    private static String formatCpuInfoHtml(JSONObject j) {
+        boolean zh = isZh();
+        JSONArray abis = j.optJSONArray("supportedAbis");
+        String abisStr = "—";
+        if (abis != null && abis.length() > 0) {
+            StringBuilder a = new StringBuilder();
+            for (int i = 0; i < abis.length(); i++) {
+                if (i > 0) {
+                    a.append(", ");
+                }
+                a.append(abis.optString(i, ""));
+            }
+            abisStr = a.toString();
+        }
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "核心数" : "Cores", String.valueOf(j.optInt("processorCount", 0))},
+                {zh ? "架构" : "Architecture", j.optString("osArch", "—")},
+                {"ABIs", abisStr},
+                {
+                        zh ? "/proc/cpuinfo 处理器行" : "/proc/cpuinfo processors",
+                        String.valueOf(j.optInt("processorEntriesInCpuinfo", 0))
+                }
+        }));
+        String cpuErr = j.optString("cpuinfoError", "");
+        if (!cpuErr.isEmpty()) {
+            body.append(HtmlOutputHelper.muted(cpuErr));
+        }
+        return HtmlOutputHelper.card("⚡", zh ? "CPU 信息" : "CPU Info", body.toString());
+    }
+
+    private static String formatMemoryInfoHtml(JSONObject j) {
+        boolean zh = isZh();
+        if (j.has("error")) {
+            return HtmlOutputHelper.card("🧠", zh ? "内存信息" : "Memory Info",
+                    HtmlOutputHelper.muted(j.optString("error", "—")));
+        }
+        long total = j.optLong("totalBytes", 0);
+        double usedPctD = j.optDouble("usedPercent", 0);
+        int pct = (int) Math.round(usedPctD);
+        String color = pct > 80 ? "#F44336" : pct > 60 ? "#FF9800" : "#4CAF50";
+        String low = j.optBoolean("lowMemory", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No");
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.metricGrid(new String[][]{
+                {formatBytes(total), zh ? "总内存" : "Total"},
+                {formatBytes(j.optLong("availableBytes", 0)), zh ? "可用" : "Available"},
+                {formatBytes(j.optLong("usedBytes", 0)), zh ? "已用" : "Used"},
+                {String.format(Locale.US, "%.2f%%", usedPctD), zh ? "使用率" : "Usage"}
+        }));
+        body.append(HtmlOutputHelper.gauge(pct, color));
+        body.append(HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "低内存" : "Low memory", low}
+        }));
+        if (j.has("thresholdBytes")) {
+            body.append(HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "阈值" : "Threshold", formatBytes(j.optLong("thresholdBytes", 0))}
+            }));
+        }
+        return HtmlOutputHelper.card("🧠", zh ? "内存信息" : "Memory Info", body.toString());
+    }
+
+    private static String formatStorageInfoHtml(JSONObject j) {
+        boolean zh = isZh();
+        JSONObject internal = j.optJSONObject("internal");
+        JSONObject external = j.optJSONObject("externalPrimary");
+        StringBuilder body = new StringBuilder();
+        if (internal != null) {
+            long total = internal.optLong("totalBytes", 1);
+            long used = internal.optLong("usedBytes", 0);
+            int pct = total > 0 ? (int) (used * 100 / total) : 0;
+            body.append("<div style='margin-bottom:8px'><b>").append(zh ? "内部存储" : "Internal").append("</b></div>");
+            body.append(HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "路径" : "Path", internal.optString("path", "—")},
+                    {zh ? "总空间" : "Total", formatBytes(internal.optLong("totalBytes", 0))},
+                    {zh ? "已用" : "Used", formatBytes(used)},
+                    {zh ? "可用" : "Free", formatBytes(internal.optLong("availableBytes", 0))}
+            }));
+            body.append(HtmlOutputHelper.gauge(pct, pct > 80 ? "#F44336" : "#4CAF50"));
+        }
+        if (external != null && external.has("totalBytes")) {
+            long total = external.optLong("totalBytes", 1);
+            long used = external.optLong("usedBytes", 0);
+            int pct = total > 0 ? (int) (used * 100 / total) : 0;
+            body.append("<div style='margin:8px 0 8px 0'><b>").append(zh ? "外部存储" : "External").append("</b></div>");
+            body.append(HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "路径" : "Path", external.optString("path", "—")},
+                    {zh ? "总空间" : "Total", formatBytes(total)},
+                    {zh ? "已用" : "Used", formatBytes(used)},
+                    {zh ? "可用" : "Free", formatBytes(external.optLong("availableBytes", 0))},
+                    {
+                            zh ? "状态" : "State",
+                            external.optString("state", "—")
+                    }
+            }));
+            body.append(HtmlOutputHelper.gauge(pct, pct > 80 ? "#F44336" : "#4CAF50"));
+        }
+        return HtmlOutputHelper.card("💾", zh ? "存储信息" : "Storage Info", body.toString());
+    }
+
+    private static String formatDisplayInfoHtml(JSONObject j) {
+        boolean zh = isZh();
+        if (j.has("error")) {
+            return HtmlOutputHelper.card("🖥️", zh ? "显示信息" : "Display Info",
+                    HtmlOutputHelper.muted(j.optString("error", "—")));
+        }
+        int w = j.optInt("widthPx", 0);
+        int h = j.optInt("heightPx", 0);
+        return HtmlOutputHelper.card("🖥️", zh ? "显示信息" : "Display Info",
+                HtmlOutputHelper.keyValue(new String[][]{
+                        {zh ? "分辨率" : "Resolution", w + " × " + h},
+                        {
+                                zh ? "密度" : "Density",
+                                String.format(Locale.US, "%.2f", j.optDouble("density", 0))
+                        },
+                        {zh ? "密度 DPI" : "Density DPI", String.valueOf(j.optInt("densityDpi", 0))},
+                        {
+                                zh ? "刷新率" : "Refresh",
+                                String.format(Locale.US, "%.1f Hz", j.optDouble("refreshRateHz", 0))
+                        }
+                })
+        );
+    }
+
+    private static String formatSystemSummaryHtml(JSONObject sum) {
+        boolean zh = isZh();
+        JSONObject device = sum.optJSONObject("device");
+        JSONObject memory = sum.optJSONObject("memory");
+        JSONObject storage = sum.optJSONObject("storage");
+        JSONObject internal = storage != null ? storage.optJSONObject("internal") : null;
+
+        String deviceLine = "—";
+        String androidLine = "—";
+        if (device != null) {
+            deviceLine = (device.optString("brand", "") + " " + device.optString("model", "")).trim();
+            if (deviceLine.isEmpty()) {
+                deviceLine = "—";
+            }
+            androidLine = "Android " + device.optString("androidVersion", "")
+                    + " (API " + device.optInt("sdkInt", 0) + ")";
+        }
+
+        String memLine = "—";
+        long memTotal = 1;
+        long memUsed = 0;
+        if (memory != null && !memory.has("error")) {
+            memTotal = Math.max(1, memory.optLong("totalBytes", 1));
+            memUsed = memory.optLong("usedBytes", 0);
+            memLine = formatBytes(memUsed) + " / " + formatBytes(memory.optLong("totalBytes", 0));
+        } else if (memory != null) {
+            memLine = memory.optString("error", "—");
+        }
+
+        String freeStorage = "—";
+        if (internal != null) {
+            freeStorage = formatBytes(internal.optLong("availableBytes", 0));
+        }
+
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.metricGrid(new String[][]{
+                {deviceLine, zh ? "设备" : "Device"},
+                {androidLine, zh ? "系统" : "System"},
+                {memLine, zh ? "内存" : "RAM"},
+                {freeStorage, zh ? "可用存储" : "Free Storage"}
+        }));
+        int memPct = (memory != null && !memory.has("error") && memTotal > 0)
+                ? (int) (memUsed * 100 / memTotal)
+                : 0;
+        body.append(HtmlOutputHelper.gauge(memPct, memPct > 80 ? "#F44336" : "#4CAF50"));
+        return HtmlOutputHelper.card("📊", zh ? "系统概要" : "System Summary", body.toString());
+    }
+
     /**
      * @param output 业务 JSON 字符串
      * @return 成功包装，无展示文案
@@ -682,11 +880,25 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String ok(String output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    /**
+     * @param output       写入 {@code output} 字段的字符串
+     * @param displayText  非 null 时写入 {@code _displayText}
+     * @param displayHtml  非 null 且非空时写入 {@code _displayHtml}
+     * @return 完整响应 JSON
+     * @throws Exception JSON 异常
+     */
+    private String ok(String output, String displayText, String displayHtml) throws Exception {
         JSONObject j = new JSONObject();
         j.put("success", true);
         j.put("output", output);
         if (displayText != null) {
             j.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            j.put("_displayHtml", displayHtml);
         }
         return j.toString();
     }

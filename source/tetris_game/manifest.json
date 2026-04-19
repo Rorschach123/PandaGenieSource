@@ -4,7 +4,7 @@
   "name_en": "Tetris Game",
   "description": "经典俄罗斯方块游戏，控制方块移动和旋转，将方块堆叠成完整行来消除得分，支持设置难度",
   "description_en": "Classic Tetris game. Control blocks to move and rotate, stack them to complete rows for points. Supports difficulty settings",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "grid_view",
   "soLibraries": [],
   "h5Page": "index.html",

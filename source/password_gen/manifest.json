@@ -2,7 +2,7 @@
     "id": "password_gen",
     "name": "密码生成器",
     "name_en": "Password Generator",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "vpn_key",
     "soLibraries": [],
     "description": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成、密码强度检测和密码安全保存",

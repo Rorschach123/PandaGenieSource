@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.led_banner;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -111,7 +112,7 @@ public class LedBannerPlugin implements ModulePlugin {
             switch (action) {
                 case "generateBanner": {
                     JSONObject r = generateBanner(params);
-                    return okOpenModule(r, formatBannerDisplay(r));
+                    return okOpenModule(r, formatBannerDisplay(r), formatBannerDisplayHtml(r));
                 }
                 case "getTemplates":
                     return ok(getTemplates());
@@ -119,7 +120,7 @@ public class LedBannerPlugin implements ModulePlugin {
                     return ok(getStarTemplates());
                 case "applyTemplate": {
                     JSONObject r = applyTemplate(params);
-                    return okOpenModule(r, formatBannerDisplay(r));
+                    return okOpenModule(r, formatBannerDisplay(r), formatBannerDisplayHtml(r));
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -146,6 +147,21 @@ public class LedBannerPlugin implements ModulePlugin {
         sb.append("\uD83D\uDCFA 模式: ").append(r.optString("modeName", "")).append("\n");
         sb.append("\uD83D\uDD26 点击下方按钮打开灯牌全屏展示");
         return sb.toString();
+    }
+
+    private boolean isZh() {
+        return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+    }
+
+    private String formatBannerDisplayHtml(JSONObject r) {
+        String title = isZh() ? "灯牌已生成" : "Banner ready";
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "文字" : "Text", r.optString("text", "")},
+                {isZh() ? "字色" : "Font", r.optString("fontColor", "")},
+                {isZh() ? "背景" : "Background", r.optString("bgColor", "")},
+                {isZh() ? "模式" : "Mode", r.optString("modeName", "")}
+        }) + HtmlOutputHelper.p(isZh() ? "点击下方打开全屏展示" : "Tap below for fullscreen");
+        return HtmlOutputHelper.card("💡", title, body + HtmlOutputHelper.successBadge());
     }
 
     /**
@@ -424,13 +440,16 @@ public class LedBannerPlugin implements ModulePlugin {
      * @return 完整响应 JSON 字符串
      * @throws Exception JSON 异常
      */
-    private String okOpenModule(JSONObject output, String displayText) throws Exception {
+    private String okOpenModule(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString())
                 .put("_openModule", true);
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

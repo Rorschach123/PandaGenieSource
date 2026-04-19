@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.link_parser;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -124,7 +125,7 @@ public class LinkParserPlugin implements ModulePlugin {
             }
 
             String display = buildParseDisplay(result);
-            return ok(result.toString(), display);
+            return ok(result.toString(), display, formatParseUrlHtml(result));
 
         } catch (Exception e) {
             return error("Failed to parse URL: " + e.getMessage());
@@ -896,6 +897,55 @@ public class LinkParserPlugin implements ModulePlugin {
         return String.format("%.1f GB", bytes / (1024.0 * 1024 * 1024));
     }
 
+    private String formatParseUrlHtml(JSONObject result) {
+        try {
+            java.util.ArrayList<String[]> pairs = new java.util.ArrayList<>();
+            pairs.add(new String[]{"URL", result.optString("url", "")});
+            pairs.add(new String[]{"Status", String.valueOf(result.optInt("statusCode"))});
+            pairs.add(new String[]{"Content-Type", result.optString("contentType", "")});
+            pairs.add(new String[]{"Response time", result.optLong("responseTimeMs") + " ms"});
+            if (result.optString("type", "").equals("image")) {
+                pairs.add(new String[]{"Type", "image"});
+                pairs.add(new String[]{"Image URL", result.optString("imageUrl", "")});
+            } else if (result.optString("type", "").equals("downloadable_file")) {
+                pairs.add(new String[]{"Type", "file"});
+                pairs.add(new String[]{"File", result.optString("fileName", "")});
+                pairs.add(new String[]{"Size", formatSize(result.optLong("fileSize"))});
+            } else {
+                String title = result.optString("title", "");
+                if (!title.isEmpty()) pairs.add(new String[]{"Title", title});
+                String desc = result.optString("description", "");
+                if (!desc.isEmpty()) {
+                    pairs.add(new String[]{"Description", desc.length() > 800 ? desc.substring(0, 800) + "..." : desc});
+                }
+                if (result.has("imageCount")) {
+                    pairs.add(new String[]{"Images", String.valueOf(result.optInt("imageCount"))});
+                }
+                JSONArray inL = result.optJSONArray("internalLinks");
+                JSONArray exL = result.optJSONArray("externalLinks");
+                if (inL != null || exL != null) {
+                    int ic = inL != null ? inL.length() : 0;
+                    int ec = exL != null ? exL.length() : 0;
+                    pairs.add(new String[]{"Links", "internal " + ic + ", external " + ec});
+                }
+                JSONArray downloads = result.optJSONArray("downloads");
+                if (downloads != null && downloads.length() > 0) {
+                    pairs.add(new String[]{"Downloads", String.valueOf(downloads.length())});
+                }
+                String preview = result.optString("textPreview", "");
+                if (!preview.isEmpty()) {
+                    pairs.add(new String[]{"Text preview", preview.length() > 600 ? preview.substring(0, 600) + "..." : preview});
+                }
+            }
+            String[][] arr = pairs.toArray(new String[0][]);
+            String cardTitle = result.optString("title", "");
+            if (cardTitle.isEmpty()) cardTitle = "Link";
+            return HtmlOutputHelper.card("\uD83D\uDD17", cardTitle, HtmlOutputHelper.keyValue(arr));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private String buildParseDisplay(JSONObject result) {
         StringBuilder sb = new StringBuilder();
         try {
@@ -940,16 +990,23 @@ public class LinkParserPlugin implements ModulePlugin {
 
     // ── JSON response helpers ──
 
-    private static String ok(String output, String displayText) {
+    private static String ok(String output, String displayText, String displayHtml) {
         try {
             JSONObject j = new JSONObject();
             j.put("success", true);
             j.put("output", output);
             j.put("_displayText", displayText);
+            if (displayHtml != null && !displayHtml.isEmpty()) {
+                j.put("_displayHtml", displayHtml);
+            }
             return j.toString();
         } catch (Exception e) {
             return "{\"success\":true,\"output\":\"\"}";
         }
+    }
+
+    private static String ok(String output, String displayText) {
+        return ok(output, displayText, null);
     }
 
     private static String error(String msg) {

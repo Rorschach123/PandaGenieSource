@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.tetris_game;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -79,7 +80,7 @@ public class TetrisPlugin implements ModulePlugin {
         difficulty = Math.max(1, Math.min(3, diff));
         random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private void initGame() {
@@ -163,7 +164,7 @@ public class TetrisPlugin implements ModulePlugin {
 
     private String move(String dir) throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
 
         int dx = 0, dy = 0;
         switch (dir) {
@@ -179,12 +180,12 @@ public class TetrisPlugin implements ModulePlugin {
         } else if (dy == 1) {
             lockPiece();
         }
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String rotate() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
 
         int newRot = (currentRotation + 1) % PIECES[currentPiece].length;
         if (canPlace(currentPiece, newRot, currentX, currentY)) {
@@ -196,43 +197,43 @@ public class TetrisPlugin implements ModulePlugin {
             currentRotation = newRot;
             currentX++;
         }
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String drop() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
 
         while (canPlace(currentPiece, currentRotation, currentX, currentY + 1)) {
             currentY++;
             score += 2;
         }
         lockPiece();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String tick() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
 
         if (canPlace(currentPiece, currentRotation, currentX, currentY + 1)) {
             currentY++;
         } else {
             lockPiece();
         }
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String getState() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String restart() throws Exception {
         if (difficulty == 0) difficulty = 2;
         if (random == null) random = new Random();
         initGame();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private JSONObject buildState() throws Exception {
@@ -312,16 +313,40 @@ public class TetrisPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatDisplayHtml() {
+        String[] diffNames = {"简单", "普通", "困难"};
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {String.valueOf(score), "得分"},
+                {String.valueOf(linesCleared), "消行"},
+                {String.valueOf(level), "等级"}
+        });
+        body += HtmlOutputHelper.keyValue(new String[][]{
+                {"难度", diffNames[difficulty - 1]},
+                {"当前", String.valueOf(PIECE_CHARS[currentPiece])},
+                {"下一个", String.valueOf(PIECE_CHARS[nextPiece])},
+                {"状态", gameOver ? "游戏结束" : "进行中"}
+        });
+        if (gameOver) {
+            body += HtmlOutputHelper.errorBadge() + HtmlOutputHelper.p("得分 " + score + " · 消行 " + linesCleared + " · restart 重开");
+        } else {
+            body += HtmlOutputHelper.muted("left / right / down · rotate · drop · tick");
+        }
+        return HtmlOutputHelper.card("🧱", "俄罗斯方块", body);
+    }
+
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private String ok(JSONObject output, String displayText) throws Exception {
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

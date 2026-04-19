@@ -26,6 +26,9 @@ source/my_module/
 
 **Full guide:** [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md) ([on GitHub](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md))
 
+> **New in v1.0.8:** Modules can now return rich HTML5 mini-cards via `_displayHtml` for beautiful in-chat output.
+> Use the `HtmlOutputHelper` class for consistent styling — see the [development guide](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md) for details.
+
 ---
 
 ## Types of Contributions

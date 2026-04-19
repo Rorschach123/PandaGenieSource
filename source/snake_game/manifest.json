@@ -4,7 +4,7 @@
   "name_en": "Snake Game",
   "description": "经典贪吃蛇游戏，控制蛇移动吃掉食物增加长度，避免碰到墙壁和自身，支持设置难度",
   "description_en": "Classic Snake game. Control the snake to eat food and grow longer while avoiding walls and yourself. Supports difficulty settings",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "sports_esports",
   "soLibraries": [],
   "h5Page": "index.html",

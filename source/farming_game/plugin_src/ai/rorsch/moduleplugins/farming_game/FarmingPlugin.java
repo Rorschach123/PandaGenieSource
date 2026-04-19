@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.farming_game;
 
 import android.content.Context;
 import android.os.Environment;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -11,6 +12,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class FarmingPlugin implements ModulePlugin {
@@ -74,7 +77,8 @@ public class FarmingPlugin implements ModulePlugin {
         gameState = createNewGame();
         gameLoaded = true;
         saveToFile(context);
-        return ok(buildDisplayState(), formatDisplay());
+        JSONObject st = buildDisplayState();
+        return ok(st, formatDisplay(), formatDisplayHtml(st));
     }
 
     private String enterGame(Context context) throws Exception {
@@ -85,7 +89,8 @@ public class FarmingPlugin implements ModulePlugin {
             gameLoaded = true;
             updateGrowth();
             saveToFile(context);
-            return ok(buildDisplayState(), formatDisplay());
+            JSONObject st = buildDisplayState();
+            return ok(st, formatDisplay(), formatDisplayHtml(st));
         }
         return startGame(context);
     }
@@ -181,7 +186,8 @@ public class FarmingPlugin implements ModulePlugin {
 
         gameState.put("lastUpdateTime", System.currentTimeMillis());
         saveToFile(context);
-        return ok(buildDisplayState(), formatDisplay());
+        JSONObject st = buildDisplayState();
+        return ok(st, formatDisplay(), formatDisplayHtml(st));
     }
 
     private String water(Context context, int plotIndex) throws Exception {
@@ -198,7 +204,7 @@ public class FarmingPlugin implements ModulePlugin {
 
         JSONObject result = buildDisplayState();
         result.put("message", "浇水成功！💧 当前水分等级: " + waterLevel);
-        return ok(result, formatDisplay());
+        return ok(result, formatDisplay(), formatDisplayHtml(result));
     }
 
     private String fertilize(Context context, int plotIndex) throws Exception {
@@ -215,7 +221,7 @@ public class FarmingPlugin implements ModulePlugin {
 
         JSONObject result = buildDisplayState();
         result.put("message", "施肥成功！🧪 当前肥料等级: " + fertLevel);
-        return ok(result, formatDisplay());
+        return ok(result, formatDisplay(), formatDisplayHtml(result));
     }
 
     private String weed(Context context, int plotIndex) throws Exception {
@@ -231,7 +237,7 @@ public class FarmingPlugin implements ModulePlugin {
 
         JSONObject result = buildDisplayState();
         result.put("message", "除草完成！🌿 杂草已清除");
-        return ok(result, formatDisplay());
+        return ok(result, formatDisplay(), formatDisplayHtml(result));
     }
 
     private String harvest(Context context, int plotIndex) throws Exception {
@@ -287,13 +293,14 @@ public class FarmingPlugin implements ModulePlugin {
 
         JSONObject result = buildDisplayState();
         result.put("message", "收获了 " + finalYield + " 个" + cropEmoji + cropName + "！品质: " + quality);
-        return ok(result, formatDisplay());
+        return ok(result, formatDisplay(), formatDisplayHtml(result));
     }
 
     private String getState(Context context) throws Exception {
         ensureLoaded(context);
         updateGrowth();
-        return ok(buildDisplayState(), formatDisplay());
+        JSONObject st = buildDisplayState();
+        return ok(st, formatDisplay(), formatDisplayHtml(st));
     }
 
     private String getHarvestHistory(Context context) throws Exception {
@@ -321,7 +328,7 @@ public class FarmingPlugin implements ModulePlugin {
             }
         }
         result.put("_historyDisplay", sb.toString());
-        return ok(result, sb.toString());
+        return ok(result, sb.toString(), formatHarvestHistoryHtml());
     }
 
     private String saveGame(Context context) throws Exception {
@@ -330,7 +337,9 @@ public class FarmingPlugin implements ModulePlugin {
         saveToFile(context);
         JSONObject result = buildDisplayState();
         result.put("message", "游戏进度已保存！");
-        return ok(result, "✅ 游戏进度已保存！");
+        String html = HtmlOutputHelper.card("💾", "保存",
+                HtmlOutputHelper.successBadge() + HtmlOutputHelper.p("游戏进度已保存"));
+        return ok(result, "✅ 游戏进度已保存！", html);
     }
 
     private void ensureLoaded(Context context) throws Exception {
@@ -425,6 +434,60 @@ public class FarmingPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatDisplayHtml(JSONObject output) throws Exception {
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.keyValue(new String[][]{
+                {"收获总计", String.valueOf(gameState.optInt("totalHarvests", 0)) + " 次"}
+        }));
+        JSONArray plots = gameState.getJSONArray("plots");
+        String[][] items = new String[plots.length()][2];
+        for (int i = 0; i < plots.length(); i++) {
+            JSONObject plot = plots.getJSONObject(i);
+            String icon = plot.optBoolean("empty", true) ? "🟫" : plot.optString("cropEmoji", "🌱");
+            String line;
+            if (plot.optBoolean("empty", true)) {
+                line = "地块 " + i + " · 空地";
+            } else {
+                line = "地块 " + i + " · " + plot.optString("cropName", "")
+                        + " " + plot.optInt("currentStage", 0) + "/" + plot.optInt("maxStages", 4);
+                if (plot.optBoolean("mature", false)) line += " · 可收获";
+                line += " · 💧" + plot.optInt("waterLevel", 0)
+                        + " 🧪" + plot.optInt("fertilizerLevel", 0)
+                        + " 🌿" + (plot.optInt("weedLevel", 0) > 0 ? "杂草x" + plot.optInt("weedLevel", 0) : "无");
+            }
+            items[i][0] = icon;
+            items[i][1] = line;
+        }
+        body.append(HtmlOutputHelper.iconList(items));
+        String msg = output.optString("message", "");
+        if (!msg.isEmpty()) {
+            body.append(HtmlOutputHelper.p(msg));
+        }
+        body.append(HtmlOutputHelper.muted("plant · water · fertilize · weed · harvest · saveGame"));
+        return HtmlOutputHelper.card("🌾", "种菜", body.toString());
+    }
+
+    private String formatHarvestHistoryHtml() throws Exception {
+        JSONArray history = gameState.optJSONArray("harvestHistory");
+        int total = gameState.optInt("totalHarvests", 0);
+        String head = HtmlOutputHelper.keyValue(new String[][]{{"总收获次数", String.valueOf(total)}});
+        if (history == null || history.length() == 0) {
+            return HtmlOutputHelper.card("📋", "收获记录", head + HtmlOutputHelper.muted("暂无收获记录"));
+        }
+        List<String[]> rows = new ArrayList<>();
+        int showCount = Math.min(history.length(), 20);
+        for (int i = history.length() - 1; i >= history.length() - showCount; i--) {
+            JSONObject r = history.getJSONObject(i);
+            rows.add(new String[]{
+                    r.optString("cropEmoji", "") + " " + r.optString("cropName", ""),
+                    String.valueOf(r.optInt("yield", 0)),
+                    r.optString("quality", "")
+            });
+        }
+        return HtmlOutputHelper.card("📋", "收获记录",
+                head + HtmlOutputHelper.table(new String[]{"作物", "数量", "品质"}, rows));
+    }
+
     private String padTo(int len) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < Math.max(0, len); i++) sb.append(" ");
@@ -477,12 +540,15 @@ public class FarmingPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private String ok(JSONObject output, String displayText) throws Exception {
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

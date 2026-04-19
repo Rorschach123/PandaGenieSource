@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.qrcode;
 
 import ai.rorsch.moduleplugins.qrcode.qr.DataTooLongException;
 import ai.rorsch.moduleplugins.qrcode.qr.QrCode;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import android.content.Context;
@@ -51,27 +52,25 @@ public class QrcodePlugin implements ModulePlugin {
                     String out = generateQR(params);
                     JSONObject gen = new JSONObject(out);
                     String path = gen.optString("path", "");
-                    String text = gen.optString("text", "");
                     JSONArray rich = new JSONArray();
                     if (!path.isEmpty()) {
                         rich.put(richImage(path, isZh() ? "二维码" : "QR Code"));
                     }
-                    return ok(out, formatGenerateDisplay(out), rich);
+                    return ok(out, formatGenerateDisplay(out), rich, formatGenerateHtml(out));
                 }
                 case "decodeQR": {
                     String out = decodeQR(params);
                     JSONObject decoded = new JSONObject(out);
-                    String decodedText = decoded.optString("decoded", "");
                     JSONArray rich = new JSONArray();
                     String imgPath = decoded.optString("imagePath", "");
                     if (!imgPath.isEmpty()) {
                         rich.put(richImage(imgPath, isZh() ? "扫描图片" : "Scanned Image"));
                     }
-                    return ok(out, formatDecodeDisplay(out), rich);
+                    return ok(out, formatDecodeDisplay(out), rich, formatDecodeHtml(out));
                 }
                 case "detectQR": {
                     String out = detectQR(params);
-                    return ok(out, formatDetectDisplay(out));
+                    return ok(out, formatDetectDisplay(out), formatDetectHtml(out));
                 }
                 case "listGenerated": {
                     String out = listGenerated();
@@ -91,7 +90,7 @@ public class QrcodePlugin implements ModulePlugin {
                             }
                         }
                     }
-                    return ok(out, formatListDisplay(out), rich);
+                    return ok(out, formatListDisplay(out), rich, formatListHtml(out));
                 }
                 case "openPage": {
                     String page = params.optString("page", "gen").trim();
@@ -434,25 +433,108 @@ public class QrcodePlugin implements ModulePlugin {
                 + "\u25B8 Directory: " + dir;
     }
 
+    private static String formatGenerateHtml(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        String preview = o.optString("text", "");
+        if (preview.length() > 48) preview = preview.substring(0, 48) + "\u2026";
+        String path = o.optString("path", "");
+        String kv = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u7f16\u7801\u5185\u5bb9" : "Content", preview},
+                {isZh() ? "\u56fe\u7247\u5c3a\u5bf8" : "Image size", o.optInt("imageSize") + " \u00d7 " + o.optInt("imageSize") + " px"},
+                {isZh() ? "QR \u7248\u672c" : "QR version", o.optInt("qrVersion") + " (" + o.optInt("modules") + " \u00d7 " + o.optInt("modules") + ")"},
+                {isZh() ? "\u6587\u4ef6\u8def\u5f84" : "File path", path}
+        });
+        return HtmlOutputHelper.card("\u2705", isZh() ? "\u4e8c\u7ef4\u7801\u5df2\u751f\u6210" : "QR code generated", kv + HtmlOutputHelper.successBadge());
+    }
+
+    private static String formatDecodeHtml(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        int w = o.optInt("width");
+        int h = o.optInt("height");
+        boolean hasQr = o.optBoolean("hasQrCode", false);
+        String decoded = o.isNull("decoded") ? null : o.optString("decoded", null);
+        String path = o.optString("imagePath", "");
+        if (hasQr && decoded != null) {
+            String prev = decoded.length() > 400 ? decoded.substring(0, 400) + "\u2026" : decoded;
+            String body = HtmlOutputHelper.p(prev)
+                    + HtmlOutputHelper.keyValue(new String[][]{
+                    {isZh() ? "\u56fe\u7247" : "Image", w + " \u00d7 " + h + " px"},
+                    {isZh() ? "\u6765\u6e90" : "Source", path}
+            });
+            return HtmlOutputHelper.card("\u2705", isZh() ? "\u8bc6\u522b\u6210\u529f" : "Decoded", body + HtmlOutputHelper.successBadge());
+        }
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u56fe\u7247" : "Image", w + " \u00d7 " + h + " px"},
+                {isZh() ? "\u6765\u6e90" : "Source", path}
+        }) + HtmlOutputHelper.muted(isZh() ? "\u672a\u8bc6\u522b\u5230\u4e8c\u7ef4\u7801\uff0c\u8bf7\u786e\u8ba4\u56fe\u7247\u6e05\u6670\u3002" : "No QR code found. Ensure the image is clear.");
+        return HtmlOutputHelper.card("\u274C", isZh() ? "\u672a\u8bc6\u522b" : "Not found", body + HtmlOutputHelper.errorBadge());
+    }
+
+    private static String formatDetectHtml(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        boolean hasQr = o.optBoolean("hasQrCode", false);
+        String path = o.optString("imagePath", "");
+        if (hasQr) {
+            String decoded = o.optString("decoded", "");
+            String preview = decoded.length() > 200 ? decoded.substring(0, 200) + "\u2026" : decoded;
+            return HtmlOutputHelper.card("\u2705", isZh() ? "\u68c0\u6d4b\u5230\u4e8c\u7ef4\u7801" : "QR detected",
+                    HtmlOutputHelper.p(preview) + HtmlOutputHelper.muted(path) + HtmlOutputHelper.successBadge());
+        }
+        return HtmlOutputHelper.card("\u274C", isZh() ? "\u672a\u68c0\u6d4b\u5230" : "Not detected",
+                HtmlOutputHelper.muted(path) + HtmlOutputHelper.errorBadge());
+    }
+
+    private static String formatListHtml(String outputJson) throws Exception {
+        JSONObject o = new JSONObject(outputJson);
+        String dir = o.optString("directory", "");
+        JSONArray files = o.optJSONArray("files");
+        List<String[]> rows = new ArrayList<>();
+        if (files != null) {
+            int max = Math.min(files.length(), 20);
+            for (int i = 0; i < max; i++) {
+                JSONObject it = files.optJSONObject(i);
+                if (it == null) continue;
+                rows.add(new String[]{
+                        it.optString("name", ""),
+                        it.optString("path", "")
+                });
+            }
+        }
+        String table = HtmlOutputHelper.table(
+                new String[]{isZh() ? "\u6587\u4ef6" : "File", isZh() ? "\u8def\u5f84" : "Path"},
+                rows);
+        String title = isZh() ? "\u4e8c\u7ef4\u7801\u56fe\u5e93 (" + o.optInt("count") + ")" : "QR gallery (" + o.optInt("count") + ")";
+        return HtmlOutputHelper.card("\uD83D\uDCC2", title, HtmlOutputHelper.muted(dir) + table);
+    }
+
     // ─── JSON helpers ───────────────────────────────────────────────────
 
     private static String emptyJson(String v) {
         return v == null || v.trim().isEmpty() ? "{}" : v;
     }
 
-    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
+    private static String ok(String output, String displayText, JSONArray richContent, String displayHtml) throws Exception {
         JSONObject r = new JSONObject().put("success", true).put("output", output);
         if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         if (richContent != null && richContent.length() > 0) r.put("_richContent", richContent);
         return r.toString();
     }
 
+    private static String ok(String output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, richContent, null);
+    }
+
     private static String ok(String output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
+    }
+
+    private static String ok(String output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, null, displayHtml);
     }
 
     private static String ok(String output) throws Exception {
-        return ok(output, null, null);
+        return ok(output, null, null, null);
     }
 
     private static JSONObject richImage(String path, String title) throws Exception {

@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.unit_converter;
 
 import android.content.Context;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -187,7 +188,8 @@ public class UnitConverterPlugin implements ModulePlugin {
                 String display = isZh()
                         ? ("📐 单位换算\n" + line + "\n类别: " + catTitle)
                         : ("📐 Unit Conversion\n" + line + "\nCategory: " + catTitle);
-                return ok(out, display);
+                String displayHtml = formatConvertHtml(value, outStr, prettyFrom, prettyTo, category, catTitle);
+                return ok(out, display, displayHtml);
             }
             case "listUnits": {
                 String category = normalizeCategory(params.optString("category", ""));
@@ -203,7 +205,8 @@ public class UnitConverterPlugin implements ModulePlugin {
                 String joined = String.join(", ", units);
                 String title = categoryListTitle(category);
                 String display = title + "\n" + joined;
-                return ok(out, display);
+                String displayHtml = formatListUnitsHtml(units, title);
+                return ok(out, display, displayHtml);
             }
             case "listCategories": {
                 JSONArray arr = new JSONArray();
@@ -211,16 +214,20 @@ public class UnitConverterPlugin implements ModulePlugin {
                     arr.put(c);
                 }
                 JSONObject out = new JSONObject().put("categories", arr);
-                return ok(out, isZh()
+                String display = isZh()
                         ? ("📋 类别\n" + String.join(", ", keysList(CATEGORY_TITLES)))
-                        : ("📋 Categories\n" + String.join(", ", keysList(CATEGORY_TITLES))));
+                        : ("📋 Categories\n" + String.join(", ", keysList(CATEGORY_TITLES)));
+                return ok(out, display, formatListCategoriesHtml());
             }
             case "openPage": {
                 JSONObject r = new JSONObject();
                 r.put("success", true);
                 r.put("output", "{}");
                 r.put("_openModule", true);
-                r.put("_displayText", isZh() ? "正在打开单位转换..." : "Opening Unit Converter...");
+                String msg = isZh() ? "正在打开单位转换..." : "Opening Unit Converter...";
+                r.put("_displayText", msg);
+                r.put("_displayHtml", HtmlOutputHelper.card("📐", isZh() ? "单位转换" : "Unit Converter",
+                        HtmlOutputHelper.muted(msg)));
                 return r.toString();
             }
             default:
@@ -586,15 +593,56 @@ public class UnitConverterPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    private static String formatConvertHtml(double valueIn, String resultText, String prettyFrom, String prettyTo,
+            String category, String catTitle) {
+        boolean zh = isZh();
+        String title = zh ? "单位换算" : "Conversion";
+        String inLine = formatNumber(valueIn) + " " + prettyFrom;
+        String outLine = resultText + " " + prettyTo;
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {inLine, zh ? "输入" : "Input"},
+                {outLine, zh ? "输出" : "Output"}
+        }) + HtmlOutputHelper.muted((zh ? "类别: " : "Category: ") + catTitle + " · " + category);
+        return HtmlOutputHelper.card("📐", title, body);
+    }
+
+    private static String formatListUnitsHtml(List<String> units, String listTitle) {
+        String[] headers = new String[]{isZh() ? "单位" : "Unit"};
+        List<String[]> rows = new ArrayList<>();
+        for (String u : units) {
+            rows.add(new String[]{u});
+        }
+        String body = HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("📏", listTitle, body);
+    }
+
+    private static String formatListCategoriesHtml() {
+        boolean zh = isZh();
+        String title = zh ? "类别" : "Categories";
+        String[] headers = new String[]{zh ? "标识" : "Key", zh ? "名称" : "Name"};
+        List<String[]> rows = new ArrayList<>();
+        for (String c : CATEGORY_TITLES.keySet()) {
+            rows.add(new String[]{c, categoryTitle(c)});
+        }
+        return HtmlOutputHelper.card("📋", title, HtmlOutputHelper.table(headers, rows));
+    }
+
     /**
      * 成功响应：{@code output} 为业务 JSON 的字符串形式。
      */
     private static String ok(JSONObject output, String displayText) throws Exception {
+        return ok(output, displayText, null);
+    }
+
+    private static String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject r = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         return r.toString();
     }

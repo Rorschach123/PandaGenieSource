@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.sudoku_game;
 
 import android.content.Context;
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -56,7 +57,7 @@ public class SudokuPlugin implements ModulePlugin {
         difficulty = Math.max(1, Math.min(3, diff));
         random = new Random();
         generatePuzzle();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private void generatePuzzle() {
@@ -134,7 +135,7 @@ public class SudokuPlugin implements ModulePlugin {
 
     private String placeNumber(int row, int col, int number) throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        if (gameOver) return ok(buildState(), formatDisplay());
+        if (gameOver) return ok(buildState(), formatDisplay(), formatDisplayHtml());
         if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return error("无效位置，行列范围为 0-8");
         if (number < 1 || number > 9) return error("无效数字，范围为 1-9");
         if (fixed[row][col]) return error("该位置是预填数字，不可修改");
@@ -156,7 +157,7 @@ public class SudokuPlugin implements ModulePlugin {
             }
         }
 
-        return ok(state, formatDisplay());
+        return ok(state, formatDisplay(), formatDisplayHtml());
     }
 
     private String clearCell(int row, int col) throws Exception {
@@ -164,7 +165,7 @@ public class SudokuPlugin implements ModulePlugin {
         if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return error("无效位置");
         if (fixed[row][col]) return error("该位置是预填数字，不可清除");
         playerBoard[row][col] = 0;
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String checkBoard() throws Exception {
@@ -193,7 +194,7 @@ public class SudokuPlugin implements ModulePlugin {
             state.put("message", "恭喜！数独已完成！");
         }
 
-        return ok(state, formatDisplay());
+        return ok(state, formatDisplay(), formatDisplayHtml());
     }
 
     private String getHint() throws Exception {
@@ -221,7 +222,7 @@ public class SudokuPlugin implements ModulePlugin {
             state.put("completed", true);
         }
 
-        return ok(state, formatDisplay());
+        return ok(state, formatDisplay(), formatDisplayHtml());
     }
 
     private boolean isBoardComplete() {
@@ -240,14 +241,14 @@ public class SudokuPlugin implements ModulePlugin {
 
     private String getState() throws Exception {
         if (!gameStarted) return error("游戏未开始，请先调用 startGame");
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private String restart() throws Exception {
         if (difficulty == 0) difficulty = 2;
         if (random == null) random = new Random();
         generatePuzzle();
-        return ok(buildState(), formatDisplay());
+        return ok(buildState(), formatDisplay(), formatDisplayHtml());
     }
 
     private JSONObject buildState() throws Exception {
@@ -334,16 +335,43 @@ public class SudokuPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private String formatDisplayHtml() {
+        String[] diffNames = {"简单", "普通", "困难"};
+        int filled = 0, empty = 0;
+        for (int r = 0; r < SIZE; r++) {
+            for (int c = 0; c < SIZE; c++) {
+                if (playerBoard[r][c] == 0) empty++;
+                else filled++;
+            }
+        }
+        String status = gameOver ? "已完成" : "进行中";
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {"难度", diffNames[difficulty - 1]},
+                {"进度", filled + "/81"},
+                {"空格", String.valueOf(empty)},
+                {"状态", status}
+        });
+        if (gameOver) {
+            body += HtmlOutputHelper.successBadge() + HtmlOutputHelper.p("恭喜完成！输入 restart 重新开始");
+        } else {
+            body += HtmlOutputHelper.muted("placeNumber · clearCell · getHint · checkBoard");
+        }
+        return HtmlOutputHelper.card("🔢", "数独", body);
+    }
+
     private String emptyJson(String value) {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
-    private String ok(JSONObject output, String displayText) throws Exception {
+    private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             result.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            result.put("_displayHtml", displayHtml);
         }
         return result.toString();
     }

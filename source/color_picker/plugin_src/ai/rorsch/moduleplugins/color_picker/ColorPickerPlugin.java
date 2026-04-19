@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.color_picker;
 
 import android.content.Context;
 
+import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -171,7 +172,8 @@ public class ColorPickerPlugin implements ModulePlugin {
         }
         String display = formatDisplayBlocks(rgb, out);
         JSONArray rc = new JSONArray().put(richCode(formatColorJsonAsCodeBlock(out), "text"));
-        return ok(out, display, rc);
+        String displayHtml = formatHtmlColorConvert(rgb, out);
+        return ok(out, display, rc, displayHtml);
     }
 
     /**
@@ -240,7 +242,9 @@ public class ColorPickerPlugin implements ModulePlugin {
                 .put("harmony", harmony)
                 .put("colors", colors);
         JSONArray rc = new JSONArray().put(richCode(formatPaletteCodeText(colors), "text"));
-        return ok(out, formatPaletteDisplay(colors, harmony), rc);
+        String display = formatPaletteDisplay(colors, harmony);
+        String displayHtml = formatHtmlPalette(colors, harmony);
+        return ok(out, display, rc, displayHtml);
     }
 
     /**
@@ -278,7 +282,8 @@ public class ColorPickerPlugin implements ModulePlugin {
         }
         JSONObject out = new JSONObject().put("colors", arr).put("count", count);
         String display = "🎲 " + title + "\n\n" + pgTable(title, headers, rows);
-        return ok(out, display.trim());
+        String displayHtml = formatHtmlRandomColors(rows, title);
+        return ok(out, display.trim(), null, displayHtml);
     }
 
     /**
@@ -315,7 +320,8 @@ public class ColorPickerPlugin implements ModulePlugin {
                 + blockLine(rgb[0], rgb[1], rgb[2]) + "\n\n"
                 + pgTable(title, headers, rows);
         JSONArray rc = new JSONArray().put(richCode(formatColorInfoCodeBlock(out), "text"));
-        return ok(out, display, rc);
+        String displayHtml = formatHtmlColorInfo(rgb, out);
+        return ok(out, display, rc, displayHtml);
     }
 
     /**
@@ -467,6 +473,84 @@ public class ColorPickerPlugin implements ModulePlugin {
         }
         String shortTitle = pal + " (" + harmony + ")";
         return (title + "\n\n" + pgTable(shortTitle, headers, rows)).trim();
+    }
+
+    private static String cssHexFromRgb(int r, int g, int b) {
+        return String.format(Locale.US, "#%02X%02X%02X", r, g, b);
+    }
+
+    private static String htmlColorSwatch(int r, int g, int b) {
+        String css = cssHexFromRgb(r, g, b);
+        return HtmlOutputHelper.raw(
+                "<div style='height:44px;border-radius:8px;background:" + css
+                        + ";border:1px solid rgba(0,0,0,.12)'></div>");
+    }
+
+    private static String formatHtmlColorConvert(int[] rgb, JSONObject full) {
+        boolean zh = isZh();
+        String title = zh ? "颜色" : "Color";
+        String[][] kv = new String[][]{
+                {"HEX", full.optString("hex")},
+                {"RGB", full.optString("rgb")},
+                {"RGB (CSS)", full.optString("rgbCss")},
+                {"HSL", full.optString("hsl")},
+                {"HSL (CSS)", full.optString("hslCss")},
+                {"CMYK", full.optString("cmyk")}
+        };
+        String body = htmlColorSwatch(rgb[0], rgb[1], rgb[2]) + HtmlOutputHelper.keyValue(kv);
+        return HtmlOutputHelper.card("🎨", title, body);
+    }
+
+    private static String formatHtmlPalette(JSONArray colors, String harmony) {
+        boolean zh = isZh();
+        String pal = zh ? "调色板" : "Palette";
+        String title = pal + " · " + harmony;
+        StringBuilder sw = new StringBuilder();
+        sw.append("<div style='display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px'>");
+        for (int i = 0; i < colors.length(); i++) {
+            String hx = colors.optString(i, "").replace("#", "");
+            int[] rgb = parseHexToRgb(hx);
+            String css = rgb != null ? cssHexFromRgb(rgb[0], rgb[1], rgb[2]) : "#888888";
+            sw.append("<div style='width:36px;height:36px;border-radius:6px;background:")
+                    .append(css).append(";border:1px solid rgba(0,0,0,.12)' title='#")
+                    .append(hx).append("'></div>");
+        }
+        sw.append("</div>");
+        String[] headers = new String[]{zh ? "序号" : "#", zh ? "色值" : "Hex"};
+        List<String[]> rows = new ArrayList<>();
+        for (int i = 0; i < colors.length(); i++) {
+            String hx = colors.optString(i, "");
+            if (!hx.startsWith("#")) hx = "#" + hx;
+            rows.add(new String[]{String.valueOf(i + 1), hx});
+        }
+        String body = HtmlOutputHelper.raw(sw.toString()) + HtmlOutputHelper.table(headers, rows);
+        return HtmlOutputHelper.card("🧩", title, body);
+    }
+
+    private static String formatHtmlRandomColors(List<String[]> rows, String tableTitle) {
+        boolean zh = isZh();
+        String[] headers = new String[]{zh ? "序号" : "#", zh ? "色值" : "Hex"};
+        List<String[]> tableRows = new ArrayList<>();
+        for (String[] row : rows) {
+            if (row.length >= 3) {
+                tableRows.add(new String[]{row[0], row[2]});
+            }
+        }
+        String body = HtmlOutputHelper.table(headers, tableRows);
+        return HtmlOutputHelper.card("🎲", tableTitle, body);
+    }
+
+    private static String formatHtmlColorInfo(int[] rgb, JSONObject out) {
+        boolean zh = isZh();
+        String title = zh ? "命名颜色" : "Named color";
+        String body = htmlColorSwatch(rgb[0], rgb[1], rgb[2])
+                + HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "输入 HEX" : "Input HEX", "#" + out.optString("hex")},
+                {zh ? "最近名称" : "Closest name", out.optString("closestName")},
+                {zh ? "最近 HEX" : "Closest HEX", out.optString("closestHex")},
+                {zh ? "ΔRGB 距离" : "ΔRGB distance", String.valueOf(out.optDouble("distance"))}
+        });
+        return HtmlOutputHelper.card("🎨", title, body);
     }
 
     /**
@@ -1000,15 +1084,22 @@ public class ColorPickerPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private static String ok(JSONObject output, String displayText) throws Exception {
-        return ok(output, displayText, null);
+        return ok(output, displayText, null, null);
     }
 
     private static String ok(JSONObject output, String displayText, JSONArray richContent) throws Exception {
+        return ok(output, displayText, richContent, null);
+    }
+
+    private static String ok(JSONObject output, String displayText, JSONArray richContent, String displayHtml) throws Exception {
         JSONObject r = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
         if (displayText != null && !displayText.isEmpty()) {
             r.put("_displayText", displayText);
+        }
+        if (displayHtml != null && !displayHtml.isEmpty()) {
+            r.put("_displayHtml", displayHtml);
         }
         if (richContent != null && richContent.length() > 0) {
             r.put("_richContent", richContent);
