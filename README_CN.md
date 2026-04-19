@@ -155,7 +155,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/latest/download/app-release.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260419/app-release.apk)**
 
 ---
 

@@ -155,7 +155,7 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/latest/download/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260419/app-release.apk)**
 
 ---
 
