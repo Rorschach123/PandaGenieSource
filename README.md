@@ -155,11 +155,21 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.6)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260418/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/latest/download/app-release.apk)**
 
 ---
 
 ## Changelog
+
+<details open>
+<summary><b>v1.0.7</b> (2026-04-18)</summary>
+
+- **Execution Trace (Action View)** — After each task, tap "Execution Trace" to see a full graphical flow diagram: every module involved, input/output data, permissions used, data access paths, and step timing — all in one intuitive vertical flow. Tap any step card to expand detailed input/output fields, permission grants, and data operations
+- **Zero-Token Config Market Match** — Before calling the LLM, PandaGenie now searches the shared Config Market for a matching task configuration. If a high-confidence match is found, it executes directly — **completely bypassing the LLM and consuming zero tokens**. Toggle on/off in Settings → Modules
+- **Smart LLM Response Handling** — Non-JSON LLM responses (quota exhaustion, conversational replies, error messages) are now detected and displayed gracefully instead of showing "Invalid JSON" errors. Actionable suggestions guide users to resolve quota issues
+- **First-Open Welcome UX** — New users see a friendly panda greeting with interactive suggestion chips ("Browse Module Store", "What can you do?", etc.) instead of a bare "No modules installed" message
+
+</details>
 
 <details>
 <summary><b>v1.0.6</b> (2026-04-18)</summary>
