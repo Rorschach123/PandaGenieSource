@@ -11,7 +11,7 @@
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.ocr.OcrPlugin",
   "soLoadMode": "skip",
-  "capabilities": ["file_read", "network"],
+  "capabilities": ["file_read", "file_write", "network"],
   "permissions": [
     {
       "name": "android.permission.READ_EXTERNAL_STORAGE",

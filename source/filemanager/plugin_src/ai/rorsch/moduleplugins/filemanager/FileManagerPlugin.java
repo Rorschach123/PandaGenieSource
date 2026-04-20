@@ -29,7 +29,7 @@ import java.util.Locale;
  * </p>
  */
 public class FileManagerPlugin implements ModulePlugin {
-    private static final int DISPLAY_LIST_MAX = 50;
+    private static final int DISPLAY_LIST_MAX = 15;
     private static final int READ_TEXT_DISPLAY_MAX = 4000;
     private static final int PATH_MAX_DISPLAY = 45;
     private static final int BATCH_DISPLAY_MAX = 5;
