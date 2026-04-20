@@ -155,13 +155,24 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.7)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260419/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.8)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260420/app-release.apk)**
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.8</b> (2026-04-20)</summary>
+
+- **Rich HTML5 Module Output** — All 35 modules now return beautifully styled HTML5 mini-cards with interactive UIs via `_displayHtml`. Game modules render playable canvases, file modules show visual file trees, calculators present formatted results — all inside the chat bubble
+- **Sandbox Auto-Allow for Scheduled Tasks** — New sub-option under "Ask each time" in Security settings: when enabled (default ON), scheduled and conditional tasks automatically bypass permission prompts with temporary session-level grants — no permanent permissions are written
+- **Smart Welcome UX** — Empty chat now persistently shows the panda mascot with interactive suggestion chips until the user sends their first message. Greeting bubble no longer replaces the helpful prompt suggestions
+- **Graceful "No Capability" Response** — When a request can't be fulfilled by any module, the AI now responds with a friendly message listing all available capabilities from installed and market modules, plus a link to build custom modules on pandagenie.ai
+- **Direct APK Download** — Official website now serves APK downloads directly from Cloudflare KV edge storage for faster, more reliable downloads worldwide
+
+</details>
+
+<details>
 <summary><b>v1.0.7</b> (2026-04-18)</summary>
 
 - **Execution Trace (Action View)** — After each task, tap "Execution Trace" to see a full graphical flow diagram: every module involved, input/output data, permissions used, data access paths, and step timing — all in one intuitive vertical flow. Tap any step card to expand detailed input/output fields, permission grants, and data operations
