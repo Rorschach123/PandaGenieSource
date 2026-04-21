@@ -155,13 +155,27 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.8)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260420/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.9)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260421/app-release.apk)**
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.9</b> (2026-04-21)</summary>
+
+- **LLM Privacy Controls** — New "AI Data Sharing" panel in Security settings lets you choose exactly which device info (system time, timezone, language, device model, OS version, nickname) is sent to the AI model. Unchecked items are stripped before every request
+- **Execution Trace: Device Context** — Each execution trace now shows a "Info Sent to AI" card listing all device info that was included in the request, so you can verify what data left your phone
+- **Smart Loop Iteration** — Loop steps now extract arrays from nested JSON objects (e.g. `{files:[...]}`) automatically, so multi-step workflows like "find large files → compress each → zip" work reliably end-to-end
+- **Partial Loop Tolerance** — A single failed iteration no longer aborts the entire task. Subsequent steps proceed with successful results, making batch operations far more resilient
+- **Param Alias Engine** — 15+ common parameter name aliases (`imagePath`→`path`, `dir`→`path`, `minSize`→`minSizeMB` with auto unit conversion, etc.) are normalized before module calls, dramatically reducing config mismatch errors
+- **History-Aware Token Management** — Chat history sent to the LLM is now intelligently truncated (800 chars/message, 12K total cap), preventing empty responses when conversations grow long
+- **Path Sanitization** — Chinese quotation marks (`「」` `『』` `""`) and stray quotes in file paths are automatically stripped, fixing archive and file operations that received LLM-generated paths
+- **Enhanced Typography & Trust UX** — Refined type scale (4 sizes, 2 weights), trust-oriented color tokens, rewritten copy for safety/simplicity/omnipotence feel across the entire app
+
+</details>
+
+<details>
 <summary><b>v1.0.8</b> (2026-04-20)</summary>
 
 - **Rich HTML5 Module Output** — All 35 modules now return beautifully styled HTML5 mini-cards with interactive UIs via `_displayHtml`. Game modules render playable canvases, file modules show visual file trees, calculators present formatted results — all inside the chat bubble
