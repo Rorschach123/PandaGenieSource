@@ -75,6 +75,8 @@ public class TranslatorPlugin implements ModulePlugin {
         String text = params.optString("text", "").trim();
         if (text.isEmpty()) throw new IllegalArgumentException(isZh() ? "请提供要翻译的文本" : "text is required");
 
+        text = extractJsonTextContent(text);
+
         if (text.length() > MAX_TEXT_LENGTH) {
             text = text.substring(0, MAX_TEXT_LENGTH);
         }
@@ -338,7 +340,37 @@ public class TranslatorPlugin implements ModulePlugin {
         return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u652f\u6301\u7684\u8bed\u8a00" : "Supported languages", table);
     }
 
+    private static String firstNonEmptyJsonField(JSONObject o) {
+        String s = o.optString("text", "").trim();
+        if (!s.isEmpty()) return s;
+        s = o.optString("output", "").trim();
+        if (!s.isEmpty()) return s;
+        return o.optString("content", "").trim();
+    }
+
+    private static String extractJsonTextContent(String text) {
+        if (text == null || text.isEmpty()) return text;
+        char c0 = text.charAt(0);
+        if (c0 != '{' && c0 != '[') return text;
+        try {
+            if (c0 == '{') {
+                JSONObject o = new JSONObject(text);
+                String inner = firstNonEmptyJsonField(o);
+                if (!inner.isEmpty()) return inner;
+            } else {
+                JSONArray a = new JSONArray(text);
+                if (a.length() > 0 && a.get(0) instanceof JSONObject) {
+                    String inner = firstNonEmptyJsonField(a.getJSONObject(0));
+                    if (!inner.isEmpty()) return inner;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return text;
+    }
+
     private static String detectLangCode(String text) {
+        text = extractJsonTextContent(text);
         int cjk = 0, latin = 0, cyrillic = 0, arabic = 0, hangul = 0, kana = 0, thai = 0;
         for (int i = 0; i < Math.min(text.length(), 200); i++) {
             char c = text.charAt(i);

@@ -3,90 +3,946 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title data-i18n="pageTitle">笔记助手 / Notes</title>
+<title data-i18n="pageTitle">Notes</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
+:root {
+  --surface-container: var(--surface-variant);
+  --outline-variant: rgba(121, 116, 126, 0.35);
+}
+@media (hover: hover) and (pointer: fine) {
+  .swipe-host {
+    overflow: visible;
+    background: transparent;
+  }
+  .swipe-track,
+  .swipe-track.open {
+    transform: none !important;
+  }
+  .card-main {
+    border-radius: 16px 0 0 16px;
+  }
+  .card-delete {
+    border-radius: 0 16px 16px 0;
+  }
+}
+.notes-app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: calc(100vh - 32px);
+  padding-bottom: 96px;
+  position: relative;
+}
+.notes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.notes-toolbar h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.search-wrap {
+  flex: 1 1 100%;
+  position: relative;
+}
+.search-wrap input {
+  padding-left: 40px;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: 28px;
+}
+.search-wrap .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.view-panel {
+  display: none;
+  animation: viewIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.view-panel.active {
+  display: block;
+}
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.top-bar .btn-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
+  background: var(--surface-container);
+  color: var(--primary);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.top-bar .btn-icon:active { transform: scale(0.94); }
+.top-bar h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  color: var(--on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.detail-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.note-meta {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-bottom: 12px;
+}
+.note-body-read {
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--on-surface);
+  padding: 14px;
+  background: var(--surface-container);
+  border-radius: 16px;
+  border: 1px solid var(--outline-variant);
+}
+.note-title-read {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: var(--on-surface);
+  word-break: break-word;
+}
+.swipe-host {
+  overflow: hidden;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  background: var(--error);
+  touch-action: pan-y;
+}
+.swipe-track {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+.swipe-track.open {
+  transform: translateX(-80px);
+}
+.card-main {
+  flex: 1 1 100%;
+  min-width: 0;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.card-main:active { transform: scale(0.99); }
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 0 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-date {
+  font-size: 11px;
+  color: var(--on-surface-variant);
+  margin-bottom: 8px;
+}
+.card-preview {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-delete {
+  flex: 0 0 80px;
+  width: 80px;
+  border: none;
+  background: var(--error);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+}
+.fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(103, 80, 164, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(103, 80, 164, 0.35);
+}
+.fab.hidden { display: none; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 100px;
+  transform: translateX(-50%) translateY(20px);
+  max-width: 90%;
+  padding: 12px 18px;
+  background: var(--on-surface);
+  color: var(--surface);
+  border-radius: 24px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  transition: opacity 0.25s, transform 0.25s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.error {
+  background: var(--error-container);
+  color: var(--error);
+}
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 80;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeOverlay 0.2s ease;
+}
+.dialog-overlay.show { display: flex; }
+@keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
+.dialog-box {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 22px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  animation: dialogPop 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes dialogPop {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.dialog-box h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: var(--on-surface);
+}
+.dialog-box p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
+}
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.loading-inline {
+  text-align: center;
+  padding: 28px;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+}
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--on-surface-variant);
+}
+.empty-state .emoji { font-size: 48px; margin-bottom: 12px; opacity: 0.85; }
+.bridge-banner {
+  background: var(--primary-container);
+  color: var(--primary);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  border: 1px solid var(--outline-variant);
+}
+.hidden { display: none !important; }
+input.note-title-input {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+textarea.note-content-input {
+  min-height: 200px;
+  font-family: inherit;
+  line-height: 1.55;
+}
 </style>
 </head>
 <body>
-<div class="mod-header">
-  <div class="icon">📝</div>
-  <h2 data-i18n="headerTitle">笔记助手 / Notes</h2>
-  <p data-i18n="headerDesc">创建、编辑、删除、搜索和导出笔记</p>
+<div class="notes-app" id="notesApp">
+  <div id="bridgeBanner" class="bridge-banner hidden" data-i18n="noBridge">Preview: Native bridge not available.</div>
+
+  <!-- List view -->
+  <section class="view-panel active" id="viewList" aria-labelledby="listHeading">
+    <div class="notes-toolbar">
+      <h1 id="listHeading" data-i18n="appTitle">Notes</h1>
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input type="search" id="searchInput" autocomplete="off" data-i18n-placeholder="searchPlaceholder" placeholder="Search notes…" />
+      </div>
+    </div>
+    <div id="listLoading" class="loading-inline hidden" data-i18n="loading">Loading…</div>
+    <div id="listEmpty" class="empty-state hidden">
+      <div class="emoji" aria-hidden="true">📝</div>
+      <p id="emptyMessage" data-i18n="emptyList">No notes yet. Tap + to create.</p>
+    </div>
+    <div id="noteList"></div>
+  </section>
+
+  <!-- Create view -->
+  <section class="view-panel" id="viewCreate" aria-labelledby="createHeading">
+    <div class="top-bar">
+      <button type="button" class="btn-icon" id="btnCreateBack" aria-label="Back">←</button>
+      <h2 id="createHeading" data-i18n="createHeading">New note</h2>
+    </div>
+    <div class="input-group">
+      <label for="createTitle" data-i18n="labelTitle">Title</label>
+      <input type="text" id="createTitle" class="note-title-input" data-i18n-placeholder="placeholderTitle" placeholder="Title" maxlength="500" />
+    </div>
+    <div class="input-group">
+      <label for="createContent" data-i18n="labelContent">Content</label>
+      <textarea id="createContent" class="note-content-input" data-i18n-placeholder="placeholderContent" placeholder="Write something…"></textarea>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" class="btn btn-primary" id="btnCreateSave" data-i18n="btnSave">Save</button>
+      <button type="button" class="btn btn-outline" id="btnCreateCancel" data-i18n="btnCancel">Cancel</button>
+    </div>
+  </section>
+
+  <!-- Detail / edit view -->
+  <section class="view-panel" id="viewDetail" aria-labelledby="detailHeading">
+    <div class="top-bar">
+      <button type="button" class="btn-icon" id="btnDetailBack" aria-label="Back">←</button>
+      <h2 id="detailHeading" data-i18n="detailHeading">Note</h2>
+    </div>
+    <div class="detail-actions" id="detailToolbarRead">
+      <button type="button" class="btn btn-outline btn-sm" id="btnEdit" data-i18n="detailEdit">Edit</button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnExport" data-i18n="detailExport">Export</button>
+      <button type="button" class="btn btn-danger btn-sm" id="btnDelete" data-i18n="detailDelete">Delete</button>
+    </div>
+    <div class="detail-actions hidden" id="detailToolbarEdit">
+      <button type="button" class="btn btn-primary btn-sm" id="btnSaveEdit" data-i18n="btnSave">Save</button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnCancelEdit" data-i18n="btnCancel">Cancel</button>
+    </div>
+    <div id="detailReadBlock">
+      <h3 class="note-title-read" id="detailTitleRead"></h3>
+      <div class="note-meta" id="detailMeta"></div>
+      <div class="note-body-read" id="detailContentRead"></div>
+    </div>
+    <div id="detailEditBlock" class="hidden">
+      <div class="input-group">
+        <label for="detailTitleInput" data-i18n="labelTitle">Title</label>
+        <input type="text" id="detailTitleInput" class="note-title-input" maxlength="500" />
+      </div>
+      <div class="input-group">
+        <label for="detailContentInput" data-i18n="labelContent">Content</label>
+        <textarea id="detailContentInput" class="note-content-input"></textarea>
+      </div>
+    </div>
+  </section>
 </div>
-<div class="info-card">
-  <h3 data-i18n="sectionApis">功能接口</h3>
-  <ul class="api-list">
-    <li><span class="api-name">createNote</span> — <span data-i18n="api_createNote">创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json</span></li>
-    <li><span class="api-name">listNotes</span> — <span data-i18n="api_listNotes">列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文</span></li>
-    <li><span class="api-name">getNote</span> — <span data-i18n="api_getNote">按笔记 ID 读取完整 JSON 内容</span></li>
-    <li><span class="api-name">updateNote</span> — <span data-i18n="api_updateNote">按 ID 更新笔记标题或正文；传入的字段才会被更新</span></li>
-    <li><span class="api-name">deleteNote</span> — <span data-i18n="api_deleteNote">按 ID 删除对应 JSON 文件</span></li>
-    <li><span class="api-name">searchNotes</span> — <span data-i18n="api_searchNotes">在标题与正文中按关键词搜索，返回匹配的笔记摘要列表</span></li>
-    <li><span class="api-name">exportNote</span> — <span data-i18n="api_exportNote">将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）</span></li>
-  </ul>
+
+<button type="button" class="fab" id="fabCreate" aria-label="New note" data-i18n-title="fabNewTitle" title="New note">+</button>
+
+<div class="toast" id="toast" role="status"></div>
+
+<div class="dialog-overlay" id="confirmDialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="dialog-box">
+    <h3 id="confirmTitle" data-i18n="confirmDelete">Delete note?</h3>
+    <p id="confirmBody" data-i18n="confirmDeleteMsg">This cannot be undone.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-outline btn-sm" id="confirmNo" data-i18n="btnCancel">Cancel</button>
+      <button type="button" class="btn btn-danger btn-sm" id="confirmYes" data-i18n="confirmYes">Delete</button>
+    </div>
+  </div>
 </div>
-<div class="info-card">
-  <h3 data-i18n="sectionUsage">使用方式</h3>
-  <p data-i18n="usageDesc">在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。</p>
-</div>
+
 <script>
-var _lang = 'zh';
-var i18n = {
-  zh: {
-    pageTitle: '笔记助手 / Notes',
-    headerTitle: '笔记助手 / Notes',
-    headerDesc: '创建、编辑、删除、搜索和导出笔记',
-    sectionApis: '功能接口',
-    api_createNote: '创建笔记，生成唯一 ID，以 JSON 保存至 /sdcard/PandaGenie/data/notes/{id}.json',
-    api_listNotes: '列出所有笔记摘要（id、标题、创建/更新时间、正文预览）；可选关键词过滤标题与正文',
-    api_getNote: '按笔记 ID 读取完整 JSON 内容',
-    api_updateNote: '按 ID 更新笔记标题或正文；传入的字段才会被更新',
-    api_deleteNote: '按 ID 删除对应 JSON 文件',
-    api_searchNotes: '在标题与正文中按关键词搜索，返回匹配的笔记摘要列表',
-    api_exportNote: '将指定笔记导出为纯文本文件；path 可为 .txt 完整路径或目录（目录下生成 {id}.txt）',
-    sectionUsage: '使用方式',
-    usageDesc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
-  },
-  en: {
-    pageTitle: 'Notes',
-    headerTitle: 'Notes',
-    headerDesc: 'Create, edit, delete, search, and export notes',
-    sectionApis: 'APIs',
-    api_createNote: 'Create a note with a unique ID; saved as JSON at /sdcard/PandaGenie/data/notes/{id}.json',
-    api_listNotes: 'List note summaries (id, title, created/updated, body preview); optional keyword filter on title and body',
-    api_getNote: 'Load full JSON for a note by ID',
-    api_updateNote: 'Update title or body by ID; only provided fields are changed',
-    api_deleteNote: 'Delete the JSON file for a note by ID',
-    api_searchNotes: 'Search title and body by keyword; returns matching summaries',
-    api_exportNote: 'Export a note as plain text; path may be a full .txt path or a directory ({id}.txt under that folder)',
-    sectionUsage: 'How to use',
-    usageDesc: 'Describe what you need in chat; the AI will call this module automatically.'
+(function () {
+  var _lang = 'en';
+  var i18n = {
+    zh: {
+      pageTitle: '笔记',
+      appTitle: '笔记',
+      searchPlaceholder: '搜索笔记…',
+      fabNewTitle: '新建笔记',
+      emptyList: '暂无笔记，点右下角 + 新建',
+      emptySearch: '没有匹配的笔记',
+      loading: '加载中…',
+      noBridge: '未连接原生接口，列表与保存将无法使用。',
+      createHeading: '新建笔记',
+      detailHeading: '笔记',
+      labelTitle: '标题',
+      labelContent: '正文',
+      placeholderTitle: '标题',
+      placeholderContent: '写点什么…',
+      btnSave: '保存',
+      btnCancel: '取消',
+      detailEdit: '编辑',
+      detailDelete: '删除',
+      detailExport: '导出',
+      confirmDelete: '删除笔记？',
+      confirmDeleteMsg: '此操作无法撤销。',
+      confirmYes: '删除',
+      exportPrompt: '导出路径（目录或 .txt 完整路径）：',
+      exportPathHint: '例如 /sdcard/Download/ 或 /sdcard/Download/my.txt',
+      exportSuccess: '已导出：',
+      exportFail: '导出失败',
+      errorGeneric: '操作失败',
+      errorLoad: '无法加载笔记',
+      saveSuccess: '已保存',
+      deleteSuccess: '已删除',
+      createdLabel: '创建',
+      updatedLabel: '更新',
+      untitled: '无标题',
+      btnDeleteCard: '删除',
+      searchDebounce: '搜索中…'
+    },
+    en: {
+      pageTitle: 'Notes',
+      appTitle: 'Notes',
+      searchPlaceholder: 'Search notes…',
+      fabNewTitle: 'New note',
+      emptyList: 'No notes yet. Tap + to create one.',
+      emptySearch: 'No notes match your search.',
+      loading: 'Loading…',
+      noBridge: 'Native bridge unavailable; listing and saving will not work.',
+      createHeading: 'New note',
+      detailHeading: 'Note',
+      labelTitle: 'Title',
+      labelContent: 'Content',
+      placeholderTitle: 'Title',
+      placeholderContent: 'Write something…',
+      btnSave: 'Save',
+      btnCancel: 'Cancel',
+      detailEdit: 'Edit',
+      detailDelete: 'Delete',
+      detailExport: 'Export',
+      confirmDelete: 'Delete note?',
+      confirmDeleteMsg: 'This cannot be undone.',
+      confirmYes: 'Delete',
+      exportPrompt: 'Export path (folder or full .txt path):',
+      exportPathHint: 'e.g. /sdcard/Download/ or /sdcard/Download/my.txt',
+      exportSuccess: 'Exported to:',
+      exportFail: 'Export failed',
+      errorGeneric: 'Something went wrong',
+      errorLoad: 'Could not load note',
+      saveSuccess: 'Saved',
+      deleteSuccess: 'Deleted',
+      createdLabel: 'Created',
+      updatedLabel: 'Updated',
+      untitled: 'Untitled',
+      btnDeleteCard: 'Delete',
+      searchDebounce: 'Searching…'
+    }
+  };
+
+  function callPlugin(action, params) {
+    if (window.NativeBridge && NativeBridge.invoke) {
+      try {
+        var r = JSON.parse(NativeBridge.invoke(action, JSON.stringify(params || {})));
+        return r;
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    }
+    return null;
   }
-};
-function applyI18n() {
-  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
-  var t = i18n[l] || i18n.en;
-  document.querySelectorAll('[data-i18n]').forEach(function(el) {
-    var k = el.getAttribute('data-i18n');
-    if (t[k]) el.textContent = t[k];
+
+  function unwrap(r) {
+    if (r == null) return { ok: false, error: 'no_bridge' };
+    if (!r.success) return { ok: false, error: r.error || 'error' };
+    try {
+      var inner = typeof r.output === 'string' ? JSON.parse(r.output) : r.output;
+      return { ok: true, data: inner };
+    } catch (e) {
+      return { ok: false, error: 'parse_output' };
+    }
+  }
+
+  function t(key) {
+    var pack = i18n[_lang] || i18n.en;
+    return pack[key] || i18n.en[key] || key;
+  }
+
+  function applyI18n() {
+    var pack = i18n[_lang] || i18n.en;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n');
+      if (pack[k]) el.textContent = pack[k];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n-placeholder');
+      if (pack[k]) el.setAttribute('placeholder', pack[k]);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      var k = el.getAttribute('data-i18n-title');
+      if (pack[k]) el.setAttribute('title', pack[k]);
+    });
+    var pt = document.querySelector('title[data-i18n]');
+    if (pt) {
+      var tk = pt.getAttribute('data-i18n');
+      if (tk && pack[tk]) document.title = pack[tk];
+    }
+  }
+
+  try {
+    _lang = NativeBridge.getLanguage().substring(0, 2);
+    if (_lang !== 'zh') _lang = 'en';
+  } catch (e) {
+    _lang = navigator.language.substring(0, 2) === 'zh' ? 'zh' : 'en';
+  }
+  applyI18n();
+
+  var state = {
+    notes: [],
+    currentId: null,
+    currentNote: null,
+    editing: false,
+    searchTimer: null,
+    searchQ: '',
+    confirmCallback: null,
+    swipe: { id: null, startX: 0, curX: 0, tracking: false }
+  };
+
+  var els = {
+    viewList: document.getElementById('viewList'),
+    viewCreate: document.getElementById('viewCreate'),
+    viewDetail: document.getElementById('viewDetail'),
+    noteList: document.getElementById('noteList'),
+    listLoading: document.getElementById('listLoading'),
+    listEmpty: document.getElementById('listEmpty'),
+    emptyMessage: document.getElementById('emptyMessage'),
+    searchInput: document.getElementById('searchInput'),
+    fabCreate: document.getElementById('fabCreate'),
+    bridgeBanner: document.getElementById('bridgeBanner'),
+    toast: document.getElementById('toast'),
+    confirmDialog: document.getElementById('confirmDialog'),
+    detailTitleRead: document.getElementById('detailTitleRead'),
+    detailMeta: document.getElementById('detailMeta'),
+    detailContentRead: document.getElementById('detailContentRead'),
+    detailReadBlock: document.getElementById('detailReadBlock'),
+    detailEditBlock: document.getElementById('detailEditBlock'),
+    detailTitleInput: document.getElementById('detailTitleInput'),
+    detailContentInput: document.getElementById('detailContentInput'),
+    detailToolbarRead: document.getElementById('detailToolbarRead'),
+    detailToolbarEdit: document.getElementById('detailToolbarEdit')
+  };
+
+  function showToast(msg, isError) {
+    els.toast.textContent = msg;
+    els.toast.classList.toggle('error', !!isError);
+    els.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+      els.toast.classList.remove('show');
+    }, 2600);
+  }
+
+  function showView(name) {
+    var suffix = name.charAt(0).toUpperCase() + name.slice(1);
+    var activeId = 'view' + suffix;
+    ['viewList', 'viewCreate', 'viewDetail'].forEach(function (vid) {
+      document.getElementById(vid).classList.toggle('active', vid === activeId);
+    });
+    var onList = name === 'list';
+    els.fabCreate.classList.toggle('hidden', !onList);
+    if (name === 'list') {
+      var vl = document.getElementById('viewList');
+      vl.style.animation = 'none';
+      void vl.offsetWidth;
+      vl.style.animation = '';
+    }
+  }
+
+  function formatDate(s) {
+    if (!s) return '—';
+    return s;
+  }
+
+  function renderNotesList() {
+    var notes = state.notes;
+    els.noteList.innerHTML = '';
+    if (!notes.length) {
+      els.listEmpty.classList.remove('hidden');
+      els.emptyMessage.setAttribute('data-i18n', state.searchQ ? 'emptySearch' : 'emptyList');
+      els.emptyMessage.textContent = t(state.searchQ ? 'emptySearch' : 'emptyList');
+      return;
+    }
+    els.listEmpty.classList.add('hidden');
+    notes.forEach(function (note) {
+      var id = note.id || '';
+      var host = document.createElement('div');
+      host.className = 'swipe-host';
+      host.dataset.noteId = id;
+
+      var track = document.createElement('div');
+      track.className = 'swipe-track';
+      track.dataset.trackId = id;
+
+      var main = document.createElement('button');
+      main.type = 'button';
+      main.className = 'card-main';
+      main.setAttribute('aria-label', note.title || t('untitled'));
+
+      var h = document.createElement('div');
+      h.className = 'card-title';
+      h.textContent = note.title || t('untitled');
+
+      var d = document.createElement('div');
+      d.className = 'card-date';
+      var u = note.updatedAt || note.createdAt || '';
+      d.textContent = formatDate(u);
+
+      var p = document.createElement('div');
+      p.className = 'card-preview';
+      p.textContent = note.preview || '';
+
+      main.appendChild(h);
+      main.appendChild(d);
+      main.appendChild(p);
+
+      main.addEventListener('click', function (ev) {
+        if (track.classList.contains('open')) {
+          track.classList.remove('open');
+          track.style.transform = '';
+          return;
+        }
+        openDetail(id);
+      });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'card-delete';
+      del.textContent = t('btnDeleteCard');
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        confirmDelete(id, function () {
+          loadNotes(state.searchQ);
+        });
+      });
+
+      track.appendChild(main);
+      track.appendChild(del);
+      host.appendChild(track);
+
+      attachSwipe(host, track, id);
+      els.noteList.appendChild(host);
+    });
+  }
+
+  function attachSwipe(host, track, id) {
+    var OPEN = -80;
+    var lastDx = 0;
+    function setTx(tx) {
+      track.style.transform = 'translateX(' + tx + 'px)';
+      if (tx <= OPEN / 2) track.classList.add('open');
+      else track.classList.remove('open');
+    }
+    host.addEventListener('touchstart', function (e) {
+      if (!e.touches || !e.touches.length) return;
+      document.querySelectorAll('.swipe-track.open').forEach(function (ot) {
+        if (ot !== track) {
+          ot.classList.remove('open');
+          ot.style.transform = '';
+        }
+      });
+      state.swipe.tracking = true;
+      state.swipe.startX = e.touches[0].clientX;
+      state.swipe.curX = state.swipe.startX;
+      state.swipe.id = id;
+      lastDx = 0;
+    }, { passive: true });
+    host.addEventListener('touchmove', function (e) {
+      if (!state.swipe.tracking || state.swipe.id !== id) return;
+      var x = e.touches[0].clientX;
+      var dx = x - state.swipe.startX;
+      if (dx > 0) dx = 0;
+      if (dx < OPEN) dx = OPEN;
+      lastDx = dx;
+      track.style.transform = 'translateX(' + dx + 'px)';
+    }, { passive: true });
+    host.addEventListener('touchend', function () {
+      if (!state.swipe.tracking || state.swipe.id !== id) return;
+      state.swipe.tracking = false;
+      var tx = lastDx;
+      if (tx < OPEN / 2) setTx(OPEN);
+      else {
+        track.classList.remove('open');
+        track.style.transform = '';
+      }
+    });
+  }
+
+  function loadNotes(keyword) {
+    var hasBridge = window.NativeBridge && NativeBridge.invoke;
+    if (!hasBridge) {
+      els.bridgeBanner.classList.remove('hidden');
+      state.notes = [];
+      renderNotesList();
+      return;
+    }
+    els.bridgeBanner.classList.add('hidden');
+    els.listLoading.classList.remove('hidden');
+    var params = {};
+    if (keyword && keyword.trim()) params.keyword = keyword.trim();
+    var u = unwrap(callPlugin('listNotes', params));
+    els.listLoading.classList.add('hidden');
+    if (!u.ok) {
+      showToast(u.error === 'no_bridge' ? t('noBridge') : (t('errorGeneric') + ': ' + u.error), true);
+      state.notes = [];
+      renderNotesList();
+      return;
+    }
+    state.notes = u.data.notes || [];
+    renderNotesList();
+  }
+
+  function openDetail(id) {
+    state.currentId = id;
+    state.editing = false;
+    var u = unwrap(callPlugin('getNote', { id: id }));
+    if (!u.ok) {
+      showToast(t('errorLoad') + ': ' + u.error, true);
+      return;
+    }
+    state.currentNote = u.data;
+    fillDetailRead();
+    showView('detail');
+    setDetailMode(false);
+  }
+
+  function fillDetailRead() {
+    var n = state.currentNote || {};
+    var title = n.title || t('untitled');
+    els.detailTitleRead.textContent = title;
+    els.detailContentRead.textContent = n.content || '';
+    var c = n.createdAt ? t('createdLabel') + ': ' + n.createdAt : '';
+    var u = n.updatedAt ? t('updatedLabel') + ': ' + n.updatedAt : '';
+    els.detailMeta.textContent = [c, u].filter(Boolean).join(' · ') || '';
+    var dh = document.getElementById('detailHeading');
+    dh.textContent = title.length > 28 ? title.slice(0, 28) + '…' : title;
+  }
+
+  function setDetailMode(edit) {
+    state.editing = edit;
+    els.detailReadBlock.classList.toggle('hidden', edit);
+    els.detailEditBlock.classList.toggle('hidden', !edit);
+    els.detailToolbarRead.classList.toggle('hidden', edit);
+    els.detailToolbarEdit.classList.toggle('hidden', !edit);
+    if (edit) {
+      var n = state.currentNote || {};
+      els.detailTitleInput.value = n.title || '';
+      els.detailContentInput.value = n.content || '';
+      setTimeout(function () {
+        els.detailContentInput.focus();
+      }, 100);
+    }
+  }
+
+  document.getElementById('btnEdit').addEventListener('click', function () {
+    setDetailMode(true);
   });
-}
-try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) {
-  _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en';
-}
-applyI18n();
+
+  document.getElementById('btnCancelEdit').addEventListener('click', function () {
+    setDetailMode(false);
+    fillDetailRead();
+  });
+
+  document.getElementById('btnSaveEdit').addEventListener('click', function () {
+    var id = state.currentId;
+    if (!id) return;
+    var title = els.detailTitleInput.value.trim();
+    var content = els.detailContentInput.value;
+    if (!title) {
+      showToast(t('labelTitle') + ' — ' + t('errorGeneric'), true);
+      return;
+    }
+    var u = unwrap(callPlugin('updateNote', { id: id, title: title, content: content }));
+    if (!u.ok) {
+      showToast(t('errorGeneric') + ': ' + u.error, true);
+      return;
+    }
+    state.currentNote = u.data;
+    fillDetailRead();
+    setDetailMode(false);
+    showToast(t('saveSuccess'));
+    loadNotes(state.searchQ);
+  });
+
+  function confirmDelete(id, after) {
+    state.confirmCallback = function () {
+      var u = unwrap(callPlugin('deleteNote', { id: id }));
+      if (!u.ok) {
+        showToast(t('errorGeneric') + ': ' + u.error, true);
+      } else {
+        showToast(t('deleteSuccess'));
+        if (state.currentId === id) {
+          state.currentId = null;
+          state.currentNote = null;
+          showView('list');
+        }
+        if (typeof after === 'function') after();
+      }
+    };
+    els.confirmDialog.classList.add('show');
+  }
+
+  document.getElementById('confirmYes').addEventListener('click', function () {
+    els.confirmDialog.classList.remove('show');
+    if (state.confirmCallback) state.confirmCallback();
+    state.confirmCallback = null;
+  });
+  document.getElementById('confirmNo').addEventListener('click', function () {
+    els.confirmDialog.classList.remove('show');
+    state.confirmCallback = null;
+  });
+  els.confirmDialog.addEventListener('click', function (e) {
+    if (e.target === els.confirmDialog) {
+      els.confirmDialog.classList.remove('show');
+      state.confirmCallback = null;
+    }
+  });
+
+  document.getElementById('btnDelete').addEventListener('click', function () {
+    if (!state.currentId) return;
+    confirmDelete(state.currentId, function () {
+      loadNotes(state.searchQ);
+    });
+  });
+
+  document.getElementById('btnExport').addEventListener('click', function () {
+    if (!state.currentId) return;
+    var defPath = '/sdcard/Download/';
+    var path = window.prompt(t('exportPrompt') + '\n' + t('exportPathHint'), defPath);
+    if (path == null || !String(path).trim()) return;
+    var u = unwrap(callPlugin('exportNote', { id: state.currentId, path: String(path).trim() }));
+    if (!u.ok) {
+      showToast(t('exportFail') + ': ' + u.error, true);
+      return;
+    }
+    var p = (u.data && u.data.path) ? u.data.path : '';
+    showToast(t('exportSuccess') + ' ' + p);
+  });
+
+  document.getElementById('btnDetailBack').addEventListener('click', function () {
+    if (state.editing) {
+      setDetailMode(false);
+      fillDetailRead();
+    }
+    showView('list');
+  });
+
+  document.getElementById('fabCreate').addEventListener('click', function () {
+    document.getElementById('createTitle').value = '';
+    document.getElementById('createContent').value = '';
+    showView('create');
+  });
+
+  document.getElementById('btnCreateBack').addEventListener('click', function () {
+    showView('list');
+  });
+  document.getElementById('btnCreateCancel').addEventListener('click', function () {
+    showView('list');
+  });
+
+  document.getElementById('btnCreateSave').addEventListener('click', function () {
+    var title = document.getElementById('createTitle').value.trim();
+    var content = document.getElementById('createContent').value;
+    if (!title) {
+      showToast(t('labelTitle') + ' — ' + t('errorGeneric'), true);
+      return;
+    }
+    var u = unwrap(callPlugin('createNote', { title: title, content: content }));
+    if (!u.ok) {
+      showToast(t('errorGeneric') + ': ' + u.error, true);
+      return;
+    }
+    showToast(t('saveSuccess'));
+    document.getElementById('createTitle').value = '';
+    document.getElementById('createContent').value = '';
+    showView('list');
+    loadNotes(state.searchQ);
+  });
+
+  els.searchInput.addEventListener('input', function () {
+    var q = els.searchInput.value;
+    clearTimeout(state.searchTimer);
+    state.searchTimer = setTimeout(function () {
+      state.searchQ = q;
+      loadNotes(q);
+    }, 320);
+  });
+
+  loadNotes('');
+})();
 </script>
 </body>
 </html>
