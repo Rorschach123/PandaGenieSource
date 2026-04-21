@@ -566,13 +566,19 @@ public class ArchivePlugin implements ModulePlugin {
     }
 
     private static String resolveStoragePath(String path) {
-        String canonical = path.replace("\\", "/");
+        String cleaned = path.trim()
+                .replace("「", "").replace("」", "")
+                .replace("『", "").replace("』", "")
+                .replace("\u201C", "").replace("\u201D", "")
+                .replace("\"", "")
+                .trim();
+        String canonical = cleaned.replace("\\", "/");
         if (canonical.equals("/sdcard") || canonical.startsWith("/sdcard/")) {
             String realRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
             if (!realRoot.equals("/sdcard")) {
                 return canonical.replaceFirst("/sdcard", realRoot);
             }
         }
-        return path;
+        return canonical;
     }
 }
