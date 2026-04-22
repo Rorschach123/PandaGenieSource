@@ -114,6 +114,39 @@ Developer Mode allows loading DEV-only signed modules for testing.
 
 ---
 
+## Module Private Storage
+
+Each module gets an **isolated private directory** for storing configuration, caches, and data. Modules **cannot** read or write other modules' private data or the app's internal files.
+
+| Layer | Enforcement |
+|-------|-------------|
+| **Java API** | `SandboxedContext` remaps `getFilesDir()` / `getCacheDir()` to `module_sandbox/<moduleId>/` |
+| **Native (libc)** | PLT-hooked `open`, `fopen`, `stat`, `mkdir`, etc. — only the current module's sandbox path is allowed within app private storage. Cross-module and app-private access is blocked and logged |
+
+**Use the `ModuleStorage` helper** in your plugin code:
+
+```java
+ModuleStorage storage = ModuleStorage.from(context);
+
+// Read/write files
+storage.writeText("config.json", "{\"key\":\"value\"}");
+String config = storage.readText("config.json");
+
+// Get file references
+File db = storage.getFile("data/cache.db");
+File imagesDir = storage.getDir("images");
+
+// Check existence, delete, list
+boolean exists = storage.exists("config.json");
+storage.delete("config.json");
+String[] files = storage.list("data");
+
+// Check storage usage
+long usedBytes = storage.getUsedSpace();
+```
+
+---
+
 ## Available Modules
 
 | Module | Description | Type |

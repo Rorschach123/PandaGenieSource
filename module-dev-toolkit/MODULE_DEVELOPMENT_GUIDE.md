@@ -454,6 +454,96 @@ result.put("_displayText", "Battery: 85%");    // fallback
 
 ---
 
+### Module Private Storage (模块私有存储)
+
+从 v1.0.9 起，每个模块拥有完全隔离的私有存储目录。
+
+Since v1.0.9, each module has a fully isolated private storage directory.
+
+**目录结构 / Directory Layout:**
+
+```
+/data/data/ai.rorsch.pandagenie/files/
+└── module_sandbox/
+    ├── filemanager/     ← File Manager's private data
+    │   ├── config.json
+    │   └── cache/
+    ├── calculator/      ← Calculator's private data
+    │   └── history.db
+    └── my_module/       ← Your module's private data
+        └── ...
+```
+
+**隔离保证 / Isolation Guarantees:**
+
+| 层级 / Layer | 机制 / Mechanism | 效果 / Effect |
+|-------------|-----------------|--------------|
+| Java API | `SandboxedContext` | `getFilesDir()` 返回 `module_sandbox/<moduleId>/` |
+| Java API | `SandboxedContext` | `getCacheDir()` 返回 `module_sandbox/<moduleId>/` (cache) |
+| Native (C/C++) | PLT Hook on libc | `open()`, `fopen()`, `stat()`, `mkdir()` 等只允许访问当前模块的 sandbox 路径 |
+| Cross-module | Native + Java | 模块 A 无法读写模块 B 的私有目录 / Module A cannot access Module B's data |
+| App-private | Native + Java | 模块无法读写 APP 自身的私有数据 / Modules cannot access app-internal data |
+
+**使用 `ModuleStorage` API / Using `ModuleStorage`:**
+
+```java
+import ai.rorsch.pandagenie.module.runtime.ModuleStorage;
+
+public class MyPlugin implements ModulePlugin {
+    @Override
+    public String invoke(Context ctx, String action, String params) throws Exception {
+        ModuleStorage storage = ModuleStorage.from(ctx);
+
+        switch (action) {
+            case "saveConfig":
+                // Write to module's private storage
+                storage.writeText("config.json", params);
+                return success("Config saved");
+
+            case "loadConfig":
+                // Read from module's private storage
+                if (storage.exists("config.json")) {
+                    String config = storage.readText("config.json");
+                    return success(config);
+                }
+                return error("No config found");
+
+            case "getStats":
+                // Check storage usage
+                long used = storage.getUsedSpace();
+                String[] files = storage.list("");
+                return success("Files: " + files.length + ", Size: " + used + " bytes");
+
+            default:
+                return error("Unknown action");
+        }
+    }
+}
+```
+
+**可用方法 / Available Methods:**
+
+| 方法 / Method | 说明 / Description |
+|-------------|-------------------|
+| `from(Context)` | 从 Context 创建实例 / Create instance from Context |
+| `getRootDir()` | 获取模块根目录 / Get module root directory |
+| `getCacheDir()` | 获取模块缓存目录 / Get module cache directory |
+| `getFile(path)` | 获取相对路径的 File 对象（自动创建父目录）/ Get File by relative path |
+| `getDir(name)` | 获取/创建子目录 / Get/create subdirectory |
+| `writeText(path, content)` | 写入文本文件 / Write text file |
+| `readText(path)` | 读取文本文件 / Read text file |
+| `exists(path)` | 检查文件是否存在 / Check if file exists |
+| `delete(path)` | 删除文件 / Delete file |
+| `list(path)` | 列出目录内容 / List directory contents |
+| `getUsedSpace()` | 获取已用空间(字节) / Get used space in bytes |
+
+**注意 / Notes:**
+- 使用 `context.getFilesDir()` 也能获得同样的隔离目录 / `context.getFilesDir()` also returns the isolated dir
+- 原生代码(.so)中的文件操作同样受到隔离控制 / Native file operations in .so are also sandboxed
+- 违规访问会被记录到安全审计日志 / Violation attempts are logged to security audit
+
+---
+
 ## 双重签名机制 / Dual-Signature System
 
 每个 `.mod` 文件携带两层独立的 jarsigner 签名：
