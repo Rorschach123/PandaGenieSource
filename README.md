@@ -188,13 +188,22 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.9)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260421/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.10)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260422/app-release.apk)**
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.10</b> (2026-04-22)</summary>
+
+- **Module Private Storage** — Each module now gets a fully isolated private directory (`module_sandbox/<moduleId>/`). Cross-module and app-private file access is blocked at both Java API and native libc (PLT hook) layers
+- **ModuleStorage API** — New convenience API (`ModuleStorage.from(ctx)`) for modules to read/write/list/delete files in their private sandbox with zero boilerplate
+- **Config Market Locale Filter** — Shared configs are now auto-tagged with language (zh/en) on upload. Users see only configs matching their language setting; own configs always visible regardless of language
+
+</details>
+
+<details>
 <summary><b>v1.0.9</b> (2026-04-21)</summary>
 
 - **LLM Privacy Controls** — New "AI Data Sharing" panel in Security settings lets you choose exactly which device info (system time, timezone, language, device model, OS version, nickname) is sent to the AI model. Unchecked items are stripped before every request
