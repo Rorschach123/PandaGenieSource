@@ -188,13 +188,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.10)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260422/app-release.apk)**
+> &#x1F4E5; **[Download APK (v1.0.11)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260423/app-release.apk)**
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.11</b> (2026-04-23)</summary>
+
+- **Unified Icon System** — 100 custom vector drawable icons (`pg_ic_*`) with a consistent rounded-line style (24dp grid, 1.8dp stroke, round caps/joins). All UI icons now use the centralized `PgIcons` registry for theme-aware tinting
+- **Emoji-Free UI** — Removed all decorative emoji from user-facing strings (EN + ZH), chat messages, execution results, and status labels. Replaced with clean text markers (`[OK]`, `[FAIL]`, `[!]`) for a professional, consistent look
+- **Merged Permission Card** — Security authorization prompt now renders the request title, description, and action buttons inside a single orange card instead of a separate chat bubble + card
+- **Module Deletion Cleanup** — Removing a module now also deletes its sandbox permissions, DataStore enabled-key, and private directory — previously only the Settings UI path cleaned these up
+- **Prompt Analytics** — User prompts are sanitized and hashed for anonymous server-side analytics
+- **Referral Source Tracking** — New users are prompted to identify how they discovered the app
+- **Bug Fixes** — Config Market text display, Data Vault layout in English, File Manager search returning too few results
+
+</details>
+
+<details>
 <summary><b>v1.0.10</b> (2026-04-22)</summary>
 
 - **Module Private Storage** — Each module now gets a fully isolated private directory (`module_sandbox/<moduleId>/`). Cross-module and app-private file access is blocked at both Java API and native libc (PLT hook) layers

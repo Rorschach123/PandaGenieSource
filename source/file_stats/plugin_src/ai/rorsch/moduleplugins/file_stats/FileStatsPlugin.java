@@ -496,7 +496,7 @@ public class FileStatsPlugin implements ModulePlugin {
         String path = params.optString("path", "").trim();
         double minSizeMB = params.optDouble("minSizeMB", 100);
         boolean recursive = params.optBoolean("recursive", true);
-        int limit = params.optInt("limit", 50);
+        int limit = params.optInt("limit", 200);
         if (path.isEmpty()) return errJson("Missing parameter: path");
 
         File dir = new File(path);
@@ -563,7 +563,7 @@ public class FileStatsPlugin implements ModulePlugin {
         String path = params.optString("path", "").trim();
         String keywordsStr = params.optString("keywords", "").trim();
         boolean recursive = params.optBoolean("recursive", true);
-        int limit = params.optInt("limit", 100);
+        int limit = params.optInt("limit", 500);
         if (path.isEmpty()) return errJson("Missing parameter: path");
         if (keywordsStr.isEmpty()) return errJson("Missing parameter: keywords");
 

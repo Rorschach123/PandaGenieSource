@@ -14,8 +14,8 @@
 #define LOG_TAG "FileManagerNative"
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 
-static constexpr size_t MAX_SEARCH_RESULTS = 5000;
-static constexpr int MAX_RECURSION_DEPTH = 20;
+static constexpr size_t MAX_SEARCH_RESULTS = 10000;
+static constexpr int MAX_RECURSION_DEPTH = 30;
 
 namespace filemgr {
 
@@ -80,7 +80,7 @@ void FileManager::searchFilesRecursive(const std::string& dir,
 
     DIR* d = opendir(dir.c_str());
     if (!d) {
-        if (depth < 3) {
+        if (depth < 5) {
             LOGW("opendir failed: %s errno=%d (%s)", dir.c_str(), errno, strerror(errno));
         }
         return;
@@ -95,14 +95,21 @@ void FileManager::searchFilesRecursive(const std::string& dir,
         if (!fullPath.empty() && fullPath.back() != '/') fullPath += '/';
         fullPath += name;
 
-        struct stat st;
-        if (stat(fullPath.c_str(), &st) != 0) continue;
-
         if (multiPatternMatch(name, pattern)) {
             results.push_back(fullPath);
         }
 
-        if (S_ISDIR(st.st_mode)) {
+        bool isDir = false;
+        if (entry->d_type != DT_UNKNOWN) {
+            isDir = (entry->d_type == DT_DIR);
+        } else {
+            struct stat st;
+            if (stat(fullPath.c_str(), &st) == 0) {
+                isDir = S_ISDIR(st.st_mode);
+            }
+        }
+
+        if (isDir) {
             searchFilesRecursive(fullPath, pattern, results, depth + 1);
         }
     }
