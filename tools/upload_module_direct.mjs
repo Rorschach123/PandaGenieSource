@@ -5,7 +5,7 @@ import http from 'http';
 import tls from 'tls';
 import { URL } from 'url';
 
-const SERVER = 'https://pandagenie-server.rorschach123.workers.dev';
+const SERVER = 'https://cf.pandagenie.ai';
 const PROXY = 'http://127.0.0.1:7890';
 const modPath = process.argv[2];
 const changelog = process.argv[3] || '';
@@ -76,21 +76,21 @@ async function run() {
   const boundary = '----NodeFormBoundary' + Date.now().toString(36);
   const fname = basename(modPath);
   const parts = [];
-  parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fname}"\r\nContent-Type: application/octet-stream\r\n\r\n`);
+  parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="modfile"; filename="${fname}"\r\nContent-Type: application/octet-stream\r\n\r\n`);
   const bodyParts = [Buffer.from(parts[0]), fileData, Buffer.from(`\r\n--${boundary}--\r\n`)];
   const body = Buffer.concat(bodyParts);
 
   console.log(`Uploading: ${fname} (${(fileData.length/1024).toFixed(1)} KB) ...`);
   let upText;
   try {
-    upText = await directFetch(`${SERVER}/module-market/submit/upload`, {
+    upText = await directFetch(`${SERVER}/submit/upload`, {
       method: 'POST',
       headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
       body
     });
   } catch (e) {
     console.log('Direct failed, trying proxy...');
-    upText = await httpsViaProxy(`${SERVER}/module-market/submit/upload`, {
+    upText = await httpsViaProxy(`${SERVER}/submit/upload`, {
       method: 'POST',
       headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     }, body);
@@ -105,13 +105,13 @@ async function run() {
   console.log('Publishing ...');
   let pubText;
   try {
-    pubText = await directFetch(`${SERVER}/module-market/submit/publish`, {
+    pubText = await directFetch(`${SERVER}/submit/publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(pubBody).toString() },
       body: pubBody
     });
   } catch (e) {
-    pubText = await httpsViaProxy(`${SERVER}/module-market/submit/publish`, {
+    pubText = await httpsViaProxy(`${SERVER}/submit/publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     }, pubBody);
