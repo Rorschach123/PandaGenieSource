@@ -3,62 +3,165 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>指南针 / Compass</title>
+<title>Compass</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
+.compass-card { text-align: center; padding: 4px 0 8px; }
 .compass-display {
-  width: 200px; height: 200px; margin: 20px auto;
-  border-radius: 50%; border: 3px solid var(--primary);
+  width: 200px; height: 200px; margin: 12px auto 0;
+  border-radius: 50%;
+  border: 3px solid var(--primary);
   display: flex; align-items: center; justify-content: center;
-  font-size: 48px; background: var(--surface);
+  font-size: 52px;
+  background: radial-gradient(circle at 35% 30%, var(--surface-container-high) 0%, var(--surface) 55%);
+  box-shadow: var(--shadow-md), inset 0 0 0 1px var(--outline-variant);
 }
-.heading-text { text-align: center; font-size: 24px; font-weight: 700; color: var(--primary); margin: 8px 0; }
-.heading-sub { text-align: center; font-size: 14px; color: var(--on-surface-variant); }
-.refresh-btn {
-  display: block; width: 80%; margin: 16px auto;
-  padding: 12px; border: none; border-radius: 20px;
-  background: var(--primary); color: var(--on-primary);
-  font-size: 15px; font-weight: 600; cursor: pointer;
+.heading-text {
+  text-align: center; font-size: 28px; font-weight: 800;
+  color: var(--primary);
+  margin: 14px 0 6px;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
-.refresh-btn:active { opacity: 0.8; }
+.heading-sub {
+  text-align: center; font-size: 14px; color: var(--on-surface-variant);
+  line-height: 1.45; min-height: 2.9em; padding: 0 8px;
+}
 </style>
 </head>
 <body>
 <div class="mod-header">
-  <div class="icon">🧭</div>
-  <h2>指南针 / Compass</h2>
-  <p>利用设备传感器显示当前朝向</p>
+  <div class="icon" aria-hidden="true">🧭</div>
+  <h2 data-i18n="title">指南针 / Compass</h2>
+  <p data-i18n="subtitle">利用设备传感器显示当前朝向</p>
 </div>
 
-<div class="card" style="text-align:center">
-  <div class="compass-display" id="compassIcon">🧭</div>
+<div class="card compass-card" style="margin-bottom: 12px;">
+  <div class="compass-display" id="compassIcon" role="img" aria-hidden="true">🧭</div>
   <div class="heading-text" id="heading">--°</div>
   <div class="heading-sub" id="direction">--</div>
-  <button type="button" class="refresh-btn" onclick="readCompass()">刷新方向 / Refresh</button>
+  <button type="button" class="btn btn-primary btn-block" style="margin-top: 18px; max-width: 280px; margin-left: auto; margin-right: auto;" onclick="readCompass()" data-i18n="btn_refresh">刷新方向</button>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "现在朝哪个方向"</p>
-  <p>• "打开指南针"</p>
-  <p>• "我面朝哪里"</p>
+  <h3 data-i18n="sec_features">✨ 功能特性</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📐</span><span data-i18n="feat1">方位角</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🧭</span><span data-i18n="feat2">八向方位</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🔄</span><span data-i18n="feat3">手动刷新</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📱</span><span data-i18n="feat4">设备传感器</span></div>
+  </div>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>无需额外权限，使用设备内置传感器</p>
+  <h3 data-i18n="sec_api">📡 功能接口</h3>
+  <ul class="api-list">
+    <li>
+      <span class="api-name">getDirection</span>
+      <span data-i18n="api_getdir">获取方位角、方向简称与完整方向描述。</span>
+    </li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="sec_examples">💡 使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex1">「现在朝哪个方向」</li>
+    <li data-i18n="ex2">「打开指南针」</li>
+    <li data-i18n="ex3">「我面朝哪里」</li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="sec_about">ℹ️ 关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_l">开发者</span>
+    <span class="value">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_l">版本</span>
+    <span class="value">1.0</span>
+  </div>
+  <div class="mt-8">
+    <span class="badge badge-success" data-i18n="perm_badge">无需特殊权限</span>
+  </div>
+  <p class="text-muted mt-8" style="font-size:12px; line-height:1.5" data-i18n="about_perm">使用设备内置传感器，无需额外权限。</p>
 </div>
 
 <script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh') { _lang = 'en'; }
+
+var i18n = {
+  zh: {
+    title: '指南针 / Compass',
+    subtitle: '利用设备传感器显示当前朝向',
+    deg_wait: '--°',
+    dir_wait: '--',
+    btn_refresh: '刷新方向',
+    sec_features: '✨ 功能特性',
+    feat1: '方位角',
+    feat2: '八向方位',
+    feat3: '手动刷新',
+    feat4: '设备传感器',
+    sec_api: '📡 功能接口',
+    api_getdir: '获取方位角（azimuth）、方向简称与完整描述（direction / directionFull）。',
+    sec_examples: '💡 使用示例',
+    ex1: '「现在朝哪个方向」',
+    ex2: '「打开指南针」',
+    ex3: '「我面朝哪里」',
+    sec_about: 'ℹ️ 关于',
+    about_dev_l: '开发者',
+    about_ver_l: '版本',
+    perm_badge: '无特殊权限',
+    about_perm: '使用设备内置传感器，无需额外权限。',
+    err_short: '错误',
+    err_read: '无法读取方向'
+  },
+  en: {
+    title: 'Compass',
+    subtitle: 'Heading from device sensors',
+    deg_wait: '--°',
+    dir_wait: '--',
+    btn_refresh: 'Refresh heading',
+    sec_features: '✨ Features',
+    feat1: 'Azimuth',
+    feat2: 'Cardinal points',
+    feat3: 'Manual refresh',
+    feat4: 'Built-in sensors',
+    sec_api: '📡 API',
+    api_getdir: 'Returns azimuth, short direction, and full direction (direction / directionFull).',
+    sec_examples: '💡 Example phrases',
+    ex1: '“Which way am I facing?”',
+    ex2: '“Open the compass”',
+    ex3: '“Where am I facing?”',
+    sec_about: 'ℹ️ About',
+    about_dev_l: 'Developer',
+    about_ver_l: 'Version',
+    perm_badge: 'No special permissions',
+    about_perm: 'Uses built-in sensors; no extra permissions required.',
+    err_short: 'Error',
+    err_read: 'Could not read heading'
+  }
+};
+
+function t(k) {
+  return (i18n[_lang] && i18n[_lang][k]) || (i18n.en && i18n.en[k]) || k;
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  var h0 = document.getElementById('heading');
+  var d0 = document.getElementById('direction');
+  if (h0) h0.textContent = t('deg_wait');
+  if (d0) d0.textContent = t('dir_wait');
+  document.title = t('title');
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+}
+applyI18n();
+
 function readCompass() {
   try {
     var raw = NativeBridge.invoke('getDirection', '{}');
@@ -68,11 +171,12 @@ function readCompass() {
       document.getElementById('heading').textContent = out.azimuth + '°';
       document.getElementById('direction').textContent = out.directionFull + ' (' + out.direction + ')';
     } else {
-      document.getElementById('heading').textContent = 'Error';
-      document.getElementById('direction').textContent = res.error || 'Unknown error';
+      document.getElementById('heading').textContent = t('err_short');
+      document.getElementById('direction').textContent = res.error || t('err_read');
     }
   } catch (e) {
-    document.getElementById('direction').textContent = e.message || String(e);
+    document.getElementById('heading').textContent = t('err_short');
+    document.getElementById('direction').textContent = (e && e.message) ? String(e.message) : String(e);
   }
 }
 try { readCompass(); } catch(e) {}

@@ -3,66 +3,177 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>手电筒 / Flashlight</title>
+<title>Flashlight</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.torch-area { text-align: center; padding: 30px 0; }
+.torch-wrap { text-align: center; padding: 8px 0 20px; }
 .torch-btn {
-  width: 140px; height: 140px; border-radius: 50%;
-  border: 4px solid var(--primary); background: var(--surface);
+  width: 152px; height: 152px; border-radius: 50%;
+  border: 4px solid var(--primary);
+  background: var(--surface);
   font-size: 56px; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.3s;
+  transition: box-shadow 0.35s ease, background 0.25s ease, border-color 0.25s ease, transform 0.12s ease;
+  box-shadow: var(--shadow-md);
 }
+.torch-btn:active { transform: scale(0.96); }
 .torch-btn.on {
-  background: linear-gradient(135deg, #FFD54F, #FFA726);
-  border-color: #FF9800;
-  box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+  background: linear-gradient(145deg, #ffe082 0%, #ffb300 50%, #ff8f00 100%);
+  border-color: #f57c00;
+  color: #4e342e;
+  box-shadow: 0 0 48px rgba(255, 152, 0, 0.55), 0 8px 24px rgba(255, 143, 0, 0.28);
 }
 .torch-status {
-  margin-top: 16px; font-size: 18px; font-weight: 600;
+  margin-top: 20px; font-size: 18px; font-weight: 700;
   color: var(--on-surface-variant);
+  letter-spacing: 0.5px;
 }
-.torch-status.on { color: #FF9800; }
+.torch-status.on { color: #f57c00; }
 </style>
 </head>
 <body>
 <div class="mod-header">
-  <div class="icon">🔦</div>
-  <h2>手电筒 / Flashlight</h2>
-  <p>快速控制设备闪光灯</p>
+  <div class="icon" aria-hidden="true">🔦</div>
+  <h2 data-i18n="title">手电筒 / Flashlight</h2>
+  <p data-i18n="subtitle">快速控制设备闪光灯</p>
 </div>
 
-<div class="card">
-  <div class="torch-area">
-    <button type="button" class="torch-btn" id="torchBtn" onclick="toggleTorch()">🔦</button>
-    <div class="torch-status" id="torchStatus">OFF</div>
+<div class="card" style="margin-bottom: 12px;">
+  <div class="torch-wrap">
+    <button type="button" class="torch-btn" id="torchBtn" onclick="toggleTorch()" aria-pressed="false">🔦</button>
+    <div class="torch-status" id="torchStatus" data-state="off">OFF</div>
   </div>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "打开手电筒"</p>
-  <p>• "关闭闪光灯"</p>
-  <p>• "手电筒开了吗"</p>
+  <h3 data-i18n="sec_features">✨ 功能特性</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji" aria-hidden="true">⚡</span><span data-i18n="feat1">一键开关</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📡</span><span data-i18n="feat2">状态同步</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">💡</span><span data-i18n="feat3">相机闪光灯</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🌙</span><span data-i18n="feat4">弱光环境</span></div>
+  </div>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>需要相机权限以控制闪光灯</p>
+  <h3 data-i18n="sec_api">📡 功能接口</h3>
+  <ul class="api-list">
+    <li>
+      <span class="api-name">toggle</span>
+      <span data-i18n="api_toggle">切换闪光灯开/关，返回 on 状态。</span>
+    </li>
+    <li>
+      <span class="api-name">getStatus</span>
+      <span data-i18n="api_getstatus">获取当前闪光灯是否开启。</span>
+    </li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="sec_examples">💡 使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex1">「打开手电筒」</li>
+    <li data-i18n="ex2">「关闭闪光灯」</li>
+    <li data-i18n="ex3">「手电筒开了吗」</li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="sec_about">ℹ️ 关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_l">开发者</span>
+    <span class="value">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_l">版本</span>
+    <span class="value">1.0</span>
+  </div>
+  <div class="mt-8">
+    <span class="badge" data-i18n="perm_badge">相机（闪光灯）</span>
+  </div>
+  <p class="text-muted mt-8" style="font-size:12px; line-height:1.5" data-i18n="about_perm">需要相机权限以控制闪光灯。</p>
 </div>
 
 <script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh') { _lang = 'en'; }
+
+var i18n = {
+  zh: {
+    title: '手电筒 / Flashlight',
+    subtitle: '快速控制设备闪光灯',
+    sec_features: '✨ 功能特性',
+    feat1: '一键开关',
+    feat2: '状态同步',
+    feat3: '相机闪光灯',
+    feat4: '弱光辅助',
+    sec_api: '📡 功能接口',
+    api_toggle: '切换闪光灯开/关，返回 on 状态。',
+    api_getstatus: '获取当前闪光灯是否开启。',
+    sec_examples: '💡 使用示例',
+    ex1: '「打开手电筒」',
+    ex2: '「关闭闪光灯」',
+    ex3: '「手电筒开了吗」',
+    sec_about: 'ℹ️ 关于',
+    about_dev_l: '开发者',
+    about_ver_l: '版本',
+    perm_badge: '相机（闪光灯）',
+    about_perm: '需要相机权限以控制闪光灯。',
+    torch_aria: '切换手电筒',
+    state_on: '开启',
+    state_off: '关闭'
+  },
+  en: {
+    title: 'Flashlight',
+    subtitle: 'Control the device LED flash',
+    sec_features: '✨ Features',
+    feat1: 'One-tap toggle',
+    feat2: 'Status sync',
+    feat3: 'Camera LED',
+    feat4: 'Low light aid',
+    sec_api: '📡 API',
+    api_toggle: 'Toggle the torch on or off; response includes on state.',
+    api_getstatus: 'Returns whether the torch is currently on.',
+    sec_examples: '💡 Example phrases',
+    ex1: '“Turn on the flashlight”',
+    ex2: '“Turn off the flash”',
+    ex3: '“Is the torch on?”',
+    sec_about: 'ℹ️ About',
+    about_dev_l: 'Developer',
+    about_ver_l: 'Version',
+    perm_badge: 'Camera (flashlight)',
+    about_perm: 'Camera permission is required to control the LED.',
+    torch_aria: 'Toggle flashlight',
+    state_on: 'ON',
+    state_off: 'OFF'
+  }
+};
+
+function t(k) {
+  return (i18n[_lang] && i18n[_lang][k]) || (i18n.en && i18n.en[k]) || k;
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  var ariaBtn = document.getElementById('torchBtn');
+  if (ariaBtn) { ariaBtn.setAttribute('title', t('torch_aria')); ariaBtn.setAttribute('aria-label', t('torch_aria')); }
+  document.title = t('title');
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+}
+applyI18n();
+
 var isOn = false;
+function updateUI() {
+  var btn = document.getElementById('torchBtn');
+  var st = document.getElementById('torchStatus');
+  btn.className = 'torch-btn' + (isOn ? ' on' : '');
+  st.className = 'torch-status' + (isOn ? ' on' : '');
+  st.setAttribute('data-state', isOn ? 'on' : 'off');
+  st.textContent = isOn ? t('state_on') : t('state_off');
+  btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+}
 function toggleTorch() {
   try {
     var raw = NativeBridge.invoke('toggle', '{}');
@@ -73,13 +184,6 @@ function toggleTorch() {
       updateUI();
     }
   } catch(e) {}
-}
-function updateUI() {
-  var btn = document.getElementById('torchBtn');
-  var st = document.getElementById('torchStatus');
-  btn.className = 'torch-btn' + (isOn ? ' on' : '');
-  st.className = 'torch-status' + (isOn ? ' on' : '');
-  st.textContent = isOn ? 'ON' : 'OFF';
 }
 try {
   var raw = NativeBridge.invoke('getStatus', '{}');

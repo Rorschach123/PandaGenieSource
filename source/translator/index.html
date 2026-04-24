@@ -3,69 +3,158 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>翻译助手 / Translator</title>
+<title data-i18n="page_title">翻译助手 / Translator</title>
 <link rel="stylesheet" href="common.css">
-<style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.feature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
-.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
-.feature-item .emoji { font-size: 20px; display: block; margin-bottom: 4px; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
-</style>
 </head>
 <body>
 <div class="mod-header">
   <div class="icon">🌐</div>
-  <h2>翻译助手 / Translator</h2>
-  <p>多语言文本互译</p>
+  <h2 data-i18n="mod_title">翻译助手 / Translator</h2>
+  <p data-i18n="mod_subtitle">多语言文本互译，支持指定源语与目标语。</p>
+  <p class="mt-8">
+    <span class="badge badge-success" data-i18n="badge_mymemory">MyMemory 免费</span>
+  </p>
 </div>
 
 <div class="info-card">
-  <h3>✨ 支持语言</h3>
+  <h3 data-i18n="section_langs">支持语言</h3>
   <div class="feature-grid">
-    <div class="feature-item"><span class="emoji">🇨🇳</span>中文</div>
-    <div class="feature-item"><span class="emoji">🇬🇧</span>英语</div>
-    <div class="feature-item"><span class="emoji">🇯🇵</span>日语</div>
-    <div class="feature-item"><span class="emoji">🇰🇷</span>韩语</div>
-    <div class="feature-item"><span class="emoji">🇫🇷</span>法语</div>
-    <div class="feature-item"><span class="emoji">🇩🇪</span>德语</div>
-    <div class="feature-item"><span class="emoji">🇪🇸</span>西班牙语</div>
-    <div class="feature-item"><span class="emoji">🇷🇺</span>俄语</div>
-    <div class="feature-item"><span class="emoji">🇸🇦</span>阿拉伯语</div>
+    <div class="feature-item"><span class="emoji">🇨🇳</span><span data-i18n="lang_zh">中文</span></div>
+    <div class="feature-item"><span class="emoji">🇬🇧</span><span data-i18n="lang_en">英语</span></div>
+    <div class="feature-item"><span class="emoji">🇯🇵</span><span data-i18n="lang_ja">日语</span></div>
+    <div class="feature-item"><span class="emoji">🇰🇷</span><span data-i18n="lang_ko">韩语</span></div>
+    <div class="feature-item"><span class="emoji">🇫🇷</span><span data-i18n="lang_fr">法语</span></div>
+    <div class="feature-item"><span class="emoji">🇩🇪</span><span data-i18n="lang_de">德语</span></div>
+    <div class="feature-item"><span class="emoji">🇪🇸</span><span data-i18n="lang_es">西班牙语</span></div>
+    <div class="feature-item"><span class="emoji">🇷🇺</span><span data-i18n="lang_ru">俄语</span></div>
+    <div class="feature-item"><span class="emoji">🇸🇦</span><span data-i18n="lang_ar">阿拉伯语</span></div>
   </div>
 </div>
 
 <div class="info-card">
-  <h3>📡 功能接口</h3>
+  <h3 data-i18n="section_apis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">translate</span> — 翻译文本，支持指定源/目标语言</li>
-    <li><span class="api-name">detectLanguage</span> — 自动检测文本语言</li>
-    <li><span class="api-name">getSupportedLanguages</span> — 获取支持的语言列表</li>
+    <li>
+      <span class="api-name">translate</span>
+      <span data-i18n="api_translate">— 翻译文本，可指定源语言与目标语言</span>
+    </li>
+    <li>
+      <span class="api-name">detectLanguage</span>
+      <span data-i18n="api_detect">— 自动检测文本语言</span>
+    </li>
+    <li>
+      <span class="api-name">getSupportedLanguages</span>
+      <span data-i18n="api_get_langs">— 获取已支持语言列表</span>
+    </li>
   </ul>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "把这段话翻译成英文: 今天天气真好"</p>
-  <p>• "translate hello world to Chinese"</p>
-  <p>• "这段文字是什么语言"</p>
-  <p>• "翻译成日语: 谢谢"</p>
+  <h3 data-i18n="section_examples">使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex_1">把这段话翻译成英文: 今天天气真好</li>
+    <li data-i18n="ex_2">Translate hello world to Chinese</li>
+    <li data-i18n="ex_3">这段文字是什么语言？</li>
+    <li data-i18n="ex_4">把「谢谢」翻译成日语</li>
+  </ul>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>翻译服务: MyMemory API (免费)</p>
+  <h3 data-i18n="section_about">关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_label">开发者</span>
+    <span class="value" data-i18n="about_dev">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_label">版本</span>
+    <span class="value" data-i18n="about_ver">1.0</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_service_label">翻译服务</span>
+    <span class="value" data-i18n="about_service">MyMemory API (免费)</span>
+  </div>
 </div>
+
+<script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh' && _lang !== 'en') _lang = 'en';
+
+var i18n = {
+  zh: {
+    page_title: '翻译助手 / Translator',
+    mod_title: '翻译助手 / Translator',
+    mod_subtitle: '多语言文本互译，支持指定源语与目标语。',
+    badge_mymemory: 'MyMemory 免费',
+    section_langs: '支持语言',
+    lang_zh: '中文',
+    lang_en: '英语',
+    lang_ja: '日语',
+    lang_ko: '韩语',
+    lang_fr: '法语',
+    lang_de: '德语',
+    lang_es: '西班牙语',
+    lang_ru: '俄语',
+    lang_ar: '阿拉伯语',
+    section_apis: '功能接口',
+    api_translate: '— 翻译文本，可指定源语言与目标语言',
+    api_detect: '— 自动检测文本语言',
+    api_get_langs: '— 获取已支持语言列表',
+    section_examples: '使用示例',
+    ex_1: '把这段话翻译成英文: 今天天气真好',
+    ex_2: 'Translate hello world to Chinese',
+    ex_3: '这段文字是什么语言？',
+    ex_4: '把「谢谢」翻译成日语',
+    section_about: '关于',
+    about_dev_label: '开发者',
+    about_dev: 'Jarvan',
+    about_ver_label: '版本',
+    about_ver: '1.0',
+    about_service_label: '翻译服务',
+    about_service: 'MyMemory API (免费)'
+  },
+  en: {
+    page_title: 'Translator',
+    mod_title: 'Translator',
+    mod_subtitle: 'Translate text between many languages, with optional source and target codes.',
+    badge_mymemory: 'MyMemory (free)',
+    section_langs: 'Supported languages',
+    lang_zh: 'Chinese',
+    lang_en: 'English',
+    lang_ja: 'Japanese',
+    lang_ko: 'Korean',
+    lang_fr: 'French',
+    lang_de: 'German',
+    lang_es: 'Spanish',
+    lang_ru: 'Russian',
+    lang_ar: 'Arabic',
+    section_apis: 'APIs',
+    api_translate: '— Translate text; set source and target language',
+    api_detect: '— Auto-detect the language of text',
+    api_get_langs: '— List supported language codes',
+    section_examples: 'Example prompts',
+    ex_1: 'Translate this to English: 今天天气真好',
+    ex_2: 'Translate hello world to Chinese',
+    ex_3: 'What language is this text?',
+    ex_4: 'Translate “谢谢” to Japanese',
+    section_about: 'About',
+    about_dev_label: 'Developer',
+    about_dev: 'Jarvan',
+    about_ver_label: 'Version',
+    about_ver: '1.0',
+    about_service_label: 'Service',
+    about_service: 'MyMemory API (free)'
+  }
+};
+
+(function() {
+  var dict = i18n[_lang] || i18n.en;
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (key && dict[key] != null) el.textContent = dict[key];
+  });
+})();
+</script>
 </body>
 </html>

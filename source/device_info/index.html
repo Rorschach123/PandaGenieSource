@@ -6,24 +6,33 @@
 <title>Device Info</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
+  body.device-skin { --page-accent: #0EA5E9; --page-accent-soft: rgba(14, 165, 233, 0.12);
+    background: linear-gradient(180deg, var(--page-accent-soft) 0%, var(--surface) 28%); }
+  body.device-skin .mod-header .icon { background: linear-gradient(145deg, var(--page-accent-soft), var(--primary-container)); }
+  body.device-skin .info-card h3 { color: var(--page-accent); }
+  body.device-skin .api-name { background: var(--page-accent-soft); color: #0369A1; }
+  @media (prefers-color-scheme: dark) { body.device-skin .api-name { color: #7DD3FC; } }
+  body.device-skin .example-list li { border-left-color: var(--page-accent); }
+  body.device-skin .badge { background: var(--page-accent-soft); color: var(--page-accent); }
 </style>
 </head>
-<body>
+<body class="device-skin">
 <div class="mod-header">
   <div class="icon">📱</div>
   <h2 data-i18n="title"></h2>
   <p data-i18n="desc"></p>
+  <p class="text-center mt-8"><span class="badge" data-i18n="module_badge"></span></p>
+</div>
+<div class="info-card">
+  <h3 data-i18n="features_title"></h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🏷️</span><span data-i18n="feat_1"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🧮</span><span data-i18n="feat_2"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🧠</span><span data-i18n="feat_3"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">💾</span><span data-i18n="feat_4"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🖥️</span><span data-i18n="feat_5"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📊</span><span data-i18n="feat_6"></span></div>
+  </div>
 </div>
 <div class="info-card">
   <h3 data-i18n="api_title"></h3>
@@ -37,8 +46,21 @@
   </ul>
 </div>
 <div class="info-card">
-  <h3 data-i18n="usage_title"></h3>
-  <p data-i18n="usage_desc"></p>
+  <h3 data-i18n="examples_title"></h3>
+  <ul class="example-list">
+    <li data-i18n="ex1"></li>
+    <li data-i18n="ex2"></li>
+    <li data-i18n="ex3"></li>
+    <li data-i18n="ex4"></li>
+  </ul>
+  <h3 class="mt-12" data-i18n="usage_title"></h3>
+  <p class="text-muted mt-8" data-i18n="usage_desc"></p>
+</div>
+<div class="info-card">
+  <h3 data-i18n="about_title"></h3>
+  <div class="about-row"><span class="label" data-i18n="about_dev_label"></span><span class="value" data-i18n="about_dev"></span></div>
+  <div class="about-row"><span class="label" data-i18n="about_ver_label"></span><span class="value" data-i18n="about_ver"></span></div>
+  <div class="about-row"><span class="label" data-i18n="about_perm_label"></span><span class="value" data-i18n="about_permissions"></span></div>
 </div>
 <script>
 var _lang = 'zh';
@@ -54,7 +76,27 @@ var i18n = {
     api_getDisplayInfo: '通过 WindowManager 与 DisplayMetrics 获取屏幕宽高、密度、densityDpi 与刷新率，用户说【屏幕】【分辨率】【刷新率】时使用',
     api_getSystemSummary: '一次调用汇总设备、CPU、内存、存储与屏幕信息，用户说【设备概况】【整机信息】时使用',
     usage_title: '使用方式',
-    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。',
+    module_badge: '系统信息',
+    features_title: '核心能力',
+    feat_1: '品牌/型号',
+    feat_2: 'CPU',
+    feat_3: '内存',
+    feat_4: '存储',
+    feat_5: '屏幕',
+    feat_6: '系统总览',
+    examples_title: '使用示例',
+    ex1: '「我手机什么型号、安卓几」→ getDeviceInfo',
+    ex2: '「几核 CPU、什么架构」→ getCpuInfo',
+    ex3: '「还剩多少运存 / 内部存储」→ getMemoryInfo 与 getStorageInfo',
+    ex4: '「一屏说清整机配置」→ getSystemSummary',
+    about_title: '关于本模块',
+    about_dev_label: '开发者',
+    about_dev: 'PandaGenie',
+    about_ver_label: '版本',
+    about_ver: '1.0.0',
+    about_perm_label: '权限说明',
+    about_permissions: '读取公开系统属性与存储空间统计（因系统与机型而异）'
   },
   en: {
     title: 'Device Info',
@@ -67,7 +109,27 @@ var i18n = {
     api_getDisplayInfo: 'Via WindowManager and DisplayMetrics: size, density, densityDpi, refresh rate. Use when the user asks about screen, resolution, or refresh rate',
     api_getSystemSummary: 'One call summarizing device, CPU, memory, storage, and display. Use when the user asks for an overview or full device summary',
     usage_title: 'How to Use',
-    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.'
+    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.',
+    module_badge: 'Device',
+    features_title: 'Highlights',
+    feat_1: 'Brand & model',
+    feat_2: 'CPU',
+    feat_3: 'Memory',
+    feat_4: 'Storage',
+    feat_5: 'Display',
+    feat_6: 'System overview',
+    examples_title: 'Examples',
+    ex1: '“What’s my phone model and Android version?” → getDeviceInfo',
+    ex2: '“How many CPU cores and which arch?” → getCpuInfo',
+    ex3: '“How much free storage?” → getStorageInfo (memory via getMemoryInfo if asking RAM)',
+    ex4: '“Give me a full device spec sheet” → getSystemSummary',
+    about_title: 'About',
+    about_dev_label: 'Developer',
+    about_dev: 'PandaGenie',
+    about_ver_label: 'Version',
+    about_ver: '1.0.0',
+    about_perm_label: 'Permissions',
+    about_permissions: 'Read public system info and storage stats (varies by device).'
   }
 };
 function applyI18n() {

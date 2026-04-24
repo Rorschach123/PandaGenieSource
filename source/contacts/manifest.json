@@ -4,7 +4,7 @@
   "name_en": "Contacts Manager",
   "description": "联系人管理模块，支持搜索、查看详情、列出全部联系人、导出VCF、查找重复联系人",
   "description_en": "Contacts manager: search, view details, list all, export to VCF, find duplicates",
-  "version": "1.3",
+  "version": "1.4",
   "icon": "contacts",
   "soLibraries": [],
   "h5Page": "index.html",

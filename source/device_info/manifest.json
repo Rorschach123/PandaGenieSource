@@ -4,7 +4,7 @@
   "name_en": "Device Info",
   "description": "设备信息模块，提供机型与系统版本、CPU、内存、存储、屏幕参数及一键汇总，仅使用系统公开 API。",
   "description_en": "Device information module: model/OS, CPU, RAM, storage, display metrics, and one-call summary using public Android APIs only.",
-  "version": "1.3",
+  "version": "1.4",
   "icon": "phone_android",
   "soLibraries": [],
   "h5Page": "index.html",

@@ -3,65 +3,143 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>天气助手 / Weather</title>
+<title data-i18n="page_title">天气助手 / Weather</title>
 <link rel="stylesheet" href="common.css">
-<style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
-.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
-</style>
 </head>
 <body>
 <div class="mod-header">
   <div class="icon">🌤️</div>
-  <h2>天气助手 / Weather</h2>
-  <p>查询全球城市实时天气与预报</p>
+  <h2 data-i18n="mod_title">天气助手 / Weather</h2>
+  <p data-i18n="mod_subtitle">全球城市实时天气与 1–7 日预报，免费无限制查询。</p>
+  <p class="mt-8">
+    <span class="badge" data-i18n="badge_om">Open-Meteo 免费</span>
+  </p>
 </div>
 
 <div class="info-card">
-  <h3>✨ 功能特性</h3>
+  <h3 data-i18n="section_features">功能特性</h3>
   <div class="feature-grid">
-    <div class="feature-item"><span class="emoji">🌡️</span>实时温度</div>
-    <div class="feature-item"><span class="emoji">💧</span>湿度数据</div>
-    <div class="feature-item"><span class="emoji">💨</span>风速风向</div>
-    <div class="feature-item"><span class="emoji">📅</span>7日预报</div>
-    <div class="feature-item"><span class="emoji">🌍</span>全球城市</div>
-    <div class="feature-item"><span class="emoji">🆓</span>免费无限</div>
+    <div class="feature-item"><span class="emoji">🌡️</span><span data-i18n="feat_temp">实时温度</span></div>
+    <div class="feature-item"><span class="emoji">💧</span><span data-i18n="feat_humid">湿度</span></div>
+    <div class="feature-item"><span class="emoji">💨</span><span data-i18n="feat_wind">风速与风向</span></div>
+    <div class="feature-item"><span class="emoji">📅</span><span data-i18n="feat_7d">1–7 日预报</span></div>
+    <div class="feature-item"><span class="emoji">🌍</span><span data-i18n="feat_cities">全球城市</span></div>
+    <div class="feature-item"><span class="emoji">🆓</span><span data-i18n="feat_free">免费无限</span></div>
   </div>
 </div>
 
 <div class="info-card">
-  <h3>📡 功能接口</h3>
+  <h3 data-i18n="section_apis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">getCurrentWeather</span> — 查询城市当前天气（温度、湿度、风速、气压等）</li>
-    <li><span class="api-name">getForecast</span> — 查询未来1-7天天气预报</li>
+    <li>
+      <span class="api-name">getCurrentWeather</span>
+      <span data-i18n="api_current">— 按城市名查询当前天气</span>
+    </li>
+    <li>
+      <span class="api-name">getForecast</span>
+      <span data-i18n="api_forecast">— 查询未来 1–7 天预报</span>
+    </li>
   </ul>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "北京今天天气怎么样"</p>
-  <p>• "查询上海未来三天天气"</p>
-  <p>• "Tokyo weather forecast"</p>
-  <p>• "深圳这周天气预报"</p>
+  <h3 data-i18n="section_examples">使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex_1">北京今天天气怎么样</li>
+    <li data-i18n="ex_2">Beijing weather today</li>
+    <li data-i18n="ex_3">查询上海未来三天天气</li>
+    <li data-i18n="ex_4">Shanghai 3-day forecast</li>
+  </ul>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>数据来源: Open-Meteo (免费开放API)</p>
+  <h3 data-i18n="section_about">关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_label">开发者</span>
+    <span class="value" data-i18n="about_dev">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_label">版本</span>
+    <span class="value" data-i18n="about_ver">1.0</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_data_label">数据来源</span>
+    <span class="value" data-i18n="about_data">Open-Meteo (免费开放 API)</span>
+  </div>
 </div>
+
+<script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh' && _lang !== 'en') _lang = 'en';
+
+var i18n = {
+  zh: {
+    page_title: '天气助手 / Weather',
+    mod_title: '天气助手 / Weather',
+    mod_subtitle: '全球城市实时天气与 1–7 日预报，免费无限制查询。',
+    badge_om: 'Open-Meteo 免费',
+    section_features: '功能特性',
+    feat_temp: '实时温度',
+    feat_humid: '湿度',
+    feat_wind: '风速与风向',
+    feat_7d: '1–7 日预报',
+    feat_cities: '全球城市',
+    feat_free: '免费无限',
+    section_apis: '功能接口',
+    api_current: '— 按城市名查询当前天气',
+    api_forecast: '— 查询未来 1–7 天预报',
+    section_examples: '使用示例',
+    ex_1: '北京今天天气怎么样',
+    ex_2: 'Beijing weather today',
+    ex_3: '查询上海未来三天天气',
+    ex_4: 'Shanghai 3-day forecast',
+    section_about: '关于',
+    about_dev_label: '开发者',
+    about_dev: 'Jarvan',
+    about_ver_label: '版本',
+    about_ver: '1.0',
+    about_data_label: '数据来源',
+    about_data: 'Open-Meteo (免费开放 API)'
+  },
+  en: {
+    page_title: 'Weather',
+    mod_title: 'Weather',
+    mod_subtitle: 'Current conditions and 1–7 day forecasts for cities worldwide. Free, unlimited use.',
+    badge_om: 'Open-Meteo (free)',
+    section_features: 'Features',
+    feat_temp: 'Real-time temp',
+    feat_humid: 'Humidity',
+    feat_wind: 'Wind speed & direction',
+    feat_7d: '1–7 day forecast',
+    feat_cities: 'Global cities',
+    feat_free: 'Free, unlimited',
+    section_apis: 'APIs',
+    api_current: '— Current weather by city name',
+    api_forecast: '— 1–7 day forecast',
+    section_examples: 'Example prompts',
+    ex_1: 'What’s the weather in Beijing today?',
+    ex_2: 'Beijing weather today',
+    ex_3: 'Shanghai weather for the next three days',
+    ex_4: 'Shanghai 3-day forecast',
+    section_about: 'About',
+    about_dev_label: 'Developer',
+    about_dev: 'Jarvan',
+    about_ver_label: 'Version',
+    about_ver: '1.0',
+    about_data_label: 'Data',
+    about_data: 'Open-Meteo (free, open API)'
+  }
+};
+
+(function() {
+  var dict = i18n[_lang] || i18n.en;
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (key && dict[key] != null) el.textContent = dict[key];
+  });
+})();
+</script>
 </body>
 </html>

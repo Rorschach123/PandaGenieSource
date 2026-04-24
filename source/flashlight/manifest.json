@@ -4,7 +4,7 @@
   "name_en": "Flashlight",
   "description": "手电筒控制模块，支持开关闪光灯、切换状态、查询当前状态",
   "description_en": "Flashlight control module, toggle camera torch on/off, check current status",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "flashlight_on",
   "soLibraries": [],
   "h5Page": "index.html",

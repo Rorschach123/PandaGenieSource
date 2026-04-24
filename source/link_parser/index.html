@@ -3,74 +3,185 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>链接解析 / Link Parser</title>
+<title data-i18n="page_title">链接解析 / Link Parser</title>
 <link rel="stylesheet" href="common.css">
-<style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
-.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.feature-item { background: var(--surface-container-high); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
-.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
-</style>
 </head>
 <body>
 <div class="mod-header">
   <div class="icon">🔗</div>
-  <h2>链接解析 / Link Parser</h2>
-  <p>解析链接内容，提取图片、文件、文字等信息</p>
+  <h2 data-i18n="mod_title">链接解析 / Link Parser</h2>
+  <p data-i18n="mod_subtitle">解析网页、提取资源与元数据，并检查链接可用性。</p>
+  <p class="mt-8">
+    <span class="badge badge-warning" data-i18n="badge_net">需网络权限</span>
+  </p>
 </div>
 
 <div class="info-card">
-  <h3>✨ 功能特性</h3>
+  <h3 data-i18n="section_features">功能特性</h3>
   <div class="feature-grid">
-    <div class="feature-item"><span class="emoji">🌐</span>网页全面解析</div>
-    <div class="feature-item"><span class="emoji">🖼</span>图片提取</div>
-    <div class="feature-item"><span class="emoji">📥</span>下载文件检测</div>
-    <div class="feature-item"><span class="emoji">🔗</span>链接分类整理</div>
-    <div class="feature-item"><span class="emoji">📄</span>正文内容提取</div>
-    <div class="feature-item"><span class="emoji">📋</span>元数据分析</div>
-    <div class="feature-item"><span class="emoji">🔍</span>URL可用性检查</div>
-    <div class="feature-item"><span class="emoji">🔒</span>SSL证书信息</div>
+    <div class="feature-item"><span class="emoji">🌐</span><span data-i18n="feat_parse">网页解析</span></div>
+    <div class="feature-item"><span class="emoji">🖼</span><span data-i18n="feat_img">图片提取</span></div>
+    <div class="feature-item"><span class="emoji">📥</span><span data-i18n="feat_dl">下载检测</span></div>
+    <div class="feature-item"><span class="emoji">🔗</span><span data-i18n="feat_links">链接分类</span></div>
+    <div class="feature-item"><span class="emoji">📄</span><span data-i18n="feat_text">正文提取</span></div>
+    <div class="feature-item"><span class="emoji">📋</span><span data-i18n="feat_meta">元数据分析</span></div>
+    <div class="feature-item"><span class="emoji">🔍</span><span data-i18n="feat_check">URL 可用性</span></div>
+    <div class="feature-item"><span class="emoji">🔒</span><span data-i18n="feat_ssl">SSL 证书</span></div>
   </div>
 </div>
 
 <div class="info-card">
-  <h3>📡 功能接口</h3>
+  <h3 data-i18n="section_apis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">parseUrl</span> — 全面解析链接，提取标题、描述、图片、链接、下载文件等</li>
-    <li><span class="api-name">getHeaders</span> — 获取HTTP响应头信息</li>
-    <li><span class="api-name">extractImages</span> — 提取页面中所有图片</li>
-    <li><span class="api-name">extractLinks</span> — 提取并分类所有超链接</li>
-    <li><span class="api-name">extractDownloads</span> — 检测可下载文件</li>
-    <li><span class="api-name">extractText</span> — 提取纯文本正文内容</li>
-    <li><span class="api-name">checkUrl</span> — 检查链接可用性、重定向、SSL证书</li>
-    <li><span class="api-name">extractMeta</span> — 提取Open Graph、Twitter Card等元数据</li>
+    <li>
+      <span class="api-name">parseUrl</span>
+      <span data-i18n="api_parse">— 综合解析 URL，获取标题、描述、图片、链接、下载等</span>
+    </li>
+    <li>
+      <span class="api-name">getHeaders</span>
+      <span data-i18n="api_headers">— 获取 HTTP 响应头</span>
+    </li>
+    <li>
+      <span class="api-name">extractImages</span>
+      <span data-i18n="api_imgs">— 提取页面内全部图片</span>
+    </li>
+    <li>
+      <span class="api-name">extractLinks</span>
+      <span data-i18n="api_hrefs">— 提取并分类超链接</span>
+    </li>
+    <li>
+      <span class="api-name">extractDownloads</span>
+      <span data-i18n="api_dls">— 检测可下载文件</span>
+    </li>
+    <li>
+      <span class="api-name">extractText</span>
+      <span data-i18n="api_text">— 提取纯文本正文</span>
+    </li>
+    <li>
+      <span class="api-name">checkUrl</span>
+      <span data-i18n="api_check">— 检查可访问性、重定向、SSL 证书等</span>
+    </li>
+    <li>
+      <span class="api-name">extractMeta</span>
+      <span data-i18n="api_meta">— 提取 Open Graph、Twitter Card 等元数据</span>
+    </li>
   </ul>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "解析这个链接 https://example.com"</p>
-  <p>• "提取这个页面的所有图片"</p>
-  <p>• "检查这个网址是否可以访问"</p>
-  <p>• "这个页面有哪些可下载的文件"</p>
-  <p>• "获取这个网页的标题和描述信息"</p>
+  <h3 data-i18n="section_examples">使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex_1">解析这个链接 https://example.com</li>
+    <li data-i18n="ex_2">Parse this URL https://example.com</li>
+    <li data-i18n="ex_3">检查这个网址是否可访问</li>
+    <li data-i18n="ex_4">提取 https://example.com 的 Open Graph 与标题</li>
+  </ul>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>需要网络权限以发送HTTP/HTTPS请求</p>
+  <h3 data-i18n="section_about">关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_label">开发者</span>
+    <span class="value" data-i18n="about_dev">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_label">版本</span>
+    <span class="value" data-i18n="about_ver">1.0</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_perm_label">权限</span>
+    <span class="value" data-i18n="about_perm">网络（HTTP/HTTPS 请求）</span>
+  </div>
 </div>
+
+<script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh' && _lang !== 'en') _lang = 'en';
+
+var i18n = {
+  zh: {
+    page_title: '链接解析 / Link Parser',
+    mod_title: '链接解析 / Link Parser',
+    mod_subtitle: '解析网页、提取资源与元数据，并检查链接可用性。',
+    badge_net: '需网络权限',
+    section_features: '功能特性',
+    feat_parse: '网页解析',
+    feat_img: '图片提取',
+    feat_dl: '下载检测',
+    feat_links: '链接分类',
+    feat_text: '正文提取',
+    feat_meta: '元数据分析',
+    feat_check: 'URL 可用性',
+    feat_ssl: 'SSL 证书',
+    section_apis: '功能接口',
+    api_parse: '— 综合解析 URL，获取标题、描述、图片、链接、下载等',
+    api_headers: '— 获取 HTTP 响应头',
+    api_imgs: '— 提取页面内全部图片',
+    api_hrefs: '— 提取并分类超链接',
+    api_dls: '— 检测可下载文件',
+    api_text: '— 提取纯文本正文',
+    api_check: '— 检查可访问性、重定向、SSL 证书等',
+    api_meta: '— 提取 Open Graph、Twitter Card 等元数据',
+    section_examples: '使用示例',
+    ex_1: '解析这个链接 https://example.com',
+    ex_2: 'Parse this URL https://example.com',
+    ex_3: '检查这个网址是否可访问',
+    ex_4: '提取 https://example.com 的 Open Graph 与标题',
+    section_about: '关于',
+    about_dev_label: '开发者',
+    about_dev: 'Jarvan',
+    about_ver_label: '版本',
+    about_ver: '1.0',
+    about_perm_label: '权限',
+    about_perm: '网络（HTTP/HTTPS 请求）'
+  },
+  en: {
+    page_title: 'Link Parser',
+    mod_title: 'Link Parser',
+    mod_subtitle: 'Parse pages, extract assets and metadata, and verify URL availability.',
+    badge_net: 'Network required',
+    section_features: 'Features',
+    feat_parse: 'Page parsing',
+    feat_img: 'Image extraction',
+    feat_dl: 'Download detection',
+    feat_links: 'Link categories',
+    feat_text: 'Text extraction',
+    feat_meta: 'Metadata (OG, etc.)',
+    feat_check: 'URL availability',
+    feat_ssl: 'SSL certificate',
+    section_apis: 'APIs',
+    api_parse: '— Full URL parse: title, description, images, links, downloads',
+    api_headers: '— HTTP response headers',
+    api_imgs: '— All images on the page',
+    api_hrefs: '— Hyperlinks, categorized',
+    api_dls: '— Downloadable file hints',
+    api_text: '— Plain main text',
+    api_check: '— Reachability, redirects, SSL',
+    api_meta: '— Open Graph, Twitter Card, etc.',
+    section_examples: 'Example prompts',
+    ex_1: 'Parse this link https://example.com',
+    ex_2: 'Parse this URL https://example.com',
+    ex_3: 'Is this URL reachable?',
+    ex_4: 'Get Open Graph and title for https://example.com',
+    section_about: 'About',
+    about_dev_label: 'Developer',
+    about_dev: 'Jarvan',
+    about_ver_label: 'Version',
+    about_ver: '1.0',
+    about_perm_label: 'Permissions',
+    about_perm: 'Network (HTTP/HTTPS)'
+  }
+};
+
+(function() {
+  var dict = i18n[_lang] || i18n.en;
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (key && dict[key] != null) el.textContent = dict[key];
+  });
+})();
+</script>
 </body>
 </html>

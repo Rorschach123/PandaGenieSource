@@ -4,7 +4,7 @@
   "name_en": "OCR Text Recognition",
   "description": "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测",
   "description_en": "OCR module for extracting text from images, supports Chinese and English with auto language detection",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "text_snippet",
   "soLibraries": [],
   "h5Page": "index.html",

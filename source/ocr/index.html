@@ -3,56 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>文字识别 / OCR</title>
+<title>OCR</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-variant); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.feature-item { background: var(--surface); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px; }
-.feature-item .emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+.ocr-hero { max-width: 400px; margin: 0 auto; }
 </style>
 </head>
 <body>
-<div class="mod-header">
-  <div class="icon">📝</div>
-  <h2>文字识别 / OCR</h2>
-  <p>从图片中提取中英文文字</p>
+<div class="mod-header ocr-hero">
+  <div class="icon" aria-hidden="true">📝</div>
+  <h2 data-i18n="title">文字识别 / OCR</h2>
+  <p data-i18n="subtitle">从图片中提取中英文文字</p>
 </div>
 
 <div class="info-card">
-  <h3>✨ 功能特性</h3>
+  <h3 data-i18n="sec_features">✨ 功能特性</h3>
   <div class="feature-grid">
-    <div class="feature-item"><span class="emoji">🇨🇳</span>中文识别</div>
-    <div class="feature-item"><span class="emoji">🇬🇧</span>英文识别</div>
-    <div class="feature-item"><span class="emoji">🔍</span>自动检测语言</div>
-    <div class="feature-item"><span class="emoji">📷</span>支持多种图片格式</div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🇨🇳</span><span data-i18n="feat_zh">中文识别</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🇬🇧</span><span data-i18n="feat_en">英文识别</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🔍</span><span data-i18n="feat_auto">自动检测语言</span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📷</span><span data-i18n="feat_formats">多种图片格式</span></div>
   </div>
 </div>
 
 <div class="info-card">
-  <h3>📡 功能接口</h3>
-  <p><strong>recognizeText</strong> — 识别图片中的文字，支持指定语言(zh/en/auto)</p>
+  <h3 data-i18n="sec_api">📡 功能接口</h3>
+  <ul class="api-list">
+    <li>
+      <span class="api-name">recognizeText</span>
+      <span data-i18n="api_recognize">识别图片中的文字，参数含 imagePath 与 language（zh / en / auto）。</span>
+    </li>
+    <li>
+      <span class="api-name">openPage</span>
+      <span data-i18n="api_open">打开 OCR 模块页面。</span>
+    </li>
+  </ul>
 </div>
 
 <div class="info-card">
-  <h3>💡 使用示例</h3>
-  <p>• "识别这张图片上的文字"</p>
-  <p>• "提取图片中的中文内容"</p>
-  <p>• "OCR识别 /sdcard/photo.jpg"</p>
-  <p>• "读取截图上的英文文字"</p>
+  <h3 data-i18n="sec_examples">💡 使用示例</h3>
+  <ul class="example-list">
+    <li data-i18n="ex1">「识别这张图片上的文字」</li>
+    <li data-i18n="ex2">「提取图片中的中文内容」</li>
+    <li data-i18n="ex3">「OCR 识别 /sdcard/photo.jpg」</li>
+    <li data-i18n="ex4">「Recognize text in this image」</li>
+  </ul>
 </div>
 
 <div class="info-card">
-  <h3>ℹ️ 关于</h3>
-  <p>开发者: Jarvan</p>
-  <p>版本: 1.0</p>
-  <p>需要存储读取权限和网络权限</p>
+  <h3 data-i18n="sec_about">ℹ️ 关于</h3>
+  <div class="about-row">
+    <span class="label" data-i18n="about_dev_l">开发者</span>
+    <span class="value">Jarvan</span>
+  </div>
+  <div class="about-row">
+    <span class="label" data-i18n="about_ver_l">版本</span>
+    <span class="value">1.1</span>
+  </div>
+  <div class="mt-8">
+    <span class="badge" data-i18n="perm_badge">存储读取 + 网络</span>
+  </div>
+  <p class="text-muted mt-8" style="font-size:12px; line-height:1.5" data-i18n="about_perm">需要存储读取权限与网络权限。</p>
 </div>
+
+<script>
+var _lang;
+try { _lang = NativeBridge.getLanguage().substring(0,2); } catch(e) { _lang = navigator.language.substring(0,2) === 'zh' ? 'zh' : 'en'; }
+if (_lang !== 'zh') { _lang = 'en'; }
+
+var i18n = {
+  zh: {
+    title: '文字识别 / OCR',
+    subtitle: '从图片中提取中英文文字',
+    sec_features: '✨ 功能特性',
+    feat_zh: '中文识别',
+    feat_en: '英文识别',
+    feat_auto: '自动检测语言',
+    feat_formats: '支持多种图片格式',
+    sec_api: '📡 功能接口',
+    api_recognize: '识别图片中的文字，参数含 imagePath 与 language（zh / en / auto）。',
+    api_open: '打开 OCR 模块页面。',
+    sec_examples: '💡 使用示例',
+    ex1: '「识别这张图片上的文字」',
+    ex2: '「提取图片中的中文内容」',
+    ex3: '「OCR 识别 /sdcard/photo.jpg」',
+    ex4: '「读取截图上的英文文字」',
+    sec_about: 'ℹ️ 关于',
+    about_dev_l: '开发者',
+    about_ver_l: '版本',
+    perm_badge: '存储读取 + 网络',
+    about_perm: '需要存储读取权限与网络权限。'
+  },
+  en: {
+    title: 'OCR / Text recognition',
+    subtitle: 'Extract Chinese and English text from images',
+    sec_features: '✨ Features',
+    feat_zh: 'Chinese OCR',
+    feat_en: 'English OCR',
+    feat_auto: 'Auto language detect',
+    feat_formats: 'Multiple image formats',
+    sec_api: '📡 API',
+    api_recognize: 'Recognize text in an image. Params include imagePath and language (zh / en / auto).',
+    api_open: 'Open the OCR module page.',
+    sec_examples: '💡 Example phrases',
+    ex1: '“Recognize text in this image”',
+    ex2: '“Extract the Chinese from this image”',
+    ex3: '“OCR /sdcard/photo.jpg”',
+    ex4: '“Read the English in this screenshot”',
+    sec_about: 'ℹ️ About',
+    about_dev_l: 'Developer',
+    about_ver_l: 'Version',
+    perm_badge: 'Storage + network',
+    about_perm: 'Requires read storage and network access.'
+  }
+};
+
+function t(k) {
+  return (i18n[_lang] && i18n[_lang][k]) || (i18n.en && i18n.en[k]) || k;
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.title = t('title');
+  document.documentElement.lang = _lang === 'zh' ? 'zh-CN' : 'en';
+}
+applyI18n();
+</script>
 </body>
 </html>

@@ -6,24 +6,30 @@
 <title>Contact Manager</title>
 <link rel="stylesheet" href="common.css">
 <style>
-.mod-header { text-align: center; padding: 24px 0 16px; }
-.mod-header .icon { font-size: 48px; margin-bottom: 8px; }
-.mod-header h2 { margin: 0; font-size: 20px; }
-.mod-header p { font-size: 13px; color: var(--on-surface-variant); margin-top: 4px; }
-.info-card { background: var(--surface-container); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.info-card h3 { font-size: 15px; margin: 0 0 8px; color: var(--primary); }
-.info-card p { font-size: 13px; color: var(--on-surface-variant); margin: 0; line-height: 1.6; }
-.api-list { list-style: none; padding: 0; margin: 0; }
-.api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
-.api-list li:last-child { border-bottom: none; }
-.api-name { font-weight: 600; color: var(--primary); }
+  body.contacts-skin { --page-accent: #4F6BED; --page-accent-soft: rgba(79, 107, 237, 0.12);
+    background: linear-gradient(180deg, var(--page-accent-soft) 0%, var(--surface) 32%); }
+  body.contacts-skin .mod-header .icon { background: linear-gradient(145deg, var(--tertiary-container), var(--surface-container)); }
+  body.contacts-skin .info-card h3 { color: var(--tertiary); }
+  body.contacts-skin .api-name { color: var(--tertiary); background: var(--tertiary-container); }
+  body.contacts-skin .example-list li { border-left-color: var(--tertiary); }
+  body.contacts-skin .badge { background: var(--tertiary-container); color: var(--tertiary); }
 </style>
 </head>
-<body>
+<body class="contacts-skin">
 <div class="mod-header">
   <div class="icon">👥</div>
   <h2 data-i18n="title"></h2>
   <p data-i18n="desc"></p>
+  <p class="text-center mt-8"><span class="badge" data-i18n="module_badge"></span></p>
+</div>
+<div class="info-card">
+  <h3 data-i18n="features_title"></h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🔍</span><span data-i18n="feat_1"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📇</span><span data-i18n="feat_2"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">📤</span><span data-i18n="feat_3"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">👯</span><span data-i18n="feat_4"></span></div>
+  </div>
 </div>
 <div class="info-card">
   <h3 data-i18n="api_title"></h3>
@@ -37,8 +43,21 @@
   </ul>
 </div>
 <div class="info-card">
-  <h3 data-i18n="usage_title"></h3>
-  <p data-i18n="usage_desc"></p>
+  <h3 data-i18n="examples_title"></h3>
+  <ul class="example-list">
+    <li data-i18n="ex1"></li>
+    <li data-i18n="ex2"></li>
+    <li data-i18n="ex3"></li>
+    <li data-i18n="ex4"></li>
+  </ul>
+  <h3 class="mt-12" data-i18n="usage_title"></h3>
+  <p class="text-muted mt-8" data-i18n="usage_desc"></p>
+</div>
+<div class="info-card">
+  <h3 data-i18n="about_title"></h3>
+  <div class="about-row"><span class="label" data-i18n="about_dev_label"></span><span class="value" data-i18n="about_dev"></span></div>
+  <div class="about-row"><span class="label" data-i18n="about_ver_label"></span><span class="value" data-i18n="about_ver"></span></div>
+  <div class="about-row"><span class="label" data-i18n="about_perm_label"></span><span class="value" data-i18n="about_permissions"></span></div>
 </div>
 <script>
 var _lang = 'zh';
@@ -54,7 +73,25 @@ var i18n = {
     api_exportContacts: '将全部联系人导出为 vCard 3.0（VCF）文件；outputPath 默认 /sdcard/PandaGenie/output/contacts_export.vcf',
     api_findDuplicates: '查找姓名相同或电话号码相同（规范化后）的重复联系人分组',
     usage_title: '使用方式',
-    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。'
+    usage_desc: '在对话中用自然语言描述你的需求，AI 会自动调用本模块的功能。',
+    module_badge: '通讯录',
+    features_title: '核心能力',
+    feat_1: '搜索',
+    feat_2: '详情',
+    feat_3: '导出 vCard',
+    feat_4: '查重',
+    examples_title: '使用示例',
+    ex1: '「搜一下姓张的」→ searchContacts 关键词',
+    ex2: '「打开第 3 个联系人的全部号码」→ getContactDetail(id)',
+    ex3: '「导出联系人到 VCF」→ exportContacts 默认或自定义 outputPath',
+    ex4: '「有哪些重复联系人」→ findDuplicates 分组结果',
+    about_title: '关于本模块',
+    about_dev_label: '开发者',
+    about_dev: 'PandaGenie',
+    about_ver_label: '版本',
+    about_ver: '1.0.0',
+    about_perm_label: '权限说明',
+    about_permissions: '读取联系人、写入导出文件（存储）'
   },
   en: {
     title: 'Contact Manager',
@@ -67,7 +104,25 @@ var i18n = {
     api_exportContacts: 'Export all contacts as vCard 3.0 (VCF); outputPath defaults to /sdcard/PandaGenie/output/contacts_export.vcf',
     api_findDuplicates: 'Find duplicate groups by same name or same normalized phone number',
     usage_title: 'How to Use',
-    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.'
+    usage_desc: 'Describe what you need in the chat, and the AI will automatically use this module.',
+    module_badge: 'Contacts',
+    features_title: 'Highlights',
+    feat_1: 'Search',
+    feat_2: 'Detail',
+    feat_3: 'vCard export',
+    feat_4: 'Duplicates',
+    examples_title: 'Examples',
+    ex1: '“Find contacts named Zhang” → searchContacts',
+    ex2: '“Show every phone for contact id …” → getContactDetail',
+    ex3: '“Export contacts to VCF” → exportContacts',
+    ex4: '“Show duplicate contacts” → findDuplicates',
+    about_title: 'About',
+    about_dev_label: 'Developer',
+    about_dev: 'PandaGenie',
+    about_ver_label: 'Version',
+    about_ver: '1.0.0',
+    about_perm_label: 'Permissions',
+    about_permissions: 'Read contacts; write exported VCF to storage'
   }
 };
 function applyI18n() {
