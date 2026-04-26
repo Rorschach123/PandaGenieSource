@@ -1,0 +1,49 @@
+{
+    "id": "hello_world",
+    "name": "自我介绍",
+    "name_en": "Hello World",
+    "version": "1.0",
+    "icon": "smart_toy",
+    "soLibraries": [],
+    "description": "PandaGenie 自我介绍模块，当用户询问「你是谁」「能做什么」「有什么功能」等问题时，由 AI 自动调用，返回结构化的助手介绍与能力列表",
+    "description_en": "PandaGenie self-introduction module. When users ask 'who are you', 'what can you do', 'what features do you have', etc., AI automatically invokes this to return a structured introduction and capability list.",
+    "h5Page": "",
+    "pluginJar": "plugin.jar",
+    "pluginFile": "plugin.dex",
+    "pluginClass": "ai.rorsch.moduleplugins.hello_world.HelloPlugin",
+    "soLoadMode": "skip",
+    "permissions": ["android.permission.INTERNET"],
+    "capabilities": ["network"],
+    "devCertFingerprint": "",
+    "developer": {
+        "name": "PandaGenie Official",
+        "email": "",
+        "url": ""
+    },
+    "apis": [
+        {
+            "name": "introduce",
+            "desc": "自我介绍：当用户问「你是谁」「你是什么」时调用，返回 PandaGenie 的身份和定位说明",
+            "desc_en": "Self-introduction: invoked when user asks 'who are you' or 'what are you', returns identity and positioning",
+            "params": [],
+            "paramDesc": [],
+            "paramDesc_en": []
+        },
+        {
+            "name": "capabilities",
+            "desc": "能力列表：当用户问「你能做什么」「有什么功能」「你会什么」时调用，返回当前已安装模块的分类能力概览",
+            "desc_en": "Capability list: invoked when user asks 'what can you do' or 'what features', returns categorized overview of installed modules",
+            "params": ["modules"],
+            "paramDesc": ["已安装模块列表JSON（可选，由系统自动传入）"],
+            "paramDesc_en": ["Installed module list JSON (optional, auto-injected by system)"]
+        },
+        {
+            "name": "usage_tips",
+            "desc": "使用技巧：当用户问「怎么用」「怎么操作」「有什么技巧」时调用，返回实用使用建议和场景示例",
+            "desc_en": "Usage tips: invoked when user asks 'how to use' or 'any tips', returns practical usage advice and examples",
+            "params": [],
+            "paramDesc": [],
+            "paramDesc_en": []
+        }
+    ]
+}
