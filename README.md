@@ -195,6 +195,15 @@ long usedBytes = storage.getUsedSpace();
 ## Changelog
 
 <details open>
+<summary><b>v1.0.12</b> (2026-04-26)</summary>
+
+- **hello_world 模块** — 新增自我介绍模块，当用户问「你是谁」「能做什么」「怎么用」时 AI 自动调用，从服务端实时拉取模块列表展示（随机抽取亮点 + 全部模块名称），支持中英文双语，服务端不可用时自动降级到静态分类。已签名发布至模块市场
+- **悬浮窗关闭行为优化** — 长按关闭按钮后，悬浮窗 + 通知栏常驻通知同时清除，服务不再重启；Activity 切换也不再重新拉起已关闭的悬浮窗；系统 START_STICKY 重启服务时若用户已关闭则立即停止
+- **能力边界公告** — 数据库新增中英双语公告，说明 PandaGenie 本质是模块调度器，无法操控其他 APP、修改系统设置或执行 Root 操作
+
+</details>
+
+<details>
 <summary><b>v1.0.11</b> (2026-04-23)</summary>
 
 - **Unified Icon System** — 100 custom vector drawable icons (`pg_ic_*`) with a consistent rounded-line style (24dp grid, 1.8dp stroke, round caps/joins). All UI icons now use the centralized `PgIcons` registry for theme-aware tinting
