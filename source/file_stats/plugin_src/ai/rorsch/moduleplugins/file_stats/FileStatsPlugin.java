@@ -204,12 +204,158 @@ public class FileStatsPlugin implements ModulePlugin {
         info.put("extension", ext);
         info.put("mimeType", getMimeType(ext));
 
+        if (f.isFile() && f.canRead() && f.length() > 0) {
+            String magicType = detectMagicBytes(f);
+            if (magicType != null) {
+                info.put("detectedType", magicType);
+                boolean mismatch = !ext.isEmpty() && !magicType.toLowerCase(Locale.ROOT).contains(ext.toLowerCase(Locale.ROOT));
+                if (mismatch) {
+                    info.put("extensionMismatch", true);
+                }
+            }
+        }
+
         if (f.isDirectory()) {
             File[] children = f.listFiles();
             info.put("childCount", children != null ? children.length : 0);
         }
 
         return info;
+    }
+
+    /**
+     * Read the first bytes of a file and match against known magic byte signatures.
+     *
+     * @param f readable file
+     * @return human-readable type string, or null if unknown
+     */
+    private String detectMagicBytes(File f) {
+        byte[] header = new byte[16];
+        int read;
+        try (FileInputStream fis = new FileInputStream(f)) {
+            read = fis.read(header);
+        } catch (Exception e) {
+            return null;
+        }
+        if (read < 4) return null;
+
+        // ── Images ──
+        if (match4(header, read, 0x89, 0x50, 0x4E, 0x47)) return "PNG image";
+        if (read >= 3 && (header[0] & 0xFF) == 0xFF && (header[1] & 0xFF) == 0xD8 && (header[2] & 0xFF) == 0xFF) return "JPEG image";
+        if (match4(header, read, 0x47, 0x49, 0x46, 0x38)) return "GIF image";
+        if (read >= 2 && (header[0] & 0xFF) == 0x42 && (header[1] & 0xFF) == 0x4D) return "BMP image";
+        if (read >= 12 && match4(header, read, 0x52, 0x49, 0x46, 0x46)
+                && matchAt(header, 8, read, 0x57, 0x45, 0x42, 0x50)) return "WebP image";
+        if (match4(header, read, 0x49, 0x49, 0x2A, 0x00)) return "TIFF image (LE)";
+        if (match4(header, read, 0x4D, 0x4D, 0x00, 0x2A)) return "TIFF image (BE)";
+        if (match4(header, read, 0x00, 0x00, 0x01, 0x00)) return "ICO icon";
+        // HEIF/HEIC: "ftyp" at offset 4
+        if (read >= 12 && matchAt(header, 4, read, 0x66, 0x74, 0x79, 0x70)) {
+            String brand = new String(header, 8, 4, java.nio.charset.StandardCharsets.US_ASCII).trim();
+            if (brand.startsWith("heic") || brand.startsWith("heix")) return "HEIC image";
+            if (brand.startsWith("mif1")) return "HEIF image";
+            if (brand.startsWith("avif")) return "AVIF image";
+        }
+
+        // ── Archives / packages ──
+        if (read >= 4 && (header[0] & 0xFF) == 0x50 && (header[1] & 0xFF) == 0x4B) {
+            int b2 = header[2] & 0xFF, b3 = header[3] & 0xFF;
+            if ((b2 == 0x03 && b3 == 0x04) || (b2 == 0x05 && b3 == 0x06) || (b2 == 0x07 && b3 == 0x08)) {
+                String e = getExtension(f.getName()).toLowerCase(Locale.ROOT);
+                if ("apk".equals(e)) return "APK (Android package)";
+                if ("jar".equals(e)) return "JAR (Java archive)";
+                if ("docx".equals(e)) return "DOCX (Office document)";
+                if ("xlsx".equals(e)) return "XLSX (Office spreadsheet)";
+                if ("pptx".equals(e)) return "PPTX (Office presentation)";
+                if ("xapk".equals(e)) return "XAPK (Split APK)";
+                return "ZIP archive";
+            }
+        }
+        if (read >= 6 && match4(header, read, 0x52, 0x61, 0x72, 0x21)
+                && (header[4] & 0xFF) == 0x1A && (header[5] & 0xFF) == 0x07) return "RAR archive";
+        if (read >= 6 && match4(header, read, 0x37, 0x7A, 0xBC, 0xAF)
+                && (header[4] & 0xFF) == 0x27 && (header[5] & 0xFF) == 0x1C) return "7z archive";
+        if (read >= 2 && (header[0] & 0xFF) == 0x1F && (header[1] & 0xFF) == 0x8B) return "GZIP compressed";
+        if (read >= 3 && (header[0] & 0xFF) == 0x42 && (header[1] & 0xFF) == 0x5A && (header[2] & 0xFF) == 0x68) return "BZ2 compressed";
+        if (read >= 6 && (header[0] & 0xFF) == 0xFD && matchAt(header, 1, read, 0x37, 0x7A, 0x58, 0x5A)
+                && (header[5] & 0xFF) == 0x00) return "XZ compressed";
+        if (match4(header, read, 0x28, 0xB5, 0x2F, 0xFD)) return "Zstandard compressed";
+
+        // ── Video ──
+        // MP4/M4V/MOV: "ftyp" at offset 4
+        if (read >= 8 && matchAt(header, 4, read, 0x66, 0x74, 0x79, 0x70)) {
+            if (read >= 12) {
+                String brand = new String(header, 8, 4, java.nio.charset.StandardCharsets.US_ASCII).trim();
+                if (brand.startsWith("isom") || brand.startsWith("mp4") || brand.startsWith("M4V") || brand.startsWith("avc")) return "MP4 video";
+                if (brand.startsWith("qt")) return "MOV video (QuickTime)";
+                if (brand.startsWith("M4A") || brand.startsWith("mp4a")) return "M4A audio";
+                if (brand.startsWith("3gp")) return "3GP video";
+                return "MP4/MOV container";
+            }
+            return "MP4/MOV container";
+        }
+        if (read >= 12 && match4(header, read, 0x52, 0x49, 0x46, 0x46)
+                && matchAt(header, 8, read, 0x41, 0x56, 0x49, 0x20)) return "AVI video";
+        if (read >= 3 && (header[0] & 0xFF) == 0x46 && (header[1] & 0xFF) == 0x4C && (header[2] & 0xFF) == 0x56) return "FLV video";
+        if (match4(header, read, 0x1A, 0x45, 0xDF, 0xA3)) {
+            String e = getExtension(f.getName()).toLowerCase(Locale.ROOT);
+            if ("webm".equals(e)) return "WebM video";
+            return "MKV video (Matroska)";
+        }
+        if (read >= 4 && (header[0] & 0xFF) == 0x47) return "MPEG-TS stream";
+        if (match4(header, read, 0x00, 0x00, 0x01, 0xBA)) return "MPEG-PS video";
+
+        // ── Audio ──
+        if (read >= 3 && (header[0] & 0xFF) == 0x49 && (header[1] & 0xFF) == 0x44 && (header[2] & 0xFF) == 0x33) return "MP3 audio (ID3)";
+        if (read >= 2 && (header[0] & 0xFF) == 0xFF && ((header[1] & 0xFF) == 0xFB || (header[1] & 0xFF) == 0xF3 || (header[1] & 0xFF) == 0xF2)) return "MP3 audio";
+        if (match4(header, read, 0x4F, 0x67, 0x67, 0x53)) return "OGG audio/video";
+        if (match4(header, read, 0x66, 0x4C, 0x61, 0x43)) return "FLAC audio";
+        if (read >= 12 && match4(header, read, 0x52, 0x49, 0x46, 0x46)
+                && matchAt(header, 8, read, 0x57, 0x41, 0x56, 0x45)) return "WAV audio";
+        if (match4(header, read, 0x4D, 0x54, 0x68, 0x64)) return "MIDI audio";
+        if (read >= 2 && (header[0] & 0xFF) == 0xFF && ((header[1] & 0xFF) == 0xF1 || (header[1] & 0xFF) == 0xF9)) return "AAC audio";
+        if (read >= 5 && (header[0] & 0xFF) == 0x23 && (header[1] & 0xFF) == 0x21
+                && (header[2] & 0xFF) == 0x41 && (header[3] & 0xFF) == 0x4D && (header[4] & 0xFF) == 0x52) return "AMR audio";
+
+        // ── Documents ──
+        if (match4(header, read, 0x25, 0x50, 0x44, 0x46)) return "PDF document";
+        if (match4(header, read, 0xD0, 0xCF, 0x11, 0xE0)) return "OLE2 document (DOC/XLS/PPT)";
+        if (read >= 5 && (header[0] & 0xFF) == 0x7B && (header[1] & 0xFF) == 0x5C
+                && (header[2] & 0xFF) == 0x72 && (header[3] & 0xFF) == 0x74 && (header[4] & 0xFF) == 0x66) return "RTF document";
+
+        // ── Executables ──
+        if (match4(header, read, 0x7F, 0x45, 0x4C, 0x46)) return "ELF executable";
+        if (match4(header, read, 0x64, 0x65, 0x78, 0x0A)) return "DEX bytecode";
+        if (read >= 2 && (header[0] & 0xFF) == 0x4D && (header[1] & 0xFF) == 0x5A) return "PE executable (EXE/DLL)";
+        if (match4(header, read, 0xFE, 0xED, 0xFA, 0xCE) || match4(header, read, 0xFE, 0xED, 0xFA, 0xCF)
+                || match4(header, read, 0xCE, 0xFA, 0xED, 0xFE) || match4(header, read, 0xCF, 0xFA, 0xED, 0xFE)) return "Mach-O binary";
+
+        // ── Fonts ──
+        if (match4(header, read, 0x77, 0x4F, 0x46, 0x46)) return "WOFF font";
+        if (match4(header, read, 0x77, 0x4F, 0x46, 0x32)) return "WOFF2 font";
+        if (match4(header, read, 0x00, 0x01, 0x00, 0x00)) return "TrueType font";
+        if (match4(header, read, 0x4F, 0x54, 0x54, 0x4F)) return "OpenType font";
+
+        // ── Databases ──
+        if (read >= 6 && (header[0] & 0xFF) == 0x53 && (header[1] & 0xFF) == 0x51
+                && (header[2] & 0xFF) == 0x4C && (header[3] & 0xFF) == 0x69
+                && (header[4] & 0xFF) == 0x74 && (header[5] & 0xFF) == 0x65) return "SQLite database";
+
+        // ── Other ──
+        if (match4(header, read, 0x3C, 0x3F, 0x78, 0x6D)) return "XML document";
+        if (match4(header, read, 0x3C, 0x73, 0x76, 0x67)) return "SVG image";
+
+        return null;
+    }
+
+    private static boolean matchAt(byte[] data, int offset, int len, int b0, int b1, int b2, int b3) {
+        if (offset + 4 > len) return false;
+        return (data[offset] & 0xFF) == b0 && (data[offset + 1] & 0xFF) == b1
+                && (data[offset + 2] & 0xFF) == b2 && (data[offset + 3] & 0xFF) == b3;
+    }
+
+    private static boolean match4(byte[] data, int len, int b0, int b1, int b2, int b3) {
+        return matchAt(data, 0, len, b0, b1, b2, b3);
     }
 
     // ==================== getFileHash ====================
@@ -914,6 +1060,12 @@ public class FileStatsPlugin implements ModulePlugin {
         String ext = o.optString("extension", "");
         rows.add(new String[]{zh ? "扩展名" : "Extension", ext.isEmpty() ? "—" : ext});
         rows.add(new String[]{"MIME", o.optString("mimeType", "—")});
+        if (o.has("detectedType")) {
+            String detected = o.optString("detectedType", "");
+            boolean mismatch = o.optBoolean("extensionMismatch", false);
+            String val = detected + (mismatch ? (zh ? " [!] 扩展名不匹配" : " [!] Extension mismatch") : "");
+            rows.add(new String[]{zh ? "魔术字识别" : "Magic bytes", val});
+        }
         if (o.optBoolean("isDirectory", false) && o.has("childCount")) {
             rows.add(new String[]{zh ? "子项数" : "Child count", String.valueOf(o.optInt("childCount", 0))});
         }
@@ -1334,6 +1486,12 @@ public class FileStatsPlugin implements ModulePlugin {
         String ext = o.optString("extension", "");
         pairList.add(new String[]{zh ? "扩展名" : "Extension", ext.isEmpty() ? "—" : ext});
         pairList.add(new String[]{"MIME", o.optString("mimeType", "—")});
+        if (o.has("detectedType")) {
+            String detected = o.optString("detectedType", "");
+            boolean mismatch = o.optBoolean("extensionMismatch", false);
+            String val = detected + (mismatch ? (zh ? " [!] 扩展名不匹配" : " [!] Extension mismatch") : "");
+            pairList.add(new String[]{zh ? "魔术字识别" : "Magic bytes", val});
+        }
         if (o.optBoolean("isDirectory", false) && o.has("childCount")) {
             pairList.add(new String[]{zh ? "子项数" : "Child count", String.valueOf(o.optInt("childCount", 0))});
         }

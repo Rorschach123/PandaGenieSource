@@ -2,9 +2,9 @@
   "id": "file_stats",
   "name": "文件信息统计",
   "name_en": "File Stats",
-  "description": "文件信息统计模块，支持获取文件详情、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、文件名关键词搜索、文本统计等",
-  "description_en": "File statistics module: file details, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, filename search, text stats",
-  "version": "1.3",
+  "description": "文件信息统计模块，支持获取文件详情、魔术字识别真实文件类型、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、文件名关键词搜索、文本统计等",
+  "description_en": "File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, filename search, text stats",
+  "version": "1.4",
   "icon": "analytics",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -25,7 +25,7 @@
     "url": ""
   },
   "apis": [
-    {"name":"getFileInfo","desc":"获取文件的完整信息，包括大小、创建时间、修改时间、文件类型、MIME类型、是否隐藏、可读/可写状态等","desc_en":"Get comprehensive file info: size, created/modified time, file type, MIME, hidden, readable/writable status","params":["path"],"paramDesc":["文件的绝对路径"],"paramDesc_en":["Absolute file path"]},
+    {"name":"getFileInfo","desc":"获取文件的完整信息，包括大小、创建时间、修改时间、文件类型、MIME类型、魔术字识别（APK/ZIP/PNG/JPG/MP4/PDF等）、扩展名不匹配检测、是否隐藏、可读/可写状态等","desc_en":"Get comprehensive file info: size, created/modified time, file type, MIME, magic bytes detection (APK/ZIP/PNG/JPG/MP4/PDF etc.), extension mismatch check, hidden, readable/writable status","params":["path"],"paramDesc":["文件的绝对路径"],"paramDesc_en":["Absolute file path"]},
     {"name":"getFileHash","desc":"计算文件的哈希值，支持MD5、SHA-1、SHA-256算法。用于校验文件完整性、判断文件是否被修改","desc_en":"Calculate file hash using MD5, SHA-1 or SHA-256. For integrity checks and modification detection","params":["path","algorithm"],"paramDesc":["文件的绝对路径","哈希算法: MD5/SHA-1/SHA-256(默认SHA-256)"],"paramDesc_en":["Absolute file path","Hash algorithm: MD5/SHA-1/SHA-256 (default SHA-256)"]},
     {"name":"compareFiles","desc":"对比两个文件是否完全相同。先比较大小，大小一致再比较SHA-256哈希。返回是否相同及差异详情","desc_en":"Compare two files for equality. Compares size first, then SHA-256 hash. Returns whether identical and difference details","params":["path1","path2"],"paramDesc":["第一个文件的绝对路径","第二个文件的绝对路径"],"paramDesc_en":["Absolute path of first file","Absolute path of second file"]},
     {"name":"verifyChecksum","desc":"用已知的哈希值校验文件完整性，判断文件是否与预期一致","desc_en":"Verify file integrity against a known hash value","params":["path","expectedHash","algorithm"],"paramDesc":["文件的绝对路径","期望的哈希值","哈希算法: MD5/SHA-1/SHA-256(默认SHA-256)"],"paramDesc_en":["Absolute file path","Expected hash value","Hash algorithm: MD5/SHA-1/SHA-256 (default SHA-256)"]},

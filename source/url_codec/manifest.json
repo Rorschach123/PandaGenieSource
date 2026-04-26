@@ -1,0 +1,71 @@
+{
+  "id": "url_codec",
+  "name": "URL编解码",
+  "name_en": "URL Codec",
+  "description": "URL编码解码工具，支持URL编码、URL解码、URL组件解析。当用户说【URL编码】【URL解码】【url encode】【url decode】【解析URL】时使用",
+  "description_en": "URL encoding/decoding tool. Supports URL encoding, URL decoding, and URL component parsing. Use when user says 'URL encode', 'URL decode', or 'parse URL'",
+  "version": "1.1",
+  "icon": "link",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.url_codec.UrlCodecPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "noneai",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "encode",
+      "desc": "对文本进行URL编码（Percent Encoding），将特殊字符转换为%XX格式。当用户说【URL编码】【编码URL】【url encode】时使用",
+      "desc_en": "URL-encode text (Percent Encoding), converting special characters to %XX format. Use when user says 'URL encode' or 'encode URL'",
+      "params": ["text"],
+      "paramDesc": ["需要编码的文本内容"],
+      "paramDesc_en": ["The text content to encode"]
+    },
+    {
+      "name": "decode",
+      "desc": "对URL编码的文本进行解码，将%XX格式还原为原始字符。当用户说【URL解码】【解码URL】【url decode】时使用",
+      "desc_en": "Decode URL-encoded text, converting %XX format back to original characters. Use when user says 'URL decode' or 'decode URL'",
+      "params": ["text"],
+      "paramDesc": ["需要解码的URL编码文本"],
+      "paramDesc_en": ["The URL-encoded text to decode"]
+    },
+    {
+      "name": "encodeComponent",
+      "desc": "对文本进行URL组件编码，适用于编码URL参数值，编码范围比标准URL编码更广。当用户说【编码参数】【组件编码】时使用",
+      "desc_en": "URL component encode text, suitable for encoding URL parameter values with broader encoding scope. Use when user says 'encode component' or 'encode param'",
+      "params": ["text"],
+      "paramDesc": ["需要编码的参数值文本"],
+      "paramDesc_en": ["The parameter value text to encode"]
+    },
+    {
+      "name": "decodeComponent",
+      "desc": "对URL组件编码的文本进行解码，还原参数值。当用户说【解码参数】【组件解码】时使用",
+      "desc_en": "Decode URL component-encoded text, restoring parameter values. Use when user says 'decode component' or 'decode param'",
+      "params": ["text"],
+      "paramDesc": ["需要解码的组件编码文本"],
+      "paramDesc_en": ["The component-encoded text to decode"]
+    },
+    {
+      "name": "parseUrl",
+      "desc": "解析URL的各个组成部分（协议、主机、端口、路径、查询参数、片段标识），当用户说【解析URL】【拆分URL】【URL结构】时使用",
+      "desc_en": "Parse URL into components (protocol, host, port, path, query parameters, fragment). Use when user says 'parse URL' or 'URL structure'",
+      "params": ["url"],
+      "paramDesc": ["需要解析的完整URL地址"],
+      "paramDesc_en": ["The full URL to parse"]
+    },
+    {
+      "name": "buildUrl",
+      "desc": "根据提供的各个组件构建完整URL（协议、主机、路径、查询参数等），当用户说【构建URL】【拼接URL】【组装URL】时使用",
+      "desc_en": "Build a complete URL from components (protocol, host, path, query parameters, etc.). Use when user says 'build URL' or 'assemble URL'",
+      "params": ["protocol", "host", "path", "query", "fragment", "port"],
+      "paramDesc": ["协议（如 http、https）", "主机名（如 example.com）", "路径（如 /api/v1）", "查询参数（如 key=value&foo=bar）", "片段标识（如 #section）", "端口号（如 8080，可留空）"],
+      "paramDesc_en": ["Protocol (e.g. http, https)", "Hostname (e.g. example.com)", "Path (e.g. /api/v1)", "Query parameters (e.g. key=value&foo=bar)", "Fragment identifier (e.g. #section)", "Port number (e.g. 8080, optional)"]
+    }
+  ]
+}

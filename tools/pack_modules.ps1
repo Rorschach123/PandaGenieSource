@@ -166,9 +166,20 @@ if (-not [string]::IsNullOrWhiteSpace($DevKey)) {
     $devKeystoreFile = Get-ChildItem (Join-Path $devPrivateDir "*.p12") -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($devKeystoreFile) { $devKeystorePath = $devKeystoreFile.FullName }
     else { throw "No .p12 keystore found in $devPrivateDir" }
+    # Try DPAPI secret first; if not found, look for plaintext password file
     $devSecretFile = Get-ChildItem (Join-Path $devPrivateDir "*signing-secret.dpapi") -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($devSecretFile) { $devSecretPath = $devSecretFile.FullName }
-    else { throw "No signing-secret.dpapi found in $devPrivateDir" }
+    if ($devSecretFile) {
+        $devSecretPath = $devSecretFile.FullName
+    } else {
+        # Check for plaintext password file (for new developers who haven't set up DPAPI)
+        $passwordFile = Join-Path $devPrivateDir "signing-password.txt"
+        if (Test-Path $passwordFile) {
+            $script:altDevPassword = (Get-Content $passwordFile -Raw).Trim()
+            $devSecretPath = $null  # Signal to use plaintext password
+        } else {
+            throw "No signing-secret.dpapi or signing-password.txt found in $devPrivateDir"
+        }
+    }
     Write-Host "  Using alternate dev key: $devSigningRoot" -ForegroundColor Cyan
 }
 
@@ -267,21 +278,35 @@ function Get-SigningConfig($metaPath, $secretFile, $keystoreFile, $label) {
     if (-not (Test-Path $metaPath)) {
         throw "$label signing metadata missing: $metaPath"
     }
-    if (-not (Test-Path $secretFile)) {
-        throw "$label signing secret missing: $secretFile"
-    }
     if (-not (Test-Path $keystoreFile)) {
         throw "$label keystore missing: $keystoreFile"
     }
     $metadata = Get-Content $metaPath -Raw | ConvertFrom-Json
-    $protectedBase64 = Get-Content $secretFile -Raw
-    $protectedBytes = [Convert]::FromBase64String($protectedBase64.Trim())
-    $bytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
-        $protectedBytes,
-        $null,
-        [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-    )
-    $password = [System.Text.Encoding]::UTF8.GetString($bytes)
+
+    # Determine password source: DPAPI or plaintext file or alt dev password
+    $password = $null
+    if ($label -eq "Developer" -and $script:altDevPassword) {
+        $password = $script:altDevPassword
+    } elseif ($secretFile -and (Test-Path $secretFile)) {
+        $protectedBase64 = Get-Content $secretFile -Raw
+        $protectedBytes = [Convert]::FromBase64String($protectedBase64.Trim())
+        $bytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+            $protectedBytes,
+            $null,
+            [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+        )
+        $password = [System.Text.Encoding]::UTF8.GetString($bytes)
+    } else {
+        # Fallback: check for plaintext password file in same directory as keystore
+        $keystoreDir = Split-Path $keystoreFile -Parent
+        $plainFile = Join-Path $keystoreDir "signing-password.txt"
+        if (Test-Path $plainFile) {
+            $password = (Get-Content $plainFile -Raw).Trim()
+        } else {
+            throw "$label signing password not found. Provide signing-secret.dpapi or signing-password.txt"
+        }
+    }
+
     return @{
         Alias = $metadata.alias
         Password = $password
