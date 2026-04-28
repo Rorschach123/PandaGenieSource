@@ -4,18 +4,30 @@
   "name_en": "Clipboard Manager",
   "description": "剪贴板管理模块，支持读取、设置、清空剪贴板，以及剪贴板历史记录管理",
   "description_en": "Clipboard manager: read, set, clear clipboard, and manage clipboard history",
-  "version": "1.4",
+  "version": "1.5",
   "icon": "content_paste",
   "soLibraries": [],
   "h5Page": "index.html",
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.clipboard.ClipboardPlugin",
   "soLoadMode": "skip",
-  "capabilities": ["file_read", "file_write", "clipboard"],
-  "permissions": [
-    {"name": "android.permission.MANAGE_EXTERNAL_STORAGE", "desc": "用于存储剪贴板历史记录", "desc_en": "Store clipboard history data"}
+  "capabilities": [
+    "file_read",
+    "file_write",
+    "clipboard"
   ],
-  "developer": {"name": "PandaGenie Official", "email": "", "url": ""},
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于存储剪贴板历史记录",
+      "desc_en": "Store clipboard history data"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
   "apis": [
     {
       "name": "getClipboard",
@@ -29,9 +41,15 @@
       "name": "setClipboard",
       "desc": "将指定文本写入系统剪贴板",
       "desc_en": "Set clipboard text content",
-      "params": ["text"],
-      "paramDesc": ["要写入剪贴板的文本"],
-      "paramDesc_en": ["Text to put on the clipboard"]
+      "params": [
+        "text"
+      ],
+      "paramDesc": [
+        "要写入剪贴板的文本"
+      ],
+      "paramDesc_en": [
+        "Text to put on the clipboard"
+      ]
     },
     {
       "name": "clearClipboard",
@@ -45,9 +63,15 @@
       "name": "getClipboardHistory",
       "desc": "读取本地保存的剪贴板历史（/sdcard/PandaGenie/data/clipboard/history.json），按时间从新到旧返回，limit 默认 20",
       "desc_en": "Load saved clipboard history from history.json; newest first; limit defaults to 20",
-      "params": ["limit"],
-      "paramDesc": ["返回条数上限，默认 20"],
-      "paramDesc_en": ["Max entries to return, default 20"]
+      "params": [
+        "limit"
+      ],
+      "paramDesc": [
+        "返回条数上限，默认 20"
+      ],
+      "paramDesc_en": [
+        "Max entries to return, default 20"
+      ]
     },
     {
       "name": "saveToHistory",
@@ -61,9 +85,15 @@
       "name": "searchHistory",
       "desc": "按关键词在历史记录中搜索文本内容",
       "desc_en": "Search clipboard history by keyword in stored text",
-      "params": ["keyword"],
-      "paramDesc": ["搜索关键词"],
-      "paramDesc_en": ["Search keyword"]
+      "params": [
+        "keyword"
+      ],
+      "paramDesc": [
+        "搜索关键词"
+      ],
+      "paramDesc_en": [
+        "Search keyword"
+      ]
     },
     {
       "name": "clearHistory",

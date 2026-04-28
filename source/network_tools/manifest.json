@@ -4,14 +4,16 @@
   "name_en": "Network Tools",
   "description": "网络工具模块，支持Ping测试、DNS查询、获取本机IP和公网IP、检查网络连接状态、查看网络信息",
   "description_en": "Network tools: ping, DNS lookup, local/public IP, connectivity check, network info",
-  "version": "1.4",
+  "version": "1.5",
   "icon": "wifi",
   "soLibraries": [],
   "h5Page": "index.html",
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.network_tools.NetworkToolsPlugin",
   "soLoadMode": "skip",
-  "capabilities": ["network"],
+  "capabilities": [
+    "network"
+  ],
   "permissions": [
     {
       "name": "android.permission.ACCESS_NETWORK_STATE",
@@ -34,17 +36,29 @@
       "name": "ping",
       "desc": "Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码",
       "desc_en": "Ping a host via system ping (4 packets); returns stdout and exit code",
-      "params": ["host"],
-      "paramDesc": ["目标主机名或 IP"],
-      "paramDesc_en": ["Hostname or IP address"]
+      "params": [
+        "host"
+      ],
+      "paramDesc": [
+        "目标主机名或 IP"
+      ],
+      "paramDesc_en": [
+        "Hostname or IP address"
+      ]
     },
     {
       "name": "dnsLookup",
       "desc": "DNS 解析域名，返回解析到的所有 IP 地址",
       "desc_en": "DNS lookup for a domain; returns all resolved IP addresses",
-      "params": ["domain"],
-      "paramDesc": ["要解析的域名"],
-      "paramDesc_en": ["Domain name to resolve"]
+      "params": [
+        "domain"
+      ],
+      "paramDesc": [
+        "要解析的域名"
+      ],
+      "paramDesc_en": [
+        "Domain name to resolve"
+      ]
     },
     {
       "name": "getLocalIp",

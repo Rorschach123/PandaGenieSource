@@ -4,14 +4,17 @@
   "name_en": "Weather Assistant",
   "description": "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
   "description_en": "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API",
-  "version": "1.3",
+  "version": "1.4",
   "icon": "cloud",
   "soLibraries": [],
   "h5Page": "index.html",
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.weather.WeatherPlugin",
   "soLoadMode": "skip",
-  "capabilities": ["network", "location"],
+  "capabilities": [
+    "network",
+    "location"
+  ],
   "permissions": [
     {
       "name": "android.permission.INTERNET",
@@ -39,25 +42,49 @@
       "name": "getCurrentWeather",
       "desc": "查询指定城市的当前天气；city为空时自动使用GPS定位获取当地天气",
       "desc_en": "Get current weather for a city; if city is empty, auto-detect location via GPS",
-      "params": ["city"],
-      "paramDesc": ["城市名称（可选，留空则自动定位）"],
-      "paramDesc_en": ["City name (optional, empty to use GPS location)"]
+      "params": [
+        "city"
+      ],
+      "paramDesc": [
+        "城市名称（可选，留空则自动定位）"
+      ],
+      "paramDesc_en": [
+        "City name (optional, empty to use GPS location)"
+      ]
     },
     {
       "name": "getForecast",
       "desc": "查询指定城市未来多日天气预报；city为空时自动使用GPS定位",
       "desc_en": "Get multi-day forecast; if city is empty, auto-detect location via GPS",
-      "params": ["city", "days"],
-      "paramDesc": ["城市名称（可选，留空则自动定位）", "预报天数（1-7），默认3"],
-      "paramDesc_en": ["City name (optional, empty to use GPS location)", "Forecast days (1-7), default 3"]
+      "params": [
+        "city",
+        "days"
+      ],
+      "paramDesc": [
+        "城市名称（可选，留空则自动定位）",
+        "预报天数（1-7），默认3"
+      ],
+      "paramDesc_en": [
+        "City name (optional, empty to use GPS location)",
+        "Forecast days (1-7), default 3"
+      ]
     },
     {
       "name": "getWeatherByLocation",
       "desc": "根据经纬度坐标查询天气，用于已知坐标的场景",
       "desc_en": "Get weather by latitude/longitude coordinates",
-      "params": ["latitude", "longitude"],
-      "paramDesc": ["纬度", "经度"],
-      "paramDesc_en": ["Latitude", "Longitude"]
+      "params": [
+        "latitude",
+        "longitude"
+      ],
+      "paramDesc": [
+        "纬度",
+        "经度"
+      ],
+      "paramDesc_en": [
+        "Latitude",
+        "Longitude"
+      ]
     },
     {
       "name": "openPage",
