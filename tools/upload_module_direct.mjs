@@ -99,9 +99,10 @@ async function run() {
 
   let upJson;
   try { upJson = JSON.parse(upText); } catch { console.error('Invalid JSON response'); process.exit(1); }
-  if (!upJson.temp_key) { console.error('No temp_key'); process.exit(1); }
+  const tempKey = upJson.temp_key || upJson.data?.temp_key;
+  if (!tempKey) { console.error('No temp_key'); process.exit(1); }
 
-  const pubBody = JSON.stringify({ temp_key: upJson.temp_key, changelog, changelog_zh: changelogZh });
+  const pubBody = JSON.stringify({ temp_key: tempKey, changelog, changelog_zh: changelogZh });
   console.log('Publishing ...');
   let pubText;
   try {

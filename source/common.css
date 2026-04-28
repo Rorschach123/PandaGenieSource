@@ -64,7 +64,10 @@ body {
   color: var(--on-surface);
   font-size: 14px;
   line-height: 1.6;
-  padding: 20px 16px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
 }
