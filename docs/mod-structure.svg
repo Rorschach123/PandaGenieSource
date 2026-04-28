@@ -5,7 +5,7 @@
   </defs>
 
   <rect width="720" height="400" rx="14" fill="#F8F9FD"/>
-  <text x="360" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#2D3436">.mod File Structure</text>
+  <text x="360" y="34" text-anchor="middle" font-size="18" font-weight="700" fill="#2D3436">.mod Package + Source Layout</text>
 
   <!-- Main package -->
   <g filter="url(#ms)">
@@ -64,13 +64,13 @@
   <!-- Right side: flow -->
   <g filter="url(#ms)">
     <rect x="380" y="205" width="300" height="175" rx="12" fill="#fff" stroke="#00C9A7" stroke-width="2"/>
-    <text x="530" y="232" text-anchor="middle" font-size="13" font-weight="700" fill="#00C9A7">How AI Uses Your Module</text>
+    <text x="530" y="232" text-anchor="middle" font-size="13" font-weight="700" fill="#00C9A7">How PandaGenie Uses Your Module</text>
     <line x1="400" y1="240" x2="660" y2="240" stroke="#E8E8E8"/>
   </g>
 
   <g font-size="11">
     <circle cx="410" cy="260" r="10" fill="#6C63FF"/><text x="410" y="264" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">1</text>
-    <text x="428" y="264" fill="#333">AI reads your manifest.json APIs</text>
+    <text x="428" y="264" fill="#333">AI reads manifest APIs + shared_api contracts</text>
 
     <circle cx="410" cy="290" r="10" fill="#6C63FF"/><text x="410" y="294" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">2</text>
     <text x="428" y="294" fill="#333">User asks a question naturally</text>
