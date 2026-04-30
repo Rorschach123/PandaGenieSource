@@ -201,16 +201,27 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.13)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260427/PandaGenie-v1.0.13.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.20)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260430/PandaGenie-v1.0.20.apk)**
 
-- Release 标签：[`20260427`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260427)
-- Android 工程版本：`versionName "1.0.13"` / `versionCode 13`
+- Release 标签：[`20260430`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260430)
+- Android 工程版本：`versionName "1.0.20"` / `versionCode 20`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.20</b> (2026-04-30)</summary>
+
+- **高级视觉刷新**：更新启动动画、应用图标、主题色、字体层级和官网页面。
+- **对话与任务流程升级**：优化会话管理、批量操作、附件输入、结果展示，以及定时/配置任务流程。
+- **配置市场兼容性**：新增独立配置市场页面，并记录共享配置所需 App 版本，避免旧版本执行不兼容配置。
+- **模块生态刷新**：Archive 更新到 `1.7`，OCR 更新到 `1.5`，并刷新游戏和工具模块的 manifest 与打包产物。
+- **运行稳定性增强**：强化 Android 权限处理、模块运行时调用、变量解析、配置清理和错误展示，提升复杂任务执行成功率。
+
+</details>
+
+<details>
 <summary><b>v1.0.13</b> (2026-04-27)</summary>
 
 - **最新 APK** — 下载地址更新到已验证的 `20260427` GitHub Release 资产：`PandaGenie-v1.0.13.apk`

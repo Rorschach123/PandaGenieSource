@@ -4,13 +4,15 @@
   "name_en": "OCR Text Recognition",
   "description": "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测",
   "description_en": "OCR module for extracting text from images, supports Chinese and English with auto language detection",
-  "version": "1.3",
+  "version": "1.5",
   "icon": "text_snippet",
-  "soLibraries": [],
+  "soLibraries": [
+    "libmlkit_google_ocr_pipeline.so"
+  ],
   "h5Page": "index.html",
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.ocr.OcrPlugin",
-  "soLoadMode": "skip",
+  "soLoadMode": "manual",
   "capabilities": [
     "file_read",
     "file_write",

@@ -10,6 +10,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Security
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $sourceRoot = Split-Path $PSScriptRoot -Parent
 $rootDir = Split-Path $sourceRoot -Parent
@@ -25,13 +26,71 @@ $abis = @("arm64-v8a", "armeabi-v7a")
 # OCR module: merge full Google ML Kit + Firebase + datatransport dependency tree into plugin.jar (MODULE_DEPENDENCIES.md).
 # Plugin ClassLoader only loads from plugin.jar; all com.google.* used by MlKit/InputImage must be inside it.
 $gradleCacheTransforms = Join-Path $env:USERPROFILE ".gradle\caches\transforms-3"
+$modulesCache = Join-Path $env:USERPROFILE ".gradle\caches\modules-2\files-2.1"
+$mlkitAarExtractRoot = Join-Path $env:TEMP "pg_mlkit_aar_extract"
+$hasResolvedMlKitAars = (Test-Path (Join-Path $modulesCache "com.google.mlkit\text-recognition")) -or
+    (Test-Path (Join-Path $modulesCache "com.google.mlkit\text-recognition-chinese"))
+
+function Get-StableHash([string]$text) {
+    $sha1 = [System.Security.Cryptography.SHA1]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
+        return ([System.BitConverter]::ToString($sha1.ComputeHash($bytes))).Replace("-", "")
+    } finally {
+        $sha1.Dispose()
+    }
+}
+
+function Expand-AarToTemp([string]$archivePath) {
+    $hash = Get-StableHash $archivePath
+    $target = Join-Path $mlkitAarExtractRoot $hash
+    $marker = Join-Path $target ".source"
+    $needsExtract = $true
+    if ((Test-Path $target) -and (Test-Path $marker)) {
+        $recorded = Get-Content $marker -Raw -ErrorAction SilentlyContinue
+        $sourceStamp = "$archivePath|$((Get-Item $archivePath).Length)|$((Get-Item $archivePath).LastWriteTimeUtc.Ticks)"
+        $needsExtract = ($recorded -ne $sourceStamp)
+    }
+    if ($needsExtract) {
+        if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+        New-Item -ItemType Directory -Path $target -Force | Out-Null
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $target)
+        $sourceStamp = "$archivePath|$((Get-Item $archivePath).Length)|$((Get-Item $archivePath).LastWriteTimeUtc.Ticks)"
+        Set-Content -Path $marker -Value $sourceStamp -Encoding UTF8
+    }
+    return $target
+}
+
+function Get-VersionKey([string]$versionName) {
+    $clean = ($versionName -replace '-.*$', '')
+    try {
+        return [version]$clean
+    } catch {
+        return [version]"0.0.0"
+    }
+}
+
+function Test-IsLatestGradleModuleFile([System.IO.FileInfo]$file) {
+    try {
+        $versionDir = $file.Directory.Parent
+        $artifactDir = $versionDir.Parent
+        if (-not $artifactDir -or -not (Test-Path $artifactDir.FullName)) { return $true }
+        $latest = Get-ChildItem -Path $artifactDir.FullName -Directory -ErrorAction SilentlyContinue |
+            Sort-Object @{ Expression = { Get-VersionKey $_.Name }; Descending = $true }, @{ Expression = { $_.Name }; Descending = $true } |
+            Select-Object -First 1
+        return ($latest -and $latest.Name -eq $versionDir.Name)
+    } catch {
+        return $true
+    }
+}
+
 $mlkitJars = @()
-if (Test-Path $gradleCacheTransforms) {
+if (-not $hasResolvedMlKitAars -and (Test-Path $gradleCacheTransforms)) {
     $seen = @{}
     # Collect every *-runtime.jar under transforms-3 whose path or filename suggests Google ML Kit / Firebase / datatransport / GMS.
     # Match any -runtime.jar that is part of Google ML Kit / Firebase / GMS / datatransport / Dagger (full dependency tree).
     # transport-runtime needs dagger.internal.Factory (com.google.dagger:dagger).
-    $namePathRegex = 'mlkit|firebase|gms|datatransport|play-services|transport|vision-common|vision-interfaces|text-recognition|common-[\d\.]+-runtime|basement|base-[\d\.]+-runtime|tasks-[\d\.]+-runtime|cct|protobuf|dagger|javax\.inject'
+    $namePathRegex = 'mlkit|firebase-(common|encoders|components|installations|annotations)|datatransport|transport-(backend-cct|api|runtime)|vision-common|vision-interfaces|text-recognition|play-services-mlkit-text-recognition|play-services-tasks|play-services-base|play-services-basement|protobuf|dagger|javax\.inject|google\.android\.odml|listenablefuture'
     Get-ChildItem -Path $gradleCacheTransforms -Recurse -Filter "*-runtime.jar" -ErrorAction SilentlyContinue | ForEach-Object {
         if ($seen[$_.FullName]) { return }
         if ($_.FullName -match $namePathRegex -or $_.Name -match $namePathRegex) {
@@ -42,7 +101,7 @@ if (Test-Path $gradleCacheTransforms) {
     # Firebase/ML Kit/datransport/Dagger artifact names
     Get-ChildItem -Path $gradleCacheTransforms -Recurse -Filter "*-runtime.jar" -ErrorAction SilentlyContinue | ForEach-Object {
         if ($seen[$_.FullName]) { return }
-        if ($_.Name -match 'firebase-(common|encoders|components|installations|annotations)|^common-\d|transport-backend-cct|transport-api|transport-runtime|^dagger-|javax\.inject') {
+        if ($_.Name -match 'firebase-(common|encoders|components|installations|annotations)|transport-backend-cct|transport-api|transport-runtime|^dagger-|javax\.inject|play-services-mlkit-text-recognition|play-services-tasks|play-services-base|play-services-basement') {
             $seen[$_.FullName] = $true
             $mlkitJars += $_.FullName
         }
@@ -56,20 +115,35 @@ if (Test-Path $gradleCacheTransforms) {
         }
     }
 }
-# Fallback: modules-2 cache (raw JARs). Include com.google.android.datatransport and Dagger.
-if ($mlkitJars.Count -eq 0) {
-    $modulesCache = Join-Path $env:USERPROFILE ".gradle\caches\modules-2\files-2.1"
-    $mlkitGroups = @("com.google.mlkit", "com.google.android.gms", "com.google.firebase", "com.google.android.datatransport", "com.google.dagger", "javax.inject")
-    $nameRegex = 'common-|vision-|text-recognition|play-services|firebase-|transport-|^dagger-|javax\.inject|javax-inject'
+# Fallback/supplement: modules-2 cache (raw JARs and AAR classes.jar). Include com.google.android.datatransport and Dagger.
+if (Test-Path $modulesCache) {
+    $mlkitGroups = @("com.google.mlkit", "com.google.android.gms", "com.google.android.odml", "com.google.firebase", "com.google.android.datatransport", "com.google.dagger", "com.google.guava", "javax.inject")
+    $nameRegex = '^common-|vision-|text-recognition|play-services-mlkit-text-recognition|play-services-tasks|play-services-base|play-services-basement|firebase-|transport-|^dagger-|javax\.inject|javax-inject|^image-|listenablefuture'
     $seen = @{}
+    foreach ($existing in $mlkitJars) { $seen[$existing] = $true }
     foreach ($group in $mlkitGroups) {
-        $groupPath = Join-Path $modulesCache ($group -replace '\.', '\')
+        $groupPath = Join-Path $modulesCache $group
         if (-not (Test-Path $groupPath)) { continue }
         Get-ChildItem -Path $groupPath -Recurse -Filter "*.jar" -ErrorAction SilentlyContinue | ForEach-Object {
             if ($_.Name.EndsWith("-sources.jar")) { return }
+            if (-not (Test-IsLatestGradleModuleFile $_)) { return }
             if ($_.Name -match $nameRegex -and -not $seen[$_.FullName]) {
                 $seen[$_.FullName] = $true
                 $mlkitJars += $_.FullName
+            }
+        }
+        Get-ChildItem -Path $groupPath -Recurse -Filter "*.aar" -ErrorAction SilentlyContinue | ForEach-Object {
+            if (-not (Test-IsLatestGradleModuleFile $_)) { return }
+            if ($_.Name -notmatch $nameRegex -and $_.FullName -notmatch $nameRegex) { return }
+            try {
+                $extractDir = Expand-AarToTemp $_.FullName
+                $classesJar = Join-Path $extractDir "classes.jar"
+                if ((Test-Path $classesJar) -and -not $seen[$classesJar]) {
+                    $seen[$classesJar] = $true
+                    $mlkitJars += $classesJar
+                }
+            } catch {
+                Write-Host "  ! failed to extract AAR $($_.FullName): $_" -ForegroundColor Yellow
             }
         }
     }
@@ -263,13 +337,36 @@ function Find-TessTwoSoFiles($soName) {
 function Find-MlKitSoFiles() {
     $results = @{}
     $name = "libmlkit_google_ocr_pipeline.so"
-    $firstSo = Get-ChildItem -Path $gradleCacheTransforms -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $firstSo) { return $results }
-    $jniDir = $firstSo.Directory.FullName   # e.g. .../jni/arm64-v8a
-    $baseJni = $firstSo.Directory.Parent.FullName  # .../jni
-    foreach ($abi in $abis) {
-        $path = Join-Path $baseJni "$abi\$name"
-        if (Test-Path $path) { $results[$abi] = $path }
+    $firstSo = $null
+    if (Test-Path $gradleCacheTransforms) {
+        $firstSo = Get-ChildItem -Path $gradleCacheTransforms -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
+    }
+    if ($firstSo) {
+        $baseJni = $firstSo.Directory.Parent.FullName  # e.g. .../jni
+        foreach ($abi in $abis) {
+            $path = Join-Path $baseJni "$abi\$name"
+            if (Test-Path $path) { $results[$abi] = $path }
+        }
+        if ($results.Count -gt 0) { return $results }
+    }
+
+    if (Test-Path $modulesCache) {
+        $aarCandidates = Get-ChildItem -Path $modulesCache -Recurse -Filter "*.aar" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'text-recognition|mlkit|vision' }
+        foreach ($aar in $aarCandidates) {
+            try {
+                $extractDir = Expand-AarToTemp $aar.FullName
+                $jniBase = Join-Path $extractDir "jni"
+                if (-not (Test-Path $jniBase)) { continue }
+                foreach ($abi in $abis) {
+                    $path = Join-Path $jniBase "$abi\$name"
+                    if (Test-Path $path) { $results[$abi] = $path }
+                }
+                if ($results.Count -gt 0) { return $results }
+            } catch {
+                Write-Host "  ! failed to inspect ML Kit AAR $($aar.FullName): $_" -ForegroundColor Yellow
+            }
+        }
     }
     return $results
 }

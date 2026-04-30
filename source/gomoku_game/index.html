@@ -78,6 +78,58 @@ document.addEventListener('DOMContentLoaded', function() {
 .result-card h3 { color: var(--primary); }
 .actions { text-align: center; }
 .hidden { display: none; }
+
+
+/* PandaGenie game UX refresh 2026-04-30 */
+body {
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
+}
+.game-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -8px -14px 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px !important;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid color-mix(in srgb, var(--outline) 45%, transparent);
+}
+.game-header .icon { font-size: 38px !important; }
+.game-header h2 { font-size: 19px !important; letter-spacing: 0; }
+.card, .result-card, .game-over-overlay {
+  border: 1px solid color-mix(in srgb, var(--outline) 52%, transparent);
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+}
+.btn, button {
+  min-height: 42px;
+  border-radius: 10px !important;
+  font-weight: 700;
+  touch-action: manipulation;
+}
+.info-bar, .score-bar {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--outline) 45%, transparent);
+  border-radius: 12px;
+  margin-bottom: 12px !important;
+}
+.status {
+  background: var(--surface-variant);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+.board, .board-canvas, .board-wrap {
+  box-shadow: 0 12px 30px rgba(0,0,0,.12), inset 0 0 0 1px rgba(255,255,255,.22);
+}
+@media (max-width: 420px) {
+  .game-header .icon { font-size: 32px !important; }
+  .game-header h2 { font-size: 17px !important; }
+  .btn, button { width: 100%; margin: 6px 0 0 !important; }
+  .actions { display: grid; gap: 8px; }
+}
+
 </style>
 </head>
 <body>

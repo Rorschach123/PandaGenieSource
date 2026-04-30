@@ -8,11 +8,16 @@ import ai.rorsch.pandagenie.nativelib.ArchiveLib;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedOutputStream;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * 压缩与解压模块插件：对 ZIP、TAR、TAR.GZ、GZ 等格式进行打包、解包及列出归档内容。
@@ -48,37 +53,47 @@ public class ArchivePlugin implements ModulePlugin {
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "decompressZip": {
-                String outDir = resolveStoragePath(params.optString("outputDir", ""));
-                boolean ok = lib.decompressZip(
-                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
-                        outDir,
-                        params.optString("password", "")
-                );
+                String archivePath = resolveStoragePath(pathParam(params, "archivePath", "path", "inputPath", "input"));
+                String outDir = resolveStoragePath(pathParam(params, "outputDir", "output", "dir"));
+                if (archivePath.isEmpty()) return error("archivePath is empty");
+                if (outDir.isEmpty()) outDir = defaultExtractDir(archivePath);
+                File archiveFile = new File(archivePath);
+                if (!archiveFile.isFile() || !archiveFile.canRead()) {
+                    return error("Archive not found or unreadable: " + archivePath);
+                }
+                ensureDir(outDir);
+                String password = params.optString("password", "");
+                boolean ok = lib.decompressZip(archivePath, outDir, password);
+                if (!ok && (password == null || password.isEmpty())) {
+                    ZipExtractResult fallback = extractZipWithJava(archivePath, outDir);
+                    if (!fallback.success) return error(fallback.error);
+                    ok = true;
+                }
                 return boolResult(ok, "decompressZip", ok ? formatDecompressDisplay(outDir, false) : null, null,
                         ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressTar": {
-                String outDir = resolveStoragePath(params.optString("outputDir", ""));
+                String outDir = resolveStoragePath(pathParam(params, "outputDir", "output", "dir"));
                 boolean ok = lib.decompressTar(
-                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
+                        resolveStoragePath(pathParam(params, "archivePath", "path", "inputPath", "input")),
                         outDir
                 );
                 return boolResult(ok, "decompressTar", ok ? formatDecompressDisplay(outDir, false) : null, null,
                         ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressTarGz": {
-                String outDir = resolveStoragePath(params.optString("outputDir", ""));
+                String outDir = resolveStoragePath(pathParam(params, "outputDir", "output", "dir"));
                 boolean ok = lib.decompressTarGz(
-                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
+                        resolveStoragePath(pathParam(params, "archivePath", "path", "inputPath", "input")),
                         outDir
                 );
                 return boolResult(ok, "decompressTarGz", ok ? formatDecompressDisplay(outDir, false) : null, null,
                         ok ? formatDecompressHtml(outDir, false) : null);
             }
             case "decompressGz": {
-                String outPath = resolveStoragePath(params.optString("outputPath", ""));
+                String outPath = resolveStoragePath(pathParam(params, "outputPath", "output", "outputDir"));
                 boolean ok = lib.decompressGz(
-                        resolveStoragePath(params.optString("archivePath", params.optString("path", ""))),
+                        resolveStoragePath(pathParam(params, "archivePath", "path", "inputPath", "input")),
                         outPath
                 );
                 return boolResult(ok, "decompressGz", ok ? formatDecompressDisplay(outPath, true) : null, null,
@@ -87,7 +102,7 @@ public class ArchivePlugin implements ModulePlugin {
             case "compressZip": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
-                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
+                String output = resolveStoragePath(pathParam(params, "outputPath", "output"));
                 String pwd = params.optString("password", "");
                 if (inputs.length == 0) return error("inputPaths is empty");
                 if (output.isEmpty()) return error("outputPath is empty");
@@ -126,7 +141,7 @@ public class ArchivePlugin implements ModulePlugin {
             case "compressTar": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
-                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
+                String output = resolveStoragePath(pathParam(params, "outputPath", "output"));
                 String preCheck = validateCompressArgs(inputs, output);
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
@@ -142,7 +157,7 @@ public class ArchivePlugin implements ModulePlugin {
             case "compressTarGz": {
                 String[] inputs = extractPaths(params, "inputPaths", "input");
                 for (int i = 0; i < inputs.length; i++) inputs[i] = resolveStoragePath(inputs[i]);
-                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
+                String output = resolveStoragePath(pathParam(params, "outputPath", "output"));
                 String preCheck = validateCompressArgs(inputs, output);
                 if (preCheck != null) return error(preCheck);
                 ensureParentDir(output);
@@ -156,8 +171,8 @@ public class ArchivePlugin implements ModulePlugin {
                         ok ? formatCompressHtml(output) : null);
             }
             case "compressGz": {
-                String input = resolveStoragePath(params.optString("inputPath", params.optString("input", "")));
-                String output = resolveStoragePath(params.optString("outputPath", params.optString("output", "")));
+                String input = resolveStoragePath(pathParam(params, "inputPath", "input"));
+                String output = resolveStoragePath(pathParam(params, "outputPath", "output"));
                 if (input.isEmpty()) return error("inputPath is empty");
                 if (output.isEmpty()) return error("outputPath is empty");
                 if (!new File(input).exists()) return error("File not found: " + input);
@@ -172,7 +187,11 @@ public class ArchivePlugin implements ModulePlugin {
                         ok ? formatCompressHtml(output) : null);
             }
             case "listContents": {
-                String raw = lib.listContents(resolveStoragePath(params.optString("archivePath", params.optString("path", ""))));
+                String archivePath = resolveStoragePath(pathParam(params, "archivePath", "path", "inputPath", "input"));
+                String raw = lib.listContents(archivePath);
+                if (raw == null || raw.trim().isEmpty() || "[]".equals(raw.trim())) {
+                    raw = listZipContentsWithJava(archivePath);
+                }
                 return ok(raw, formatListContentsDisplay(raw), formatListContentsHtml(raw));
             }
             default:
@@ -240,6 +259,140 @@ public class ArchivePlugin implements ModulePlugin {
     private void ensureParentDir(String path) {
         File parent = new File(path).getParentFile();
         if (parent != null && !parent.exists()) parent.mkdirs();
+    }
+
+    private void ensureDir(String path) {
+        File dir = new File(path);
+        if (!dir.exists()) dir.mkdirs();
+    }
+
+    private String defaultExtractDir(String archivePath) {
+        File archive = new File(archivePath);
+        String name = archive.getName();
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) name = name.substring(0, dot);
+        if (name.trim().isEmpty()) name = "archive";
+        return new File(Environment.getExternalStorageDirectory(), "PandaGenie/unzipped/" + name).getAbsolutePath();
+    }
+
+    private String pathParam(JSONObject params, String... keys) {
+        for (String key : keys) {
+            if (!params.has(key)) continue;
+            Object val = params.opt(key);
+            if (val instanceof JSONArray) {
+                JSONArray arr = (JSONArray) val;
+                for (int i = 0; i < arr.length(); i++) {
+                    String s = arr.optString(i, "").trim();
+                    if (!s.isEmpty()) return s;
+                }
+                continue;
+            }
+            if (val == null || JSONObject.NULL.equals(val)) continue;
+            String raw = String.valueOf(val).trim();
+            if (raw.isEmpty()) continue;
+            String[] paths = splitPaths(raw);
+            if (paths.length > 0 && !paths[0].trim().isEmpty()) return paths[0].trim();
+            return raw;
+        }
+        return "";
+    }
+
+    private static class ZipExtractResult {
+        final boolean success;
+        final String error;
+
+        ZipExtractResult(boolean success, String error) {
+            this.success = success;
+            this.error = error;
+        }
+    }
+
+    private ZipExtractResult extractZipWithJava(String archivePath, String outputDir) {
+        File archive = new File(archivePath);
+        File destDir = new File(outputDir);
+        if (!archive.isFile() || !archive.canRead()) {
+            return new ZipExtractResult(false, "Archive not found or unreadable: " + archivePath);
+        }
+        if (!destDir.exists() && !destDir.mkdirs()) {
+            return new ZipExtractResult(false, "Cannot create output directory: " + outputDir);
+        }
+
+        int entries = 0;
+        byte[] buffer = new byte[8192];
+        try {
+            String destRoot = destDir.getCanonicalPath();
+            String destPrefix = destRoot.endsWith(File.separator) ? destRoot : destRoot + File.separator;
+            ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(archive)));
+            try {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String name = entry.getName();
+                    if (name == null || name.trim().isEmpty()) {
+                        zis.closeEntry();
+                        continue;
+                    }
+                    File outFile = new File(destDir, name);
+                    String outPath = outFile.getCanonicalPath();
+                    if (!outPath.equals(destRoot) && !outPath.startsWith(destPrefix)) {
+                        return new ZipExtractResult(false, "Unsafe archive entry blocked: " + name);
+                    }
+                    if (entry.isDirectory()) {
+                        if (!outFile.exists()) outFile.mkdirs();
+                    } else {
+                        File parent = outFile.getParentFile();
+                        if (parent != null && !parent.exists()) parent.mkdirs();
+                        FileOutputStream fos = new FileOutputStream(outFile);
+                        try {
+                            int read;
+                            while ((read = zis.read(buffer)) >= 0) {
+                                if (read > 0) fos.write(buffer, 0, read);
+                            }
+                        } finally {
+                            fos.close();
+                        }
+                    }
+                    entries++;
+                    zis.closeEntry();
+                }
+            } finally {
+                zis.close();
+            }
+        } catch (IOException e) {
+            return new ZipExtractResult(false, "decompressZip failed: " + e.getMessage());
+        } catch (Exception e) {
+            return new ZipExtractResult(false, "decompressZip failed: " + e.getMessage());
+        }
+
+        if (entries == 0) {
+            return new ZipExtractResult(false, "decompressZip failed: archive has no readable entries");
+        }
+        return new ZipExtractResult(true, "");
+    }
+
+    private String listZipContentsWithJava(String archivePath) {
+        JSONArray arr = new JSONArray();
+        File archive = new File(archivePath);
+        if (!archive.isFile() || !archive.canRead()) return arr.toString();
+        try {
+            ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(archive)));
+            try {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    JSONObject item = new JSONObject();
+                    item.put("name", entry.getName());
+                    item.put("size", Math.max(0L, entry.getSize()));
+                    item.put("compressedSize", Math.max(0L, entry.getCompressedSize()));
+                    item.put("isDirectory", entry.isDirectory());
+                    arr.put(item);
+                    zis.closeEntry();
+                }
+            } finally {
+                zis.close();
+            }
+        } catch (Exception ignored) {
+            return new JSONArray().toString();
+        }
+        return arr.toString();
     }
 
     /**

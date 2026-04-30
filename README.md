@@ -234,16 +234,27 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.13)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260427/PandaGenie-v1.0.13.apk)**
+> &#x1F4E5; **[Download APK (v1.0.20)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260430/PandaGenie-v1.0.20.apk)**
 
-- Release tag: [`20260427`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260427)
-- Android project version: `versionName "1.0.13"` / `versionCode 13`
+- Release tag: [`20260430`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260430)
+- Android project version: `versionName "1.0.20"` / `versionCode 20`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.20</b> (2026-04-30)</summary>
+
+- **Premium app refresh**: updated launch animation, app icons, theme colors, typography, and the official website pages.
+- **Chat and task workflow upgrades**: improved conversation management, batch actions, attachment input, result rendering, and scheduled/config task flows.
+- **Config market compatibility**: added a standalone config-market page and app-version metadata so older app builds do not execute incompatible shared configs.
+- **Module ecosystem refresh**: updated Archive to `1.7`, OCR to `1.5`, and refreshed the game/tool module manifests and package outputs.
+- **Runtime reliability**: hardened Android permission handling, module runtime calls, variable resolution, config sanitization, and error formatting for complex task execution.
+
+</details>
+
+<details>
 <summary><b>v1.0.13</b> (2026-04-27)</summary>
 
 - **Latest APK** — updated the download link to the verified `20260427` GitHub release asset: `PandaGenie-v1.0.13.apk`
