@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>Document Tools</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body {
+      max-width: 720px;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100svh;
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(22px + env(safe-area-inset-bottom));
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 12%, transparent), transparent 30%),
+        var(--surface);
+    }
+    .hero {
+      border: 1px solid color-mix(in srgb, var(--outline) 48%, transparent);
+      border-radius: 16px;
+      padding: 16px;
+      background: color-mix(in srgb, var(--surface) 92%, var(--primary) 8%);
+      box-shadow: 0 12px 28px rgba(0,0,0,.08);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 22px;
+      letter-spacing: 0;
+      color: var(--on-surface);
+    }
+    .hero p {
+      margin: 0;
+      color: var(--on-surface-variant);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .tile {
+      border: 1px solid color-mix(in srgb, var(--outline) 45%, transparent);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--surface);
+    }
+    .tile b {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--primary);
+      font-size: 15px;
+    }
+    .tile span {
+      color: var(--on-surface-variant);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .api {
+      border: 1px solid color-mix(in srgb, var(--outline) 45%, transparent);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--surface);
+      margin-top: 10px;
+    }
+    .api code {
+      display: block;
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 10px;
+      background: var(--surface-variant);
+      color: var(--on-surface);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 12px;
+    }
+    @media (max-width: 420px) {
+      body { padding-left: 12px; padding-right: 12px; }
+      .grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1 id="title">文档处理</h1>
+    <p id="subtitle">提取、查询、编辑、创建和转换本机文档，让一句话完成“查这个文档”“把文档改一下”“转成 Markdown/HTML”。</p>
+  </section>
+
+  <section class="grid" aria-label="capabilities">
+    <div class="tile"><b id="readTitle">读取查询</b><span id="readDesc">支持 txt、md、csv、json、xml、html、docx、xlsx、pptx、pdf。</span></div>
+    <div class="tile"><b id="editTitle">内容编辑</b><span id="editDesc">支持文本文件和 Office 文档中的精确文本替换。</span></div>
+    <div class="tile"><b id="createTitle">创建删除</b><span id="createDesc">创建 txt、md、html、json、csv，按需删除指定文档。</span></div>
+    <div class="tile"><b id="convertTitle">格式转换</b><span id="convertDesc">将可提取文本的文档转换为 txt、md、html、json。</span></div>
+  </section>
+
+  <section class="api">
+    <b id="exampleTitle">API 示例</b>
+    <code>{
+  "module": "document_tools",
+  "action": "queryDocument",
+  "params": {
+    "filePath": "/sdcard/Documents/report.docx",
+    "query": "预算"
+  }
+}</code>
+  </section>
+
+  <script>
+    (function () {
+      var lang = (navigator.language || '').toLowerCase();
+      if (lang.indexOf('zh') === 0) return;
+      var text = {
+        title: 'Document Tools',
+        subtitle: 'Extract, query, edit, create and convert local documents from a natural-language task.',
+        readTitle: 'Read & Query',
+        readDesc: 'Supports txt, md, csv, json, xml, html, docx, xlsx, pptx and pdf.',
+        editTitle: 'Content Editing',
+        editDesc: 'Exact text replacement for text files and Office documents.',
+        createTitle: 'Create & Delete',
+        createDesc: 'Create txt, md, html, json and csv documents, and delete requested documents.',
+        convertTitle: 'Conversion',
+        convertDesc: 'Convert extractable documents to txt, md, html or json.',
+        exampleTitle: 'API Example'
+      };
+      Object.keys(text).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text[id];
+      });
+    })();
+  </script>
+</body>
+</html>

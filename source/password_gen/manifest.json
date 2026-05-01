@@ -2,7 +2,7 @@
   "id": "password_gen",
   "name": "密码生成器",
   "name_en": "Password Generator",
-  "version": "1.6",
+  "version": "1.7",
   "icon": "vpn_key",
   "soLibraries": [],
   "description": "安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成、密码强度检测和密码安全保存",
@@ -50,6 +50,16 @@
         "Include numbers (default true)",
         "Include symbols (default true)",
         "Save alias (optional, label for secure vault)"
+      ],
+      "copyableOutput": [
+        {
+          "field": "password",
+          "label": {
+            "zh": "密码",
+            "en": "Password"
+          },
+          "sensitive": true
+        }
       ]
     },
     {
@@ -79,6 +89,16 @@
         "Include lowercase",
         "Include numbers",
         "Include symbols"
+      ],
+      "copyableOutput": [
+        {
+          "field": "passwords",
+          "label": {
+            "zh": "密码列表",
+            "en": "Passwords"
+          },
+          "sensitive": true
+        }
       ]
     },
     {
@@ -96,6 +116,16 @@
       "paramDesc_en": [
         "Number of words (default 4)",
         "Word separator (default -)"
+      ],
+      "copyableOutput": [
+        {
+          "field": "passphrase",
+          "label": {
+            "zh": "助记短语",
+            "en": "Passphrase"
+          },
+          "sensitive": true
+        }
       ]
     },
     {

@@ -1,145 +1,181 @@
 {
-  "soLibraries": [],
-  "h5Page": "index.html",
-  "pluginJar": "plugin.jar",
-  "soLoadMode": "skip",
-  "capabilities": [
-    "file_read",
-    "file_write"
-  ],
-  "permissions": [
-    {
-      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
-      "desc": "保存游戏进度和收获记录",
-      "desc_en": "Save game progress and harvest records"
-    }
-  ],
-  "developer": {
-    "name": "PandaGenie Games",
-    "email": "games@pandagenie.ai",
-    "url": "https://pandagenie.ai"
-  },
-  "id": "farming_game",
-  "name": "开心农场",
-  "name_en": "Farming Game",
-  "description": "模拟农场经营游戏。种植、浇水、施肥、除草、收获并保存进度，适合通过对话持续经营。",
-  "description_en": "Farming simulation game with planting, watering, fertilizing, weeding, harvesting, progress saving, and harvest history.",
-  "version": "1.3",
-  "icon": "eco",
-  "pluginClass": "ai.rorsch.moduleplugins.farming_game.FarmingPlugin",
-  "apis": [
-    {
-      "name": "startGame",
-      "desc": "开始新的农场游戏并初始化空田地",
-      "desc_en": "Start a new farming game and initialize empty plots",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "enterGame",
-      "desc": "进入已有农场存档；没有存档时自动创建",
-      "desc_en": "Enter an existing save or create a new game",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "plant",
-      "desc": "在指定地块种植作物",
-      "desc_en": "Plant a crop on a plot",
-      "params": [
-        "plotIndex",
-        "seedType"
-      ],
-      "paramDesc": [
-        "地块编号 0-5",
-        "种子类型"
-      ],
-      "paramDesc_en": [
-        "Plot index 0-5",
-        "Seed type"
-      ]
-    },
-    {
-      "name": "water",
-      "desc": "给指定地块浇水",
-      "desc_en": "Water a plot",
-      "params": [
-        "plotIndex"
-      ],
-      "paramDesc": [
-        "地块编号 0-5"
-      ],
-      "paramDesc_en": [
-        "Plot index 0-5"
-      ]
-    },
-    {
-      "name": "fertilize",
-      "desc": "给指定地块施肥",
-      "desc_en": "Fertilize a plot",
-      "params": [
-        "plotIndex"
-      ],
-      "paramDesc": [
-        "地块编号 0-5"
-      ],
-      "paramDesc_en": [
-        "Plot index 0-5"
-      ]
-    },
-    {
-      "name": "weed",
-      "desc": "给指定地块除草",
-      "desc_en": "Remove weeds from a plot",
-      "params": [
-        "plotIndex"
-      ],
-      "paramDesc": [
-        "地块编号 0-5"
-      ],
-      "paramDesc_en": [
-        "Plot index 0-5"
-      ]
-    },
-    {
-      "name": "harvest",
-      "desc": "收获成熟作物并记录历史",
-      "desc_en": "Harvest mature crops and record history",
-      "params": [
-        "plotIndex"
-      ],
-      "paramDesc": [
-        "地块编号 0-5"
-      ],
-      "paramDesc_en": [
-        "Plot index 0-5"
-      ]
-    },
-    {
-      "name": "getState",
-      "desc": "获取当前农场状态",
-      "desc_en": "Get current farm state",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "getHarvestHistory",
-      "desc": "查看收获历史记录",
-      "desc_en": "View harvest history",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "saveGame",
-      "desc": "手动保存当前游戏进度",
-      "desc_en": "Save current progress",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    }
-  ]
+    "soLibraries":  [
+
+                    ],
+    "h5Page":  "index.html",
+    "pluginJar":  "plugin.jar",
+    "soLoadMode":  "skip",
+    "capabilities":  [
+                         "file_read",
+                         "file_write"
+                     ],
+    "permissions":  [
+                        {
+                            "name":  "android.permission.MANAGE_EXTERNAL_STORAGE",
+                            "desc":  "保存游戏进度和收获记录",
+                            "desc_en":  "Save game progress and harvest records"
+                        }
+                    ],
+    "developer":  {
+                      "name":  "PandaGenie Games",
+                      "email":  "games@pandagenie.ai",
+                      "url":  "https://pandagenie.ai"
+                  },
+    "id":  "farming_game",
+    "name":  "开心农场",
+    "name_en":  "Farming Game",
+    "description":  "模拟农场经营游戏。种植、浇水、施肥、除草、收获并保存进度，适合通过对话持续经营。",
+    "description_en":  "Farming simulation game with planting, watering, fertilizing, weeding, harvesting, progress saving, and harvest history.",
+    "version":  "1.4",
+    "icon":  "eco",
+    "pluginClass":  "ai.rorsch.moduleplugins.farming_game.FarmingPlugin",
+    "apis":  [
+                 {
+                     "name":  "startGame",
+                     "desc":  "开始新的农场游戏并初始化空田地",
+                     "desc_en":  "Start a new farming game and initialize empty plots",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ],
+                     "openPage":  true,
+                     "uiIntent":  "openPage"
+                 },
+                 {
+                     "name":  "enterGame",
+                     "desc":  "进入已有农场存档；没有存档时自动创建",
+                     "desc_en":  "Enter an existing save or create a new game",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ],
+                     "openPage":  true,
+                     "uiIntent":  "openPage"
+                 },
+                 {
+                     "name":  "plant",
+                     "desc":  "在指定地块种植作物",
+                     "desc_en":  "Plant a crop on a plot",
+                     "params":  [
+                                    "plotIndex",
+                                    "seedType"
+                                ],
+                     "paramDesc":  [
+                                       "地块编号 0-5",
+                                       "种子类型"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Plot index 0-5",
+                                          "Seed type"
+                                      ]
+                 },
+                 {
+                     "name":  "water",
+                     "desc":  "给指定地块浇水",
+                     "desc_en":  "Water a plot",
+                     "params":  [
+                                    "plotIndex"
+                                ],
+                     "paramDesc":  [
+                                       "地块编号 0-5"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Plot index 0-5"
+                                      ]
+                 },
+                 {
+                     "name":  "fertilize",
+                     "desc":  "给指定地块施肥",
+                     "desc_en":  "Fertilize a plot",
+                     "params":  [
+                                    "plotIndex"
+                                ],
+                     "paramDesc":  [
+                                       "地块编号 0-5"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Plot index 0-5"
+                                      ]
+                 },
+                 {
+                     "name":  "weed",
+                     "desc":  "给指定地块除草",
+                     "desc_en":  "Remove weeds from a plot",
+                     "params":  [
+                                    "plotIndex"
+                                ],
+                     "paramDesc":  [
+                                       "地块编号 0-5"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Plot index 0-5"
+                                      ]
+                 },
+                 {
+                     "name":  "harvest",
+                     "desc":  "收获成熟作物并记录历史",
+                     "desc_en":  "Harvest mature crops and record history",
+                     "params":  [
+                                    "plotIndex"
+                                ],
+                     "paramDesc":  [
+                                       "地块编号 0-5"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Plot index 0-5"
+                                      ]
+                 },
+                 {
+                     "name":  "getState",
+                     "desc":  "获取当前农场状态",
+                     "desc_en":  "Get current farm state",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "getHarvestHistory",
+                     "desc":  "查看收获历史记录",
+                     "desc_en":  "View harvest history",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "saveGame",
+                     "desc":  "手动保存当前游戏进度",
+                     "desc_en":  "Save current progress",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 }
+             ]
 }

@@ -43,6 +43,11 @@ public class SystemCleanerPlugin implements ModulePlugin {
     private static final DecimalFormat SIZE_FMT = new DecimalFormat("#,##0.#");
     /** {@code findLargeFiles} 默认最多返回的条数上限。 */
     private static final int LARGE_FILES_DEFAULT_LIMIT = 100;
+    private static final String[] COMMON_STORAGE_CHILDREN = {
+            "Download", "Downloads", "Documents", "DCIM", "Pictures",
+            "Movies", "Music", "PandaGenie", "Android"
+    };
+    private Context appContext;
 
     private static boolean isZh() {
         try {
@@ -82,6 +87,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
+        appContext = context != null ? context.getApplicationContext() : null;
         JSONObject params = new JSONObject(emptyJson(paramsJson));
         switch (action) {
             case "scanJunk": {
@@ -113,6 +119,162 @@ public class SystemCleanerPlugin implements ModulePlugin {
         }
     }
 
+    private File resolveExternalStorageRoot(String requestedPath) {
+        String path = requestedPath == null ? "" : requestedPath.trim();
+        if (!path.isEmpty()) {
+            File direct = new File(path);
+            if (isUsableDirectory(direct)) {
+                return direct;
+            }
+            if (canUseDirectoryWhenStorageManagerGranted(direct)) {
+                return direct;
+            }
+            if (!isStorageRootAlias(path)) {
+                return null;
+            }
+        }
+
+        ArrayList<File> candidates = new ArrayList<>();
+        File envRoot = Environment.getExternalStorageDirectory();
+        if (envRoot != null) {
+            candidates.add(envRoot);
+        }
+        candidates.add(new File("/storage/emulated/0"));
+        candidates.add(new File("/storage/self/primary"));
+        candidates.add(new File("/sdcard"));
+        if (appContext != null) {
+            File appExternal = appContext.getExternalFilesDir(null);
+            if (appExternal != null) {
+                File root = appExternal;
+                while (root.getParentFile() != null && !"0".equals(root.getName())) {
+                    root = root.getParentFile();
+                }
+                candidates.add(root);
+            }
+        }
+
+        for (File candidate : candidates) {
+            if (isUsableDirectory(candidate)) {
+                return candidate;
+            }
+        }
+        for (File candidate : candidates) {
+            if (canUseDirectoryWhenStorageManagerGranted(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isStorageRootAlias(String path) {
+        if (path == null) return true;
+        String p = path.trim();
+        if (p.isEmpty()) return true;
+        while (p.endsWith("/") && p.length() > 1) {
+            p = p.substring(0, p.length() - 1);
+        }
+        return "/sdcard".equals(p)
+                || "/storage/emulated/0".equals(p)
+                || "/storage/self/primary".equals(p);
+    }
+
+    private static boolean isUsableDirectory(File dir) {
+        try {
+            if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                return false;
+            }
+            if (dir.canRead() || safeListFiles(dir) != null) {
+                return true;
+            }
+            return hasReadableCommonChild(dir);
+        } catch (SecurityException e) {
+            return false;
+        }
+    }
+
+    private static boolean canUseDirectoryWhenStorageManagerGranted(File dir) {
+        try {
+            return hasAllFilesAccess()
+                    && dir != null
+                    && dir.exists()
+                    && dir.isDirectory()
+                    && isStorageRootAlias(dir.getAbsolutePath());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean hasAllFilesAccess() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return true;
+        }
+        try {
+            return Environment.isExternalStorageManager();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean hasReadableCommonChild(File dir) {
+        if (dir == null) return false;
+        for (String name : COMMON_STORAGE_CHILDREN) {
+            File child = new File(dir, name);
+            if (!child.exists()) continue;
+            if (child.isFile() && child.canRead()) return true;
+            if (child.isDirectory() && (child.canRead() || safeListFiles(child) != null)) return true;
+        }
+        return false;
+    }
+
+    private static File[] safeListFiles(File dir) {
+        try {
+            return dir != null ? dir.listFiles() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static File[] listFilesForScan(File dir) {
+        File[] direct = safeListFiles(dir);
+        if (direct != null) {
+            return direct;
+        }
+        if (dir == null || !dir.exists() || !dir.isDirectory() || !isStorageRootAlias(dir.getAbsolutePath())) {
+            return null;
+        }
+        ArrayList<File> fallback = new ArrayList<>();
+        for (String name : COMMON_STORAGE_CHILDREN) {
+            File child = new File(dir, name);
+            if (child.exists()) {
+                fallback.add(child);
+            }
+        }
+        return fallback.isEmpty() ? null : fallback.toArray(new File[0]);
+    }
+
+    private static String storageAccessError(String requestedPath) {
+        String path = requestedPath == null ? "" : requestedPath.trim();
+        boolean zh = isZh();
+        if (hasAllFilesAccess()) {
+            if (!path.isEmpty() && !isStorageRootAlias(path)) {
+                return zh
+                        ? "已检测到 PandaGenie 已开启“所有文件访问权限”，但该目录不存在或暂时不可访问：" + path + "。请确认路径存在，或指定 Download/DCIM 等公共目录后重试。"
+                        : "PandaGenie already has All files access, but this directory does not exist or is temporarily inaccessible: " + path + ". Please verify the path or try a public directory such as Download/DCIM.";
+            }
+            return zh
+                    ? "已检测到 PandaGenie 已开启“所有文件访问权限”，但当前主存储路径暂时不可访问。请确认手机存储已挂载，或指定可访问目录后重试。"
+                    : "PandaGenie already has All files access, but the primary storage path is temporarily inaccessible. Please make sure storage is mounted, or retry with an accessible directory.";
+        }
+        if (!path.isEmpty() && !isStorageRootAlias(path)) {
+            return zh
+                    ? "目录不存在或当前不可访问：" + path + "。请确认路径存在，并在系统设置中为 PandaGenie 开启“所有文件访问权限”后重试。"
+                    : "Directory not found or not accessible: " + path + ". Please verify the path and grant All files access to PandaGenie, then try again.";
+        }
+        return zh
+                ? "无法访问手机存储。请在系统设置中为 PandaGenie 开启“所有文件访问权限”，然后重试。"
+                : "Device storage is not accessible. Please grant All files access to PandaGenie, then try again.";
+    }
+
     /**
      * 扫描指定类别的垃圾/冗余文件体量（不删除）。
      *
@@ -120,9 +282,9 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * @return 含各类别统计与 {@code totalSizeBytes} 的 JSON；外部存储不可用则 {@link #errJson}
      */
     private String scanJunk(JSONObject params) throws Exception {
-        File root = Environment.getExternalStorageDirectory();
-        if (root == null || !root.exists()) {
-            return errJson("External storage not available");
+        File root = resolveExternalStorageRoot("");
+        if (root == null) {
+            return errJson(storageAccessError(""));
         }
         Set<String> cats = parseCategories(params.optString("categories", ""), true);
         JSONObject categories = new JSONObject();
@@ -160,6 +322,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
         }
 
         JSONObject result = new JSONObject();
+        result.put("directory", root.getAbsolutePath());
         result.put("categories", categories);
         result.put("totalSizeBytes", totalBytes);
         result.put("totalSizeFormatted", formatSizeBytes(totalBytes));
@@ -173,9 +336,9 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * @return 删除数量、释放字节、按类别汇总等；未指定类别则错误 JSON
      */
     private String cleanJunk(JSONObject params) throws Exception {
-        File root = Environment.getExternalStorageDirectory();
-        if (root == null || !root.exists()) {
-            return errJson("External storage not available");
+        File root = resolveExternalStorageRoot("");
+        if (root == null) {
+            return errJson(storageAccessError(""));
         }
         Set<String> cats = parseCategories(params.optString("categories", ""), false);
         if (cats.isEmpty()) {
@@ -225,6 +388,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
         }
 
         JSONObject result = new JSONObject();
+        result.put("directory", root.getAbsolutePath());
         result.put("deletedFiles", deletedFiles);
         result.put("deletedDirs", deletedDirs);
         result.put("deletedItems", deletedFiles + deletedDirs);
@@ -241,10 +405,18 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private String getStorageInfo() throws Exception {
         JSONObject root = new JSONObject();
-        JSONObject internal = statFsToJson(Environment.getDataDirectory());
+        JSONObject internal = statFsToJson(preferredDisplayPath(Environment.getDataDirectory()),
+                Environment.getDataDirectory(),
+                appContext != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? appContext.getDataDir() : null,
+                appContext != null ? appContext.getFilesDir() : null,
+                appContext != null ? appContext.getCacheDir() : null);
         root.put("internal", internal != null ? internal : JSONObject.NULL);
         File ext = Environment.getExternalStorageDirectory();
-        JSONObject external = statFsToJson(ext);
+        JSONObject external = statFsToJson(preferredDisplayPath(ext),
+                ext,
+                new File("/storage/emulated/0"),
+                new File("/sdcard"),
+                appContext != null ? appContext.getExternalFilesDir(null) : null);
         if (external != null) {
             external.put("state", Environment.getExternalStorageState());
         }
@@ -264,16 +436,12 @@ public class SystemCleanerPlugin implements ModulePlugin {
             minSizeMB = params.optDouble("minSizeMB", 50.0);
         }
         String pathStr = params.optString("path", "").trim();
-        if (pathStr.isEmpty()) {
-            File ext = Environment.getExternalStorageDirectory();
-            pathStr = ext != null ? ext.getAbsolutePath() : "/sdcard";
-        }
         boolean recursive = params.optBoolean("recursive", true);
         int limit = params.optInt("limit", LARGE_FILES_DEFAULT_LIMIT);
 
-        File dir = new File(pathStr);
-        if (!dir.exists() || !dir.isDirectory()) {
-            return errJson("Directory not found: " + pathStr);
+        File dir = resolveExternalStorageRoot(pathStr);
+        if (dir == null) {
+            return errJson(storageAccessError(pathStr));
         }
 
         long minBytes = (long) (minSizeMB * 1024L * 1024L);
@@ -356,7 +524,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
     private static CategoryStat scanCache(File root) {
         CategoryStat st = new CategoryStat();
         File androidData = new File(root, "Android/data");
-        File[] pkgs = androidData.listFiles();
+        File[] pkgs = listFilesForScan(androidData);
         if (pkgs == null) return st;
         for (File pkg : pkgs) {
             if (!pkg.isDirectory()) continue;
@@ -370,7 +538,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private static CategoryStat scanApk(File root) {
         CategoryStat st = new CategoryStat();
-        File[] rootFiles = root.listFiles();
+        File[] rootFiles = listFilesForScan(root);
         if (rootFiles != null) {
             for (File c : rootFiles) {
                 if (c.isFile() && c.getName().toLowerCase(Locale.ROOT).endsWith(".apk")) {
@@ -391,7 +559,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
 
     /** 递归累计某目录树中的 {@code .apk} 文件大小。 */
     private static void accumulateApkInTree(File dir, CategoryStat st) {
-        File[] children = dir.listFiles();
+        File[] children = listFilesForScan(dir);
         if (children == null) return;
         for (File c : children) {
             if (c.isFile() && c.getName().toLowerCase(Locale.ROOT).endsWith(".apk")) {
@@ -419,7 +587,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
             accumulateFilesRecursive(dir, st);
             return;
         }
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isDirectory()) {
@@ -442,7 +610,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private static void countDirectEmptyDirs(File root, File dir, CategoryStat st) {
         if (dir == null || !dir.isDirectory()) return;
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         boolean hasSubDir = false;
         for (File k : kids) {
@@ -451,7 +619,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
                 countDirectEmptyDirs(root, k, st);
             }
         }
-        kids = dir.listFiles();
+        kids = safeListFiles(dir);
         if (kids != null && kids.length == 0 && !dir.equals(root)) {
             st.addEmptyDir();
         }
@@ -474,7 +642,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
     /** 递归累计目录下所有普通文件的字节数与个数。 */
     private static void accumulateFilesRecursive(File dir, CategoryStat st) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return;
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isFile()) {
@@ -495,7 +663,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private static void accumulateMatchingFiles(File dir, CategoryStat st, FilePredicate pred) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return;
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isFile()) {
@@ -516,7 +684,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private static void collectLargeFiles(File dir, boolean recursive, long minBytes, List<File> out) {
         if (dir == null || !dir.isDirectory()) return;
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isFile() && k.length() >= minBytes) {
@@ -552,7 +720,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
     private static CleanResult cleanCache(File root) {
         CleanResult cr = new CleanResult();
         File androidData = new File(root, "Android/data");
-        File[] pkgs = androidData.listFiles();
+        File[] pkgs = listFilesForScan(androidData);
         if (pkgs == null) return cr;
         for (File pkg : pkgs) {
             if (!pkg.isDirectory()) continue;
@@ -564,7 +732,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
     /** 删除外部存储根目录 APK 与下载目录树中的 APK（与扫描范围一致）。 */
     private static CleanResult cleanApk(File root) {
         CleanResult cr = new CleanResult();
-        File[] rootFiles = root.listFiles();
+        File[] rootFiles = listFilesForScan(root);
         if (rootFiles != null) {
             for (File c : rootFiles) {
                 if (c.isFile() && c.getName().toLowerCase(Locale.ROOT).endsWith(".apk")) {
@@ -585,7 +753,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
 
     /** 递归删除目录树中的 APK 文件。 */
     private static void deleteApkInTree(File dir, CleanResult cr) {
-        File[] children = dir.listFiles();
+        File[] children = listFilesForScan(dir);
         if (children == null) return;
         for (File c : children) {
             if (c.isFile() && c.getName().toLowerCase(Locale.ROOT).endsWith(".apk")) {
@@ -610,7 +778,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
             deleteFilesRecursive(dir, cr);
             return;
         }
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isDirectory()) {
@@ -656,7 +824,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
         if (dir == null || !dir.isDirectory() || dir.equals(root)) {
             return sweepChildrenEmpty(root, dir, cr);
         }
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return 0;
         int removed = 0;
         for (File k : kids) {
@@ -664,7 +832,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
                 removed += sweepEmptyDirsOnce(root, k, cr);
             }
         }
-        kids = dir.listFiles();
+        kids = safeListFiles(dir);
         if (kids != null && kids.length == 0 && !dir.equals(root)) {
             if (dir.delete()) {
                 cr.dirs++;
@@ -678,7 +846,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * 从根目录起仅对其直接子目录启动 {@link #sweepEmptyDirsOnce}（用于根节点特殊处理）。
      */
     private static int sweepChildrenEmpty(File root, File dir, CleanResult cr) {
-        File[] kids = dir != null ? dir.listFiles() : null;
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return 0;
         int removed = 0;
         for (File k : kids) {
@@ -698,14 +866,14 @@ public class SystemCleanerPlugin implements ModulePlugin {
             tryDeleteFile(dir, cr);
             return;
         }
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids != null) {
             for (File k : kids) {
                 deleteFilesRecursive(k, cr);
             }
         }
-        File[] after = dir.listFiles();
-        if (dir.isDirectory() && (after == null || after.length == 0)) {
+        File[] after = safeListFiles(dir);
+        if (dir.isDirectory() && after != null && after.length == 0) {
             dir.delete();
         }
     }
@@ -715,7 +883,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      */
     private static void deleteMatchingFiles(File dir, File skipDir, CleanResult cr, FilePredicate pred) {
         if (dir == null || !dir.exists() || !dir.isDirectory()) return;
-        File[] kids = dir.listFiles();
+        File[] kids = listFilesForScan(dir);
         if (kids == null) return;
         for (File k : kids) {
             if (k.isFile()) {
@@ -745,24 +913,49 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * @param path 分区挂载点路径
      * @return JSON 或 null（路径无效）
      */
+    private static JSONObject statFsToJson(String displayPath, File... candidates) throws Exception {
+        if (candidates == null) return null;
+        for (File path : candidates) {
+            JSONObject stat = statFsToJson(path);
+            if (stat != null) {
+                if (displayPath != null && !displayPath.trim().isEmpty()) {
+                    stat.put("path", displayPath);
+                }
+                return stat;
+            }
+        }
+        return null;
+    }
+
     private static JSONObject statFsToJson(File path) throws Exception {
-        if (path == null || !path.exists()) return null;
-        StatFs stat = new StatFs(path.getAbsolutePath());
-        long blockSize = getBlockSizeCompat(stat);
-        long total = getBlockCountCompat(stat) * blockSize;
-        long avail = getAvailableBlocksCompat(stat) * blockSize;
-        long used = total - avail;
-        JSONObject o = new JSONObject();
-        o.put("path", path.getAbsolutePath());
-        o.put("totalBytes", total);
-        o.put("availableBytes", avail);
-        o.put("usedBytes", used);
-        double usedPct = total > 0 ? Math.round(used * 10000.0 / total) / 100.0 : 0.0;
-        o.put("usedPercent", usedPct);
-        o.put("totalFormatted", formatStorageGb(total));
-        o.put("usedFormatted", formatStorageGb(used));
-        o.put("freeFormatted", formatStorageGb(avail));
-        return o;
+        if (path == null) return null;
+        try {
+            StatFs stat = new StatFs(path.getAbsolutePath());
+            long blockSize = getBlockSizeCompat(stat);
+            long total = getBlockCountCompat(stat) * blockSize;
+            long avail = getAvailableBlocksCompat(stat) * blockSize;
+            long used = total - avail;
+            JSONObject o = new JSONObject();
+            o.put("path", path.getAbsolutePath());
+            o.put("statPath", path.getAbsolutePath());
+            o.put("totalBytes", total);
+            o.put("availableBytes", avail);
+            o.put("freeBytes", avail);
+            o.put("usedBytes", used);
+            double usedPct = total > 0 ? Math.round(used * 10000.0 / total) / 100.0 : 0.0;
+            o.put("usedPercent", usedPct);
+            o.put("totalFormatted", formatStorageGb(total));
+            o.put("usedFormatted", formatStorageGb(used));
+            o.put("availableFormatted", formatStorageGb(avail));
+            o.put("freeFormatted", formatStorageGb(avail));
+            return o;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String preferredDisplayPath(File path) {
+        return path != null ? path.getAbsolutePath() : null;
     }
 
     /** API 17+ 使用 {@link StatFs#getBlockSizeLong()}，否则回退旧 API。 */
@@ -987,7 +1180,11 @@ public class SystemCleanerPlugin implements ModulePlugin {
         if (!any) {
             String[] h0 = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
             List<String[]> r0 = new ArrayList<>();
-            r0.add(new String[]{zh ? "状态" : "Status", "—"});
+            r0.add(new String[]{
+                    zh ? "状态" : "Status",
+                    zh ? "未获取到可统计的存储分区，请稍后重试或检查系统存储权限。"
+                            : "No readable storage partition was reported. Please retry or check storage permissions."
+            });
             return pgTable(title, h0, r0).trim();
         }
         return pgTable(title, headers, rows).trim();
@@ -1123,7 +1320,9 @@ public class SystemCleanerPlugin implements ModulePlugin {
         }
         if (part == null || part == JSONObject.NULL) {
             return HtmlOutputHelper.card("💾", zh ? "存储信息" : "Storage Info",
-                    HtmlOutputHelper.muted("—"));
+                    HtmlOutputHelper.muted(zh
+                            ? "未获取到可统计的存储分区，请稍后重试或检查系统存储权限。"
+                            : "No readable storage partition was reported. Please retry or check storage permissions."));
         }
         double pct = part.optDouble("usedPercent", 0);
         int gaugePct = (int) Math.round(Math.max(0, Math.min(100, pct)));

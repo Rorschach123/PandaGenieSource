@@ -141,7 +141,9 @@ public class PasswordGenPlugin implements ModulePlugin {
                     vaultSave.put("value", pwd);
                     vaultSave.put("defaultAlias", alias);
                     vaultSave.put("category", "password");
-                    return okWithVaultSave(out, formatGenerateDisplay(out, zh), vaultSave, formatGenerateHtml(out, zh));
+                    JSONArray copyables = new JSONArray()
+                            .put(copyable(zh ? "密码" : "Password", zh ? "复制生成的密码" : "Copy generated password", pwd, true));
+                    return okWithVaultSave(out, formatGenerateDisplay(out, zh), vaultSave, formatGenerateHtml(out, zh), copyables);
                 }
                 case "generateMultiple": {
                     int count = clamp(params.optInt("count", 5), 1, 50);
@@ -158,7 +160,9 @@ public class PasswordGenPlugin implements ModulePlugin {
                     out.put("passwords", arr);
                     out.put("count", count);
                     out.put("length", length);
-                    return ok(out, formatMultipleDisplay(out, zh), formatMultipleHtml(out, zh));
+                    JSONArray copyables = new JSONArray()
+                            .put(copyable(zh ? "密码列表" : "Passwords", zh ? "复制全部密码，每行一条" : "Copy all passwords, one per line", joinJsonArray(arr, "\n"), true));
+                    return ok(out, formatMultipleDisplay(out, zh), formatMultipleHtml(out, zh), copyables);
                 }
                 case "generatePassphrase": {
                     int wordCount = clamp(params.optInt("wordCount", 4), 2, 16);
@@ -169,7 +173,9 @@ public class PasswordGenPlugin implements ModulePlugin {
                     out.put("passphrase", phrase);
                     out.put("wordCount", wordCount);
                     out.put("separator", sep);
-                    return ok(out, formatPassphraseDisplay(out, zh), formatPassphraseHtml(out, zh));
+                    JSONArray copyables = new JSONArray()
+                            .put(copyable(zh ? "助记短语" : "Passphrase", zh ? "复制生成的助记短语" : "Copy generated passphrase", phrase, true));
+                    return ok(out, formatPassphraseDisplay(out, zh), formatPassphraseHtml(out, zh), copyables);
                 }
                 case "checkStrength": {
                     String password = params.optString("password", "");
@@ -521,7 +527,7 @@ public class PasswordGenPlugin implements ModulePlugin {
         String label = zh ? "密码" : "Password";
         String lenKey = zh ? "长度" : "Length";
         String strKey = zh ? "强度" : "Strength";
-        String hint = zh ? "（可使用剪贴板模块复制）" : "(Use clipboard module to copy)";
+        String hint = zh ? "（可使用复制按钮复制真实密码）" : "(Use the copy button to copy the real password)";
         String[] headers = { zh ? "项目" : "Item", zh ? "值" : "Value" };
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[] { label, mdCell(maskForDisplay(out.optString("password"))) });
@@ -544,7 +550,7 @@ public class PasswordGenPlugin implements ModulePlugin {
         })
                 + HtmlOutputHelper.gauge(score, gaugeColor)
                 + HtmlOutputHelper.badge(out.optString("strengthLabel"), badgeColor)
-                + HtmlOutputHelper.muted(zh ? "可使用剪贴板模块复制" : "Use clipboard module to copy");
+                + HtmlOutputHelper.muted(zh ? "点击下方复制按钮复制真实密码" : "Use the copy button below to copy the real password");
         return HtmlOutputHelper.card("\uD83D\uDD10", title, body);
     }
 
@@ -581,7 +587,7 @@ public class PasswordGenPlugin implements ModulePlugin {
             rows.add(new String[]{"…", zh ? "其余已省略" : "more hidden"});
         }
         String body = head + HtmlOutputHelper.table(headers, rows)
-                + HtmlOutputHelper.muted(zh ? "可使用剪贴板模块复制" : "Use clipboard module to copy");
+                + HtmlOutputHelper.muted(zh ? "点击下方复制按钮复制全部密码" : "Use the copy button below to copy all passwords");
         return HtmlOutputHelper.card("\uD83D\uDD10", title, body);
     }
 
@@ -645,7 +651,7 @@ public class PasswordGenPlugin implements ModulePlugin {
         JSONArray arr = out.optJSONArray("passwords");
         int n = arr != null ? arr.length() : 0;
         String head = zh ? "已生成多条密码" : "Passwords Generated";
-        String hint = zh ? "（可使用剪贴板模块复制）" : "(Use clipboard module to copy)";
+        String hint = zh ? "（可使用复制按钮复制全部密码）" : "(Use the copy button to copy all passwords)";
         String[] headers1 = { zh ? "项目" : "Item", zh ? "值" : "Value" };
         List<String[]> rows1 = new ArrayList<>();
         rows1.add(new String[] { zh ? "数量" : "Count", String.valueOf(out.optInt("count")) });
@@ -755,6 +761,27 @@ public class PasswordGenPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 
+    private JSONObject copyable(String label, String description, String value, boolean sensitive) throws Exception {
+        return new JSONObject()
+                .put("moduleId", "password_gen")
+                .put("category", "password")
+                .put("label", label)
+                .put("title", label)
+                .put("description", description)
+                .put("value", value)
+                .put("sensitive", sensitive);
+    }
+
+    private String joinJsonArray(JSONArray arr, String separator) {
+        StringBuilder sb = new StringBuilder();
+        if (arr == null) return "";
+        for (int i = 0; i < arr.length(); i++) {
+            if (i > 0) sb.append(separator);
+            sb.append(arr.optString(i));
+        }
+        return sb.toString();
+    }
+
     /**
      * 成功响应，{@code output} 为嵌套 JSON 的字符串形式，可选 {@code _displayText}。
      *
@@ -768,6 +795,10 @@ public class PasswordGenPlugin implements ModulePlugin {
     }
 
     private String ok(JSONObject output, String displayText, String displayHtml) throws Exception {
+        return ok(output, displayText, displayHtml, null);
+    }
+
+    private String ok(JSONObject output, String displayText, String displayHtml, JSONArray copyables) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
@@ -777,6 +808,9 @@ public class PasswordGenPlugin implements ModulePlugin {
         if (displayHtml != null && !displayHtml.isEmpty()) {
             result.put("_displayHtml", displayHtml);
         }
+        if (copyables != null && copyables.length() > 0) {
+            result.put("_copyables", copyables);
+        }
         return result.toString();
     }
 
@@ -785,6 +819,10 @@ public class PasswordGenPlugin implements ModulePlugin {
     }
 
     private String okWithVaultSave(JSONObject output, String displayText, JSONObject vaultSave, String displayHtml) throws Exception {
+        return okWithVaultSave(output, displayText, vaultSave, displayHtml, null);
+    }
+
+    private String okWithVaultSave(JSONObject output, String displayText, JSONObject vaultSave, String displayHtml, JSONArray copyables) throws Exception {
         JSONObject result = new JSONObject()
                 .put("success", true)
                 .put("output", output.toString());
@@ -796,6 +834,9 @@ public class PasswordGenPlugin implements ModulePlugin {
         }
         if (vaultSave != null) {
             result.put("_vaultSave", vaultSave);
+        }
+        if (copyables != null && copyables.length() > 0) {
+            result.put("_copyables", copyables);
         }
         return result.toString();
     }

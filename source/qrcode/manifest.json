@@ -1,113 +1,124 @@
 {
-  "id": "qrcode",
-  "name": "二维码工具",
-  "name_en": "QR Code Tools",
-  "description": "二维码工具模块，支持生成二维码、扫描解码二维码（图片或相机）、检测图片是否含二维码、查看和分享已生成的二维码",
-  "description_en": "QR code tools: generate, decode from image or camera, detect QR presence, view and share generated codes",
-  "version": "1.6",
-  "icon": "document_scanner",
-  "soLibraries": [],
-  "h5Page": "index.html",
-  "pluginJar": "plugin.jar",
-  "pluginClass": "ai.rorsch.moduleplugins.qrcode.QrcodePlugin",
-  "soLoadMode": "skip",
-  "capabilities": [
-    "file_read",
-    "file_write",
-    "camera"
-  ],
-  "permissions": [
-    {
-      "name": "android.permission.WRITE_EXTERNAL_STORAGE",
-      "desc": "用于将生成的二维码保存到 PandaGenie 目录",
-      "desc_en": "Save generated QR images under the PandaGenie folder"
-    },
-    {
-      "name": "android.permission.READ_EXTERNAL_STORAGE",
-      "desc": "用于读取图片以解码二维码",
-      "desc_en": "Read image files for QR decoding"
-    },
-    {
-      "name": "android.permission.CAMERA",
-      "desc": "用于相机实时扫描二维码",
-      "desc_en": "Camera access for live QR code scanning"
-    }
-  ],
-  "developer": {
-    "name": "PandaGenie Official",
-    "email": "",
-    "url": ""
-  },
-  "apis": [
-    {
-      "name": "generateQR",
-      "desc": "从文本或 URL 生成二维码 PNG 并保存到存储，返回文件路径和图片预览",
-      "desc_en": "Generate a QR code PNG from text or URL, returns file path and image preview",
-      "params": [
-        "text",
-        "size",
-        "includeBase64"
-      ],
-      "paramDesc": [
-        "要编码的文本或链接",
-        "输出图片边长（像素），默认 512",
-        "是否附带 PNG 的 Base64 预览，默认否"
-      ],
-      "paramDesc_en": [
-        "Text or URL to encode",
-        "Output image side length in pixels, default 512",
-        "Include PNG as Base64 for preview, default false"
-      ]
-    },
-    {
-      "name": "decodeQR",
-      "desc": "扫描指定路径的图片，提取并返回二维码中的文本内容",
-      "desc_en": "Scan an image at the given path and extract QR code text content",
-      "params": [
-        "imagePath"
-      ],
-      "paramDesc": [
-        "包含二维码的图片绝对路径"
-      ],
-      "paramDesc_en": [
-        "Absolute path to image file containing a QR code"
-      ]
-    },
-    {
-      "name": "detectQR",
-      "desc": "检测指定路径的图片是否包含二维码，返回检测结果和内容",
-      "desc_en": "Detect whether an image contains a QR code, returns detection result and content",
-      "params": [
-        "imagePath"
-      ],
-      "paramDesc": [
-        "要检测的图片绝对路径"
-      ],
-      "paramDesc_en": [
-        "Absolute path to image to check for QR code"
-      ]
-    },
-    {
-      "name": "listGenerated",
-      "desc": "列出已保存到 PandaGenie/qrcode 目录下的二维码图片列表",
-      "desc_en": "List QR code PNG files saved under PandaGenie/qrcode",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "openPage",
-      "desc": "打开二维码工具的指定页面并返回 _openModule 信号，页面值: gen(生成), scan(相机扫描), gal(图库)",
-      "desc_en": "Open a specific QR tool page and return _openModule signal. Pages: gen(generate), scan(camera scan), gal(gallery)",
-      "params": [
-        "page"
-      ],
-      "paramDesc": [
-        "要打开的页面：gen/scan/gal"
-      ],
-      "paramDesc_en": [
-        "Page to open: gen/scan/gal"
-      ]
-    }
-  ]
+    "id":  "qrcode",
+    "name":  "二维码工具",
+    "name_en":  "QR Code Tools",
+    "description":  "二维码工具模块，支持生成二维码、扫描解码二维码（图片或相机）、检测图片是否含二维码、查看和分享已生成的二维码",
+    "description_en":  "QR code tools: generate, decode from image or camera, detect QR presence, view and share generated codes",
+    "version":  "1.6",
+    "icon":  "document_scanner",
+    "soLibraries":  [
+
+                    ],
+    "h5Page":  "index.html",
+    "pluginJar":  "plugin.jar",
+    "pluginClass":  "ai.rorsch.moduleplugins.qrcode.QrcodePlugin",
+    "soLoadMode":  "skip",
+    "capabilities":  [
+                         "file_read",
+                         "file_write",
+                         "camera"
+                     ],
+    "permissions":  [
+                        {
+                            "name":  "android.permission.WRITE_EXTERNAL_STORAGE",
+                            "desc":  "用于将生成的二维码保存到 PandaGenie 目录",
+                            "desc_en":  "Save generated QR images under the PandaGenie folder"
+                        },
+                        {
+                            "name":  "android.permission.READ_EXTERNAL_STORAGE",
+                            "desc":  "用于读取图片以解码二维码",
+                            "desc_en":  "Read image files for QR decoding"
+                        },
+                        {
+                            "name":  "android.permission.CAMERA",
+                            "desc":  "用于相机实时扫描二维码",
+                            "desc_en":  "Camera access for live QR code scanning"
+                        }
+                    ],
+    "developer":  {
+                      "name":  "PandaGenie Official",
+                      "email":  "",
+                      "url":  ""
+                  },
+    "apis":  [
+                 {
+                     "name":  "generateQR",
+                     "desc":  "从文本或 URL 生成二维码 PNG 并保存到存储，返回文件路径和图片预览",
+                     "desc_en":  "Generate a QR code PNG from text or URL, returns file path and image preview",
+                     "params":  [
+                                    "text",
+                                    "size",
+                                    "includeBase64"
+                                ],
+                     "paramDesc":  [
+                                       "要编码的文本或链接",
+                                       "输出图片边长（像素），默认 512",
+                                       "是否附带 PNG 的 Base64 预览，默认否"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Text or URL to encode",
+                                          "Output image side length in pixels, default 512",
+                                          "Include PNG as Base64 for preview, default false"
+                                      ]
+                 },
+                 {
+                     "name":  "decodeQR",
+                     "desc":  "扫描指定路径的图片，提取并返回二维码中的文本内容",
+                     "desc_en":  "Scan an image at the given path and extract QR code text content",
+                     "params":  [
+                                    "imagePath"
+                                ],
+                     "paramDesc":  [
+                                       "包含二维码的图片绝对路径"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Absolute path to image file containing a QR code"
+                                      ]
+                 },
+                 {
+                     "name":  "detectQR",
+                     "desc":  "检测指定路径的图片是否包含二维码，返回检测结果和内容",
+                     "desc_en":  "Detect whether an image contains a QR code, returns detection result and content",
+                     "params":  [
+                                    "imagePath"
+                                ],
+                     "paramDesc":  [
+                                       "要检测的图片绝对路径"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Absolute path to image to check for QR code"
+                                      ]
+                 },
+                 {
+                     "name":  "listGenerated",
+                     "desc":  "列出已保存到 PandaGenie/qrcode 目录下的二维码图片列表",
+                     "desc_en":  "List QR code PNG files saved under PandaGenie/qrcode",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "openPage",
+                     "desc":  "打开二维码工具的指定页面并返回 _openModule 信号，页面值: gen(生成), scan(相机扫描), gal(图库)",
+                     "desc_en":  "Open a specific QR tool page and return _openModule signal. Pages: gen(generate), scan(camera scan), gal(gallery)",
+                     "params":  [
+                                    "page"
+                                ],
+                     "paramDesc":  [
+                                       "要打开的页面：gen/scan/gal"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Page to open: gen/scan/gal"
+                                      ],
+                     "openPage":  true,
+                     "uiIntent":  "openPage",
+                     "openPageParam":  "page"
+                 }
+             ]
 }

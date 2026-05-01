@@ -1,0 +1,203 @@
+{
+  "id": "document_tools",
+  "name": "文档处理",
+  "name_en": "Document Tools",
+  "description": "文档内容处理模块，支持提取、查询、创建、删除、替换、追加和格式转换。适合一句话修改文档、查询文档内容、把文档转为文本/Markdown/HTML/JSON。",
+  "description_en": "Document content tools for extracting, querying, creating, deleting, replacing, appending and converting documents. Useful for editing documents, searching content and converting to text/Markdown/HTML/JSON.",
+  "version": "1.0",
+  "icon": "description",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.document_tools.DocumentToolsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "file_read",
+    "file_write"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于读取和写入本机文档，支持文档内容提取、查询、编辑、创建、删除和转换",
+      "desc_en": "Read and write local documents for extraction, query, editing, creation, deletion and conversion"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": "https://pandagenie.ai"
+  },
+  "apis": [
+    {
+      "name": "getDocumentInfo",
+      "desc": "获取文档基本信息、大小、类型以及是否支持提取/编辑/转换。用户询问文档属性、文件信息时使用。",
+      "desc_en": "Get document metadata, size, type and whether it can be extracted, edited or converted.",
+      "params": [
+        "filePath"
+      ],
+      "paramDesc": [
+        "文档本地路径，支持 /sdcard/... 或 /storage/emulated/0/..."
+      ],
+      "paramDesc_en": [
+        "Local document path, supports /sdcard/... or /storage/emulated/0/..."
+      ]
+    },
+    {
+      "name": "extractText",
+      "desc": "从文档中提取文本，支持 txt、md、csv、json、xml、html、docx、xlsx、pptx、pdf。扫描版 PDF 或图片请使用 OCR 模块。",
+      "desc_en": "Extract text from txt, md, csv, json, xml, html, docx, xlsx, pptx and pdf. Use OCR for scanned PDFs or images.",
+      "params": [
+        "filePath",
+        "maxChars"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "最多返回字符数，默认 12000"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Maximum characters to return, default 12000"
+      ]
+    },
+    {
+      "name": "queryDocument",
+      "desc": "在文档中搜索关键词并返回上下文片段。用户问“这个文档里有没有...”“查一下文档内容”时使用。",
+      "desc_en": "Search a document for a keyword and return contextual snippets.",
+      "params": [
+        "filePath",
+        "query",
+        "maxResults",
+        "contextChars"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "查询关键词，留空时返回文档前几段预览",
+        "最多返回结果数，默认 8",
+        "每条命中的上下文长度，默认 120"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Search keyword; empty returns preview paragraphs",
+        "Maximum result count, default 8",
+        "Context length per match, default 120"
+      ]
+    },
+    {
+      "name": "replaceText",
+      "desc": "替换文档中的文本。支持纯文本类文件以及 docx/xlsx/pptx 中可直接匹配的文本；默认覆盖原文件并生成备份，可通过 outputPath 输出到新文件。",
+      "desc_en": "Replace text in documents. Supports text-like files and exact text matches in docx/xlsx/pptx. By default overwrites with backup; outputPath can write a new file.",
+      "params": [
+        "filePath",
+        "target",
+        "replacement",
+        "outputPath",
+        "regex",
+        "backup"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "要查找的原文本",
+        "替换后的文本",
+        "可选输出路径，留空则覆盖原文件",
+        "纯文本文件是否按正则替换，默认 false",
+        "覆盖原文件时是否备份，默认 true"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Original text to find",
+        "Replacement text",
+        "Optional output path, empty overwrites source",
+        "Use regex for text files, default false",
+        "Backup source when overwriting, default true"
+      ]
+    },
+    {
+      "name": "appendText",
+      "desc": "向文本类文档开头或结尾追加内容，适合给 Markdown、日志、TXT 等增加段落。",
+      "desc_en": "Append text to the beginning or end of a text-like document.",
+      "params": [
+        "filePath",
+        "text",
+        "position",
+        "outputPath"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "要追加的文本",
+        "end 或 start，默认 end",
+        "可选输出路径，留空则覆盖原文件"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Text to append",
+        "end or start, default end",
+        "Optional output path, empty overwrites source"
+      ]
+    },
+    {
+      "name": "createDocument",
+      "desc": "创建新的 txt、md、html、json、csv 文档。",
+      "desc_en": "Create a new txt, md, html, json or csv document.",
+      "params": [
+        "path",
+        "content",
+        "format",
+        "title"
+      ],
+      "paramDesc": [
+        "新文档路径",
+        "文档内容",
+        "格式 txt/md/html/json/csv，可从扩展名推断",
+        "标题，可选"
+      ],
+      "paramDesc_en": [
+        "New document path",
+        "Document content",
+        "Format txt/md/html/json/csv, can be inferred from extension",
+        "Optional title"
+      ]
+    },
+    {
+      "name": "deleteDocument",
+      "desc": "删除指定文档。删除前应确认用户明确要求删除。",
+      "desc_en": "Delete a document. Only use after the user explicitly asks to delete it.",
+      "params": [
+        "filePath"
+      ],
+      "paramDesc": [
+        "要删除的文档路径"
+      ],
+      "paramDesc_en": [
+        "Document path to delete"
+      ]
+    },
+    {
+      "name": "convertDocument",
+      "desc": "将可提取文本的文档转换为 txt、md、html 或 json。适合把 Word/PPT/Excel/PDF 转文本或网页预览。",
+      "desc_en": "Convert extractable documents to txt, md, html or json.",
+      "params": [
+        "inputPath",
+        "format",
+        "outputPath"
+      ],
+      "paramDesc": [
+        "源文档路径",
+        "目标格式 txt/md/html/json",
+        "输出路径，留空则保存到 /sdcard/PandaGenie/documents/"
+      ],
+      "paramDesc_en": [
+        "Source document path",
+        "Target format txt/md/html/json",
+        "Output path, empty saves under /sdcard/PandaGenie/documents/"
+      ]
+    },
+    {
+      "name": "listSupportedFormats",
+      "desc": "列出当前支持的读取、编辑、创建和转换格式。",
+      "desc_en": "List supported extraction, editing, creation and conversion formats.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

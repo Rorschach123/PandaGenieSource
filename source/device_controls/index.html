@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Device Controls</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  body.device-skin {
+    --page-accent: #4F6BED;
+    --page-accent-soft: rgba(79, 107, 237, 0.12);
+    background: linear-gradient(180deg, var(--page-accent-soft) 0%, var(--surface) 30%);
+  }
+  body.device-skin .mod-header .icon {
+    background: linear-gradient(145deg, var(--page-accent-soft), var(--surface-container));
+    box-shadow: var(--shadow-md);
+  }
+  body.device-skin .info-card h3,
+  body.device-skin .api-name { color: var(--page-accent); }
+  body.device-skin .api-name,
+  body.device-skin .badge { background: var(--page-accent-soft); }
+</style>
+</head>
+<body class="device-skin">
+<div class="mod-header">
+  <div class="icon">🎛️</div>
+  <h2 data-i18n="title"></h2>
+  <p data-i18n="desc"></p>
+  <p class="text-center mt-8"><span class="badge" data-i18n="badge"></span></p>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="features_title"></h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">☀️</span><span data-i18n="feat_brightness"></span></div>
+    <div class="feature-item"><span class="emoji">🔊</span><span data-i18n="feat_volume"></span></div>
+    <div class="feature-item"><span class="emoji">🎚️</span><span data-i18n="feat_adjust"></span></div>
+    <div class="feature-item"><span class="emoji">🧭</span><span data-i18n="feat_summary"></span></div>
+  </div>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="api_title"></h3>
+  <ul class="api-list">
+    <li><span class="api-name">getBrightness</span><span data-i18n="api_get_brightness"></span></li>
+    <li><span class="api-name">setBrightness(level)</span><span data-i18n="api_set_brightness"></span></li>
+    <li><span class="api-name">increaseBrightness(delta)</span><span data-i18n="api_inc_brightness"></span></li>
+    <li><span class="api-name">decreaseBrightness(delta)</span><span data-i18n="api_dec_brightness"></span></li>
+    <li><span class="api-name">getVolume(stream)</span><span data-i18n="api_get_volume"></span></li>
+    <li><span class="api-name">setVolume(stream, level)</span><span data-i18n="api_set_volume"></span></li>
+    <li><span class="api-name">increaseVolume(delta)</span><span data-i18n="api_inc_volume"></span></li>
+    <li><span class="api-name">decreaseVolume(delta)</span><span data-i18n="api_dec_volume"></span></li>
+    <li><span class="api-name">getControlSummary</span><span data-i18n="api_summary"></span></li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="examples_title"></h3>
+  <ul class="example-list">
+    <li data-i18n="ex1"></li>
+    <li data-i18n="ex2"></li>
+    <li data-i18n="ex3"></li>
+    <li data-i18n="ex4"></li>
+  </ul>
+</div>
+
+<div class="info-card">
+  <h3 data-i18n="permission_title"></h3>
+  <p class="text-muted" data-i18n="permission_desc"></p>
+</div>
+
+<script>
+var _lang = 'zh';
+var i18n = {
+  zh: {
+    title: '设备控制',
+    desc: '查询和调节屏幕亮度、媒体音量、铃声、通知和闹钟音量。',
+    badge: '基础手机控制',
+    features_title: '核心能力',
+    feat_brightness: '亮度查询与调节',
+    feat_volume: '媒体/铃声/通知/闹钟音量',
+    feat_adjust: '按百分比增减',
+    feat_summary: '设备控制状态汇总',
+    api_title: '功能接口',
+    api_get_brightness: '查询当前屏幕亮度与自动/手动模式',
+    api_set_brightness: '设置屏幕亮度，level 为 0-100',
+    api_inc_brightness: '调高亮度，默认增加 10%',
+    api_dec_brightness: '调低亮度，默认降低 10%',
+    api_get_volume: '查询指定音量通道，默认 media',
+    api_set_volume: '设置指定音量通道，level 为 0-100',
+    api_inc_volume: '调高指定音量通道',
+    api_dec_volume: '调低指定音量通道',
+    api_summary: '返回亮度和媒体音量概览',
+    examples_title: '使用示例',
+    ex1: '“把媒体音量调到 60%”',
+    ex2: '“亮度调高一点”',
+    ex3: '“现在手机音量是多少？”',
+    ex4: '“把闹钟音量调低 20%”',
+    permission_title: '权限说明',
+    permission_desc: '音量调节使用系统普通权限。亮度写入需要授予“修改系统设置”，PandaGenie 会在执行前引导授权。'
+  },
+  en: {
+    title: 'Device Controls',
+    desc: 'Read and adjust screen brightness, media volume, ringtone, notification and alarm volume.',
+    badge: 'Basic phone controls',
+    features_title: 'Highlights',
+    feat_brightness: 'Brightness read/write',
+    feat_volume: 'Media/ring/notification/alarm volume',
+    feat_adjust: 'Percent-based adjustments',
+    feat_summary: 'Control status summary',
+    api_title: 'API Reference',
+    api_get_brightness: 'Get current brightness and brightness mode',
+    api_set_brightness: 'Set brightness. level is 0-100',
+    api_inc_brightness: 'Increase brightness, default 10%',
+    api_dec_brightness: 'Decrease brightness, default 10%',
+    api_get_volume: 'Get stream volume, default media',
+    api_set_volume: 'Set stream volume. level is 0-100',
+    api_inc_volume: 'Increase stream volume',
+    api_dec_volume: 'Decrease stream volume',
+    api_summary: 'Return brightness and media volume summary',
+    examples_title: 'Examples',
+    ex1: '"Set media volume to 60%"',
+    ex2: '"Make the screen brighter"',
+    ex3: '"What is my phone volume now?"',
+    ex4: '"Lower alarm volume by 20%"',
+    permission_title: 'Permissions',
+    permission_desc: 'Volume uses a normal Android permission. Brightness changes require Modify system settings; PandaGenie will guide authorization before execution.'
+  }
+};
+function applyI18n() {
+  var l = (typeof _lang !== 'undefined' && i18n[_lang]) ? _lang : 'en';
+  var t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (t[k]) el.textContent = t[k];
+  });
+}
+try { _lang = NativeBridge.getLanguage().substring(0, 2); } catch (e) {
+  _lang = navigator.language.substring(0, 2) === 'zh' ? 'zh' : 'en';
+}
+applyI18n();
+</script>
+</body>
+</html>

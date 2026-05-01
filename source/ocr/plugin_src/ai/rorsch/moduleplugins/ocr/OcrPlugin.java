@@ -52,16 +52,19 @@ public class OcrPlugin implements ModulePlugin {
             }
         } catch (Exception e) {
             String msg = e.getMessage();
-            return error(msg != null && !msg.isEmpty() ? msg : e.getClass().getSimpleName());
+            return error(friendlyError(msg != null && !msg.isEmpty() ? msg : e.getClass().getSimpleName()));
         }
     }
 
     private String recognizeText(Context context, JSONObject params) throws Exception {
         String imagePath = params.optString("imagePath", "").trim();
-        if (imagePath.isEmpty()) throw new IllegalArgumentException("imagePath is required");
+        if (imagePath.isEmpty()) throw new IllegalArgumentException(isZh() ? "缺少图片路径参数 imagePath" : "imagePath is required");
 
         File f = new File(imagePath);
-        if (!f.isFile() || !f.canRead()) throw new IllegalArgumentException("file not readable: " + imagePath);
+        if (!f.isFile() || !f.canRead()) {
+            throw new IllegalArgumentException(isZh() ? "文件无法读取：" + imagePath : "file not readable: " + imagePath);
+        }
+        validateImageFile(imagePath);
 
         String language = params.optString("language", "auto").trim().toLowerCase(Locale.ROOT);
         String ocrLang;
@@ -145,8 +148,7 @@ public class OcrPlugin implements ModulePlugin {
         Object options = buildMlKitOptions(ocrLang);
         ClassLoader cl = OcrPlugin.class.getClassLoader();
         Class<?> inputImageClass = Class.forName("com.google.mlkit.vision.common.InputImage", true, cl);
-        Bitmap bitmap = loadScaledBitmap(imagePath, 1920);
-        if (bitmap == null) throw new IllegalArgumentException("cannot decode image: " + imagePath);
+        Bitmap bitmap = decodeImageOrThrow(imagePath, 1920);
         Object image = inputImageClass
                 .getMethod("fromBitmap", Bitmap.class, int.class)
                 .invoke(null, bitmap, 0);
@@ -221,8 +223,7 @@ public class OcrPlugin implements ModulePlugin {
     }
 
     private String requestOcr(String imagePath, String ocrLang, int engine, int maxSide) throws Exception {
-        Bitmap bmp = loadScaledBitmap(imagePath, maxSide);
-        if (bmp == null) throw new IllegalArgumentException("cannot decode image: " + imagePath);
+        Bitmap bmp = decodeImageOrThrow(imagePath, maxSide);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
@@ -287,6 +288,158 @@ public class OcrPlugin implements ModulePlugin {
             }
         }
         return sb.toString().trim();
+    }
+
+    private static void validateImageFile(String imagePath) {
+        String ext = extensionOf(imagePath);
+        if (ext.isEmpty() || isSupportedImageExtension(ext)) return;
+        String category = fileCategory(ext);
+        throw new IllegalArgumentException(unsupportedImageInputMessage(imagePath, ext, category));
+    }
+
+    private static Bitmap decodeImageOrThrow(String imagePath, int maxSide) {
+        Bitmap bitmap = loadScaledBitmap(imagePath, maxSide);
+        if (bitmap != null) return bitmap;
+        throw new IllegalArgumentException(decodeImageFailureMessage(imagePath));
+    }
+
+    private static String extensionOf(String path) {
+        if (path == null) return "";
+        String clean = path.trim();
+        int q = clean.indexOf('?');
+        if (q >= 0) clean = clean.substring(0, q);
+        int hash = clean.indexOf('#');
+        if (hash >= 0) clean = clean.substring(0, hash);
+        int slash = Math.max(clean.lastIndexOf('/'), clean.lastIndexOf('\\'));
+        int dot = clean.lastIndexOf('.');
+        if (dot <= slash || dot == clean.length() - 1) return "";
+        return clean.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isSupportedImageExtension(String ext) {
+        switch (ext) {
+            case "jpg":
+            case "jpeg":
+            case "png":
+            case "webp":
+            case "bmp":
+            case "gif":
+            case "heic":
+            case "heif":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static String fileCategory(String ext) {
+        switch (ext) {
+            case "mp3":
+            case "m4a":
+            case "aac":
+            case "wav":
+            case "flac":
+            case "ogg":
+            case "opus":
+            case "amr":
+            case "mid":
+            case "midi":
+                return "audio";
+            case "mp4":
+            case "mkv":
+            case "mov":
+            case "avi":
+            case "webm":
+            case "3gp":
+            case "flv":
+                return "video";
+            case "pdf":
+            case "doc":
+            case "docx":
+            case "xls":
+            case "xlsx":
+            case "ppt":
+            case "pptx":
+            case "txt":
+            case "md":
+            case "csv":
+                return "document";
+            case "zip":
+            case "apk":
+            case "jar":
+            case "aar":
+            case "rar":
+            case "7z":
+            case "tar":
+            case "gz":
+            case "tgz":
+                return "archive";
+            default:
+                return "file";
+        }
+    }
+
+    private static String categoryLabel(String category) {
+        if (!isZh()) {
+            switch (category) {
+                case "audio": return "audio";
+                case "video": return "video";
+                case "document": return "document";
+                case "archive": return "archive";
+                default: return "file";
+            }
+        }
+        switch (category) {
+            case "audio": return "\u97f3\u9891";
+            case "video": return "\u89c6\u9891";
+            case "document": return "\u6587\u6863";
+            case "archive": return "\u538b\u7f29\u5305";
+            default: return "\u6587\u4ef6";
+        }
+    }
+
+    private static String unsupportedImageInputMessage(String imagePath, String ext, String category) {
+        String type = categoryLabel(category);
+        if (isZh()) {
+            return "OCR \u53ea\u80fd\u8bc6\u522b\u56fe\u7247\u6587\u4ef6\uff0c\u5f53\u524d\u6587\u4ef6\u662f" + type + "\uff08." + ext + "\uff09\u3002"
+                    + "\u8bf7\u9009\u62e9 JPG/PNG/WebP/BMP/GIF/HEIC \u7b49\u56fe\u7247\uff1b\u5982\u679c\u8981\u5904\u7406" + type + "\uff0c\u8bf7\u4f7f\u7528\u5bf9\u5e94\u6a21\u5757\u3002"
+                    + "\u8def\u5f84\uff1a" + imagePath;
+        }
+        return "OCR only recognizes image files, but this file looks like " + type + " (." + ext + "). "
+                + "Choose a JPG/PNG/WebP/BMP/GIF/HEIC image, or use the matching module for this file type. Path: " + imagePath;
+    }
+
+    private static String decodeImageFailureMessage(String imagePath) {
+        if (isZh()) {
+            return "\u65e0\u6cd5\u89e3\u7801\u56fe\u7247\uff1a\u6587\u4ef6\u53ef\u80fd\u4e0d\u662f\u6709\u6548\u56fe\u7247\u3001\u5df2\u635f\u574f\uff0c\u6216\u683c\u5f0f\u6682\u4e0d\u652f\u6301\u3002"
+                    + "\u8bf7\u4f7f\u7528 JPG/PNG/WebP/BMP/GIF/HEIC \u7b49\u5e38\u89c1\u56fe\u7247\u3002\u8def\u5f84\uff1a" + imagePath;
+        }
+        return "Cannot decode image: the file may be invalid, corrupted, or unsupported. "
+                + "Use a JPG/PNG/WebP/BMP/GIF/HEIC image. Path: " + imagePath;
+    }
+
+    private static String friendlyError(String msg) {
+        if (msg == null || msg.trim().isEmpty()) {
+            return isZh() ? "OCR \u8bc6\u522b\u5931\u8d25\uff0c\u4f46\u672a\u8fd4\u56de\u5177\u4f53\u539f\u56e0" : "OCR failed without a detailed reason";
+        }
+        String lower = msg.toLowerCase(Locale.ROOT);
+        if (lower.contains("e500") || lower.contains("system resource exhaustion") || lower.contains("ocr binary failed")) {
+            return isZh()
+                    ? "OCR \u670d\u52a1\u4e34\u65f6\u8d44\u6e90\u4e0d\u8db3\uff08E500\uff09\uff0c\u672c\u6b21\u56fe\u7247\u6ca1\u6709\u8bc6\u522b\u6210\u529f\u3002\u8bf7\u7a0d\u540e\u91cd\u8bd5\uff0c\u6216\u6362\u4e00\u5f20\u66f4\u5c0f\u3001\u66f4\u6e05\u6670\u7684\u56fe\u7247\u3002"
+                    : "OCR service is temporarily out of resources (E500). Try again later, or use a smaller/clearer image.";
+        }
+        if (lower.startsWith("cannot decode image:")) {
+            String path = msg.substring("cannot decode image:".length()).trim();
+            return decodeImageFailureMessage(path);
+        }
+        if (lower.startsWith("file not readable:")) {
+            String path = msg.substring("file not readable:".length()).trim();
+            return isZh() ? "\u6587\u4ef6\u65e0\u6cd5\u8bfb\u53d6\uff1a" + path : msg;
+        }
+        if (lower.contains("imagepath is required")) {
+            return isZh() ? "\u7f3a\u5c11\u56fe\u7247\u8def\u5f84\u53c2\u6570 imagePath" : msg;
+        }
+        return msg;
     }
 
     private static boolean isRetriableOcrError(String msg) {

@@ -81,8 +81,9 @@ public class FileManagerPlugin implements ModulePlugin {
             }
             case "createDirectory": {
                 String path = resolveStoragePath(params.optString("path", ""));
-                boolean okb = lib.nativeCreateDirectory(path);
-                return boolResult(okb, "createDirectory failed", okb ? "📁 " + (isZh() ? "目录已创建: " : "Directory created: ") + displayPath(path) : null);
+                String ifExists = normalizeIfExistsPolicy(params.optString("ifExists", "skip"));
+                boolean parents = parseBoolean(params.opt("parents"), true);
+                return handleCreateDirectory(path, ifExists, parents);
             }
             case "deleteFile": {
                 java.util.List<String> paths = extractPaths(params, "path", "src", "file");
@@ -186,6 +187,72 @@ public class FileManagerPlugin implements ModulePlugin {
         if (value == null) return fallback;
         if (value instanceof Boolean) return (Boolean) value;
         return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private String normalizeIfExistsPolicy(String raw) {
+        String value = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        if (value.isEmpty()) return "skip";
+        if ("true".equals(value) || "1".equals(value) || "yes".equals(value) || "ok".equals(value)
+                || "ignore".equals(value) || "exists_ok".equals(value) || "exists-ok".equals(value)) {
+            return "skip";
+        }
+        if ("false".equals(value) || "0".equals(value) || "no".equals(value) || "error".equals(value)
+                || "strict".equals(value)) {
+            return "fail";
+        }
+        if ("replace".equals(value) || "overwrite".equals(value)) {
+            return "replace";
+        }
+        if ("fail".equals(value)) return "fail";
+        return "skip";
+    }
+
+    private String handleCreateDirectory(String path, String ifExists, boolean parents) throws Exception {
+        if (path == null || path.trim().isEmpty()) {
+            return error("createDirectory: path is empty");
+        }
+
+        File dir = new File(path);
+        if (dir.exists()) {
+            if (!dir.isDirectory()) {
+                return error((isZh() ? "路径已存在但不是目录: " : "Path exists but is not a directory: ") + path);
+            }
+            if ("fail".equals(ifExists)) {
+                return error((isZh() ? "目录已存在: " : "Directory already exists: ") + path);
+            }
+            JSONObject out = new JSONObject()
+                    .put("path", path)
+                    .put("exists", true)
+                    .put("created", false)
+                    .put("skipped", true)
+                    .put("ifExists", ifExists);
+            String display = "\u23ed " + (isZh() ? "\u76ee\u5f55\u5df2\u5b58\u5728\uff0c\u5df2\u8df3\u8fc7: " : "Directory exists, skipped: ") + displayPath(path);
+            return ok(out.toString(), display, null, formatCreateDirectoryHtml(path, true, false, true));
+        }
+
+        boolean created = parents ? dir.mkdirs() : lib.nativeCreateDirectory(path);
+        if (!created && dir.isDirectory()) {
+            JSONObject out = new JSONObject()
+                    .put("path", path)
+                    .put("exists", true)
+                    .put("created", false)
+                    .put("skipped", true)
+                    .put("ifExists", ifExists);
+            String display = "\u23ed " + (isZh() ? "\u76ee\u5f55\u5df2\u5b58\u5728\uff0c\u5df2\u8df3\u8fc7: " : "Directory exists, skipped: ") + displayPath(path);
+            return ok(out.toString(), display, null, formatCreateDirectoryHtml(path, true, false, true));
+        }
+        if (!created) {
+            return error("createDirectory failed: " + path);
+        }
+
+        JSONObject out = new JSONObject()
+                .put("path", path)
+                .put("exists", true)
+                .put("created", true)
+                .put("skipped", false)
+                .put("ifExists", ifExists);
+        String display = "\ud83d\udcc1 " + (isZh() ? "\u76ee\u5f55\u5df2\u521b\u5efa: " : "Directory created: ") + displayPath(path);
+        return ok(out.toString(), display, null, formatCreateDirectoryHtml(path, true, true, false));
     }
 
     /**
@@ -684,6 +751,18 @@ public class FileManagerPlugin implements ModulePlugin {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    private String formatCreateDirectoryHtml(String path, boolean exists, boolean created, boolean skipped) {
+        boolean zh = isZh();
+        String status = created
+                ? (zh ? "\u5df2\u521b\u5efa" : "Created")
+                : (skipped ? (zh ? "\u5df2\u5b58\u5728\uff0c\u5df2\u8df3\u8fc7" : "Already exists, skipped") : (exists ? (zh ? "\u5df2\u5b58\u5728" : "Exists") : (zh ? "\u672a\u5b58\u5728" : "Missing")));
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "\u8def\u5f84" : "Path", fullDisplayPath(path)},
+                {zh ? "\u72b6\u6001" : "Status", status}
+        });
+        return HtmlOutputHelper.card("\ud83d\udcc1", zh ? "\u76ee\u5f55" : "Directory", body);
     }
 
     private String formatGetFileInfoHtml(String output) {

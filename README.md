@@ -92,7 +92,7 @@ PandaGenieSource/
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 37 official modules in total
+│   └── ...                         # 39 official modules in total
 ├── module-dev-toolkit/             # PowerShell toolkit for building and signing modules
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -106,7 +106,7 @@ PandaGenieSource/
 
 Recent structure updates:
 
-- `modules.json` now lists 37 official modules and provides both CDN and GitHub raw download URLs.
+- `modules.json` now lists 39 official modules and provides both CDN and GitHub raw download URLs.
 - `source/shared_api` centralizes the API/helper layer used by modules.
 - `module-dev-toolkit` is the preferred workflow for module packaging, signing, and certificate inspection.
 - Newer official modules include Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
@@ -186,7 +186,7 @@ long usedBytes = storage.getUsedSpace();
 
 ## Available Modules
 
-`modules.json` currently lists **37 official modules**, last updated on **2026-04-28**.
+`modules.json` currently lists **39 official modules**, last updated on **2026-05-01**.
 
 | Module | Description | Type |
 |--------|-------------|------|
@@ -234,16 +234,27 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.20)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260430/PandaGenie-v1.0.20.apk)**
+> &#x1F4E5; **[Download APK (v1.0.21)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260501/PandaGenie-v1.0.21.apk)**
 
-- Release tag: [`20260430`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260430)
-- Android project version: `versionName "1.0.20"` / `versionCode 20`
+- Release tag: [`20260501`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260501)
+- Android project version: `versionName "1.0.21"` / `versionCode 21`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.21</b> (2026-05-01)</summary>
+
+- **Module catalog expansion**: added Document Tools and Device Controls, bringing the official module catalog to 39 modules.
+- **File and utility modules refreshed**: updated manifests, signed packages, and runtime behavior for device info, file manager, OCR, password generation, and system cleaner.
+- **Game module polish**: refreshed Snake, Farming, Gomoku, Tetris, Sudoku, and Tic-Tac-Toe manifests/packages for the current signing and registry flow.
+- **App diagnostics**: added module API test surfaces and improved task, trace, permission, result, and busy-state handling.
+- **Server validation**: tightened shared config submission and module validation paths for the updated module ecosystem.
+
+</details>
+
+<details>
 <summary><b>v1.0.20</b> (2026-04-30)</summary>
 
 - **Premium app refresh**: updated launch animation, app icons, theme colors, typography, and the official website pages.

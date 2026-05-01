@@ -153,7 +153,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 已有模块
 
-`modules.json` 当前包含 **37 个官方模块**，最后更新时间为 **2026-04-28**。
+`modules.json` 当前包含 **39 个官方模块**，最后更新时间为 **2026-05-01**。
 
 | 模块 | 功能描述 | 类型 |
 |------|---------|------|
@@ -201,16 +201,27 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.20)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260430/PandaGenie-v1.0.20.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.21)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260501/PandaGenie-v1.0.21.apk)**
 
-- Release 标签：[`20260430`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260430)
-- Android 工程版本：`versionName "1.0.20"` / `versionCode 20`
+- Release 标签：[`20260501`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260501)
+- Android 工程版本：`versionName "1.0.21"` / `versionCode 21`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.21</b> (2026-05-01)</summary>
+
+- **模块目录扩展**：新增文档工具和设备控制模块，官方模块目录扩展到 39 个模块。
+- **文件与工具模块刷新**：更新设备信息、文件管理、OCR、密码生成、系统清理等模块的 manifest、签名包和运行行为。
+- **游戏模块打磨**：刷新贪吃蛇、农场、五子棋、俄罗斯方块、数独、井字棋的 manifest 与包产物，适配当前签名和注册流程。
+- **App 诊断增强**：新增模块 API 测试入口，并优化任务、追踪、权限、结果展示和忙碌态处理。
+- **服务端校验增强**：收紧共享配置提交和模块校验流程，适配更新后的模块生态。
+
+</details>
+
+<details>
 <summary><b>v1.0.20</b> (2026-04-30)</summary>
 
 - **高级视觉刷新**：更新启动动画、应用图标、主题色、字体层级和官网页面。

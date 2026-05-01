@@ -1,91 +1,129 @@
 {
-  "soLibraries": [],
-  "h5Page": "index.html",
-  "pluginJar": "plugin.jar",
-  "soLoadMode": "skip",
-  "capabilities": [],
-  "permissions": [],
-  "developer": {
-    "name": "PandaGenie Games",
-    "email": "games@pandagenie.ai",
-    "url": "https://pandagenie.ai"
-  },
-  "id": "tetris_game",
-  "name": "俄罗斯方块",
-  "name_en": "Tetris Game",
-  "description": "经典俄罗斯方块，支持移动、旋转、硬降、时钟推进、计分和难度设置。",
-  "description_en": "Classic Tetris with move, rotate, hard drop, tick, scoring, and difficulty.",
-  "version": "1.3",
-  "icon": "grid_view",
-  "pluginClass": "ai.rorsch.moduleplugins.tetris_game.TetrisPlugin",
-  "apis": [
-    {
-      "name": "startGame",
-      "desc": "开始新的俄罗斯方块游戏，可设置难度 1-3",
-      "desc_en": "Start a new Tetris game with difficulty 1-3",
-      "params": [
-        "difficulty"
-      ],
-      "paramDesc": [
-        "难度 1-3，默认 2"
-      ],
-      "paramDesc_en": [
-        "Difficulty 1-3, default 2"
-      ]
-    },
-    {
-      "name": "move",
-      "desc": "移动当前方块",
-      "desc_en": "Move current block",
-      "params": [
-        "direction"
-      ],
-      "paramDesc": [
-        "方向 left/right/down"
-      ],
-      "paramDesc_en": [
-        "Direction left/right/down"
-      ]
-    },
-    {
-      "name": "rotate",
-      "desc": "旋转当前方块",
-      "desc_en": "Rotate current block",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "drop",
-      "desc": "将当前方块硬降到底部",
-      "desc_en": "Hard drop current block",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "tick",
-      "desc": "推进一次游戏时钟",
-      "desc_en": "Advance one game tick",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "getState",
-      "desc": "获取棋盘、当前方块、下个方块和分数",
-      "desc_en": "Get board, current block, next block, and score",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    },
-    {
-      "name": "restart",
-      "desc": "按当前难度重新开始",
-      "desc_en": "Restart with current difficulty",
-      "params": [],
-      "paramDesc": [],
-      "paramDesc_en": []
-    }
-  ]
+    "soLibraries":  [
+
+                    ],
+    "h5Page":  "index.html",
+    "pluginJar":  "plugin.jar",
+    "soLoadMode":  "skip",
+    "capabilities":  [
+
+                     ],
+    "permissions":  [
+
+                    ],
+    "developer":  {
+                      "name":  "PandaGenie Games",
+                      "email":  "games@pandagenie.ai",
+                      "url":  "https://pandagenie.ai"
+                  },
+    "id":  "tetris_game",
+    "name":  "俄罗斯方块",
+    "name_en":  "Tetris Game",
+    "description":  "经典俄罗斯方块，支持移动、旋转、硬降、时钟推进、计分和难度设置。",
+    "description_en":  "Classic Tetris with move, rotate, hard drop, tick, scoring, and difficulty.",
+    "version":  "1.5",
+    "icon":  "grid_view",
+    "pluginClass":  "ai.rorsch.moduleplugins.tetris_game.TetrisPlugin",
+    "apis":  [
+                 {
+                     "name":  "startGame",
+                     "desc":  "开始新的俄罗斯方块游戏，可设置难度 1-3",
+                     "desc_en":  "Start a new Tetris game with difficulty 1-3",
+                     "params":  [
+                                    "difficulty"
+                                ],
+                     "paramDesc":  [
+                                       "难度 1-3，默认 2"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Difficulty 1-3, default 2"
+                                      ],
+                     "openPage":  true,
+                     "uiIntent":  "openPage"
+                 },
+                 {
+                     "name":  "move",
+                     "desc":  "移动当前方块",
+                     "desc_en":  "Move current block",
+                     "params":  [
+                                    "direction"
+                                ],
+                     "paramDesc":  [
+                                       "方向 left/right/down"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Direction left/right/down"
+                                      ]
+                 },
+                 {
+                     "name":  "rotate",
+                     "desc":  "旋转当前方块",
+                     "desc_en":  "Rotate current block",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "drop",
+                     "desc":  "将当前方块硬降到底部",
+                     "desc_en":  "Hard drop current block",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "tick",
+                     "desc":  "推进一次游戏时钟",
+                     "desc_en":  "Advance one game tick",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "getState",
+                     "desc":  "获取棋盘、当前方块、下个方块和分数",
+                     "desc_en":  "Get board, current block, next block, and score",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 },
+                 {
+                     "name":  "restart",
+                     "desc":  "按当前难度重新开始",
+                     "desc_en":  "Restart with current difficulty",
+                     "params":  [
+
+                                ],
+                     "paramDesc":  [
+
+                                   ],
+                     "paramDesc_en":  [
+
+                                      ]
+                 }
+             ]
 }

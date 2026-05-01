@@ -1,0 +1,108 @@
+{
+  "id": "device_controls",
+  "name": "设备控制",
+  "name_en": "Device Controls",
+  "description": "基础设备控制模块，支持查询和调节屏幕亮度、媒体/铃声/闹钟等音量，并返回当前控制状态。",
+  "description_en": "Basic device controls for reading and adjusting screen brightness and stream volume.",
+  "version": "1.0",
+  "icon": "tune",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.device_controls.DeviceControlsPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [
+    {
+      "name": "android.permission.MODIFY_AUDIO_SETTINGS",
+      "desc_zh": "用于调节媒体、铃声、通知、闹钟等音量。",
+      "desc": "用于调节媒体、铃声、通知、闹钟等音量。",
+      "desc_en": "Adjust media, ringtone, notification and alarm volume."
+    },
+    {
+      "name": "android.permission.WRITE_SETTINGS",
+      "desc_zh": "用于调节系统屏幕亮度，需要在系统设置中单独授权。",
+      "desc": "用于调节系统屏幕亮度，需要在系统设置中单独授权。",
+      "desc_en": "Adjust system screen brightness. Requires a separate system settings authorization."
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getBrightness",
+      "desc": "查询当前屏幕亮度百分比和亮度模式（自动/手动）。",
+      "desc_en": "Get current screen brightness percent and brightness mode.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "setBrightness",
+      "desc": "设置屏幕亮度，level 为 0-100；默认会关闭自动亮度后写入系统亮度。",
+      "desc_en": "Set screen brightness. level is 0-100; disables auto brightness by default.",
+      "params": ["level", "disableAuto"],
+      "paramDesc": ["亮度百分比，0 到 100", "是否关闭自动亮度，默认 true"],
+      "paramDesc_en": ["Brightness percent, 0 to 100", "Whether to disable auto brightness, default true"]
+    },
+    {
+      "name": "increaseBrightness",
+      "desc": "按 delta 百分比调高屏幕亮度，默认增加 10%。",
+      "desc_en": "Increase screen brightness by delta percent. Default is 10.",
+      "params": ["delta", "disableAuto"],
+      "paramDesc": ["增加的百分比，默认 10", "是否关闭自动亮度，默认 true"],
+      "paramDesc_en": ["Percent to increase, default 10", "Whether to disable auto brightness, default true"]
+    },
+    {
+      "name": "decreaseBrightness",
+      "desc": "按 delta 百分比调低屏幕亮度，默认降低 10%。",
+      "desc_en": "Decrease screen brightness by delta percent. Default is 10.",
+      "params": ["delta", "disableAuto"],
+      "paramDesc": ["降低的百分比，默认 10", "是否关闭自动亮度，默认 true"],
+      "paramDesc_en": ["Percent to decrease, default 10", "Whether to disable auto brightness, default true"]
+    },
+    {
+      "name": "getVolume",
+      "desc": "查询指定音量通道，stream 可选 media/music、ring、notification、alarm、system、voice。",
+      "desc_en": "Get stream volume. stream can be media/music, ring, notification, alarm, system or voice.",
+      "params": ["stream"],
+      "paramDesc": ["音量通道，默认 media"],
+      "paramDesc_en": ["Volume stream, default media"]
+    },
+    {
+      "name": "setVolume",
+      "desc": "设置指定音量通道，level 为 0-100，可选 showUi 显示系统音量条。",
+      "desc_en": "Set stream volume. level is 0-100; showUi optionally shows the system volume panel.",
+      "params": ["stream", "level", "showUi"],
+      "paramDesc": ["音量通道，默认 media", "音量百分比，0 到 100", "是否显示系统音量条，默认 false"],
+      "paramDesc_en": ["Volume stream, default media", "Volume percent, 0 to 100", "Show system volume UI, default false"]
+    },
+    {
+      "name": "increaseVolume",
+      "desc": "按 delta 百分比调高指定音量通道，默认增加 10%。",
+      "desc_en": "Increase stream volume by delta percent. Default is 10.",
+      "params": ["stream", "delta", "showUi"],
+      "paramDesc": ["音量通道，默认 media", "增加的百分比，默认 10", "是否显示系统音量条，默认 false"],
+      "paramDesc_en": ["Volume stream, default media", "Percent to increase, default 10", "Show system volume UI, default false"]
+    },
+    {
+      "name": "decreaseVolume",
+      "desc": "按 delta 百分比调低指定音量通道，默认降低 10%。",
+      "desc_en": "Decrease stream volume by delta percent. Default is 10.",
+      "params": ["stream", "delta", "showUi"],
+      "paramDesc": ["音量通道，默认 media", "降低的百分比，默认 10", "是否显示系统音量条，默认 false"],
+      "paramDesc_en": ["Volume stream, default media", "Percent to decrease, default 10", "Show system volume UI, default false"]
+    },
+    {
+      "name": "getControlSummary",
+      "desc": "同时返回当前屏幕亮度和媒体音量，适合快速查看设备控制状态。",
+      "desc_en": "Return current screen brightness and media volume in one summary.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    }
+  ]
+}

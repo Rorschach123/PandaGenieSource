@@ -104,7 +104,7 @@ public class DeviceInfoPlugin implements ModulePlugin {
                 return ok(output, formatMemoryInfoDisplay(j), formatMemoryInfoHtml(j));
             }
             case "getStorageInfo": {
-                String output = getStorageInfo();
+                String output = getStorageInfo(context);
                 JSONObject j = new JSONObject(output);
                 return ok(output, formatStorageInfoDisplay(j), formatStorageInfoHtml(j));
             }
@@ -231,13 +231,21 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return JSON，含 {@code internal}、{@code externalPrimary} 子对象；路径不存在时为 {@code null}
      * @throws Exception JSON 或 StatFs 异常
      */
-    private String getStorageInfo() throws Exception {
+    private String getStorageInfo(Context context) throws Exception {
         JSONObject root = new JSONObject();
-        JSONObject internal = statFsToJson(Environment.getDataDirectory());
+        JSONObject internal = statFsToJson(preferredDisplayPath(Environment.getDataDirectory()),
+                Environment.getDataDirectory(),
+                context != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? context.getDataDir() : null,
+                context != null ? context.getFilesDir() : null,
+                context != null ? context.getCacheDir() : null);
         root.put("internal", internal != null ? internal : JSONObject.NULL);
 
         File ext = Environment.getExternalStorageDirectory();
-        JSONObject external = statFsToJson(ext);
+        JSONObject external = statFsToJson(preferredDisplayPath(ext),
+                ext,
+                new File("/storage/emulated/0"),
+                new File("/sdcard"),
+                context != null ? context.getExternalFilesDir(null) : null);
         if (external != null) {
             external.put("state", Environment.getExternalStorageState());
         }
@@ -303,7 +311,7 @@ public class DeviceInfoPlugin implements ModulePlugin {
         sum.put("device", new JSONObject(getDeviceInfo()));
         sum.put("cpu", new JSONObject(getCpuInfo()));
         sum.put("memory", new JSONObject(getMemoryInfo(context)));
-        sum.put("storage", new JSONObject(getStorageInfo()));
+        sum.put("storage", new JSONObject(getStorageInfo(context)));
         sum.put("display", new JSONObject(getDisplayInfo(context)));
         return sum.toString();
     }
@@ -315,23 +323,53 @@ public class DeviceInfoPlugin implements ModulePlugin {
      * @return JSON 对象；路径 null 或不存在返回 null
      * @throws Exception StatFs/JSON 异常
      */
-    private static JSONObject statFsToJson(File path) throws Exception {
-        if (path == null || !path.exists()) {
+    private static JSONObject statFsToJson(String displayPath, File... candidates) throws Exception {
+        if (candidates == null) {
             return null;
         }
-        StatFs stat = new StatFs(path.getAbsolutePath());
-        long blockSize = stat.getBlockSizeLong();
-        long total = stat.getBlockCountLong() * blockSize;
-        long avail = stat.getAvailableBlocksLong() * blockSize;
-        long used = total - avail;
-        JSONObject o = new JSONObject();
-        o.put("path", path.getAbsolutePath());
-        o.put("totalBytes", total);
-        o.put("availableBytes", avail);
-        o.put("usedBytes", used);
-        double usedPct = total > 0 ? Math.round(used * 10000.0 / total) / 100.0 : 0.0;
-        o.put("usedPercent", usedPct);
-        return o;
+        for (File path : candidates) {
+            JSONObject stat = statFsToJson(path);
+            if (stat != null) {
+                if (displayPath != null && !displayPath.trim().isEmpty()) {
+                    stat.put("path", displayPath);
+                }
+                return stat;
+            }
+        }
+        return null;
+    }
+
+    private static JSONObject statFsToJson(File path) throws Exception {
+        if (path == null) {
+            return null;
+        }
+        try {
+            StatFs stat = new StatFs(path.getAbsolutePath());
+            long blockSize = stat.getBlockSizeLong();
+            long total = stat.getBlockCountLong() * blockSize;
+            long avail = stat.getAvailableBlocksLong() * blockSize;
+            long used = total - avail;
+            JSONObject o = new JSONObject();
+            o.put("path", path.getAbsolutePath());
+            o.put("statPath", path.getAbsolutePath());
+            o.put("totalBytes", total);
+            o.put("availableBytes", avail);
+            o.put("freeBytes", avail);
+            o.put("usedBytes", used);
+            double usedPct = total > 0 ? Math.round(used * 10000.0 / total) / 100.0 : 0.0;
+            o.put("usedPercent", usedPct);
+            o.put("totalFormatted", formatBytes(total));
+            o.put("usedFormatted", formatBytes(used));
+            o.put("availableFormatted", formatBytes(avail));
+            o.put("freeFormatted", formatBytes(avail));
+            return o;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static String preferredDisplayPath(File path) {
+        return path != null ? path.getAbsolutePath() : null;
     }
 
     /**
@@ -525,6 +563,11 @@ public class DeviceInfoPlugin implements ModulePlugin {
                 "—",
                 exState.isEmpty() ? "—" : exState
         });
+        if (internal == null && external == null) {
+            return "💿 " + title + "\n\n" + (zh
+                    ? "未获取到可统计的存储分区，请稍后重试或检查系统存储权限。"
+                    : "No readable storage partition was reported. Please retry or check storage permissions.");
+        }
         StringBuilder sb = new StringBuilder();
         sb.append("💿 ").append(title).append("\n\n");
         sb.append(pgTable(title, new String[]{metric, colInternal, colExternal}, rows));
@@ -789,6 +832,11 @@ public class DeviceInfoPlugin implements ModulePlugin {
             }));
             body.append(HtmlOutputHelper.gauge(pct, pct > 80 ? "#F44336" : "#4CAF50"));
         }
+        if (body.length() == 0) {
+            body.append(HtmlOutputHelper.muted(zh
+                    ? "未获取到可统计的存储分区，请稍后重试或检查系统存储权限。"
+                    : "No readable storage partition was reported. Please retry or check storage permissions."));
+        }
         return HtmlOutputHelper.card("💾", zh ? "存储信息" : "Storage Info", body.toString());
     }
 
@@ -822,6 +870,7 @@ public class DeviceInfoPlugin implements ModulePlugin {
         JSONObject memory = sum.optJSONObject("memory");
         JSONObject storage = sum.optJSONObject("storage");
         JSONObject internal = storage != null ? storage.optJSONObject("internal") : null;
+        JSONObject external = storage != null ? storage.optJSONObject("externalPrimary") : null;
 
         String deviceLine = "—";
         String androidLine = "—";
@@ -846,8 +895,9 @@ public class DeviceInfoPlugin implements ModulePlugin {
         }
 
         String freeStorage = "—";
-        if (internal != null) {
-            freeStorage = formatBytes(internal.optLong("availableBytes", 0));
+        JSONObject storagePart = external != null && external.has("availableBytes") ? external : internal;
+        if (storagePart != null) {
+            freeStorage = formatBytes(storagePart.optLong("availableBytes", 0));
         }
 
         StringBuilder body = new StringBuilder();

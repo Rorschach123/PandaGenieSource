@@ -346,7 +346,7 @@ var i18n = {
     sectionLargeFiles: '大文件查找',
     lfMinLabel: '最小大小 (MB)',
     lfPathLabel: '扫描路径',
-    lfPathPh: '/sdcard',
+    lfPathPh: '留空自动选择手机存储',
     lfFindBtn: '查找大文件',
     lfColName: '文件',
     lfColSize: '大小',
@@ -382,7 +382,7 @@ var i18n = {
     sectionLargeFiles: 'Large files',
     lfMinLabel: 'Min size (MB)',
     lfPathLabel: 'Path to scan',
-    lfPathPh: '/sdcard',
+    lfPathPh: 'Leave blank for auto storage root',
     lfFindBtn: 'Find large files',
     lfColName: 'File',
     lfColSize: 'Size',
@@ -672,14 +672,16 @@ function cleanAllCategories() {
 
 function findLargeFiles() {
   var minMb = parseFloat(document.getElementById('lfMinMb').value) || 50;
-  var path = document.getElementById('lfPath').value.trim() || defaultExtPath();
+  var path = document.getElementById('lfPath').value.trim();
+  var params = { minSizeMB: minMb, recursive: true, limit: 80 };
+  if (path) params.path = path;
   var wrap = document.getElementById('lfTableWrap');
   var tbody = document.getElementById('lfTbody');
   tbody.innerHTML = '<tr><td colspan="2"><span class="spinner"></span> …</td></tr>';
   wrap.classList.remove('hidden');
   setTimeout(function() {
     try {
-      var raw = invokeNative('findLargeFiles', { minSizeMB: minMb, path: path, recursive: true, limit: 80 });
+      var raw = invokeNative('findLargeFiles', params);
       var data = JSON.parse(raw);
       if (data.error) throw new Error(data.error);
       tbody.innerHTML = '';
@@ -708,7 +710,6 @@ document.getElementById('btnCleanAll').addEventListener('click', cleanAllCategor
 document.getElementById('btnLargeFind').addEventListener('click', findLargeFiles);
 
 buildCatGrid();
-document.getElementById('lfPath').value = defaultExtPath();
 loadStorage();
 </script>
 </body>

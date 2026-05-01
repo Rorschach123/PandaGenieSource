@@ -162,7 +162,15 @@ body {
   max-width: 560px;
   margin: 0 auto;
   min-height: 100vh;
+  min-height: 100svh;
   padding: calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
+}
+body.playing {
+  overflow: hidden;
+  padding: calc(6px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));
+}
+body.playing .game-header {
+  display: none;
 }
 .game-header {
   position: sticky;
@@ -186,6 +194,98 @@ body {
   font-weight: 700;
   touch-action: manipulation;
 }
+#gameScreen {
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 14px);
+  height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 14px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#gameScreen.hidden { display: none !important; }
+body.playing .info-bar {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 6px;
+  margin-bottom: 2px !important;
+  border-radius: 10px;
+}
+body.playing .info-bar .stat .lbl {
+  font-size: 9px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+}
+body.playing .info-bar .stat .val {
+  font-size: 13px;
+  line-height: 1.1;
+}
+body.playing .game-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+body.playing .board-frame {
+  width: min(calc((100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 118px) / 2), calc(100vw - 18px), 330px);
+  width: min(calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 118px) / 2), calc(100vw - 18px), 330px);
+  padding: 6px;
+  border-radius: 12px;
+}
+body.playing .tetris-board {
+  gap: 1px;
+  padding: 2px;
+  border-radius: 8px;
+}
+body.playing .tetris-cell {
+  border-radius: 2px;
+}
+body.playing .side-stack {
+  width: 68px;
+  gap: 6px;
+}
+body.playing .next-card {
+  width: 60px;
+  padding: 5px;
+  border-radius: 10px;
+}
+body.playing .next-card .next-lbl {
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+body.playing .next-preview {
+  width: 46px;
+  height: 46px;
+  gap: 2px;
+}
+body.playing .controls {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(40px, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  width: min(100%, 284px);
+  max-width: 284px;
+}
+body.playing .ctrl-row {
+  display: contents;
+}
+body.playing .ctrl-btn {
+  width: 46px;
+  height: 46px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 !important;
+  border-radius: 12px !important;
+  font-size: 18px;
+}
+body.playing .ctrl-hint {
+  display: none;
+}
 .info-bar, .score-bar {
   background: var(--surface);
   border: 1px solid color-mix(in srgb, var(--outline) 45%, transparent);
@@ -203,8 +303,40 @@ body {
 @media (max-width: 420px) {
   .game-header .icon { font-size: 32px !important; }
   .game-header h2 { font-size: 17px !important; }
-  .btn, button { width: 100%; margin: 6px 0 0 !important; }
+  #menuScreen > .btn, #gameOverScreen .btn { width: 100%; margin: 6px 0 0 !important; }
+  .diff-row .btn { flex: 1 1 0; min-width: 88px; margin: 0 !important; }
   .actions { display: grid; gap: 8px; }
+  body.playing .side-stack { display: none; }
+  body.playing .board-frame {
+    width: min(calc((100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 112px) / 2), calc(100vw - 18px), 312px);
+    width: min(calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 112px) / 2), calc(100vw - 18px), 312px);
+  }
+  body.playing .ctrl-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+}
+@media (max-height: 720px) {
+  body.playing .board-frame {
+    width: min(calc((100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 108px) / 2), calc(100vw - 18px), 292px);
+    width: min(calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 108px) / 2), calc(100vw - 18px), 292px);
+  }
+  body.playing .ctrl-btn {
+    width: 42px;
+    height: 42px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+@media (max-height: 640px) {
+  body.playing .info-bar { padding: 5px; }
+  body.playing .board-frame {
+    width: min(calc((100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 104px) / 2), calc(100vw - 18px), 258px);
+    width: min(calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 104px) / 2), calc(100vw - 18px), 258px);
+  }
+  body.playing .controls { gap: 4px; }
 }
 
 </style>
@@ -579,6 +711,7 @@ body {
     ['menuScreen', 'gameScreen', 'gameOverScreen'].forEach(function (s) {
       document.getElementById(s).classList.toggle('hidden', s !== id);
     });
+    document.body.classList.toggle('playing', id === 'gameScreen');
   }
 
   function startGame() {

@@ -4,7 +4,7 @@
   "name_en": "File Manager",
   "description": "文件管理器模块，支持目录遍历、文件增删改查、搜索等操作",
   "description_en": "File manager with directory browsing, file CRUD, search and more",
-  "version": "2.2",
+  "version": "2.3",
   "icon": "folder",
   "soLibraries": [
     "libfilemanager.so"
@@ -46,17 +46,26 @@
     },
     {
       "name": "createDirectory",
-      "desc": "创建目录",
-      "desc_en": "Create a directory",
+      "desc": "创建/确保目录存在。默认幂等：目录已存在时自动跳过并视为成功",
+      "desc_en": "Create/ensure a directory exists. Idempotent by default: existing directories are skipped and treated as success",
       "params": [
-        "path"
+        "path",
+        "ifExists",
+        "parents"
       ],
       "paramDesc": [
-        "目录路径"
+        "目录路径",
+        "目录已存在时的处理策略：skip(默认，跳过并成功)、fail(报错)。如果用户说“确保目录存在”，必须用 skip",
+        "是否自动创建父目录(true/false，默认 true)"
       ],
       "paramDesc_en": [
-        "Directory path"
-      ]
+        "Directory path",
+        "Policy when the directory already exists: skip (default, success) or fail. Use skip for ensure-directory workflows",
+        "Create missing parent directories (true/false, default true)"
+      ],
+      "idempotent": true,
+      "safeRetry": true,
+      "conflictPolicyParam": "ifExists"
     },
     {
       "name": "deleteFile",
