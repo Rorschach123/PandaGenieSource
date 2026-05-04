@@ -2,9 +2,9 @@
   "id": "document_tools",
   "name": "文档处理",
   "name_en": "Document Tools",
-  "description": "文档内容处理模块，支持提取、查询、创建、删除、替换、追加和格式转换。适合一句话修改文档、查询文档内容、把文档转为文本/Markdown/HTML/JSON。",
-  "description_en": "Document content tools for extracting, querying, creating, deleting, replacing, appending and converting documents. Useful for editing documents, searching content and converting to text/Markdown/HTML/JSON.",
-  "version": "1.0",
+  "description": "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换，以及导入/生成 CSV、XLSX 表格。适合一句话修改文档、查询文档内容、生成表格或把文档转为文本/Markdown/HTML/JSON。",
+  "description_en": "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, and importing/creating CSV or XLSX tables.",
+  "version": "1.4",
   "icon": "description",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -136,8 +136,8 @@
     },
     {
       "name": "createDocument",
-      "desc": "创建新的 txt、md、html、json、csv 文档。",
-      "desc_en": "Create a new txt, md, html, json or csv document.",
+      "desc": "创建新的 txt、md、html、json、csv 文档。用户没有指定路径时会自动保存到 /sdcard/PandaGenie/documents/。",
+      "desc_en": "Create a new txt, md, html, json or csv document. If path is empty, saves under /sdcard/PandaGenie/documents/.",
       "params": [
         "path",
         "content",
@@ -145,16 +145,74 @@
         "title"
       ],
       "paramDesc": [
-        "新文档路径",
+        "新文档路径，留空则保存到 /sdcard/PandaGenie/documents/",
         "文档内容",
         "格式 txt/md/html/json/csv，可从扩展名推断",
         "标题，可选"
       ],
       "paramDesc_en": [
-        "New document path",
+        "New document path; empty saves under /sdcard/PandaGenie/documents/",
         "Document content",
         "Format txt/md/html/json/csv, can be inferred from extension",
         "Optional title"
+      ]
+    },
+    {
+      "name": "createTable",
+      "desc": "生成表格/电子表格文件，支持 xlsx、csv、md、html、json。用户要求“生成表格”“做一个 Excel”“整理成表格”时优先使用；可传 headers/rows，也可传 data/jsonData/sourceData 结构化 JSON，或 CSV/Markdown 文本 content。JSON 对象会转为键值表，数组会转为多行，对象数组会按字段成列。",
+      "desc_en": "Create a table/spreadsheet file in xlsx, csv, md, html or json. Prefer this when the user asks to generate a table, spreadsheet or Excel file. Supports explicit headers/rows, structured JSON via data/jsonData/sourceData, or CSV/Markdown content. JSON objects become key-value tables, arrays become multiple rows, and object arrays become field columns.",
+      "params": [
+        "path",
+        "headers",
+        "rows",
+        "data",
+        "jsonData",
+        "sourceData",
+        "format",
+        "title",
+        "content"
+      ],
+      "paramDesc": [
+        "输出路径，留空则保存到 /sdcard/PandaGenie/documents/；可用 .xlsx 或 .csv 扩展名推断格式",
+        "表头数组，例如 [\"姓名\",\"金额\"]",
+        "二维数组或对象数组，例如 [[\"张三\",\"10\"]] 或 [{\"姓名\":\"张三\",\"金额\":\"10\"}]；数组会按多行处理",
+        "通用结构化数据，可传完整 JSON 对象或数组；对象默认转为键/值两列，数组转为多行，对象数组按字段成列；若含 tableHeaders/tableRows 会优先按表格数据处理",
+        "data 的别名，适合传 JSON 字符串",
+        "data 的别名，适合传上一步模块的完整结构化输出",
+        "输出格式 xlsx/csv/md/html/json，默认 xlsx",
+        "表格标题或工作表名称，可选",
+        "可选的 CSV、Markdown 或 JSON 文本；没有 rows/data 时会解析 content"
+      ],
+      "paramDesc_en": [
+        "Output path; empty saves under /sdcard/PandaGenie/documents/. Extension can infer format.",
+        "Header array, for example [\"Name\",\"Amount\"]",
+        "Array rows or object rows; arrays are written as multiple rows",
+        "Generic structured data. Pass a full JSON object or array; objects become key/value rows, arrays become rows, object arrays become field columns. tableHeaders/tableRows are preferred when present.",
+        "Alias of data for JSON strings",
+        "Alias of data for full structured output from a previous step",
+        "Output format xlsx/csv/md/html/json, default xlsx",
+        "Optional table title or sheet name",
+        "Optional CSV, Markdown or JSON text parsed when rows/data are not provided"
+      ]
+    },
+    {
+      "name": "importTable",
+      "desc": "导入/读取 CSV 或 XLSX 表格并返回 headers、rows、rowCount、columnCount。用户要求“导入表格”“读取 Excel”“看看这个表格内容”时使用。",
+      "desc_en": "Import/read a CSV or XLSX table and return headers, rows, rowCount and columnCount.",
+      "params": [
+        "filePath",
+        "maxRows",
+        "hasHeader"
+      ],
+      "paramDesc": [
+        "表格文件路径，支持 .csv 和 .xlsx",
+        "最多返回数据行数，默认 80",
+        "第一行是否表头，默认 true"
+      ],
+      "paramDesc_en": [
+        "Table file path, supports .csv and .xlsx",
+        "Maximum data rows to return, default 80",
+        "Whether the first row is header, default true"
       ]
     },
     {

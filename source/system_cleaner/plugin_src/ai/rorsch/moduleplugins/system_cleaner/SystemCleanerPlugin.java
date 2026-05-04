@@ -122,48 +122,14 @@ public class SystemCleanerPlugin implements ModulePlugin {
     private File resolveExternalStorageRoot(String requestedPath) {
         String path = requestedPath == null ? "" : requestedPath.trim();
         if (!path.isEmpty()) {
-            File direct = new File(path);
-            if (isUsableDirectory(direct)) {
-                return direct;
-            }
-            if (canUseDirectoryWhenStorageManagerGranted(direct)) {
-                return direct;
-            }
-            if (!isStorageRootAlias(path)) {
-                return null;
-            }
+            return new File(normalizeStorageRootAlias(path));
         }
 
-        ArrayList<File> candidates = new ArrayList<>();
         File envRoot = Environment.getExternalStorageDirectory();
         if (envRoot != null) {
-            candidates.add(envRoot);
+            return envRoot;
         }
-        candidates.add(new File("/storage/emulated/0"));
-        candidates.add(new File("/storage/self/primary"));
-        candidates.add(new File("/sdcard"));
-        if (appContext != null) {
-            File appExternal = appContext.getExternalFilesDir(null);
-            if (appExternal != null) {
-                File root = appExternal;
-                while (root.getParentFile() != null && !"0".equals(root.getName())) {
-                    root = root.getParentFile();
-                }
-                candidates.add(root);
-            }
-        }
-
-        for (File candidate : candidates) {
-            if (isUsableDirectory(candidate)) {
-                return candidate;
-            }
-        }
-        for (File candidate : candidates) {
-            if (canUseDirectoryWhenStorageManagerGranted(candidate)) {
-                return candidate;
-            }
-        }
-        return null;
+        return new File("/storage/emulated/0");
     }
 
     private static boolean isStorageRootAlias(String path) {
@@ -178,52 +144,21 @@ public class SystemCleanerPlugin implements ModulePlugin {
                 || "/storage/self/primary".equals(p);
     }
 
-    private static boolean isUsableDirectory(File dir) {
-        try {
-            if (dir == null || !dir.exists() || !dir.isDirectory()) {
-                return false;
-            }
-            if (dir.canRead() || safeListFiles(dir) != null) {
-                return true;
-            }
-            return hasReadableCommonChild(dir);
-        } catch (SecurityException e) {
-            return false;
+    private static String normalizeStorageRootAlias(String path) {
+        String p = path == null ? "" : path.trim().replace("\\", "/");
+        while (p.endsWith("/") && p.length() > 1) {
+            p = p.substring(0, p.length() - 1);
         }
-    }
-
-    private static boolean canUseDirectoryWhenStorageManagerGranted(File dir) {
-        try {
-            return hasAllFilesAccess()
-                    && dir != null
-                    && dir.exists()
-                    && dir.isDirectory()
-                    && isStorageRootAlias(dir.getAbsolutePath());
-        } catch (Exception e) {
-            return false;
+        if ("/sdcard".equals(p) || "/storage/self/primary".equals(p)) {
+            return "/storage/emulated/0";
         }
-    }
-
-    private static boolean hasAllFilesAccess() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            return true;
+        if (p.startsWith("/sdcard/")) {
+            return "/storage/emulated/0" + p.substring("/sdcard".length());
         }
-        try {
-            return Environment.isExternalStorageManager();
-        } catch (Exception e) {
-            return false;
+        if (p.startsWith("/storage/self/primary/")) {
+            return "/storage/emulated/0" + p.substring("/storage/self/primary".length());
         }
-    }
-
-    private static boolean hasReadableCommonChild(File dir) {
-        if (dir == null) return false;
-        for (String name : COMMON_STORAGE_CHILDREN) {
-            File child = new File(dir, name);
-            if (!child.exists()) continue;
-            if (child.isFile() && child.canRead()) return true;
-            if (child.isDirectory() && (child.canRead() || safeListFiles(child) != null)) return true;
-        }
-        return false;
+        return p;
     }
 
     private static File[] safeListFiles(File dir) {
@@ -252,29 +187,6 @@ public class SystemCleanerPlugin implements ModulePlugin {
         return fallback.isEmpty() ? null : fallback.toArray(new File[0]);
     }
 
-    private static String storageAccessError(String requestedPath) {
-        String path = requestedPath == null ? "" : requestedPath.trim();
-        boolean zh = isZh();
-        if (hasAllFilesAccess()) {
-            if (!path.isEmpty() && !isStorageRootAlias(path)) {
-                return zh
-                        ? "已检测到 PandaGenie 已开启“所有文件访问权限”，但该目录不存在或暂时不可访问：" + path + "。请确认路径存在，或指定 Download/DCIM 等公共目录后重试。"
-                        : "PandaGenie already has All files access, but this directory does not exist or is temporarily inaccessible: " + path + ". Please verify the path or try a public directory such as Download/DCIM.";
-            }
-            return zh
-                    ? "已检测到 PandaGenie 已开启“所有文件访问权限”，但当前主存储路径暂时不可访问。请确认手机存储已挂载，或指定可访问目录后重试。"
-                    : "PandaGenie already has All files access, but the primary storage path is temporarily inaccessible. Please make sure storage is mounted, or retry with an accessible directory.";
-        }
-        if (!path.isEmpty() && !isStorageRootAlias(path)) {
-            return zh
-                    ? "目录不存在或当前不可访问：" + path + "。请确认路径存在，并在系统设置中为 PandaGenie 开启“所有文件访问权限”后重试。"
-                    : "Directory not found or not accessible: " + path + ". Please verify the path and grant All files access to PandaGenie, then try again.";
-        }
-        return zh
-                ? "无法访问手机存储。请在系统设置中为 PandaGenie 开启“所有文件访问权限”，然后重试。"
-                : "Device storage is not accessible. Please grant All files access to PandaGenie, then try again.";
-    }
-
     /**
      * 扫描指定类别的垃圾/冗余文件体量（不删除）。
      *
@@ -282,10 +194,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * @return 含各类别统计与 {@code totalSizeBytes} 的 JSON；外部存储不可用则 {@link #errJson}
      */
     private String scanJunk(JSONObject params) throws Exception {
-        File root = resolveExternalStorageRoot("");
-        if (root == null) {
-            return errJson(storageAccessError(""));
-        }
+        File root = resolveExternalStorageRoot(params.optString("path", ""));
         Set<String> cats = parseCategories(params.optString("categories", ""), true);
         JSONObject categories = new JSONObject();
         long totalBytes = 0;
@@ -336,10 +245,7 @@ public class SystemCleanerPlugin implements ModulePlugin {
      * @return 删除数量、释放字节、按类别汇总等；未指定类别则错误 JSON
      */
     private String cleanJunk(JSONObject params) throws Exception {
-        File root = resolveExternalStorageRoot("");
-        if (root == null) {
-            return errJson(storageAccessError(""));
-        }
+        File root = resolveExternalStorageRoot(params.optString("path", ""));
         Set<String> cats = parseCategories(params.optString("categories", ""), false);
         if (cats.isEmpty()) {
             return errJson("No categories specified");
@@ -440,9 +346,6 @@ public class SystemCleanerPlugin implements ModulePlugin {
         int limit = params.optInt("limit", LARGE_FILES_DEFAULT_LIMIT);
 
         File dir = resolveExternalStorageRoot(pathStr);
-        if (dir == null) {
-            return errJson(storageAccessError(pathStr));
-        }
 
         long minBytes = (long) (minSizeMB * 1024L * 1024L);
         List<File> large = new ArrayList<>();

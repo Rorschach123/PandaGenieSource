@@ -201,16 +201,27 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.21)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260501/PandaGenie-v1.0.21.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.22)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260504/PandaGenie-v1.0.22.apk)**
 
-- Release 标签：[`20260501`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260501)
-- Android 工程版本：`versionName "1.0.21"` / `versionCode 21`
+- Release 标签：[`20260504`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260504)
+- Android 工程版本：`versionName "1.0.22"` / `versionCode 22`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.22</b> (2026-05-04)</summary>
+
+- **App 内反馈回复**：新增管理员回复通知，支持用户端未读/已读处理，并同步更新管理工具。
+- **任务生成可靠性**：优化兜底任务规划、任务 JSON 修复启发式、模块调用诊断和输出路径提取。
+- **模块运行时加固**：强化沙箱约束、权限处理、模块更新信任策略和官方聊天错误处理。
+- **模块生态刷新**：更新文档工具、文件统计、图片工具、网络工具、OCR、系统清理等模块包和元数据。
+- **管理端与服务端优化**：刷新管理端数据视图、反馈 API、提交校验和数据库结构，支撑新的通知流程。
+
+</details>
+
+<details>
 <summary><b>v1.0.21</b> (2026-05-01)</summary>
 
 - **模块目录扩展**：新增文档工具和设备控制模块，官方模块目录扩展到 39 个模块。

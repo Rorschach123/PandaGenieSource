@@ -87,24 +87,25 @@
 <body>
   <section class="hero">
     <h1 id="title">文档处理</h1>
-    <p id="subtitle">提取、查询、编辑、创建和转换本机文档，让一句话完成“查这个文档”“把文档改一下”“转成 Markdown/HTML”。</p>
+    <p id="subtitle">提取、查询、编辑、创建和转换本机文档，也能导入或生成 CSV/XLSX 表格。</p>
   </section>
 
   <section class="grid" aria-label="capabilities">
     <div class="tile"><b id="readTitle">读取查询</b><span id="readDesc">支持 txt、md、csv、json、xml、html、docx、xlsx、pptx、pdf。</span></div>
     <div class="tile"><b id="editTitle">内容编辑</b><span id="editDesc">支持文本文件和 Office 文档中的精确文本替换。</span></div>
-    <div class="tile"><b id="createTitle">创建删除</b><span id="createDesc">创建 txt、md、html、json、csv，按需删除指定文档。</span></div>
-    <div class="tile"><b id="convertTitle">格式转换</b><span id="convertDesc">将可提取文本的文档转换为 txt、md、html、json。</span></div>
+    <div class="tile"><b id="createTitle">创建表格</b><span id="createDesc">生成 xlsx、csv、md、html、json 表格文件。</span></div>
+    <div class="tile"><b id="convertTitle">导入转换</b><span id="convertDesc">导入 CSV/XLSX 表格，或将文档转换为 txt、md、html、json。</span></div>
   </section>
 
   <section class="api">
     <b id="exampleTitle">API 示例</b>
     <code>{
   "module": "document_tools",
-  "action": "queryDocument",
+  "action": "createTable",
   "params": {
-    "filePath": "/sdcard/Documents/report.docx",
-    "query": "预算"
+    "path": "/sdcard/Documents/budget.xlsx",
+    "headers": ["项目", "金额"],
+    "rows": [["服务器", "800"]]
   }
 }</code>
   </section>
@@ -115,15 +116,15 @@
       if (lang.indexOf('zh') === 0) return;
       var text = {
         title: 'Document Tools',
-        subtitle: 'Extract, query, edit, create and convert local documents from a natural-language task.',
+        subtitle: 'Extract, query, edit, create and convert local documents, plus import or create CSV/XLSX tables.',
         readTitle: 'Read & Query',
         readDesc: 'Supports txt, md, csv, json, xml, html, docx, xlsx, pptx and pdf.',
         editTitle: 'Content Editing',
         editDesc: 'Exact text replacement for text files and Office documents.',
-        createTitle: 'Create & Delete',
-        createDesc: 'Create txt, md, html, json and csv documents, and delete requested documents.',
-        convertTitle: 'Conversion',
-        convertDesc: 'Convert extractable documents to txt, md, html or json.',
+        createTitle: 'Create Tables',
+        createDesc: 'Generate xlsx, csv, md, html and json table files.',
+        convertTitle: 'Import & Convert',
+        convertDesc: 'Import CSV/XLSX tables or convert documents to txt, md, html or json.',
         exampleTitle: 'API Example'
       };
       Object.keys(text).forEach(function (id) {

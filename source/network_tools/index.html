@@ -19,24 +19,26 @@
 <div class="mod-header">
   <div class="icon">🌐</div>
   <h2 data-i18n="headerTitle">网络工具 / Network Tools</h2>
-  <p data-i18n="headerDesc">Ping测试、DNS查询、IP地址、网络连接状态</p>
+  <p data-i18n="headerDesc">Ping互通、TCP端口检查、DNS查询、IP地址、网络连接状态</p>
   <p class="text-center mt-8"><span class="badge" data-i18n="module_badge"></span></p>
 </div>
 <div class="info-card">
   <h3 data-i18n="features_title"></h3>
   <div class="feature-grid">
     <div class="feature-item"><span class="emoji" aria-hidden="true">📡</span><span data-i18n="feat_1"></span></div>
-    <div class="feature-item"><span class="emoji" aria-hidden="true">🔤</span><span data-i18n="feat_2"></span></div>
-    <div class="feature-item"><span class="emoji" aria-hidden="true">🏠</span><span data-i18n="feat_3"></span></div>
-    <div class="feature-item"><span class="emoji" aria-hidden="true">🛰️</span><span data-i18n="feat_4"></span></div>
-    <div class="feature-item"><span class="emoji" aria-hidden="true">✅</span><span data-i18n="feat_5"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🔌</span><span data-i18n="feat_2"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🔤</span><span data-i18n="feat_3"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🏠</span><span data-i18n="feat_4"></span></div>
+    <div class="feature-item"><span class="emoji" aria-hidden="true">🛰️</span><span data-i18n="feat_5"></span></div>
     <div class="feature-item"><span class="emoji" aria-hidden="true">📶</span><span data-i18n="feat_6"></span></div>
   </div>
 </div>
 <div class="info-card">
   <h3 data-i18n="sectionApis">功能接口</h3>
   <ul class="api-list">
-    <li><span class="api-name">ping</span> — <span data-i18n="api_ping">Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码</span></li>
+    <li><span class="api-name">ping</span> — <span data-i18n="api_ping">通过系统 ping 检查当前设备到目标主机是否互通</span></li>
+    <li><span class="api-name">checkHost</span> — <span data-i18n="api_checkHost">综合检查主机连通性，可选端口检查</span></li>
+    <li><span class="api-name">checkPort</span> — <span data-i18n="api_checkPort">检查 TCP 端口是否开放</span></li>
     <li><span class="api-name">dnsLookup</span> — <span data-i18n="api_dnsLookup">DNS 解析域名，返回解析到的所有 IP 地址</span></li>
     <li><span class="api-name">getLocalIp</span> — <span data-i18n="api_getLocalIp">枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表</span></li>
     <li><span class="api-name">getPublicIp</span> — <span data-i18n="api_getPublicIp">通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）</span></li>
@@ -67,9 +69,11 @@ var i18n = {
   zh: {
     pageTitle: '网络工具 / Network Tools',
     headerTitle: '网络工具 / Network Tools',
-    headerDesc: 'Ping测试、DNS查询、IP地址、网络连接状态',
+    headerDesc: 'Ping互通、TCP端口检查、DNS查询、IP地址、网络连接状态',
     sectionApis: '功能接口',
-    api_ping: 'Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码',
+    api_ping: '通过系统 ping 检查当前设备到目标主机是否互通',
+    api_checkHost: '综合检查主机连通性：先 ping；如果提供端口，再检查 TCP 端口',
+    api_checkPort: '检查指定主机的 TCP 端口是否开放',
     api_dnsLookup: 'DNS 解析域名，返回解析到的所有 IP 地址',
     api_getLocalIp: '枚举网卡，获取本机非回环的 IPv4/IPv6 地址列表',
     api_getPublicIp: '通过 HTTPS 请求 api.ipify.org 获取当前公网出口 IP（需网络）',
@@ -80,30 +84,32 @@ var i18n = {
     module_badge: '网络诊断',
     features_title: '核心能力',
     feat_1: 'Ping',
-    feat_2: 'DNS',
-    feat_3: '本机 IP',
-    feat_4: '公网 IP',
-    feat_5: '连通性',
+    feat_2: '端口检查',
+    feat_3: 'DNS',
+    feat_4: '本机 IP',
+    feat_5: '公网 IP',
     feat_6: '网络信息',
     examples_title: '使用示例',
     ex1: '「ping 一下 8.8.8.8」→ ping，查看延迟与是否丢包',
-    ex2: '「google.com 解析到哪些 IP」→ dnsLookup',
-    ex3: '「我现在的 Wi‑Fi 内网 IP、公网出口」→ getLocalIp + getPublicIp',
-    ex4: '「当前是 Wi‑Fi 还是 4G、连没连上」→ getNetworkInfo / checkConnectivity',
+    ex2: '「检查 192.168.1.10 的 22 端口通不通」→ checkPort',
+    ex3: '「google.com 解析到哪些 IP」→ dnsLookup',
+    ex4: '「我现在的 Wi‑Fi 内网 IP、公网出口」→ getLocalIp + getPublicIp',
     about_title: '关于本模块',
     about_dev_label: '开发者',
     about_dev: 'PandaGenie',
     about_ver_label: '版本',
-    about_ver: '1.0.0',
+    about_ver: '1.6',
     about_perm_label: '权限说明',
     about_permissions: '网络访问、位置（部分 SSID 信息）、与系统网络状态读取'
   },
   en: {
     pageTitle: 'Network Tools',
     headerTitle: 'Network Tools',
-    headerDesc: 'Ping test, DNS lookup, IP addresses, network connectivity status',
+    headerDesc: 'Ping reachability, TCP port checks, DNS lookup, IP addresses, network connectivity status',
     sectionApis: 'APIs',
-    api_ping: 'Ping a host (system ping, 4 packets by default); returns stdout and exit code',
+    api_ping: 'Check whether the current device can reach a host via system ping',
+    api_checkHost: 'Check host reachability with ping and optional TCP port check',
+    api_checkPort: 'Check whether a TCP port on a host is open',
     api_dnsLookup: 'Resolve a hostname via DNS; returns all resolved IP addresses',
     api_getLocalIp: 'Enumerate interfaces and list non-loopback IPv4/IPv6 addresses',
     api_getPublicIp: 'Fetch current public IP via HTTPS to api.ipify.org (requires network)',
@@ -114,21 +120,21 @@ var i18n = {
     module_badge: 'Networking',
     features_title: 'Highlights',
     feat_1: 'Ping',
-    feat_2: 'DNS',
-    feat_3: 'Local IP',
-    feat_4: 'Public IP',
-    feat_5: 'Connectivity',
+    feat_2: 'Port check',
+    feat_3: 'DNS',
+    feat_4: 'Local IP',
+    feat_5: 'Public IP',
     feat_6: 'Net info',
     examples_title: 'Examples',
     ex1: '“Ping 8.8.8.8” → ping for latency/loss',
-    ex2: '“Resolve google.com” → dnsLookup',
-    ex3: '“My LAN and public IP” → getLocalIp and getPublicIp',
-    ex4: '“Wi‑Fi or cellular, am I online?” → getNetworkInfo / checkConnectivity',
+    ex2: '“Check whether port 22 on 192.168.1.10 is reachable” → checkPort',
+    ex3: '“Resolve google.com” → dnsLookup',
+    ex4: '“My LAN and public IP” → getLocalIp and getPublicIp',
     about_title: 'About',
     about_dev_label: 'Developer',
     about_dev: 'PandaGenie',
     about_ver_label: 'Version',
-    about_ver: '1.0.0',
+    about_ver: '1.6',
     about_perm_label: 'Permissions',
     about_permissions: 'Network access, location (for some SSID details), and network state'
   }

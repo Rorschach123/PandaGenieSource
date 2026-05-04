@@ -207,6 +207,11 @@
         <div class="name" data-i="大文件扫描|Large Files">大文件扫描</div>
         <div class="desc" data-i="找出占用空间大的文件|Find space-consuming files">找出占用空间大的文件</div>
       </div>
+      <div class="tool-card" onclick="showTool('emptyItems')">
+        <div class="emoji">📭</div>
+        <div class="name" data-i="空文件查询|Empty Items">空文件查询</div>
+        <div class="desc" data-i="查找0字节文件和空文件夹|Find zero-byte files and empty folders">查找0字节文件和空文件夹</div>
+      </div>
       <div class="tool-card" onclick="showTool('textStats')">
         <div class="emoji">📝</div>
         <div class="name" data-i="文本统计|Text Stats">文本统计</div>
@@ -292,13 +297,16 @@ function showTool(id) {
       html = inp(T('文件路径','File Path'), 'vPath', '/sdcard/') + inp(T('期望哈希值','Expected Hash'), 'vHash', '') + sel(T('算法','Algorithm'), 'vAlgo', ['SHA-256','MD5','SHA-1']) + btn(T('校验','Verify'), "execVerify()");
       break;
     case 'dirStats':
-      html = inp(T('目录路径','Directory Path'), 'dPath', '/sdcard/') + chk('dRecur', T('递归子目录','Include subdirectories'), true) + btn(T('统计','Analyze'), "execDirStats()");
+      html = inp(T('目录路径（留空为手机存储根目录）','Directory path (blank = storage root)'), 'dPath', '') + chk('dRecur', T('递归子目录','Include subdirectories'), true) + btn(T('统计','Analyze'), "execDirStats()");
       break;
     case 'duplicates':
-      html = inp(T('目录路径','Directory Path'), 'dupPath', '/sdcard/') + chk('dupRecur', T('递归子目录','Include subdirectories'), true) + btn(T('查找重复','Find Duplicates'), "execDuplicates()");
+      html = inp(T('目录路径（留空为手机存储根目录）','Directory path (blank = storage root)'), 'dupPath', '') + chk('dupRecur', T('递归子目录','Include subdirectories'), true) + btn(T('查找重复','Find Duplicates'), "execDuplicates()");
       break;
     case 'largeFiles':
-      html = inp(T('目录路径','Directory Path'), 'lfPath', '/sdcard/') + inp(T('最小大小(MB)','Min Size (MB)'), 'lfSize', '100') + chk('lfRecur', T('递归子目录','Include subdirectories'), true) + btn(T('扫描','Scan'), "execLargeFiles()");
+      html = inp(T('目录路径（留空为手机存储根目录）','Directory path (blank = storage root)'), 'lfPath', '') + inp(T('最小大小(MB)','Min Size (MB)'), 'lfSize', '100') + chk('lfRecur', T('递归子目录','Include subdirectories'), true) + btn(T('扫描','Scan'), "execLargeFiles()");
+      break;
+    case 'emptyItems':
+      html = inp(T('目录路径（留空为手机存储根目录）','Directory path (blank = storage root)'), 'eiPath', '') + sel(T('查询类型','Type'), 'eiType', ['all','file','dir']) + inp(T('最多返回','Max Results'), 'eiLimit', '200') + chk('eiRecur', T('递归子目录','Include subdirectories'), true) + chk('eiHidden', T('包含隐藏项目','Include hidden items'), false) + chk('eiRoot', T('包含根目录本身','Include root directory'), false) + btn(T('查询','Find'), "execEmptyItems()");
       break;
     case 'textStats':
       html = inp(T('文本文件路径','Text File Path'), 'tPath', '/sdcard/') + btn(T('统计','Analyze'), "execTextStats()");
@@ -475,6 +483,42 @@ function execLargeFiles() {
   }, 50);
 }
 
+function execEmptyItems() {
+  var r = document.getElementById('toolResult');
+  r.innerHTML = '<div class="result-box"><span class="spinner"></span>' + T('查询中...','Finding...') + '</div>';
+  setTimeout(function() {
+    try {
+      var data = JSON.parse(invokeNative('findEmptyItems', {
+        path: v('eiPath'),
+        recursive: cv('eiRecur'),
+        type: v('eiType'),
+        includeHidden: cv('eiHidden'),
+        includeRoot: cv('eiRoot'),
+        limit: parseInt(v('eiLimit'), 10) || 200
+      }));
+      if (data.error) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(data.error) + '</div>'; return; }
+      var h = resultRows([
+        [T('目录','Directory'), esc(data.directory)],
+        [T('空文件','Empty Files'), data.emptyFileCount],
+        [T('空文件夹','Empty Folders'), data.emptyDirectoryCount],
+        [T('返回','Returned'), data.returnedCount + '/' + data.totalCount],
+        [T('未读目录','Unreadable Dirs'), data.unreadableDirectories],
+        [T('说明','Note'), T('仅查询，不删除','Query only, no deletion')]
+      ]);
+      if (data.items && data.items.length > 0) {
+        h += '<div class="result-box" style="margin-top:8px">';
+        for (var i = 0; i < data.items.length; i++) {
+          var it = data.items[i];
+          var typeText = it.isDirectory ? T('空文件夹','Empty folder') : T('空文件','Empty file');
+          h += '<div class="file-item"><div class="fi-name">' + esc(it.name || it.path) + '</div><div class="fi-detail">' + typeText + ' · ' + esc(it.lastModified || '') + '</div><div class="fi-detail" style="font-size:10px;opacity:0.7">' + esc(it.path) + '</div></div>';
+        }
+        h += '</div>';
+      }
+      r.innerHTML = h;
+    } catch(e) { r.innerHTML = '<div class="result-box" style="color:var(--error)">' + esc(e.message) + '</div>'; }
+  }, 50);
+}
+
 function execTextStats() {
   var r = document.getElementById('toolResult');
   try {
@@ -501,7 +545,7 @@ function applyI18n() {
   if(tabs[0]) tabs[0].textContent = T('工具','Tools');
   if(tabs[1]) tabs[1].textContent = T('接口说明','API Docs');
   document.getElementById('headerTitle').textContent = T('文件信息统计','File Stats');
-  document.getElementById('headerDesc').textContent = T('文件哈希、对比、目录统计、重复检测','Hash, compare, dir stats, duplicates');
+  document.getElementById('headerDesc').textContent = T('文件哈希、对比、目录统计、重复和空文件查询','Hash, compare, dir stats, duplicates and empty items');
 
   document.querySelectorAll('[data-i]').forEach(function(el) {
     var parts = el.getAttribute('data-i').split('|');
@@ -522,6 +566,7 @@ var apis = [
   ['getDirStats', T('目录统计','Directory stats'), 'path, recursive', T('大小/文件数/分布','Size/count/breakdown')],
   ['findDuplicates', T('查找重复文件','Find duplicates'), 'path, recursive, minSize', T('按SHA-256分组','Group by SHA-256')],
   ['findLargeFiles', T('大文件扫描','Find large files'), 'path, minSizeMB, recursive, limit', T('按大小降序排列','Sort by size desc')],
+  ['findEmptyItems', T('查询空文件和空文件夹','Find empty files/folders'), 'path, recursive, type, includeHidden, includeRoot, limit', T('仅查询不删除','Query only, no deletion')],
   ['searchByName', T('文件名搜索','Search by name'), 'path, keywords, recursive, limit', T('关键词匹配','Keyword match')],
   ['getTextStats', T('文本文件统计','Text file stats'), 'path', T('行/词/字符数','Lines/words/chars')],
   ['batchFileInfo', T('批量文件信息','Batch file info'), 'paths, algorithm', T('多个文件一起查','Multi-file query')]

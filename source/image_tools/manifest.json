@@ -2,9 +2,9 @@
   "id": "image_tools",
   "name": "图片工具",
   "name_en": "Image Tools",
-  "description": "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪等操作",
-  "description_en": "Image tools: view info, resize, compress, convert format, rotate, and crop images",
-  "version": "1.5",
+  "description": "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪、读取相册图片、查找完全重复和视觉相似图片等操作",
+  "description_en": "Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos",
+  "version": "1.7",
   "icon": "image",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -18,8 +18,18 @@
   "permissions": [
     {
       "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
-      "desc": "用于读写图片文件",
-      "desc_en": "Read and write image files"
+      "desc": "用于读写图片文件、读取相册并查找重复图片",
+      "desc_en": "Read and write image files, read gallery albums, and find duplicate images"
+    },
+    {
+      "name": "android.permission.READ_MEDIA_IMAGES",
+      "desc": "用于读取系统相册图片（Android 13 及以上）",
+      "desc_en": "Read gallery images on Android 13 and above"
+    },
+    {
+      "name": "android.permission.READ_EXTERNAL_STORAGE",
+      "desc": "用于读取系统相册图片（Android 12 及以下）",
+      "desc_en": "Read gallery images on Android 12 and below"
     }
   ],
   "developer": {
@@ -152,6 +162,72 @@
         "Crop width",
         "Crop height",
         "Output path (optional)"
+      ]
+    },
+    {
+      "name": "listGalleryImages",
+      "desc": "读取默认相册或指定相册中的图片列表",
+      "desc_en": "List images from the default Camera album, all albums, or a specified gallery album",
+      "params": [
+        "album",
+        "limit"
+      ],
+      "paramDesc": [
+        "相册名，默认 default/Camera；all 表示全部相册",
+        "最大返回数量，默认 100"
+      ],
+      "paramDesc_en": [
+        "Album name; default reads Camera/DCIM; use all for the whole gallery",
+        "Maximum images to return, default 100"
+      ]
+    },
+    {
+      "name": "findDuplicateImages",
+      "desc": "在默认相册或指定相册中按内容哈希查找重复图片",
+      "desc_en": "Find exact duplicate images in the default Camera album, all albums, or a specified gallery album by SHA-256 content hash",
+      "params": [
+        "album",
+        "limit",
+        "minBytes"
+      ],
+      "paramDesc": [
+        "相册名，默认 default/Camera；all 表示全部相册",
+        "最大扫描数量，默认 5000",
+        "参与查重的最小文件大小，默认 1 字节"
+      ],
+      "paramDesc_en": [
+        "Album name; default reads Camera/DCIM; use all for the whole gallery",
+        "Maximum images to scan, default 5000",
+        "Minimum file size to compare, default 1 byte"
+      ]
+    },
+    {
+      "name": "findSimilarImages",
+      "desc": "在默认相册或指定相册中按视觉指纹查找相似图片、压缩副本和缩略图候选",
+      "desc_en": "Find visually similar images, compressed copies, and thumbnail candidates by perceptual dHash",
+      "params": [
+        "album",
+        "limit",
+        "maxDistance",
+        "ratioTolerance",
+        "minEdge",
+        "maxGroups"
+      ],
+      "paramDesc": [
+        "相册名，默认 default/Camera；all 表示全部相册",
+        "最大扫描数量，默认 1000",
+        "dHash 最大汉明距离，默认 8，越小越严格",
+        "宽高比容差，默认 0.08",
+        "参与比较的最短边，默认 32 像素",
+        "最大返回分组数，默认 50"
+      ],
+      "paramDesc_en": [
+        "Album name; default reads Camera/DCIM; use all for the whole gallery",
+        "Maximum images to scan, default 1000",
+        "Maximum dHash Hamming distance, default 8; lower is stricter",
+        "Aspect ratio tolerance, default 0.08",
+        "Minimum short edge to compare, default 32 px",
+        "Maximum groups to return, default 50"
       ]
     }
   ]

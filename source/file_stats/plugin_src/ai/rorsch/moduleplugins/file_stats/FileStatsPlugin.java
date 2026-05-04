@@ -1,6 +1,8 @@
 package ai.rorsch.moduleplugins.file_stats;
 
 import android.content.Context;
+import android.os.Build;
+import android.os.Environment;
 import android.webkit.MimeTypeMap;
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
@@ -27,11 +29,11 @@ import java.util.Map;
  * PandaGenie 文件统计与校验模块插件。
  * <p>
  * <b>模块用途：</b>在本地文件系统上提供元信息读取、散列计算、两文件对比、校验和验证、目录体积累计与按扩展名分布、
- * 重复文件（按大小预筛选再 SHA-256）、大文件扫描、按文件名关键字搜索、文本统计及批量路径信息/哈希等能力。
+ * 重复文件（按大小预筛选再 SHA-256）、大文件扫描、空文件/空目录查询、按文件名关键字搜索、文本统计及批量路径信息/哈希等能力。
  * </p>
  * <p>
  * <b>对外 API（{@code action}）：</b>{@code getFileInfo}、{@code getFileHash}、{@code compareFiles}、{@code verifyChecksum}、
- * {@code getDirStats}、{@code findDuplicates}、{@code findLargeFiles}、{@code searchByName}、{@code getTextStats}、{@code batchFileInfo}。
+ * {@code getDirStats}、{@code findDuplicates}、{@code findLargeFiles}、{@code findEmptyItems}、{@code searchByName}、{@code getTextStats}、{@code batchFileInfo}。
  * </p>
  * <p>
  * 实现 {@link ModulePlugin}，由 {@code ModuleRuntime} 反射加载；{@link Context} 当前未参与逻辑，为接口保留。
@@ -97,7 +99,7 @@ public class FileStatsPlugin implements ModulePlugin {
                         }
                     }
                 }
-                return ok(out, formatStatsGetFileInfoDisplay(out), formatGetFileInfoHtml(out), rc);
+                return result(out, formatStatsGetFileInfoDisplay(out), formatGetFileInfoHtml(out), rc);
             }
             case "getFileHash": {
                 String out = getFileHash(params);
@@ -108,11 +110,11 @@ public class FileStatsPlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richCode(codeText, "text"));
                 }
-                return ok(out, formatGetFileHashDisplay(out), formatGetFileHashHtml(out), rc);
+                return result(out, formatGetFileHashDisplay(out), formatGetFileHashHtml(out), rc);
             }
             case "compareFiles": {
                 String out = compareFiles(params);
-                return ok(out, formatCompareFilesDisplay(out), formatCompareFilesHtml(out));
+                return result(out, formatCompareFilesDisplay(out), formatCompareFilesHtml(out));
             }
             case "verifyChecksum": {
                 String out = verifyChecksum(params);
@@ -127,31 +129,35 @@ public class FileStatsPlugin implements ModulePlugin {
                     rc = new JSONArray();
                     rc.put(richCode(sb.toString(), "text"));
                 }
-                return ok(out, formatVerifyChecksumDisplay(out), formatVerifyChecksumHtml(out), rc);
+                return result(out, formatVerifyChecksumDisplay(out), formatVerifyChecksumHtml(out), rc);
             }
             case "getDirStats": {
                 String out = getDirStats(params);
-                return ok(out, formatGetDirStatsDisplay(out), formatGetDirStatsHtml(out));
+                return result(out, formatGetDirStatsDisplay(out), formatGetDirStatsHtml(out));
             }
             case "findDuplicates": {
                 String out = findDuplicates(params);
-                return ok(out, formatFindDuplicatesDisplay(out), formatFindDuplicatesHtml(out));
+                return result(out, formatFindDuplicatesDisplay(out), formatFindDuplicatesHtml(out));
             }
             case "findLargeFiles": {
                 String out = findLargeFiles(params);
-                return ok(out, formatFindLargeFilesDisplay(out), formatFindLargeFilesHtml(out));
+                return result(out, formatFindLargeFilesDisplay(out), formatFindLargeFilesHtml(out));
+            }
+            case "findEmptyItems": {
+                String out = findEmptyItems(params);
+                return result(out, formatFindEmptyItemsDisplay(out), formatFindEmptyItemsHtml(out));
             }
             case "searchByName": {
                 String out = searchByName(params);
-                return ok(out, formatSearchByNameDisplay(out), formatSearchByNameHtml(out));
+                return result(out, formatSearchByNameDisplay(out), formatSearchByNameHtml(out));
             }
             case "getTextStats": {
                 String out = getTextStats(params);
-                return ok(out, formatGetTextStatsDisplay(out), formatGetTextStatsHtml(out));
+                return result(out, formatGetTextStatsDisplay(out), formatGetTextStatsHtml(out));
             }
             case "batchFileInfo": {
                 String out = batchFileInfo(params);
-                return ok(out, formatBatchFileInfoDisplay(out), formatBatchFileInfoHtml(out));
+                return result(out, formatBatchFileInfoDisplay(out), formatBatchFileInfoHtml(out));
             }
             default:
                 return error("Unsupported action: " + action);
@@ -477,13 +483,12 @@ public class FileStatsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String getDirStats(JSONObject params) throws Exception {
-        String path = params.optString("path", "").trim();
+        String path = cleanPathParam(params.optString("path", ""));
         boolean recursive = params.optBoolean("recursive", true);
-        if (path.isEmpty()) return errJson("Missing parameter: path");
 
-        File dir = new File(path);
-        if (!dir.exists()) return errJson("Directory not found: " + path);
-        if (!dir.isDirectory()) return errJson("Not a directory: " + path);
+        File dir = resolveScanDirectory(path);
+        DirectoryAccessError dirError = validateScanDirectory(path, dir);
+        if (dirError != null) return errJson(dirError.code, dirError.message);
 
         long[] counts = new long[3]; // [totalSize, fileCount, dirCount]
         Map<String, long[]> extMap = new HashMap<>(); // ext -> [count, totalSize]
@@ -505,6 +510,11 @@ public class FileStatsPlugin implements ModulePlugin {
         });
 
         JSONArray breakdown = new JSONArray();
+        JSONArray tableHeaders = new JSONArray()
+                .put(isZh() ? "文件格式" : "Extension")
+                .put(isZh() ? "文件数量" : "File count")
+                .put(isZh() ? "总大小" : "Total size");
+        JSONArray tableRows = new JSONArray();
         for (Map.Entry<String, long[]> entry : sorted) {
             JSONObject item = new JSONObject();
             item.put("extension", entry.getKey());
@@ -512,8 +522,17 @@ public class FileStatsPlugin implements ModulePlugin {
             item.put("totalSize", entry.getValue()[1]);
             item.put("totalSizeFormatted", formatSize(entry.getValue()[1]));
             breakdown.put(item);
+            tableRows.put(new JSONArray()
+                    .put(entry.getKey())
+                    .put(String.valueOf(entry.getValue()[0]))
+                    .put(formatSize(entry.getValue()[1])));
         }
         result.put("extensionBreakdown", breakdown);
+        result.put("extensionStats", breakdown);
+        result.put("extensionsStats", breakdown);
+        result.put("tableHeaders", tableHeaders);
+        result.put("tableRows", tableRows);
+        result.put("extensionRows", tableRows);
         return result.toString();
     }
 
@@ -555,13 +574,13 @@ public class FileStatsPlugin implements ModulePlugin {
      * @throws Exception 散列或 JSON 异常
      */
     private String findDuplicates(JSONObject params) throws Exception {
-        String path = params.optString("path", "").trim();
+        String path = cleanPathParam(params.optString("path", ""));
         boolean recursive = params.optBoolean("recursive", true);
         long minSize = params.optLong("minSize", 1024);
-        if (path.isEmpty()) return errJson("Missing parameter: path");
 
-        File dir = new File(path);
-        if (!dir.exists() || !dir.isDirectory()) return errJson("Directory not found: " + path);
+        File dir = resolveScanDirectory(path);
+        DirectoryAccessError dirError = validateScanDirectory(path, dir);
+        if (dirError != null) return errJson(dirError.code, dirError.message);
 
         Map<Long, List<File>> sizeGroups = new HashMap<>();
         collectFilesBySize(dir, recursive, minSize, sizeGroups);
@@ -639,14 +658,14 @@ public class FileStatsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String findLargeFiles(JSONObject params) throws Exception {
-        String path = params.optString("path", "").trim();
+        String path = cleanPathParam(params.optString("path", ""));
         double minSizeMB = params.optDouble("minSizeMB", 100);
         boolean recursive = params.optBoolean("recursive", true);
         int limit = params.optInt("limit", 200);
-        if (path.isEmpty()) return errJson("Missing parameter: path");
 
-        File dir = new File(path);
-        if (!dir.exists() || !dir.isDirectory()) return errJson("Directory not found: " + path);
+        File dir = resolveScanDirectory(path);
+        DirectoryAccessError dirError = validateScanDirectory(path, dir);
+        if (dirError != null) return errJson(dirError.code, dirError.message);
 
         long minBytes = (long) (minSizeMB * 1024 * 1024);
         List<File> largeFiles = new ArrayList<>();
@@ -696,6 +715,172 @@ public class FileStatsPlugin implements ModulePlugin {
         }
     }
 
+    // ==================== findEmptyItems ====================
+
+    /**
+     * 查询指定目录下的 0 字节文件和真实空目录。该接口只返回结果，不执行删除。
+     *
+     * @param params {@code path} 必填；{@code recursive} 默认 true；{@code type} 支持 all/file/dir；
+     *               {@code includeHidden} 默认 false；{@code includeRoot} 默认 false；{@code limit} 默认 200
+     * @return JSON：空文件、空目录数量和结果列表
+     * @throws Exception JSON 异常
+     */
+    private String findEmptyItems(JSONObject params) throws Exception {
+        String path = cleanPathParam(params.optString("path", ""));
+        boolean recursive = params.optBoolean("recursive", true);
+        String type = normalizeEmptyType(params.optString("type", "all"));
+        boolean includeHidden = params.optBoolean("includeHidden", false);
+        boolean includeRoot = params.optBoolean("includeRoot", false);
+        int limit = clampInt(params.optInt("limit", 200), 1, 2000);
+        if (type.isEmpty()) return errJson("Invalid type: expected all/file/dir");
+
+        File dir = resolveScanDirectory(path);
+        DirectoryAccessError dirError = validateScanDirectory(path, dir);
+        if (dirError != null) return errJson(dirError.code, dirError.message);
+
+        EmptyScanState state = new EmptyScanState(limit);
+        collectEmptyItems(dir, recursive, type, includeHidden, includeRoot, 0, state);
+
+        JSONObject result = new JSONObject();
+        result.put("directory", dir.getAbsolutePath());
+        result.put("recursive", recursive);
+        result.put("type", type);
+        result.put("includeHidden", includeHidden);
+        result.put("includeRoot", includeRoot);
+        result.put("limit", limit);
+        result.put("emptyFileCount", state.emptyFileCount);
+        result.put("emptyDirectoryCount", state.emptyDirectoryCount);
+        result.put("totalCount", state.emptyFileCount + state.emptyDirectoryCount);
+        result.put("returnedCount", state.items.length());
+        result.put("scannedFiles", state.scannedFiles);
+        result.put("scannedDirectories", state.scannedDirectories);
+        result.put("unreadableDirectories", state.unreadableDirectories);
+        result.put("items", state.items);
+        result.put("note", "Query only. No files or folders are deleted.");
+        return result.toString();
+    }
+
+    private void collectEmptyItems(File dir, boolean recursive, String type, boolean includeHidden,
+                                   boolean includeCurrent, int depth, EmptyScanState state) throws Exception {
+        if (depth > 0 && !includeHidden && dir.isHidden()) {
+            return;
+        }
+        state.scannedDirectories++;
+        File[] children = dir.listFiles();
+        if (children == null) {
+            state.unreadableDirectories++;
+            return;
+        }
+
+        if (includeCurrent && wantsEmptyDirectories(type) && children.length == 0) {
+            addEmptyDirectory(dir, depth, state);
+        }
+
+        for (File child : children) {
+            if (child.isFile()) {
+                state.scannedFiles++;
+                if (!includeHidden && child.isHidden()) {
+                    continue;
+                }
+                if (wantsEmptyFiles(type) && child.length() == 0) {
+                    addEmptyFile(child, depth + 1, state);
+                }
+            } else if (child.isDirectory()) {
+                if (!includeHidden && child.isHidden()) {
+                    continue;
+                }
+                if (recursive) {
+                    collectEmptyItems(child, true, type, includeHidden, true, depth + 1, state);
+                } else {
+                    scanDirectEmptyDirectory(child, type, depth + 1, state);
+                }
+            }
+        }
+    }
+
+    private void scanDirectEmptyDirectory(File dir, String type, int depth, EmptyScanState state) throws Exception {
+        state.scannedDirectories++;
+        File[] children = dir.listFiles();
+        if (children == null) {
+            state.unreadableDirectories++;
+            return;
+        }
+        if (wantsEmptyDirectories(type) && children.length == 0) {
+            addEmptyDirectory(dir, depth, state);
+        }
+    }
+
+    private void addEmptyFile(File file, int depth, EmptyScanState state) throws Exception {
+        state.emptyFileCount++;
+        if (state.items.length() < state.limit) {
+            state.items.put(buildEmptyItem(file, depth, "zero_bytes"));
+        }
+    }
+
+    private void addEmptyDirectory(File dir, int depth, EmptyScanState state) throws Exception {
+        state.emptyDirectoryCount++;
+        if (state.items.length() < state.limit) {
+            state.items.put(buildEmptyItem(dir, depth, "no_children"));
+        }
+    }
+
+    private JSONObject buildEmptyItem(File f, int depth, String reason) throws Exception {
+        JSONObject item = new JSONObject();
+        boolean isFile = f.isFile();
+        boolean isDirectory = f.isDirectory();
+        long size = isFile ? f.length() : 0;
+        File parent = f.getParentFile();
+        item.put("path", f.getAbsolutePath());
+        item.put("name", f.getName());
+        item.put("type", isDirectory ? "directory" : "file");
+        item.put("isFile", isFile);
+        item.put("isDirectory", isDirectory);
+        item.put("size", size);
+        item.put("sizeFormatted", formatSize(size));
+        item.put("lastModified", SDF.format(new Date(f.lastModified())));
+        item.put("lastModifiedTs", f.lastModified());
+        item.put("parent", parent != null ? parent.getAbsolutePath() : "");
+        item.put("depth", depth);
+        item.put("canRead", f.canRead());
+        item.put("canWrite", f.canWrite());
+        item.put("isHidden", f.isHidden());
+        item.put("reason", reason);
+        return item;
+    }
+
+    private String normalizeEmptyType(String raw) {
+        String type = raw == null ? "all" : raw.trim().toLowerCase(Locale.ROOT);
+        if (type.isEmpty() || type.equals("all") || type.equals("both")) return "all";
+        if (type.equals("file") || type.equals("files")) return "file";
+        if (type.equals("dir") || type.equals("dirs") || type.equals("directory")
+                || type.equals("directories") || type.equals("folder") || type.equals("folders")) {
+            return "dir";
+        }
+        return "";
+    }
+
+    private static boolean wantsEmptyFiles(String type) {
+        return "all".equals(type) || "file".equals(type);
+    }
+
+    private static boolean wantsEmptyDirectories(String type) {
+        return "all".equals(type) || "dir".equals(type);
+    }
+
+    private static class EmptyScanState {
+        final JSONArray items = new JSONArray();
+        final int limit;
+        long emptyFileCount;
+        long emptyDirectoryCount;
+        long scannedFiles;
+        long scannedDirectories;
+        long unreadableDirectories;
+
+        EmptyScanState(int limit) {
+            this.limit = limit;
+        }
+    }
+
     // ==================== searchByName ====================
 
     /**
@@ -706,15 +891,15 @@ public class FileStatsPlugin implements ModulePlugin {
      * @throws Exception JSON 异常
      */
     private String searchByName(JSONObject params) throws Exception {
-        String path = params.optString("path", "").trim();
+        String path = cleanPathParam(params.optString("path", ""));
         String keywordsStr = params.optString("keywords", "").trim();
         boolean recursive = params.optBoolean("recursive", true);
         int limit = params.optInt("limit", 500);
-        if (path.isEmpty()) return errJson("Missing parameter: path");
         if (keywordsStr.isEmpty()) return errJson("Missing parameter: keywords");
 
-        File dir = new File(path);
-        if (!dir.exists() || !dir.isDirectory()) return errJson("Directory not found: " + path);
+        File dir = resolveScanDirectory(path);
+        DirectoryAccessError dirError = validateScanDirectory(path, dir);
+        if (dirError != null) return errJson(dirError.code, dirError.message);
 
         String[] keywords = keywordsStr.split(",");
         for (int i = 0; i < keywords.length; i++) keywords[i] = keywords[i].trim().toLowerCase(Locale.ROOT);
@@ -935,6 +1120,168 @@ public class FileStatsPlugin implements ModulePlugin {
         return SIZE_FMT.format(bytes / (1024.0 * 1024 * 1024)) + " GB";
     }
 
+    private static int clampInt(int value, int min, int max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
+    }
+
+    private File resolveScanDirectory(String rawPath) {
+        String path = cleanPathParam(rawPath);
+        if (path.isEmpty() || isExternalStorageRootAlias(path)) {
+            return firstUsableDirectory(
+                    Environment.getExternalStorageDirectory(),
+                    new File("/storage/emulated/0"),
+                    new File("/sdcard"),
+                    new File("/storage/self/primary"));
+        }
+        return new File(path);
+    }
+
+    private File firstUsableDirectory(File... candidates) {
+        File fallback = null;
+        for (File candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = candidate;
+            }
+            if (candidate.exists() && candidate.isDirectory() && candidate.canRead()) {
+                return candidate;
+            }
+        }
+        for (File candidate : candidates) {
+            if (candidate != null && candidate.exists() && candidate.isDirectory()) {
+                return candidate;
+            }
+        }
+        return fallback == null ? new File("/storage/emulated/0") : fallback;
+    }
+
+    private String cleanPathParam(String rawPath) {
+        String path = rawPath == null ? "" : rawPath.trim();
+        if (path.startsWith("[") && path.endsWith("]")) {
+            try {
+                JSONArray arr = new JSONArray(path);
+                path = arr.length() > 0 ? arr.optString(0, "") : "";
+            } catch (Exception ignored) {
+                path = path.substring(1, path.length() - 1).trim();
+            }
+        }
+        if ((path.startsWith("\"") && path.endsWith("\"")) ||
+                (path.startsWith("'") && path.endsWith("'"))) {
+            path = path.substring(1, path.length() - 1).trim();
+        }
+        return path.replace("\\/", "/");
+    }
+
+    private boolean isExternalStorageRootAlias(String path) {
+        String p = path.replace("\\", "/").trim();
+        while (p.endsWith("/") && p.length() > 1) {
+            p = p.substring(0, p.length() - 1);
+        }
+        return p.equals("/sdcard") || p.equals("/storage/emulated/0") || p.equals("/storage/self/primary");
+    }
+
+    private DirectoryAccessError validateScanDirectory(String requestedPath, File resolvedDir) {
+        String displayPath = displayPath(requestedPath, resolvedDir);
+        if (needsAndroidAllFilesPermission(displayPath)) {
+            return new DirectoryAccessError("storage_permission_denied", storagePermissionMessage(displayPath));
+        }
+        if (resolvedDir == null || !resolvedDir.exists()) {
+            return new DirectoryAccessError("directory_not_found", directoryNotFoundMessage(displayPath));
+        }
+        if (!resolvedDir.isDirectory()) {
+            return new DirectoryAccessError("not_a_directory", notDirectoryMessage(displayPath));
+        }
+        if (!resolvedDir.canRead()) {
+            return new DirectoryAccessError("directory_unreadable", directoryUnreadableMessage(displayPath));
+        }
+        if (resolvedDir.listFiles() == null) {
+            return new DirectoryAccessError("directory_list_denied", directoryListDeniedMessage(displayPath));
+        }
+        return null;
+    }
+
+    private String displayPath(String requestedPath, File resolvedDir) {
+        String displayPath = resolvedDir != null ? resolvedDir.getAbsolutePath() : "";
+        if (displayPath == null || displayPath.trim().isEmpty()) {
+            displayPath = requestedPath == null ? "" : requestedPath.trim();
+        }
+        if (displayPath.trim().isEmpty()) {
+            displayPath = "/storage/emulated/0";
+        }
+        return displayPath;
+    }
+
+    private boolean needsAndroidAllFilesPermission(String path) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()) {
+                return false;
+            }
+        } catch (Throwable ignored) {
+            return false;
+        }
+        return isExternalStoragePath(path);
+    }
+
+    private boolean isExternalStoragePath(String path) {
+        String p = path == null ? "" : path.replace("\\", "/").trim();
+        while (p.endsWith("/") && p.length() > 1) {
+            p = p.substring(0, p.length() - 1);
+        }
+        return p.equals("/sdcard")
+                || p.startsWith("/sdcard/")
+                || p.equals("/storage/emulated/0")
+                || p.startsWith("/storage/emulated/0/")
+                || p.equals("/storage/self/primary")
+                || p.startsWith("/storage/self/primary/");
+    }
+
+    private String storagePermissionMessage(String path) {
+        if (isZh()) {
+            return "Android 系统「所有文件访问」权限未授予，无法读取: " + path
+                    + "。请在系统设置中为 PandaGenie 开启「所有文件访问权限」后重试；若只想扫描默认手机存储，可将路径留空。";
+        }
+        return "Android All files access is not granted, so this directory cannot be read: " + path
+                + ". Enable All files access for PandaGenie in system settings and try again, or leave the path empty for the default device storage scan.";
+    }
+
+    private String directoryNotFoundMessage(String path) {
+        return isZh()
+                ? "目录不存在: " + path + "。请检查路径是否正确，或将路径留空后重试。"
+                : "Directory not found: " + path + ". Check the path, or leave it empty and try again.";
+    }
+
+    private String notDirectoryMessage(String path) {
+        return isZh()
+                ? "路径不是目录: " + path + "。请传入目录路径。"
+                : "Path is not a directory: " + path + ". Provide a directory path.";
+    }
+
+    private String directoryUnreadableMessage(String path) {
+        return isZh()
+                ? "目录不可读取: " + path + "。请确认路径存在并且应用有读取权限。"
+                : "Directory is unreadable: " + path + ". Confirm the path exists and the app has read permission.";
+    }
+
+    private String directoryListDeniedMessage(String path) {
+        return isZh()
+                ? "目录可以访问但无法列出内容: " + path + "。可能是系统权限不足、目录受保护或厂商系统限制。"
+                : "Directory exists but its contents cannot be listed: " + path + ". This may be caused by missing system permission, protected storage, or device vendor restrictions.";
+    }
+
+    private static class DirectoryAccessError {
+        final String code;
+        final String message;
+
+        DirectoryAccessError(String code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+    }
+
     /**
      * 将空参数规范为 {@code "{}"}（单行实现，供 {@link #invoke} 使用）。
      *
@@ -952,6 +1299,13 @@ public class FileStatsPlugin implements ModulePlugin {
      */
     private String errJson(String msg) throws Exception {
         return new JSONObject().put("error", msg).toString();
+    }
+
+    private String errJson(String code, String msg) throws Exception {
+        return new JSONObject()
+                .put("error", msg)
+                .put("errorCode", code)
+                .toString();
     }
 
     private String ok(String output) throws Exception {
@@ -977,6 +1331,18 @@ public class FileStatsPlugin implements ModulePlugin {
         if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         if (richContent != null && richContent.length() > 0) r.put("_richContent", richContent);
         return r.toString();
+    }
+
+    private String result(String output, String displayText, String displayHtml) throws Exception {
+        return result(output, displayText, displayHtml, null);
+    }
+
+    private String result(String output, String displayText, String displayHtml, JSONArray richContent) throws Exception {
+        JSONObject parsed = parseOutputJson(output);
+        if (parsed != null && parsed.has("error")) {
+            return error(parsed.optString("error", "Module API error"), output, displayText, displayHtml);
+        }
+        return ok(output, displayText, displayHtml, richContent);
     }
 
     private static JSONObject richCode(String code, String language) throws Exception {
@@ -1007,6 +1373,19 @@ public class FileStatsPlugin implements ModulePlugin {
 
     private String error(String message) throws Exception {
         return new JSONObject().put("success", false).put("error", message).toString();
+    }
+
+    private String error(String message, String output, String displayText, String displayHtml) throws Exception {
+        JSONObject r = new JSONObject().put("success", false).put("error", message);
+        if (output != null && !output.isEmpty()) r.put("output", output);
+        if (displayText != null && !displayText.isEmpty()) r.put("_displayText", displayText);
+        if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
+        JSONObject parsed = parseOutputJson(output);
+        if (parsed != null) {
+            if (parsed.has("errorCode")) r.put("errorCode", parsed.optString("errorCode"));
+            if (parsed.has("details")) r.put("details", parsed.opt("details"));
+        }
+        return r.toString();
     }
 
     /**
@@ -1308,6 +1687,61 @@ public class FileStatsPlugin implements ModulePlugin {
             }
         }
         return "📦 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, fileRows);
+    }
+
+    /**
+     * 空文件和空文件夹查询结果展示。
+     *
+     * @param output 业务 JSON
+     * @return 展示文本
+     */
+    private static String formatFindEmptyItemsDisplay(String output) {
+        boolean zh = isZh();
+        String title = zh ? "空文件和空文件夹" : "Empty Files and Folders";
+        String[] h2 = new String[]{zh ? "项目" : "Item", zh ? "值" : "Value"};
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "类型" : "Type", zh ? "路径" : "Path", zh ? "修改时间" : "Modified"};
+            return "📭 " + title + "\n\n" + pgTable(title, h3, new ArrayList<String[]>());
+        }
+        if (o.has("error")) {
+            List<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{zh ? "错误" : "Error", o.optString("error", "—")});
+            return "📭 " + title + "\n\n" + pgTable(title, h2, rows);
+        }
+        List<String[]> summaryRows = new ArrayList<>();
+        summaryRows.add(new String[]{zh ? "目录" : "Directory", o.optString("directory", "—")});
+        summaryRows.add(new String[]{zh ? "查询类型" : "Type", o.optString("type", "all")});
+        summaryRows.add(new String[]{zh ? "递归" : "Recursive", o.optBoolean("recursive", true) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")});
+        summaryRows.add(new String[]{zh ? "空文件" : "Empty files", String.valueOf(o.optLong("emptyFileCount", 0))});
+        summaryRows.add(new String[]{zh ? "空文件夹" : "Empty folders", String.valueOf(o.optLong("emptyDirectoryCount", 0))});
+        summaryRows.add(new String[]{zh ? "返回" : "Returned", String.valueOf(o.optLong("returnedCount", 0)) + "/" + String.valueOf(o.optLong("totalCount", 0))});
+        summaryRows.add(new String[]{zh ? "未读目录" : "Unreadable dirs", String.valueOf(o.optLong("unreadableDirectories", 0))});
+        summaryRows.add(new String[]{zh ? "说明" : "Note", zh ? "仅查询，不删除" : "Query only, no deletion"});
+
+        String sub = zh ? "结果" : "Results";
+        String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "类型" : "Type", zh ? "路径" : "Path", zh ? "修改时间" : "Modified"};
+        List<String[]> itemRows = new ArrayList<>();
+        JSONArray items = o.optJSONArray("items");
+        if (items != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, items.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                boolean isDir = item.optBoolean("isDirectory", false);
+                itemRows.add(new String[]{
+                        item.optString("name", "?"),
+                        isDir ? (zh ? "空文件夹" : "Empty folder") : (zh ? "空文件" : "Empty file"),
+                        item.optString("path", "—"),
+                        item.optString("lastModified", "—")});
+            }
+            if (items.length() > show) {
+                itemRows.add(new String[]{"…", "+" + (items.length() - show) + (zh ? " 更多" : " more"), "—", "—"});
+            }
+        }
+        return "📭 " + title + "\n\n" + pgTable(title, h2, summaryRows) + "\n\n" + sub + "\n\n" + pgTable(sub, h3, itemRows);
     }
 
     /**
@@ -1691,6 +2125,52 @@ public class FileStatsPlugin implements ModulePlugin {
         }
         String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "大小" : "Size", zh ? "修改时间" : "Modified"};
         return HtmlOutputHelper.card("📦", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, fileRows));
+    }
+
+    private static String formatFindEmptyItemsHtml(String output) {
+        boolean zh = isZh();
+        String title = zh ? "空文件和空文件夹" : "Empty Files and Folders";
+        JSONObject o = parseOutputJson(output);
+        if (o == null) {
+            return HtmlOutputHelper.card("📭", title, HtmlOutputHelper.muted("—"));
+        }
+        if (o.has("error")) {
+            return HtmlOutputHelper.card("📭", title, HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "错误" : "Error", o.optString("error", "—")}}));
+        }
+        String summary = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "目录" : "Directory", o.optString("directory", "—")},
+                {zh ? "查询类型" : "Type", o.optString("type", "all")},
+                {zh ? "递归" : "Recursive", o.optBoolean("recursive", true) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")},
+                {zh ? "空文件" : "Empty files", String.valueOf(o.optLong("emptyFileCount", 0))},
+                {zh ? "空文件夹" : "Empty folders", String.valueOf(o.optLong("emptyDirectoryCount", 0))},
+                {zh ? "返回" : "Returned", String.valueOf(o.optLong("returnedCount", 0)) + "/" + String.valueOf(o.optLong("totalCount", 0))},
+                {zh ? "未读目录" : "Unreadable dirs", String.valueOf(o.optLong("unreadableDirectories", 0))},
+                {zh ? "说明" : "Note", zh ? "仅查询，不删除" : "Query only, no deletion"}
+        });
+        String sub = zh ? "结果" : "Results";
+        List<String[]> itemRows = new ArrayList<>();
+        JSONArray items = o.optJSONArray("items");
+        if (items != null) {
+            int show = Math.min(DISPLAY_LIST_MAX, items.length());
+            for (int i = 0; i < show; i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                boolean isDir = item.optBoolean("isDirectory", false);
+                itemRows.add(new String[]{
+                        item.optString("name", "?"),
+                        isDir ? (zh ? "空文件夹" : "Empty folder") : (zh ? "空文件" : "Empty file"),
+                        item.optString("path", "—"),
+                        item.optString("lastModified", "—")});
+            }
+            if (items.length() > show) {
+                itemRows.add(new String[]{"…", "+" + (items.length() - show) + (zh ? " 更多" : " more"), "—", "—"});
+            }
+        }
+        String[] h3 = new String[]{zh ? "名称" : "Name", zh ? "类型" : "Type", zh ? "路径" : "Path", zh ? "修改时间" : "Modified"};
+        return HtmlOutputHelper.card("📭", title, summary + HtmlOutputHelper.p(sub) + HtmlOutputHelper.table(h3, itemRows));
     }
 
     private static String formatSearchByNameHtml(String output) {

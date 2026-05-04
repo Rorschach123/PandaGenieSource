@@ -234,16 +234,27 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.21)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260501/PandaGenie-v1.0.21.apk)**
+> &#x1F4E5; **[Download APK (v1.0.22)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260504/PandaGenie-v1.0.22.apk)**
 
-- Release tag: [`20260501`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260501)
-- Android project version: `versionName "1.0.21"` / `versionCode 21`
+- Release tag: [`20260504`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260504)
+- Android project version: `versionName "1.0.22"` / `versionCode 22`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.22</b> (2026-05-04)</summary>
+
+- **Feedback replies in app**: added admin reply notifications for user feedback, with unread/read handling in the app and admin tools.
+- **Task generation reliability**: improved fallback planning, task JSON repair heuristics, module invocation diagnostics, and output path extraction.
+- **Module runtime hardening**: tightened sandbox enforcement, permission handling, module update trust policy, and official chat error handling.
+- **Module ecosystem refresh**: updated Document Tools, File Stats, Image Tools, Network Tools, OCR, and System Cleaner packages and metadata.
+- **Admin and server polish**: refreshed admin data views, feedback APIs, submission validation, and database schema for the new notification flow.
+
+</details>
+
+<details>
 <summary><b>v1.0.21</b> (2026-05-01)</summary>
 
 - **Module catalog expansion**: added Document Tools and Device Controls, bringing the official module catalog to 39 modules.

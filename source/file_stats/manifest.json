@@ -2,9 +2,9 @@
   "id": "file_stats",
   "name": "文件信息统计",
   "name_en": "File Stats",
-  "description": "文件信息统计模块，支持获取文件详情、魔术字识别真实文件类型、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、文件名关键词搜索、文本统计等",
-  "description_en": "File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, filename search, text stats",
-  "version": "1.5",
+  "description": "文件信息统计模块，支持获取文件详情、魔术字识别真实文件类型、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、查询空文件和空文件夹、文件名关键词搜索、文本统计等",
+  "description_en": "File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, empty file/folder finder, filename search, text stats",
+  "version": "1.9",
   "icon": "analytics",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -104,11 +104,11 @@
         "recursive"
       ],
       "paramDesc": [
-        "目录的绝对路径",
+        "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
         "是否递归统计子目录(true/false，默认true)"
       ],
       "paramDesc_en": [
-        "Absolute directory path",
+        "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
         "Recursively include subdirectories (true/false, default true)"
       ]
     },
@@ -122,12 +122,12 @@
         "minSize"
       ],
       "paramDesc": [
-        "目录的绝对路径",
+        "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
         "是否递归子目录(true/false，默认true)",
         "最小文件大小过滤，单位字节(默认1024，跳过小文件)"
       ],
       "paramDesc_en": [
-        "Absolute directory path",
+        "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
         "Recurse subdirectories (true/false, default true)",
         "Minimum file size filter in bytes (default 1024, skip tiny files)"
       ]
@@ -143,16 +143,45 @@
         "limit"
       ],
       "paramDesc": [
-        "目录的绝对路径",
+        "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
         "最小文件大小(MB)",
         "是否递归子目录(true/false，默认true)",
         "最多返回条数(默认50)"
       ],
       "paramDesc_en": [
-        "Absolute directory path",
+        "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
         "Minimum file size in MB",
         "Recurse subdirectories (true/false, default true)",
         "Max results (default 50)"
+      ]
+    },
+    {
+      "name": "findEmptyItems",
+      "desc": "在指定目录中查询空文件和空文件夹，不执行删除。空文件按0字节判断，空文件夹按目录下没有任何子项判断",
+      "desc_en": "Find empty files and empty folders in a directory without deleting them. Empty files are zero-byte files; empty folders contain no children",
+      "params": [
+        "path",
+        "recursive",
+        "type",
+        "includeHidden",
+        "includeRoot",
+        "limit"
+      ],
+      "paramDesc": [
+        "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
+        "是否递归扫描子目录(true/false，默认true)",
+        "查询类型: all/file/dir，默认all",
+        "是否包含隐藏文件和隐藏目录(true/false，默认false)",
+        "是否允许把根目录本身作为空文件夹返回(true/false，默认false)",
+        "最多返回条数(默认200，最大2000)"
+      ],
+      "paramDesc_en": [
+        "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
+        "Recurse subdirectories (true/false, default true)",
+        "Query type: all/file/dir, default all",
+        "Include hidden files and hidden folders (true/false, default false)",
+        "Allow the root directory itself to be returned as an empty folder (true/false, default false)",
+        "Max results (default 200, max 2000)"
       ]
     },
     {
@@ -166,13 +195,13 @@
         "limit"
       ],
       "paramDesc": [
-        "目录的绝对路径",
+        "目录路径；全盘/根目录搜索时可留空，App 会统一授权并由模块使用手机存储根目录",
         "文件名关键词(多个用逗号分隔)",
         "是否递归子目录(true/false，默认true)",
         "最多返回条数(默认100)"
       ],
       "paramDesc_en": [
-        "Absolute directory path",
+        "Directory path; leave blank for full/root storage search so the app can authorize access and the module uses the device storage root",
         "Filename keywords (comma-separated)",
         "Recurse subdirectories (true/false, default true)",
         "Max results (default 100)"

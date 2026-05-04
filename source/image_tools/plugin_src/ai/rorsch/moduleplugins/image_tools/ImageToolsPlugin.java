@@ -3,25 +3,37 @@ package ai.rorsch.moduleplugins.image_tools;
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.BitmapRegionDecoder;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * PandaGenie「图片工具」模块插件。
@@ -39,6 +51,9 @@ import java.util.Locale;
  *   <li>{@code convertFormat} — 转换为 jpg / png / webp</li>
  *   <li>{@code rotateImage} — 顺时针旋转 90°、180° 或 270°</li>
  *   <li>{@code cropImage} — 按矩形区域裁剪（支持大图子采样解码）</li>
+ *   <li>{@code listGalleryImages} — 读取默认相册或指定相册图片列表</li>
+ *   <li>{@code findDuplicateImages} — 使用 SHA-256 查找字节级完全重复图片</li>
+ *   <li>{@code findSimilarImages} — 使用 dHash 查找视觉相似图片和缩略图候选</li>
  * </ul>
  * <p>
  * 本类实现 {@link ai.rorsch.pandagenie.module.runtime.ModulePlugin}，由宿主 {@code ModuleRuntime}
@@ -108,8 +123,20 @@ public class ImageToolsPlugin implements ModulePlugin {
                     rc.put(richImage(outJson.optString("outputPath"), isZh() ? "裁剪后的图片" : "Cropped image"));
                     return ok(out, formatCropImageDisplay(out), formatCropImageHtml(out), rc);
                 }
-                default:
-                    return error("Unsupported action: " + action);
+                case "listGalleryImages": {
+                    String out = listGalleryImages(context, params);
+                    return ok(out, formatListGalleryImagesDisplay(out), formatListGalleryImagesHtml(out), null);
+                }
+        case "findDuplicateImages": {
+            String out = findDuplicateImages(context, params);
+            return ok(out, formatFindDuplicateImagesDisplay(out), formatFindDuplicateImagesHtml(out), null);
+        }
+        case "findSimilarImages": {
+            String out = findSimilarImages(context, params);
+            return ok(out, formatFindSimilarImagesDisplay(out), formatFindSimilarImagesHtml(out), null);
+        }
+        default:
+            return error("Unsupported action: " + action);
             }
         } catch (Exception e) {
             String msg = e.getMessage();
@@ -184,6 +211,667 @@ public class ImageToolsPlugin implements ModulePlugin {
      * @return 含输入输出路径、原图/解码/输出尺寸、是否子采样、格式等信息的 JSON 字符串
      * @throws Exception 参数非法、解码或写入失败时抛出
      */
+    private static String listGalleryImages(Context context, JSONObject params) throws Exception {
+        int limit = clampInt(params.optInt("limit", 100), 1, 5000);
+        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        JSONArray arr = new JSONArray();
+        for (GalleryImage image : images) {
+            arr.put(image.toJson(false));
+        }
+        JSONObject out = new JSONObject();
+        out.put("album", normalizedAlbum(params));
+        out.put("source", "MediaStore.Images");
+        out.put("count", arr.length());
+        out.put("limit", limit);
+        out.put("images", arr);
+        return out.toString();
+    }
+
+    private static String findDuplicateImages(Context context, JSONObject params) throws Exception {
+        int limit = clampInt(params.optInt("limit", 5000), 1, 20000);
+        long minBytes = Math.max(0L, params.optLong("minBytes", 1L));
+        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        Map<Long, List<GalleryImage>> bySize = new HashMap<>();
+        int skippedSmall = 0;
+        for (GalleryImage image : images) {
+            if (image.sizeBytes < minBytes || image.sizeBytes <= 0) {
+                skippedSmall++;
+                continue;
+            }
+            List<GalleryImage> sameSize = bySize.get(image.sizeBytes);
+            if (sameSize == null) {
+                sameSize = new ArrayList<>();
+                bySize.put(image.sizeBytes, sameSize);
+            }
+            sameSize.add(image);
+        }
+
+        JSONArray groups = new JSONArray();
+        int hashed = 0;
+        int unreadable = 0;
+        int duplicateImages = 0;
+        long reclaimableBytes = 0L;
+        for (Map.Entry<Long, List<GalleryImage>> entry : bySize.entrySet()) {
+            List<GalleryImage> sameSize = entry.getValue();
+            if (sameSize.size() < 2) {
+                continue;
+            }
+            Map<String, List<GalleryImage>> byHash = new HashMap<>();
+            for (GalleryImage image : sameSize) {
+                try {
+                    String hash = sha256ForImage(context, image);
+                    hashed++;
+                    List<GalleryImage> sameHash = byHash.get(hash);
+                    if (sameHash == null) {
+                        sameHash = new ArrayList<>();
+                        byHash.put(hash, sameHash);
+                    }
+                    sameHash.add(image);
+                } catch (Exception e) {
+                    unreadable++;
+                }
+            }
+            for (Map.Entry<String, List<GalleryImage>> hashEntry : byHash.entrySet()) {
+                List<GalleryImage> dupes = hashEntry.getValue();
+                if (dupes.size() < 2) {
+                    continue;
+                }
+                Collections.sort(dupes, new Comparator<GalleryImage>() {
+                    @Override
+                    public int compare(GalleryImage a, GalleryImage b) {
+                        long ad = Math.max(a.dateModified, a.dateAdded);
+                        long bd = Math.max(b.dateModified, b.dateAdded);
+                        int byDate = Long.compare(bd, ad);
+                        if (byDate != 0) return byDate;
+                        return Long.compare(b.id, a.id);
+                    }
+                });
+                GalleryImage keep = dupes.get(0);
+                JSONArray duplicates = new JSONArray();
+                long groupReclaimable = 0L;
+                for (int i = 1; i < dupes.size(); i++) {
+                    GalleryImage duplicate = dupes.get(i);
+                    duplicates.put(duplicate.toJson(true));
+                    groupReclaimable += duplicate.sizeBytes;
+                }
+                JSONObject group = new JSONObject();
+                group.put("hash", hashEntry.getKey());
+                group.put("sizeBytes", entry.getKey());
+                group.put("sizeFormatted", formatFileSizeMb(entry.getKey()));
+                group.put("count", dupes.size());
+                group.put("keepSuggestion", keep.toJson(false));
+                group.put("duplicates", duplicates);
+                group.put("reclaimableBytes", groupReclaimable);
+                group.put("reclaimableFormatted", formatFileSizeMb(groupReclaimable));
+                groups.put(group);
+                duplicateImages += Math.max(0, dupes.size() - 1);
+                reclaimableBytes += groupReclaimable;
+            }
+        }
+
+        JSONObject out = new JSONObject();
+        out.put("album", normalizedAlbum(params));
+        out.put("source", "MediaStore.Images");
+        out.put("scannedImages", images.size());
+        out.put("hashedImages", hashed);
+        out.put("unreadableImages", unreadable);
+        out.put("skippedSmallImages", skippedSmall);
+        out.put("duplicateGroups", groups);
+        out.put("duplicateGroupCount", groups.length());
+        out.put("duplicateImageCount", duplicateImages);
+        out.put("reclaimableBytes", reclaimableBytes);
+        out.put("reclaimableFormatted", formatFileSizeMb(reclaimableBytes));
+        out.put("note", "Exact duplicates are detected by byte-for-byte SHA-256 content hash. No files are deleted.");
+        return out.toString();
+    }
+
+    private static String findSimilarImages(Context context, JSONObject params) throws Exception {
+        int limit = clampInt(params.optInt("limit", 1000), 1, 5000);
+        int maxDistance = clampInt(params.optInt("maxDistance", 8), 0, 16);
+        int minEdge = clampInt(params.optInt("minEdge", 32), 1, 2048);
+        int maxGroups = clampInt(params.optInt("maxGroups", 50), 1, 500);
+        double ratioTolerance = clampDouble(params.optDouble("ratioTolerance", 0.08), 0.0, 0.5);
+
+        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        List<SimilarImageInfo> infos = new ArrayList<>();
+        int unreadable = 0;
+        int skippedSmall = 0;
+        for (GalleryImage image : images) {
+            try {
+                SimilarImageInfo info = buildSimilarImageInfo(context, image);
+                if (Math.min(info.width, info.height) < minEdge) {
+                    skippedSmall++;
+                    continue;
+                }
+                infos.add(info);
+            } catch (Exception e) {
+                unreadable++;
+            }
+        }
+
+        int n = infos.size();
+        int[] parent = new int[n];
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
+
+        int comparedPairs = 0;
+        int matchedPairs = 0;
+        int thumbnailPairs = 0;
+        for (int i = 0; i < n; i++) {
+            SimilarImageInfo a = infos.get(i);
+            for (int j = i + 1; j < n; j++) {
+                SimilarImageInfo b = infos.get(j);
+                if (!sameAspectRatio(a, b, ratioTolerance)) {
+                    continue;
+                }
+                comparedPairs++;
+                int distance = hammingDistance(a.dhash, b.dhash);
+                if (distance <= maxDistance) {
+                    union(parent, i, j);
+                    matchedPairs++;
+                    if (isLikelyThumbnail(a, b, ratioTolerance)) {
+                        thumbnailPairs++;
+                    }
+                }
+            }
+        }
+
+        Map<Integer, List<SimilarImageInfo>> byRoot = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            int root = find(parent, i);
+            List<SimilarImageInfo> group = byRoot.get(root);
+            if (group == null) {
+                group = new ArrayList<>();
+                byRoot.put(root, group);
+            }
+            group.add(infos.get(i));
+        }
+
+        List<List<SimilarImageInfo>> clusters = new ArrayList<>();
+        for (List<SimilarImageInfo> cluster : byRoot.values()) {
+            if (cluster.size() >= 2) {
+                clusters.add(cluster);
+            }
+        }
+        Collections.sort(clusters, new Comparator<List<SimilarImageInfo>>() {
+            @Override
+            public int compare(List<SimilarImageInfo> a, List<SimilarImageInfo> b) {
+                int bySize = Integer.compare(b.size(), a.size());
+                if (bySize != 0) return bySize;
+                return Long.compare(bestImageScore(b), bestImageScore(a));
+            }
+        });
+
+        JSONArray groups = new JSONArray();
+        int candidateImages = 0;
+        int thumbnailGroups = 0;
+        int emitted = 0;
+        for (List<SimilarImageInfo> cluster : clusters) {
+            if (emitted >= maxGroups) {
+                break;
+            }
+            Collections.sort(cluster, new Comparator<SimilarImageInfo>() {
+                @Override
+                public int compare(SimilarImageInfo a, SimilarImageInfo b) {
+                    return Long.compare(imageQualityScore(b.image), imageQualityScore(a.image));
+                }
+            });
+            SimilarImageInfo keep = cluster.get(0);
+            JSONArray candidates = new JSONArray();
+            boolean hasThumbnailCandidate = false;
+            int minDistance = 64;
+            int maxGroupDistance = 0;
+            for (int i = 1; i < cluster.size(); i++) {
+                SimilarImageInfo candidate = cluster.get(i);
+                int distance = hammingDistance(keep.dhash, candidate.dhash);
+                minDistance = Math.min(minDistance, distance);
+                maxGroupDistance = Math.max(maxGroupDistance, distance);
+                boolean thumbnail = isLikelyThumbnail(keep, candidate, ratioTolerance);
+                hasThumbnailCandidate = hasThumbnailCandidate || thumbnail;
+                JSONObject candidateJson = similarImageJson(candidate, false);
+                candidateJson.put("reviewCandidate", true);
+                candidateJson.put("relationToKeep", thumbnail ? "thumbnailCandidate" : "visualSimilar");
+                candidateJson.put("hashDistanceToKeep", distance);
+                candidateJson.put("similarityPercentToKeep", similarityPercent(distance));
+                candidateJson.put("dimensionRatioToKeep", ratio(candidate.pixelCount(), keep.pixelCount()));
+                candidateJson.put("sizeRatioToKeep", ratio(candidate.image.sizeBytes, keep.image.sizeBytes));
+                candidates.put(candidateJson);
+            }
+            if (candidates.length() == 0) {
+                continue;
+            }
+            JSONObject group = new JSONObject();
+            group.put("algorithm", "dHash64");
+            group.put("matchType", hasThumbnailCandidate ? "thumbnailCandidate" : "visualSimilar");
+            group.put("safeToDeleteAutomatically", false);
+            group.put("count", cluster.size());
+            group.put("keepSuggestion", similarImageJson(keep, false));
+            group.put("candidates", candidates);
+            group.put("minHashDistanceToKeep", minDistance == 64 ? 0 : minDistance);
+            group.put("maxHashDistanceToKeep", maxGroupDistance);
+            group.put("threshold", maxDistance);
+            group.put("reason", hasThumbnailCandidate
+                    ? "Smaller image(s) share a close perceptual hash and aspect ratio with a larger image."
+                    : "Images share a close perceptual hash and aspect ratio; review before deleting.");
+            groups.put(group);
+            emitted++;
+            candidateImages += candidates.length();
+            if (hasThumbnailCandidate) {
+                thumbnailGroups++;
+            }
+        }
+
+        JSONObject out = new JSONObject();
+        out.put("album", normalizedAlbum(params));
+        out.put("source", "MediaStore.Images");
+        out.put("matchMode", "visual");
+        out.put("algorithm", "dHash64");
+        out.put("threshold", maxDistance);
+        out.put("ratioTolerance", ratioTolerance);
+        out.put("minEdge", minEdge);
+        out.put("scannedImages", images.size());
+        out.put("fingerprintedImages", infos.size());
+        out.put("unreadableImages", unreadable);
+        out.put("skippedSmallImages", skippedSmall);
+        out.put("comparedPairs", comparedPairs);
+        out.put("matchedPairs", matchedPairs);
+        out.put("thumbnailMatchedPairs", thumbnailPairs);
+        out.put("candidateGroups", groups);
+        out.put("candidateGroupCount", groups.length());
+        out.put("candidateImageCount", candidateImages);
+        out.put("thumbnailCandidateGroupCount", thumbnailGroups);
+        out.put("note", "Visual matches use 64-bit dHash after down-sampling and aspect-ratio filtering. Treat results as review candidates, not automatic delete targets.");
+        return out.toString();
+    }
+
+    private static List<GalleryImage> queryGalleryImages(Context context, JSONObject params, int limit) throws Exception {
+        if (context == null) {
+            throw new IllegalArgumentException("context is required to access gallery images");
+        }
+        ContentResolver resolver = context.getContentResolver();
+        Uri collection = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                ? MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+                : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+
+        String album = normalizedAlbum(params);
+        boolean allAlbums = "all".equalsIgnoreCase(album) || "*".equals(album);
+        boolean defaultAlbum = album.length() == 0
+                || "default".equalsIgnoreCase(album)
+                || "camera".equalsIgnoreCase(album);
+
+        ArrayList<String> projectionList = new ArrayList<>();
+        projectionList.add(MediaStore.Images.Media._ID);
+        projectionList.add(MediaStore.Images.Media.DISPLAY_NAME);
+        projectionList.add(MediaStore.Images.Media.DATA);
+        projectionList.add(MediaStore.Images.Media.SIZE);
+        projectionList.add(MediaStore.Images.Media.WIDTH);
+        projectionList.add(MediaStore.Images.Media.HEIGHT);
+        projectionList.add(MediaStore.Images.Media.DATE_ADDED);
+        projectionList.add(MediaStore.Images.Media.DATE_MODIFIED);
+        projectionList.add(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+        projectionList.add(MediaStore.Images.Media.MIME_TYPE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            projectionList.add(MediaStore.Images.Media.RELATIVE_PATH);
+        }
+
+        String selection = null;
+        String[] selectionArgs = null;
+        if (!allAlbums) {
+            if (defaultAlbum) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    selection = "(" + MediaStore.Images.Media.BUCKET_DISPLAY_NAME + " IN (?, ?) OR "
+                            + MediaStore.Images.Media.RELATIVE_PATH + " LIKE ? OR "
+                            + MediaStore.Images.Media.DATA + " LIKE ?)";
+                    selectionArgs = new String[] { "Camera", "相机", "%DCIM/Camera%", "%/DCIM/Camera/%" };
+                } else {
+                    selection = "(" + MediaStore.Images.Media.BUCKET_DISPLAY_NAME + " IN (?, ?) OR "
+                            + MediaStore.Images.Media.DATA + " LIKE ?)";
+                    selectionArgs = new String[] { "Camera", "相机", "%/DCIM/Camera/%" };
+                }
+            } else {
+                selection = MediaStore.Images.Media.BUCKET_DISPLAY_NAME + " = ?";
+                selectionArgs = new String[] { album };
+            }
+        }
+
+        String sortOrder = MediaStore.Images.Media.DATE_ADDED + " DESC";
+        ArrayList<GalleryImage> result = new ArrayList<>();
+        Cursor cursor = resolver.query(collection, projectionList.toArray(new String[0]), selection, selectionArgs, sortOrder);
+        if (cursor == null) {
+            return result;
+        }
+        try {
+            int idCol = cursor.getColumnIndex(MediaStore.Images.Media._ID);
+            int nameCol = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
+            int dataCol = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+            int sizeCol = cursor.getColumnIndex(MediaStore.Images.Media.SIZE);
+            int widthCol = cursor.getColumnIndex(MediaStore.Images.Media.WIDTH);
+            int heightCol = cursor.getColumnIndex(MediaStore.Images.Media.HEIGHT);
+            int addedCol = cursor.getColumnIndex(MediaStore.Images.Media.DATE_ADDED);
+            int modifiedCol = cursor.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+            int bucketCol = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+            int mimeCol = cursor.getColumnIndex(MediaStore.Images.Media.MIME_TYPE);
+            int relCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    ? cursor.getColumnIndex(MediaStore.Images.Media.RELATIVE_PATH)
+                    : -1;
+            while (cursor.moveToNext() && result.size() < limit) {
+                long id = idCol >= 0 ? cursor.getLong(idCol) : 0L;
+                Uri uri = ContentUris.withAppendedId(collection, id);
+                GalleryImage image = new GalleryImage();
+                image.id = id;
+                image.uri = uri;
+                image.name = stringAt(cursor, nameCol);
+                image.path = stringAt(cursor, dataCol);
+                image.relativePath = stringAt(cursor, relCol);
+                image.sizeBytes = longAt(cursor, sizeCol);
+                image.width = intAt(cursor, widthCol);
+                image.height = intAt(cursor, heightCol);
+                image.dateAdded = longAt(cursor, addedCol);
+                image.dateModified = longAt(cursor, modifiedCol);
+                image.bucket = stringAt(cursor, bucketCol);
+                image.mimeType = stringAt(cursor, mimeCol);
+                result.add(image);
+            }
+        } finally {
+            cursor.close();
+        }
+        return result;
+    }
+
+    private static String normalizedAlbum(JSONObject params) {
+        String album = params.optString("album", params.optString("bucket", "default"));
+        return album == null ? "default" : album.trim();
+    }
+
+    private static String sha256ForImage(Context context, GalleryImage image) throws Exception {
+        InputStream in = null;
+        try {
+            in = openImageInput(context, image);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] buf = new byte[1024 * 64];
+            int n;
+            while ((n = in.read(buf)) >= 0) {
+                if (n > 0) {
+                    digest.update(buf, 0, n);
+                }
+            }
+            return hex(digest.digest());
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private static InputStream openImageInput(Context context, GalleryImage image) throws Exception {
+        if (image != null && !TextUtils.isEmpty(image.path)) {
+            File file = new File(image.path);
+            if (file.isFile() && file.canRead()) {
+                return new FileInputStream(file);
+            }
+        }
+        if (context == null || image == null || image.uri == null) {
+            throw new IOException("image content is not readable");
+        }
+        InputStream in = context.getContentResolver().openInputStream(image.uri);
+        if (in == null) {
+            throw new IOException("image content is not readable");
+        }
+        return in;
+    }
+
+    private static SimilarImageInfo buildSimilarImageInfo(Context context, GalleryImage image) throws Exception {
+        Bitmap tiny = null;
+        try {
+            tiny = decodeImageForHash(context, image, 9, 8);
+            long dhash = computeDHash64(tiny);
+            return new SimilarImageInfo(image, dhash);
+        } finally {
+            recycleQuietly(tiny);
+        }
+    }
+
+    private static Bitmap decodeImageForHash(Context context, GalleryImage image, int targetWidth, int targetHeight) throws Exception {
+        InputStream in = null;
+        Bitmap decoded = null;
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            in = openImageInput(context, image);
+            BitmapFactory.decodeStream(in, null, bounds);
+            try { in.close(); } catch (Exception ignored) {}
+            in = null;
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                throw new IOException("image bounds are not readable");
+            }
+            if (image.width <= 0) {
+                image.width = bounds.outWidth;
+            }
+            if (image.height <= 0) {
+                image.height = bounds.outHeight;
+            }
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inJustDecodeBounds = false;
+            opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            opts.inSampleSize = computeInSampleSize(bounds.outWidth, bounds.outHeight, 512);
+            in = openImageInput(context, image);
+            decoded = BitmapFactory.decodeStream(in, null, opts);
+            if (decoded == null) {
+                throw new IOException("image decode failed");
+            }
+            Bitmap scaled = Bitmap.createScaledBitmap(decoded, targetWidth, targetHeight, true);
+            if (scaled != decoded) {
+                recycleQuietly(decoded);
+            }
+            decoded = null;
+            return scaled;
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Exception ignored) {}
+            }
+            recycleQuietly(decoded);
+        }
+    }
+
+    private static long computeDHash64(Bitmap bitmap) {
+        long hash = 0L;
+        int bit = 0;
+        for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
+                int left = luminance(bitmap.getPixel(x, y));
+                int right = luminance(bitmap.getPixel(x + 1, y));
+                if (left > right) {
+                    hash |= (1L << bit);
+                }
+                bit++;
+            }
+        }
+        return hash;
+    }
+
+    private static int luminance(int color) {
+        int r = (color >> 16) & 0xff;
+        int g = (color >> 8) & 0xff;
+        int b = color & 0xff;
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+
+    private static boolean sameAspectRatio(SimilarImageInfo a, SimilarImageInfo b, double tolerance) {
+        if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0) {
+            return false;
+        }
+        double ar = a.width / (double) a.height;
+        double br = b.width / (double) b.height;
+        double denom = Math.max(ar, br);
+        return denom <= 0 || Math.abs(ar - br) / denom <= tolerance;
+    }
+
+    private static boolean isLikelyThumbnail(SimilarImageInfo a, SimilarImageInfo b, double tolerance) {
+        if (!sameAspectRatio(a, b, tolerance)) {
+            return false;
+        }
+        long ap = a.pixelCount();
+        long bp = b.pixelCount();
+        if (ap <= 0 || bp <= 0) {
+            return false;
+        }
+        double smallerPixelRatio = Math.min(ap, bp) / (double) Math.max(ap, bp);
+        double smallerByteRatio = ratio(Math.min(a.image.sizeBytes, b.image.sizeBytes), Math.max(a.image.sizeBytes, b.image.sizeBytes));
+        return smallerPixelRatio <= 0.45 || (smallerPixelRatio <= 0.65 && smallerByteRatio <= 0.45);
+    }
+
+    private static JSONObject similarImageJson(SimilarImageInfo info, boolean includeDeleteCandidate) throws Exception {
+        JSONObject o = info.image.toJson(includeDeleteCandidate);
+        o.put("dhash", hash64Hex(info.dhash));
+        o.put("pixelCount", info.pixelCount());
+        return o;
+    }
+
+    private static int hammingDistance(long a, long b) {
+        return Long.bitCount(a ^ b);
+    }
+
+    private static double similarityPercent(int distance) {
+        double value = (64 - Math.max(0, Math.min(64, distance))) * 100.0 / 64.0;
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private static double ratio(long a, long b) {
+        if (a <= 0 || b <= 0) {
+            return 0.0;
+        }
+        double value = a / (double) b;
+        return Math.round(value * 10000.0) / 10000.0;
+    }
+
+    private static long imageQualityScore(GalleryImage image) {
+        long pixels = (long) Math.max(0, image.width) * Math.max(0, image.height);
+        long bytes = Math.max(0L, image.sizeBytes);
+        long date = Math.max(image.dateModified, image.dateAdded);
+        return pixels * 1024L + Math.min(bytes, 1023L) + Math.max(0L, date / 1000000L);
+    }
+
+    private static long bestImageScore(List<SimilarImageInfo> images) {
+        long best = 0L;
+        for (SimilarImageInfo info : images) {
+            best = Math.max(best, imageQualityScore(info.image));
+        }
+        return best;
+    }
+
+    private static int find(int[] parent, int x) {
+        int p = parent[x];
+        if (p != x) {
+            parent[x] = find(parent, p);
+        }
+        return parent[x];
+    }
+
+    private static void union(int[] parent, int a, int b) {
+        int ra = find(parent, a);
+        int rb = find(parent, b);
+        if (ra != rb) {
+            parent[rb] = ra;
+        }
+    }
+
+    private static String hash64Hex(long value) {
+        return String.format(Locale.US, "%016x", value);
+    }
+
+    private static String stringAt(Cursor cursor, int column) {
+        if (column < 0 || cursor.isNull(column)) return "";
+        return cursor.getString(column);
+    }
+
+    private static long longAt(Cursor cursor, int column) {
+        if (column < 0 || cursor.isNull(column)) return 0L;
+        return cursor.getLong(column);
+    }
+
+    private static int intAt(Cursor cursor, int column) {
+        if (column < 0 || cursor.isNull(column)) return 0;
+        return cursor.getInt(column);
+    }
+
+    private static int clampInt(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static double clampDouble(double value, double min, double max) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return min;
+        }
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static String hex(byte[] bytes) {
+        char[] table = "0123456789abcdef".toCharArray();
+        char[] out = new char[bytes.length * 2];
+        for (int i = 0; i < bytes.length; i++) {
+            int v = bytes[i] & 0xff;
+            out[i * 2] = table[v >>> 4];
+            out[i * 2 + 1] = table[v & 0x0f];
+        }
+        return new String(out);
+    }
+
+    private static class GalleryImage {
+        long id;
+        Uri uri;
+        String name = "";
+        String path = "";
+        String relativePath = "";
+        String bucket = "";
+        String mimeType = "";
+        long sizeBytes;
+        int width;
+        int height;
+        long dateAdded;
+        long dateModified;
+
+        JSONObject toJson(boolean includeDeleteCandidate) throws Exception {
+            JSONObject o = new JSONObject();
+            o.put("id", id);
+            o.put("uri", uri != null ? uri.toString() : "");
+            o.put("name", name);
+            o.put("path", path);
+            o.put("relativePath", relativePath);
+            o.put("album", bucket);
+            o.put("mimeType", mimeType);
+            o.put("sizeBytes", sizeBytes);
+            o.put("sizeFormatted", formatFileSizeMb(sizeBytes));
+            o.put("width", width);
+            o.put("height", height);
+            o.put("dateAdded", dateAdded);
+            o.put("dateModified", dateModified);
+            if (includeDeleteCandidate) {
+                o.put("deleteCandidate", true);
+            }
+            return o;
+        }
+    }
+
+    private static class SimilarImageInfo {
+        final GalleryImage image;
+        final long dhash;
+        final int width;
+        final int height;
+
+        SimilarImageInfo(GalleryImage image, long dhash) {
+            this.image = image;
+            this.dhash = dhash;
+            this.width = image.width;
+            this.height = image.height;
+        }
+
+        long pixelCount() {
+            return (long) Math.max(0, width) * Math.max(0, height);
+        }
+    }
+
     private static String resizeImage(JSONObject params) throws Exception {
         String path = params.optString("path", "").trim();
         requireReadableFile(path);
@@ -987,6 +1675,117 @@ public class ImageToolsPlugin implements ModulePlugin {
         return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
     }
 
+    private static String formatListGalleryImagesDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        JSONArray images = o.optJSONArray("images");
+        int count = images == null ? 0 : images.length();
+        String title = zh ? "\u76f8\u518c\u56fe\u7247\u5df2\u8bfb\u53d6" : "Gallery images loaded";
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { zh ? "\u8fd4\u56de\u6570\u91cf" : "Returned", String.valueOf(count) });
+        rows.add(new String[] { zh ? "\u67e5\u8be2\u4e0a\u9650" : "Limit", String.valueOf(o.optInt("limit")) });
+        int preview = Math.min(count, 8);
+        for (int i = 0; i < preview; i++) {
+            JSONObject image = images.optJSONObject(i);
+            if (image == null) {
+                continue;
+            }
+            String label = (zh ? "\u56fe\u7247 " : "Image ") + (i + 1);
+            String value = image.optString("name");
+            long size = image.optLong("sizeBytes");
+            if (size > 0) {
+                value += " | " + formatFileSizeMb(size);
+            }
+            String path = image.optString("path");
+            if (TextUtils.isEmpty(path)) {
+                path = image.optString("uri");
+            }
+            if (!TextUtils.isEmpty(path)) {
+                value += " | " + path;
+            }
+            rows.add(new String[] { label, mdCell(value) });
+        }
+        return title + "\n\n" + pgTable(title, new String[] {
+                zh ? "\u9879\u76ee" : "Item",
+                zh ? "\u503c" : "Value"
+        }, rows);
+    }
+
+    private static String formatFindDuplicateImagesDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int groupCount = o.optInt("duplicateGroupCount");
+        String title = groupCount > 0
+                ? (zh ? "\u627e\u5230\u91cd\u590d\u56fe\u7247" : "Duplicate images found")
+                : (zh ? "\u672a\u53d1\u73b0\u91cd\u590d\u56fe\u7247" : "No duplicate images found");
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedCount")) });
+        rows.add(new String[] { zh ? "\u91cd\u590d\u7ec4" : "Duplicate groups", String.valueOf(groupCount) });
+        rows.add(new String[] { zh ? "\u91cd\u590d\u56fe\u7247" : "Duplicate images", String.valueOf(o.optInt("duplicateImageCount")) });
+        rows.add(new String[] { zh ? "\u53ef\u91ca\u653e\u7a7a\u95f4" : "Reclaimable", o.optString("reclaimableFormatted") });
+        rows.add(new String[] { zh ? "\u5df2\u8df3\u8fc7\u8fc7\u5c0f\u6587\u4ef6" : "Skipped small files", String.valueOf(o.optInt("skippedSmallFiles")) });
+        JSONArray groups = o.optJSONArray("duplicateGroups");
+        int preview = Math.min(groups == null ? 0 : groups.length(), 5);
+        for (int i = 0; i < preview; i++) {
+            JSONObject group = groups.optJSONObject(i);
+            if (group == null) {
+                continue;
+            }
+            JSONObject keep = group.optJSONObject("keepSuggestion");
+            JSONArray dupes = group.optJSONArray("duplicates");
+            String keepName = keep == null ? "" : keep.optString("name");
+            String value = (dupes == null ? 0 : dupes.length()) + " "
+                    + (zh ? "\u5f20\u53ef\u5904\u7406" : "can be cleaned")
+                    + (TextUtils.isEmpty(keepName) ? "" : " | keep " + keepName)
+                    + " | " + formatFileSizeMb(group.optLong("sizeBytes"));
+            rows.add(new String[] { (zh ? "\u91cd\u590d\u7ec4 " : "Group ") + (i + 1), mdCell(value) });
+        }
+        return title + "\n\n" + pgTable(title, new String[] {
+                zh ? "\u9879\u76ee" : "Item",
+                zh ? "\u503c" : "Value"
+        }, rows);
+    }
+
+    private static String formatFindSimilarImagesDisplay(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int groupCount = o.optInt("candidateGroupCount");
+        String title = groupCount > 0
+                ? (zh ? "\u627e\u5230\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "Similar image candidates found")
+                : (zh ? "\u672a\u53d1\u73b0\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "No similar image candidates found");
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
+        rows.add(new String[] { zh ? "\u5df2\u751f\u6210\u6307\u7eb9" : "Fingerprinted", String.valueOf(o.optInt("fingerprintedImages")) });
+        rows.add(new String[] { zh ? "\u76f8\u4f3c\u7ec4" : "Candidate groups", String.valueOf(groupCount) });
+        rows.add(new String[] { zh ? "\u5019\u9009\u56fe\u7247" : "Candidate images", String.valueOf(o.optInt("candidateImageCount")) });
+        rows.add(new String[] { zh ? "\u7f29\u7565\u56fe\u7ec4" : "Thumbnail groups", String.valueOf(o.optInt("thumbnailCandidateGroupCount")) });
+        rows.add(new String[] { zh ? "\u7b97\u6cd5" : "Algorithm", mdCell(o.optString("algorithm")) });
+        rows.add(new String[] { zh ? "\u9608\u503c" : "Threshold", String.valueOf(o.optInt("threshold")) });
+        JSONArray groups = o.optJSONArray("candidateGroups");
+        int preview = Math.min(groups == null ? 0 : groups.length(), 5);
+        for (int i = 0; i < preview; i++) {
+            JSONObject group = groups.optJSONObject(i);
+            if (group == null) {
+                continue;
+            }
+            JSONObject keep = group.optJSONObject("keepSuggestion");
+            JSONArray candidates = group.optJSONArray("candidates");
+            String keepName = keep == null ? "" : keep.optString("name");
+            String value = (candidates == null ? 0 : candidates.length()) + " "
+                    + (zh ? "\u5f20\u9700\u4eba\u5de5\u786e\u8ba4" : "need review")
+                    + (TextUtils.isEmpty(keepName) ? "" : " | keep " + keepName)
+                    + " | " + group.optString("matchType");
+            rows.add(new String[] { (zh ? "\u76f8\u4f3c\u7ec4 " : "Group ") + (i + 1), mdCell(value) });
+        }
+        return title + "\n\n" + pgTable(title, new String[] {
+                zh ? "\u9879\u76ee" : "Item",
+                zh ? "\u503c" : "Value"
+        }, rows);
+    }
+
     // ==================== _displayHtml (HtmlOutputHelper) ====================
 
     private static String formatGetImageInfoHtml(String outputJson) throws Exception {
@@ -1147,6 +1946,67 @@ public class ImageToolsPlugin implements ModulePlugin {
                 { zh ? "输出路径" : "Output path", path }
         });
         return HtmlOutputHelper.card("✅", title, body);
+    }
+
+    private static String formatListGalleryImagesHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        JSONArray images = o.optJSONArray("images");
+        int count = images == null ? 0 : images.length();
+        String title = zh ? "\u76f8\u518c\u56fe\u7247\u5df2\u8bfb\u53d6" : "Gallery images loaded";
+        List<String[]> pairs = new ArrayList<>();
+        pairs.add(new String[] { zh ? "\u76f8\u518c" : "Album", o.optString("album") });
+        pairs.add(new String[] { zh ? "\u8fd4\u56de\u6570\u91cf" : "Returned", String.valueOf(count) });
+        pairs.add(new String[] { zh ? "\u67e5\u8be2\u4e0a\u9650" : "Limit", String.valueOf(o.optInt("limit")) });
+        if (count > 0) {
+            JSONObject first = images.optJSONObject(0);
+            if (first != null) {
+                pairs.add(new String[] { zh ? "\u6700\u65b0\u56fe\u7247" : "Newest image", first.optString("name") });
+                pairs.add(new String[] { zh ? "\u6700\u65b0\u56fe\u7247\u5927\u5c0f" : "Newest image size",
+                        formatFileSizeMb(first.optLong("sizeBytes")) });
+            }
+        }
+        return HtmlOutputHelper.card("IMG", title,
+                HtmlOutputHelper.keyValue(pairs.toArray(new String[0][])));
+    }
+
+    private static String formatFindDuplicateImagesHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int groupCount = o.optInt("duplicateGroupCount");
+        String title = groupCount > 0
+                ? (zh ? "\u627e\u5230\u91cd\u590d\u56fe\u7247" : "Duplicate images found")
+                : (zh ? "\u672a\u53d1\u73b0\u91cd\u590d\u56fe\u7247" : "No duplicate images found");
+        List<String[]> pairs = new ArrayList<>();
+        pairs.add(new String[] { zh ? "\u76f8\u518c" : "Album", o.optString("album") });
+        pairs.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedCount")) });
+        pairs.add(new String[] { zh ? "\u91cd\u590d\u7ec4" : "Duplicate groups", String.valueOf(groupCount) });
+        pairs.add(new String[] { zh ? "\u91cd\u590d\u56fe\u7247" : "Duplicate images", String.valueOf(o.optInt("duplicateImageCount")) });
+        pairs.add(new String[] { zh ? "\u53ef\u91ca\u653e\u7a7a\u95f4" : "Reclaimable", o.optString("reclaimableFormatted") });
+        pairs.add(new String[] { zh ? "\u5df2\u8df3\u8fc7\u8fc7\u5c0f\u6587\u4ef6" : "Skipped small files", String.valueOf(o.optInt("skippedSmallFiles")) });
+        String body = groupCount > 0 ? HtmlOutputHelper.successBadge() : "";
+        body += HtmlOutputHelper.keyValue(pairs.toArray(new String[0][]));
+        return HtmlOutputHelper.card("DUP", title, body);
+    }
+
+    private static String formatFindSimilarImagesHtml(String outputJson) throws Exception {
+        boolean zh = isZh();
+        JSONObject o = new JSONObject(outputJson);
+        int groupCount = o.optInt("candidateGroupCount");
+        String title = groupCount > 0
+                ? (zh ? "\u627e\u5230\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "Similar image candidates found")
+                : (zh ? "\u672a\u53d1\u73b0\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "No similar image candidates found");
+        List<String[]> pairs = new ArrayList<>();
+        pairs.add(new String[] { zh ? "\u76f8\u518c" : "Album", o.optString("album") });
+        pairs.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
+        pairs.add(new String[] { zh ? "\u5df2\u751f\u6210\u6307\u7eb9" : "Fingerprinted", String.valueOf(o.optInt("fingerprintedImages")) });
+        pairs.add(new String[] { zh ? "\u76f8\u4f3c\u7ec4" : "Candidate groups", String.valueOf(groupCount) });
+        pairs.add(new String[] { zh ? "\u5019\u9009\u56fe\u7247" : "Candidate images", String.valueOf(o.optInt("candidateImageCount")) });
+        pairs.add(new String[] { zh ? "\u7f29\u7565\u56fe\u7ec4" : "Thumbnail groups", String.valueOf(o.optInt("thumbnailCandidateGroupCount")) });
+        pairs.add(new String[] { zh ? "\u7b97\u6cd5" : "Algorithm", o.optString("algorithm") });
+        String body = groupCount > 0 ? HtmlOutputHelper.successBadge() : "";
+        body += HtmlOutputHelper.keyValue(pairs.toArray(new String[0][]));
+        return HtmlOutputHelper.card("SIM", title, body);
     }
 
     /**

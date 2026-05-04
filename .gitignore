@@ -10,6 +10,9 @@ source/**/*.mod
 # Module dev toolkit logs
 module-dev-toolkit/logs/
 
+# Cloudflare local cache
+.wrangler/
+
 # Native build outputs (CMake/Ninja artifacts)
 source/*/native/build/
 

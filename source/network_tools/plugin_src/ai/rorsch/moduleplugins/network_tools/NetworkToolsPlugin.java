@@ -20,7 +20,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -56,6 +58,10 @@ public class NetworkToolsPlugin implements ModulePlugin {
     private static final int PING_TIMEOUT_SEC = 20;
     /** 查询公网 IP 的 HTTP 连接/读取超时。 */
     private static final int PUBLIC_IP_TIMEOUT_MS = 5000;
+    /** TCP 端口连通性检查默认超时。 */
+    private static final int DEFAULT_PORT_TIMEOUT_MS = 5000;
+    /** TCP 端口连通性检查最长允许超时，避免任务卡住太久。 */
+    private static final int MAX_PORT_TIMEOUT_MS = 30000;
     /** 允许的 ping 目标字符集（防命令注入的简单校验）。 */
     private static final Pattern SAFE_HOST = Pattern.compile("^[a-zA-Z0-9.:\\-_]+$");
 
@@ -116,6 +122,28 @@ public class NetworkToolsPlugin implements ModulePlugin {
                             new JSONArray().put(richCode(diagnosticPingText(out), "text")),
                             formatPingHtml(pingObj));
                 }
+                case "checkPort": {
+                    String out = checkPort(
+                            params.optString("host", "").trim(),
+                            params.optInt("port", 0),
+                            sanitizeTimeout(params.optInt("timeoutMs", DEFAULT_PORT_TIMEOUT_MS)));
+                    JSONObject portObj = new JSONObject(out);
+                    return ok(out, formatPortDisplay(out),
+                            new JSONArray().put(richCode(diagnosticPortText(out), "text")),
+                            formatPortHtml(portObj));
+                }
+                case "checkHost":
+                case "checkConnection": {
+                    boolean hasPort = params.has("port") && !params.isNull("port") && params.optInt("port", 0) > 0;
+                    String out = checkHost(
+                            params.optString("host", "").trim(),
+                            hasPort ? params.optInt("port", 0) : -1,
+                            sanitizeTimeout(params.optInt("timeoutMs", DEFAULT_PORT_TIMEOUT_MS)));
+                    JSONObject hostObj = new JSONObject(out);
+                    return ok(out, formatHostCheckDisplay(out),
+                            new JSONArray().put(richCode(diagnosticHostCheckText(out), "text")),
+                            formatHostCheckHtml(hostObj));
+                }
                 case "dnsLookup": {
                     String out = dnsLookup(params.optString("domain", "").trim());
                     JSONObject dnsObj = new JSONObject(out);
@@ -156,12 +184,7 @@ public class NetworkToolsPlugin implements ModulePlugin {
      * @throws Exception 参数非法或线程中断等
      */
     private static String ping(String host) throws Exception {
-        if (TextUtils.isEmpty(host)) {
-            throw new IllegalArgumentException("host is required");
-        }
-        if (!SAFE_HOST.matcher(host).matches()) {
-            throw new IllegalArgumentException("invalid host characters");
-        }
+        validateHost(host);
         Process process = Runtime.getRuntime().exec(new String[]{"ping", "-c", "4", host});
         StringBuilder stdout = new StringBuilder();
         StringBuilder stderr = new StringBuilder();
@@ -202,6 +225,104 @@ public class NetworkToolsPlugin implements ModulePlugin {
         o.put("exitCode", exit);
         o.put("timedOut", !finished);
         return o.toString();
+    }
+
+    /**
+     * 使用 TCP connect 检查指定主机端口是否可连接。端口关闭、超时、拒绝连接都返回 open=false，
+     * 不抛出任务失败，便于用户直接看到诊断结果。
+     */
+    private static String checkPort(String host, int port, int timeoutMs) throws Exception {
+        validateHost(host);
+        validatePort(port);
+        long start = System.currentTimeMillis();
+        JSONObject o = new JSONObject();
+        o.put("host", host);
+        o.put("port", port);
+        o.put("timeoutMs", timeoutMs);
+        o.put("protocol", "tcp");
+
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeoutMs);
+            long elapsed = System.currentTimeMillis() - start;
+            o.put("open", true);
+            o.put("reachable", true);
+            o.put("elapsedMs", elapsed);
+            InetAddress addr = socket.getInetAddress();
+            o.put("resolvedAddress", addr != null ? addr.getHostAddress() : "");
+            o.put("error", "");
+        } catch (Exception e) {
+            long elapsed = System.currentTimeMillis() - start;
+            o.put("open", false);
+            o.put("reachable", false);
+            o.put("elapsedMs", elapsed);
+            o.put("resolvedAddress", "");
+            o.put("error", friendlyNetworkError(e));
+        }
+        return o.toString();
+    }
+
+    /**
+     * 综合检查当前设备到目标主机的可达性：先执行系统 ping；如果传入端口，再补充 TCP 端口连通性。
+     */
+    private static String checkHost(String host, int port, int timeoutMs) throws Exception {
+        validateHost(host);
+        JSONObject pingObj = new JSONObject(ping(host));
+        JSONObject o = new JSONObject();
+        boolean pingReachable = isPingReachable(pingObj);
+        o.put("host", host);
+        o.put("ping", pingObj);
+        o.put("pingReachable", pingReachable);
+
+        boolean hasPort = port > 0;
+        o.put("portChecked", hasPort);
+        if (hasPort) {
+            JSONObject portObj = new JSONObject(checkPort(host, port, timeoutMs));
+            boolean portOpen = portObj.optBoolean("open", false);
+            o.put("port", port);
+            o.put("portCheck", portObj);
+            o.put("portOpen", portOpen);
+            o.put("reachable", pingReachable || portOpen);
+        } else {
+            o.put("port", JSONObject.NULL);
+            o.put("portOpen", JSONObject.NULL);
+            o.put("reachable", pingReachable);
+        }
+        return o.toString();
+    }
+
+    private static void validateHost(String host) {
+        if (TextUtils.isEmpty(host)) {
+            throw new IllegalArgumentException("host is required");
+        }
+        if (!SAFE_HOST.matcher(host).matches()) {
+            throw new IllegalArgumentException("invalid host characters");
+        }
+    }
+
+    private static void validatePort(int port) {
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("port must be 1-65535");
+        }
+    }
+
+    private static int sanitizeTimeout(int timeoutMs) {
+        if (timeoutMs <= 0) {
+            return DEFAULT_PORT_TIMEOUT_MS;
+        }
+        return Math.min(timeoutMs, MAX_PORT_TIMEOUT_MS);
+    }
+
+    private static boolean isPingReachable(JSONObject pingObj) {
+        return !pingObj.optBoolean("timedOut", false) && pingObj.optInt("exitCode", 1) == 0;
+    }
+
+    private static String friendlyNetworkError(Exception e) {
+        String message = e.getMessage();
+        String name = e.getClass().getSimpleName();
+        if (message == null || message.trim().isEmpty()) {
+            return name;
+        }
+        return name + ": " + message;
     }
 
     /**
@@ -552,6 +673,58 @@ public class NetworkToolsPlugin implements ModulePlugin {
         }
     }
 
+    private static String diagnosticPortText(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            StringBuilder sb = new StringBuilder();
+            sb.append("host: ").append(o.optString("host", "")).append('\n');
+            sb.append("port: ").append(o.optInt("port", 0)).append('\n');
+            sb.append("protocol: ").append(o.optString("protocol", "tcp")).append('\n');
+            sb.append("open: ").append(o.optBoolean("open", false)).append('\n');
+            sb.append("elapsedMs: ").append(o.optLong("elapsedMs", 0)).append('\n');
+            String resolved = o.optString("resolvedAddress", "");
+            if (!resolved.isEmpty()) {
+                sb.append("resolvedAddress: ").append(resolved).append('\n');
+            }
+            String error = o.optString("error", "");
+            if (!error.isEmpty()) {
+                sb.append("error: ").append(error).append('\n');
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return outputJson;
+        }
+    }
+
+    private static String diagnosticHostCheckText(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            StringBuilder sb = new StringBuilder();
+            sb.append("host: ").append(o.optString("host", "")).append('\n');
+            sb.append("reachable: ").append(o.optBoolean("reachable", false)).append('\n');
+            sb.append("pingReachable: ").append(o.optBoolean("pingReachable", false)).append('\n');
+            if (o.optBoolean("portChecked", false)) {
+                sb.append("port: ").append(o.optInt("port", 0)).append('\n');
+                sb.append("portOpen: ").append(o.optBoolean("portOpen", false)).append('\n');
+            }
+            JSONObject ping = o.optJSONObject("ping");
+            if (ping != null) {
+                sb.append("\n--- ping stdout ---\n").append(ping.optString("stdout", "").trim());
+                String err = ping.optString("stderr", "");
+                if (!err.isEmpty()) {
+                    sb.append("\n--- ping stderr ---\n").append(err.trim());
+                }
+            }
+            JSONObject portCheck = o.optJSONObject("portCheck");
+            if (portCheck != null && !portCheck.optString("error", "").isEmpty()) {
+                sb.append("\n--- port error ---\n").append(portCheck.optString("error", ""));
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return outputJson;
+        }
+    }
+
     private static JSONObject richCode(String code, String language) throws Exception {
         JSONObject rc = new JSONObject();
         rc.put("type", "code");
@@ -565,6 +738,49 @@ public class NetworkToolsPlugin implements ModulePlugin {
             JSONObject o = new JSONObject(outputJson);
             String stdout = o.optString("stdout", "");
             return t("🏓 Ping Results", "🏓 Ping 结果") + "\n\n" + stdout;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String formatPortDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            boolean open = o.optBoolean("open", false);
+            ArrayList<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{t("Host", "主机"), o.optString("host", "—")});
+            rows.add(new String[]{t("Port", "端口"), String.valueOf(o.optInt("port", 0))});
+            rows.add(new String[]{t("Status", "状态"), open ? t("Open", "开放") : t("Closed / unreachable", "未开放 / 不可达")});
+            rows.add(new String[]{t("Latency", "耗时"), o.optLong("elapsedMs", 0) + " ms"});
+            String err = o.optString("error", "");
+            if (!err.isEmpty()) {
+                rows.add(new String[]{t("Reason", "原因"), err});
+            }
+            return pgTable(
+                    t("🔌 TCP Port Check", "🔌 TCP 端口检查"),
+                    new String[]{t("Item", "项目"), t("Value", "值")},
+                    rows);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private static String formatHostCheckDisplay(String outputJson) {
+        try {
+            JSONObject o = new JSONObject(outputJson);
+            boolean reachable = o.optBoolean("reachable", false);
+            ArrayList<String[]> rows = new ArrayList<>();
+            rows.add(new String[]{t("Host", "主机"), o.optString("host", "—")});
+            rows.add(new String[]{t("Ping", "Ping"), o.optBoolean("pingReachable", false) ? t("Reachable", "可达") : t("Unreachable", "不可达")});
+            if (o.optBoolean("portChecked", false)) {
+                rows.add(new String[]{t("Port", "端口"), String.valueOf(o.optInt("port", 0))});
+                rows.add(new String[]{t("Port status", "端口状态"), o.optBoolean("portOpen", false) ? t("Open", "开放") : t("Closed / unreachable", "未开放 / 不可达")});
+            }
+            rows.add(new String[]{t("Conclusion", "结论"), reachable ? t("Connection available", "当前设备到目标可连通") : t("Connection unavailable", "当前设备到目标不可达")});
+            return pgTable(
+                    t("🧭 Host Connectivity", "🧭 主机连通性"),
+                    new String[]{t("Item", "项目"), t("Value", "值")},
+                    rows);
         } catch (Exception ignored) {
             return "";
         }
@@ -785,6 +1001,49 @@ public class NetworkToolsPlugin implements ModulePlugin {
                         + stdout.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                         .replace("\n", "<br>") + "</pre>"
         );
+    }
+
+    private static String formatPortHtml(JSONObject out) {
+        boolean zh = isZh();
+        boolean open = out.optBoolean("open", false);
+        String error = out.optString("error", "");
+        String body = HtmlOutputHelper.badge(
+                open ? (zh ? "端口开放" : "Open") : (zh ? "未开放 / 不可达" : "Closed / unreachable"),
+                open ? "green" : "red")
+                + HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "主机" : "Host", out.optString("host", "—")},
+                {zh ? "端口" : "Port", String.valueOf(out.optInt("port", 0))},
+                {zh ? "协议" : "Protocol", out.optString("protocol", "tcp").toUpperCase(java.util.Locale.ROOT)},
+                {zh ? "耗时" : "Elapsed", out.optLong("elapsedMs", 0) + " ms"},
+                {zh ? "解析地址" : "Resolved", out.optString("resolvedAddress", "—")}
+        });
+        if (!error.isEmpty()) {
+            body += HtmlOutputHelper.muted((zh ? "原因：" : "Reason: ") + error);
+        }
+        return HtmlOutputHelper.card("🔌", zh ? "TCP 端口检查" : "TCP Port Check", body);
+    }
+
+    private static String formatHostCheckHtml(JSONObject out) {
+        boolean zh = isZh();
+        boolean reachable = out.optBoolean("reachable", false);
+        String body = HtmlOutputHelper.badge(
+                reachable ? (zh ? "可连通" : "Reachable") : (zh ? "不可达" : "Unreachable"),
+                reachable ? "green" : "red")
+                + HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "目标主机" : "Target", out.optString("host", "—")},
+                {"Ping", out.optBoolean("pingReachable", false) ? (zh ? "可达" : "Reachable") : (zh ? "不可达" : "Unreachable")}
+        });
+        if (out.optBoolean("portChecked", false)) {
+            body += HtmlOutputHelper.keyValue(new String[][]{
+                    {zh ? "端口" : "Port", String.valueOf(out.optInt("port", 0))},
+                    {zh ? "端口状态" : "Port status", out.optBoolean("portOpen", false) ? (zh ? "开放" : "Open") : (zh ? "未开放 / 不可达" : "Closed / unreachable")}
+            });
+        }
+        JSONObject portCheck = out.optJSONObject("portCheck");
+        if (portCheck != null && !portCheck.optString("error", "").isEmpty()) {
+            body += HtmlOutputHelper.muted((zh ? "端口检查原因：" : "Port check reason: ") + portCheck.optString("error", ""));
+        }
+        return HtmlOutputHelper.card("🧭", zh ? "主机连通性" : "Host Connectivity", body);
     }
 
     private static String formatDnsLookupHtml(JSONObject out) {

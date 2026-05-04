@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-01",
+    "updated_at":  "2026-05-04",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -1122,10 +1122,10 @@
                                      "en":  "File Stats"
                                  },
                         "description":  {
-                                            "zh":  "文件信息统计模块，支持获取文件详情、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、文件名关键词搜索、文本统计等",
-                                            "en":  "File statistics module: file details, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, filename search, text stats"
+                                            "zh":  "文件信息统计模块，支持获取文件详情、魔术字识别真实文件类型、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、查询空文件和空文件夹、文件名关键词搜索、文本统计等",
+                                            "en":  "File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, empty file/folder finder, filename search, text stats"
                                         },
-                        "version":  "1.5",
+                        "version":  "1.9",
                         "icon":  "analytics",
                         "filename":  "file_stats.mod",
                         "download_url":  [
@@ -1151,8 +1151,8 @@
                                      {
                                          "name":  "getFileInfo",
                                          "desc":  {
-                                                      "zh":  "获取文件的完整信息，包括大小、创建时间、修改时间、文件类型、MIME类型、是否隐藏、可读/可写状态等",
-                                                      "en":  "Get comprehensive file info: size, created/modified time, file type, MIME, hidden, readable/writable status"
+                                                      "zh":  "获取文件的完整信息，包括大小、创建时间、修改时间、文件类型、MIME类型、魔术字识别（APK/ZIP/PNG/JPG/MP4/PDF等）、扩展名不匹配检测、是否隐藏、可读/可写状态等",
+                                                      "en":  "Get comprehensive file info: size, created/modified time, file type, MIME, magic bytes detection (APK/ZIP/PNG/JPG/MP4/PDF etc.), extension mismatch check, hidden, readable/writable status"
                                                   },
                                          "params":  [
                                                         "path"
@@ -1169,8 +1169,8 @@
                                      {
                                          "name":  "getFileHash",
                                          "desc":  {
-                                                      "zh":  "计算文件的哈希值，支持MD5、SHA-1、SHA-256算法",
-                                                      "en":  "Calculate file hash using MD5, SHA-1 or SHA-256"
+                                                      "zh":  "计算文件的哈希值，支持MD5、SHA-1、SHA-256算法。用于校验文件完整性、判断文件是否被修改",
+                                                      "en":  "Calculate file hash using MD5, SHA-1 or SHA-256. For integrity checks and modification detection"
                                                   },
                                          "params":  [
                                                         "path",
@@ -1190,8 +1190,8 @@
                                      {
                                          "name":  "compareFiles",
                                          "desc":  {
-                                                      "zh":  "对比两个文件是否完全相同，先比较大小再比较SHA-256哈希",
-                                                      "en":  "Compare two files for equality by size then SHA-256 hash"
+                                                      "zh":  "对比两个文件是否完全相同。先比较大小，大小一致再比较SHA-256哈希。返回是否相同及差异详情",
+                                                      "en":  "Compare two files for equality. Compares size first, then SHA-256 hash. Returns whether identical and difference details"
                                                   },
                                          "params":  [
                                                         "path1",
@@ -1211,7 +1211,7 @@
                                      {
                                          "name":  "verifyChecksum",
                                          "desc":  {
-                                                      "zh":  "用已知的哈希值校验文件完整性",
+                                                      "zh":  "用已知的哈希值校验文件完整性，判断文件是否与预期一致",
                                                       "en":  "Verify file integrity against a known hash value"
                                                   },
                                          "params":  [
@@ -1235,7 +1235,7 @@
                                      {
                                          "name":  "getDirStats",
                                          "desc":  {
-                                                      "zh":  "统计目录信息：总大小、文件数量、子目录数量、按扩展名分类的文件分布",
+                                                      "zh":  "统计目录信息：总大小、文件数量、子目录数量、按扩展名分类的文件数量和大小分布",
                                                       "en":  "Directory statistics: total size, file count, subdirectory count, breakdown by extension"
                                                   },
                                          "params":  [
@@ -1244,11 +1244,11 @@
                                                     ],
                                          "paramDesc":  {
                                                            "zh":  [
-                                                                      "目录的绝对路径",
+                                                                      "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
                                                                       "是否递归统计子目录(true/false，默认true)"
                                                                   ],
                                                            "en":  [
-                                                                      "Absolute directory path",
+                                                                      "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
                                                                       "Recursively include subdirectories (true/false, default true)"
                                                                   ]
                                                        }
@@ -1256,8 +1256,8 @@
                                      {
                                          "name":  "findDuplicates",
                                          "desc":  {
-                                                      "zh":  "在指定目录中查找重复文件（内容完全相同），按SHA-256哈希分组",
-                                                      "en":  "Find duplicate files in a directory by SHA-256 hash"
+                                                      "zh":  "在指定目录中查找重复文件（内容完全相同的文件），按SHA-256哈希分组返回",
+                                                      "en":  "Find duplicate files in a directory by SHA-256 hash, grouped by identical content"
                                                   },
                                          "params":  [
                                                         "path",
@@ -1266,14 +1266,14 @@
                                                     ],
                                          "paramDesc":  {
                                                            "zh":  [
-                                                                      "目录的绝对路径",
+                                                                      "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
                                                                       "是否递归子目录(true/false，默认true)",
-                                                                      "最小文件大小过滤，单位字节(默认1024)"
+                                                                      "最小文件大小过滤，单位字节(默认1024，跳过小文件)"
                                                                   ],
                                                            "en":  [
-                                                                      "Absolute directory path",
+                                                                      "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
                                                                       "Recurse subdirectories (true/false, default true)",
-                                                                      "Minimum file size filter in bytes (default 1024)"
+                                                                      "Minimum file size filter in bytes (default 1024, skip tiny files)"
                                                                   ]
                                                        }
                                      },
@@ -1281,7 +1281,7 @@
                                          "name":  "findLargeFiles",
                                          "desc":  {
                                                       "zh":  "在指定目录中查找超过指定大小的文件，按大小降序排列",
-                                                      "en":  "Find files exceeding a size threshold, sorted by size descending"
+                                                      "en":  "Find files exceeding a size threshold in a directory, sorted by size descending"
                                                   },
                                          "params":  [
                                                         "path",
@@ -1291,13 +1291,13 @@
                                                     ],
                                          "paramDesc":  {
                                                            "zh":  [
-                                                                      "目录的绝对路径",
+                                                                      "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
                                                                       "最小文件大小(MB)",
                                                                       "是否递归子目录(true/false，默认true)",
                                                                       "最多返回条数(默认50)"
                                                                   ],
                                                            "en":  [
-                                                                      "Absolute directory path",
+                                                                      "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
                                                                       "Minimum file size in MB",
                                                                       "Recurse subdirectories (true/false, default true)",
                                                                       "Max results (default 50)"
@@ -1305,10 +1305,43 @@
                                                        }
                                      },
                                      {
+                                         "name":  "findEmptyItems",
+                                         "desc":  {
+                                                      "zh":  "在指定目录中查询空文件和空文件夹，不执行删除。空文件按0字节判断，空文件夹按目录下没有任何子项判断",
+                                                      "en":  "Find empty files and empty folders in a directory without deleting them. Empty files are zero-byte files; empty folders contain no children"
+                                                  },
+                                         "params":  [
+                                                        "path",
+                                                        "recursive",
+                                                        "type",
+                                                        "includeHidden",
+                                                        "includeRoot",
+                                                        "limit"
+                                                    ],
+                                         "paramDesc":  {
+                                                           "zh":  [
+                                                                      "目录路径；全盘/根目录扫描时可留空，App 会统一授权并由模块使用手机存储根目录",
+                                                                      "是否递归扫描子目录(true/false，默认true)",
+                                                                      "查询类型: all/file/dir，默认all",
+                                                                      "是否包含隐藏文件和隐藏目录(true/false，默认false)",
+                                                                      "是否允许把根目录本身作为空文件夹返回(true/false，默认false)",
+                                                                      "最多返回条数(默认200，最大2000)"
+                                                                  ],
+                                                           "en":  [
+                                                                      "Directory path; leave blank for full/root storage scan so the app can authorize access and the module uses the device storage root",
+                                                                      "Recurse subdirectories (true/false, default true)",
+                                                                      "Query type: all/file/dir, default all",
+                                                                      "Include hidden files and hidden folders (true/false, default false)",
+                                                                      "Allow the root directory itself to be returned as an empty folder (true/false, default false)",
+                                                                      "Max results (default 200, max 2000)"
+                                                                  ]
+                                                       }
+                                     },
+                                     {
                                          "name":  "searchByName",
                                          "desc":  {
-                                                      "zh":  "在指定目录中按文件名关键词搜索文件，支持多个关键词(逗号分隔)",
-                                                      "en":  "Search files by filename keyword, supports multiple keywords (comma-separated)"
+                                                      "zh":  "在指定目录中按文件名关键词搜索文件，支持多个关键词(逗号分隔)，支持大小写不敏感匹配",
+                                                      "en":  "Search files by filename keyword in a directory. Supports multiple keywords (comma-separated), case-insensitive"
                                                   },
                                          "params":  [
                                                         "path",
@@ -1318,13 +1351,13 @@
                                                     ],
                                          "paramDesc":  {
                                                            "zh":  [
-                                                                      "目录的绝对路径",
+                                                                      "目录路径；全盘/根目录搜索时可留空，App 会统一授权并由模块使用手机存储根目录",
                                                                       "文件名关键词(多个用逗号分隔)",
                                                                       "是否递归子目录(true/false，默认true)",
                                                                       "最多返回条数(默认100)"
                                                                   ],
                                                            "en":  [
-                                                                      "Absolute directory path",
+                                                                      "Directory path; leave blank for full/root storage search so the app can authorize access and the module uses the device storage root",
                                                                       "Filename keywords (comma-separated)",
                                                                       "Recurse subdirectories (true/false, default true)",
                                                                       "Max results (default 100)"
@@ -1334,8 +1367,8 @@
                                      {
                                          "name":  "getTextStats",
                                          "desc":  {
-                                                      "zh":  "统计文本文件的行数、单词数、字符数、空行数",
-                                                      "en":  "Count lines, words, characters, blank lines of a text file"
+                                                      "zh":  "统计文本文件的行数、单词数、字符数、空行数、非空行数",
+                                                      "en":  "Count lines, words, characters, blank lines, non-blank lines of a text file"
                                                   },
                                          "params":  [
                                                         "path"
@@ -1353,7 +1386,7 @@
                                          "name":  "batchFileInfo",
                                          "desc":  {
                                                       "zh":  "批量获取多个文件的基本信息（大小、修改时间、哈希），路径用逗号分隔",
-                                                      "en":  "Get basic info (size, modified time, hash) for multiple files, paths comma-separated"
+                                                      "en":  "Get basic info (size, modified time, hash) for multiple files. Paths separated by commas"
                                                   },
                                          "params":  [
                                                         "paths",
@@ -1960,10 +1993,10 @@
                                      "en":  "Image Tools"
                                  },
                         "description":  {
-                                            "zh":  "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪等操作",
-                                            "en":  "Image tools: view info, resize, compress, convert format, rotate, and crop images"
+                                            "zh":  "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪、读取相册图片、查找完全重复和视觉相似图片等操作",
+                                            "en":  "Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos"
                                         },
-                        "version":  "1.5",
+                        "version":  "1.7",
                         "icon":  "image",
                         "filename":  "image_tools.mod",
                         "download_url":  [
@@ -1976,8 +2009,18 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.MANAGE_EXTERNAL_STORAGE",
-                                                "desc":  "用于读写图片文件",
-                                                "desc_en":  "Read and write image files"
+                                                "desc":  "用于读写图片文件、读取相册并查找重复图片",
+                                                "desc_en":  "Read and write image files, read gallery albums, and find duplicate images"
+                                            },
+                                            {
+                                                "name":  "android.permission.READ_MEDIA_IMAGES",
+                                                "desc":  "用于读取系统相册图片（Android 13 及以上）",
+                                                "desc_en":  "Read gallery images on Android 13 and above"
+                                            },
+                                            {
+                                                "name":  "android.permission.READ_EXTERNAL_STORAGE",
+                                                "desc":  "用于读取系统相册图片（Android 12 及以下）",
+                                                "desc_en":  "Read gallery images on Android 12 and below"
                                             }
                                         ],
                         "capabilities":  [
@@ -2110,9 +2153,75 @@
                                                               "Crop height",
                                                               "Output path (optional)"
                                                           ]
+                                     },
+                                     {
+                                         "name":  "listGalleryImages",
+                                         "desc":  "读取默认相册或指定相册中的图片列表",
+                                         "desc_en":  "List images from the default Camera album, all albums, or a specified gallery album",
+                                         "params":  [
+                                                        "album",
+                                                        "limit"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "相册名，默认 default/Camera；all 表示全部相册",
+                                                           "最大返回数量，默认 100"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Album name; default reads Camera/DCIM; use all for the whole gallery",
+                                                              "Maximum images to return, default 100"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "findDuplicateImages",
+                                         "desc":  "在默认相册或指定相册中按内容哈希查找重复图片",
+                                         "desc_en":  "Find exact duplicate images in the default Camera album, all albums, or a specified gallery album by SHA-256 content hash",
+                                         "params":  [
+                                                        "album",
+                                                        "limit",
+                                                        "minBytes"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "相册名，默认 default/Camera；all 表示全部相册",
+                                                           "最大扫描数量，默认 5000",
+                                                           "参与查重的最小文件大小，默认 1 字节"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Album name; default reads Camera/DCIM; use all for the whole gallery",
+                                                              "Maximum images to scan, default 5000",
+                                                              "Minimum file size to compare, default 1 byte"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "findSimilarImages",
+                                         "desc":  "在默认相册或指定相册中按视觉指纹查找相似图片、压缩副本和缩略图候选",
+                                         "desc_en":  "Find visually similar images, compressed copies, and thumbnail candidates by perceptual dHash",
+                                         "params":  [
+                                                        "album",
+                                                        "limit",
+                                                        "maxDistance",
+                                                        "ratioTolerance",
+                                                        "minEdge",
+                                                        "maxGroups"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "相册名，默认 default/Camera；all 表示全部相册",
+                                                           "最大扫描数量，默认 1000",
+                                                           "dHash 最大汉明距离，默认 8，越小越严格",
+                                                           "宽高比容差，默认 0.08",
+                                                           "参与比较的最短边，默认 32 像素",
+                                                           "最大返回分组数，默认 50"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Album name; default reads Camera/DCIM; use all for the whole gallery",
+                                                              "Maximum images to scan, default 1000",
+                                                              "Maximum dHash Hamming distance, default 8; lower is stricter",
+                                                              "Aspect ratio tolerance, default 0.08",
+                                                              "Minimum short edge to compare, default 32 px",
+                                                              "Maximum groups to return, default 50"
+                                                          ]
                                      }
                                  ],
-                        "api_count":  6
+                        "api_count":  9
                     },
                     {
                         "id":  "clipboard",
@@ -2326,10 +2435,10 @@
                                      "en":  "Network Tools"
                                  },
                         "description":  {
-                                            "zh":  "网络工具模块，支持Ping测试、DNS查询、获取本机IP和公网IP、检查网络连接状态、查看网络信息",
-                                            "en":  "Network tools: ping, DNS lookup, local/public IP, connectivity check, network info"
+                                            "zh":  "网络工具模块，支持 Ping 互通测试、TCP 端口检查、DNS 查询、本机 IP、公网 IP、网络连接状态和网络信息查看",
+                                            "en":  "Network tools: ping reachability, TCP port check, DNS lookup, local/public IP, connectivity check, network info"
                                         },
-                        "version":  "1.5",
+                        "version":  "1.6",
                         "icon":  "wifi",
                         "filename":  "network_tools.mod",
                         "download_url":  [
@@ -2342,23 +2451,25 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.ACCESS_NETWORK_STATE",
+                                                "desc_zh":  "用于检查网络连接状态",
                                                 "desc":  "用于检查网络连接状态",
                                                 "desc_en":  "Check network connectivity status"
                                             },
                                             {
                                                 "name":  "android.permission.ACCESS_WIFI_STATE",
+                                                "desc_zh":  "用于获取 WiFi 网络信息",
                                                 "desc":  "用于获取WiFi网络信息",
                                                 "desc_en":  "Get WiFi network information"
                                             }
                                         ],
                         "capabilities":  [
-                                             "internet"
+                                             "network"
                                          ],
                         "apis":  [
                                      {
                                          "name":  "ping",
-                                         "desc":  "Ping 指定主机（系统 ping 命令，默认 4 次），返回标准输出与退出码",
-                                         "desc_en":  "Ping a host via system ping (4 packets); returns stdout and exit code",
+                                         "desc":  "通过系统 ping 命令检查当前设备到指定主机是否互通，适合判断两台主机在网络上是否可达",
+                                         "desc_en":  "Check whether the current device can reach a host via system ping",
                                          "params":  [
                                                         "host"
                                                     ],
@@ -2367,6 +2478,46 @@
                                                        ],
                                          "paramDesc_en":  [
                                                               "Hostname or IP address"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "checkHost",
+                                         "desc":  "综合检查当前设备到目标主机的连通性：先 ping；如果提供端口，再进行 TCP 端口连接检查",
+                                         "desc_en":  "Check host reachability with ping, and optionally TCP port connectivity when a port is provided",
+                                         "params":  [
+                                                        "host",
+                                                        "port",
+                                                        "timeoutMs"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "目标主机名或 IP",
+                                                           "可选端口号（1-65535），提供后会检查 TCP 端口是否开放",
+                                                           "可选连接超时毫秒数，默认 5000，最大 30000"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Hostname or IP address",
+                                                              "Optional TCP port 1-65535; checks if the port is open",
+                                                              "Optional timeout in milliseconds, default 5000, max 30000"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "checkPort",
+                                         "desc":  "检查指定主机的 TCP 端口是否开放，用于测试服务端口、局域网设备端口、SSH/HTTP 等连接",
+                                         "desc_en":  "Check whether a TCP port on a host is open, such as SSH, HTTP, LAN services",
+                                         "params":  [
+                                                        "host",
+                                                        "port",
+                                                        "timeoutMs"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "目标主机名或 IP",
+                                                           "端口号（1-65535）",
+                                                           "可选连接超时毫秒数，默认 5000，最大 30000"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Hostname or IP address",
+                                                              "TCP port number 1-65535",
+                                                              "Optional timeout in milliseconds, default 5000, max 30000"
                                                           ]
                                      },
                                      {
@@ -2440,7 +2591,7 @@
                                                           ]
                                      }
                                  ],
-                        "api_count":  6
+                        "api_count":  8
                     },
                     {
                         "id":  "contacts",
@@ -3080,7 +3231,7 @@
                                             "zh":  "系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间",
                                             "en":  "System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space"
                                         },
-                        "version":  "2.0",
+                        "version":  "2.1",
                         "icon":  "delete_sweep",
                         "filename":  "system_cleaner.mod",
                         "download_url":  [
@@ -3091,64 +3242,100 @@
                                           "name":  "PandaGenie Official"
                                       },
                         "permissions":  [
-
+                                            {
+                                                "name":  "android.permission.MANAGE_EXTERNAL_STORAGE",
+                                                "desc":  "用于读取手机存储信息、查找大文件和扫描可清理文件；清理前会由用户确认",
+                                                "desc_en":  "Read device storage information, find large files, and scan cleanable files; cleanup requires user confirmation"
+                                            }
                                         ],
                         "capabilities":  [
-
+                                             "file_read",
+                                             "file_write"
                                          ],
                         "apis":  [
                                      {
                                          "name":  "scanJunk",
                                          "desc":  "扫描可清理的垃圾文件，按分类返回数量与占用空间汇总",
                                          "desc_en":  "Scan for junk files and return summary of what can be cleaned",
-                                         "description":  "Scan for junk files and return summary of what can be cleaned",
                                          "params":  [
-                                                        "categories"
+                                                        "categories",
+                                                        "path"
                                                     ],
                                          "paramDesc":  [
-                                                           "Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)"
-                                                       ]
+                                                           "扫描分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs（默认全部）",
+                                                           "扫描路径（留空使用手机存储根目录，由 App 统一授权）"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)",
+                                                              "Path to scan (leave blank to use the device storage root through App sandbox authorization)"
+                                                          ]
                                      },
                                      {
                                          "name":  "cleanJunk",
                                          "desc":  "按指定分类删除扫描到的垃圾文件并返回删除数量与释放空间",
                                          "desc_en":  "Delete junk files in the specified categories",
-                                         "description":  "Delete junk files in the specified categories",
                                          "params":  [
-                                                        "categories"
+                                                        "categories",
+                                                        "path"
                                                     ],
                                          "paramDesc":  [
-                                                           "Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs"
-                                                       ]
+                                                           "清理分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs",
+                                                           "清理路径（留空使用手机存储根目录，由 App 统一授权）"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs",
+                                                              "Path to clean (leave blank to use the device storage root through App sandbox authorization)"
+                                                          ]
                                      },
                                      {
                                          "name":  "getStorageInfo",
                                          "desc":  "使用 StatFs 获取设备存储总量、已用与可用空间",
                                          "desc_en":  "Get current device storage usage information",
-                                         "description":  "Get current device storage usage information",
                                          "params":  [
 
                                                     ],
                                          "paramDesc":  [
 
-                                                       ]
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
                                      },
                                      {
                                          "name":  "findLargeFiles",
                                          "desc":  "在指定路径递归查找超过阈值的大文件，按大小降序返回",
                                          "desc_en":  "Find large files that may be candidates for cleanup",
-                                         "description":  "Find large files that may be candidates for cleanup",
                                          "params":  [
                                                         "minSizeMB",
                                                         "path"
                                                     ],
                                          "paramDesc":  [
-                                                           "Minimum file size in MB (default 50)",
-                                                           "Path to scan (default /sdcard)"
-                                                       ]
+                                                           "最小文件大小（MB，默认50）",
+                                                           "扫描路径（留空使用手机存储根目录，由 App 统一授权）"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Minimum file size in MB (default 50)",
+                                                              "Path to scan (leave blank to use the device storage root through App sandbox authorization)"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开系统清理界面并返回 _openModule 信号",
+                                         "desc_en":  "Open the System Cleaner UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  4
+                        "api_count":  5
                     },
                     {
                         "id":  "color_picker",
@@ -5012,10 +5199,10 @@
                                      "en":  "Document Tools"
                                  },
                         "description":  {
-                                            "zh":  "文档内容处理模块，支持提取、查询、创建、删除、替换、追加和格式转换。适合一句话修改文档、查询文档内容、把文档转为文本/Markdown/HTML/JSON。",
-                                            "en":  "Document content tools for extracting, querying, creating, deleting, replacing, appending and converting documents. Useful for editing documents, searching content and converting to text/Markdown/HTML/JSON."
+                                            "zh":  "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换，以及导入/生成 CSV、XLSX 表格。适合一句话修改文档、查询文档内容、生成表格或把文档转为文本/Markdown/HTML/JSON。",
+                                            "en":  "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, and importing/creating CSV or XLSX tables."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.4",
                         "icon":  "description",
                         "filename":  "document_tools.mod",
                         "download_url":  [
@@ -5145,8 +5332,8 @@
                                      },
                                      {
                                          "name":  "createDocument",
-                                         "desc":  "创建新的 txt、md、html、json、csv 文档。",
-                                         "desc_en":  "Create a new txt, md, html, json or csv document.",
+                                         "desc":  "创建新的 txt、md、html、json、csv 文档。用户没有指定路径时会自动保存到 /sdcard/PandaGenie/documents/。",
+                                         "desc_en":  "Create a new txt, md, html, json or csv document. If path is empty, saves under /sdcard/PandaGenie/documents/.",
                                          "params":  [
                                                         "path",
                                                         "content",
@@ -5154,16 +5341,65 @@
                                                         "title"
                                                     ],
                                          "paramDesc":  [
-                                                           "新文档路径",
+                                                           "新文档路径，留空则保存到 /sdcard/PandaGenie/documents/",
                                                            "文档内容",
                                                            "格式 txt/md/html/json/csv，可从扩展名推断",
                                                            "标题，可选"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "New document path",
+                                                              "New document path; empty saves under /sdcard/PandaGenie/documents/",
                                                               "Document content",
                                                               "Format txt/md/html/json/csv, can be inferred from extension",
                                                               "Optional title"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "createTable",
+                                         "desc":  "生成表格/电子表格文件，支持 xlsx、csv、md、html、json。用户要求“生成表格”“做一个 Excel”“整理成表格”时优先使用；可传 headers 和 rows，也可传 CSV/Markdown 文本 content。",
+                                         "desc_en":  "Create a table/spreadsheet file in xlsx, csv, md, html or json. Prefer this when the user asks to generate a table, spreadsheet or Excel file.",
+                                         "params":  [
+                                                        "path",
+                                                        "headers",
+                                                        "rows",
+                                                        "format",
+                                                        "title",
+                                                        "content"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "输出路径，留空则保存到 /sdcard/PandaGenie/documents/；可用 .xlsx 或 .csv 扩展名推断格式",
+                                                           "表头数组，例如 [\"姓名\",\"金额\"]",
+                                                           "二维数组或对象数组，例如 [[\"张三\",\"10\"]] 或 [{\"姓名\":\"张三\",\"金额\":\"10\"}]",
+                                                           "输出格式 xlsx/csv/md/html/json，默认 xlsx",
+                                                           "表格标题或工作表名称，可选",
+                                                           "可选的 CSV 或 Markdown 表格文本；没有 rows 时会解析 content"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Output path; empty saves under /sdcard/PandaGenie/documents/. Extension can infer format.",
+                                                              "Header array, for example [\"Name\",\"Amount\"]",
+                                                              "Array rows or object rows",
+                                                              "Output format xlsx/csv/md/html/json, default xlsx",
+                                                              "Optional table title or sheet name",
+                                                              "Optional CSV or Markdown table text parsed when rows are not provided"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "importTable",
+                                         "desc":  "导入/读取 CSV 或 XLSX 表格并返回 headers、rows、rowCount、columnCount。用户要求“导入表格”“读取 Excel”“看看这个表格内容”时使用。",
+                                         "desc_en":  "Import/read a CSV or XLSX table and return headers, rows, rowCount and columnCount.",
+                                         "params":  [
+                                                        "filePath",
+                                                        "maxRows",
+                                                        "hasHeader"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "表格文件路径，支持 .csv 和 .xlsx",
+                                                           "最多返回数据行数，默认 80",
+                                                           "第一行是否表头，默认 true"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Table file path, supports .csv and .xlsx",
+                                                              "Maximum data rows to return, default 80",
+                                                              "Whether the first row is header, default true"
                                                           ]
                                      },
                                      {
@@ -5215,7 +5451,7 @@
                                                           ]
                                      }
                                  ],
-                        "api_count":  9
+                        "api_count":  11
                     },
                     {
                         "id":  "device_controls",

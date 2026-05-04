@@ -2,7 +2,7 @@
     "id":  "system_cleaner",
     "name":  "系统清理",
     "name_en":  "System Cleaner",
-    "version":  "2.0",
+    "version":  "2.1",
     "description":  "系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间",
     "description_en":  "System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space",
     "icon":  "delete_sweep",
@@ -36,13 +36,16 @@
                      "desc":  "扫描可清理的垃圾文件，按分类返回数量与占用空间汇总",
                      "desc_en":  "Scan for junk files and return summary of what can be cleaned",
                      "params":  [
-                                    "categories"
+                                    "categories",
+                                    "path"
                                 ],
                      "paramDesc":  [
-                                       "扫描分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs（默认全部）"
+                                       "扫描分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs（默认全部）",
+                                       "扫描路径（留空使用手机存储根目录，由 App 统一授权）"
                                    ],
                      "paramDesc_en":  [
-                                          "Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)"
+                                          "Comma-separated categories to scan: temp,cache,apk,thumbs,empty_dirs,logs (default: all)",
+                                          "Path to scan (leave blank to use the device storage root through App sandbox authorization)"
                                       ]
                  },
                  {
@@ -50,13 +53,16 @@
                      "desc":  "按指定分类删除扫描到的垃圾文件并返回删除数量与释放空间",
                      "desc_en":  "Delete junk files in the specified categories",
                      "params":  [
-                                    "categories"
+                                    "categories",
+                                    "path"
                                 ],
                      "paramDesc":  [
-                                       "清理分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs"
+                                       "清理分类，逗号分隔: temp,cache,apk,thumbs,empty_dirs,logs",
+                                       "清理路径（留空使用手机存储根目录，由 App 统一授权）"
                                    ],
                      "paramDesc_en":  [
-                                          "Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs"
+                                          "Comma-separated categories to clean: temp,cache,apk,thumbs,empty_dirs,logs",
+                                          "Path to clean (leave blank to use the device storage root through App sandbox authorization)"
                                       ]
                  },
                  {
@@ -83,11 +89,11 @@
                                 ],
                      "paramDesc":  [
                                        "最小文件大小（MB，默认50）",
-                                       "扫描路径（留空自动选择可访问的手机存储根目录）"
+                                       "扫描路径（留空使用手机存储根目录，由 App 统一授权）"
                                    ],
                      "paramDesc_en":  [
                                           "Minimum file size in MB (default 50)",
-                                          "Path to scan (leave blank to auto-select accessible device storage root)"
+                                          "Path to scan (leave blank to use the device storage root through App sandbox authorization)"
                                       ]
                  },
                  {
