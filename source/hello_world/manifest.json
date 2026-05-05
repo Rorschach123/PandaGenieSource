@@ -2,7 +2,7 @@
   "id": "hello_world",
   "name": "自我介绍",
   "name_en": "Hello World",
-  "version": "1.1",
+  "version": "1.2",
   "icon": "smart_toy",
   "soLibraries": [],
   "description": "PandaGenie 自我介绍模块，当用户询问「你是谁」「能做什么」「有什么功能」等问题时，由 AI 自动调用，返回结构化的助手介绍与能力列表",
@@ -13,7 +13,11 @@
   "pluginClass": "ai.rorsch.moduleplugins.hello_world.HelloPlugin",
   "soLoadMode": "skip",
   "permissions": [
-    "android.permission.INTERNET"
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于访问模块市场接口获取模块数量与能力信息",
+      "desc_en": "Access module market API for module counts and capability highlights"
+    }
   ],
   "capabilities": [
     "network"

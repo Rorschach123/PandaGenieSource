@@ -11,25 +11,24 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
 /**
- * PandaGenie「自我介绍」模块插件。
- * <p>
- * 当用户询问「你是谁」「能做什么」「怎么用」等问题时由 AI 自动调用，
- * 从服务端实时获取模块列表，返回结构化的自我介绍、能力概览和使用技巧。
+ * PandaGenie self-introduction module.
+ *
+ * The introduction is intentionally generated only when the module is executed.
+ * It reads the live module market catalog, reports the current ecosystem size,
+ * and highlights a few random modules so each greeting feels fresh.
  */
 public class HelloPlugin implements ModulePlugin {
 
     private static final String API_BASE = "https://cf.pandagenie.ai";
-    private static final int TIMEOUT = 8000;
+    private static final int TIMEOUT_MS = 8000;
     private static final Random RANDOM = new Random();
-
-    private static boolean isZh() {
-        return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
-    }
+    private static final int HIGHLIGHT_COUNT = 6;
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
@@ -52,310 +51,323 @@ public class HelloPlugin implements ModulePlugin {
         }
     }
 
-    // ── 从服务端拉取模块列表 ──
-
-    /**
-     * 从 /modules/list API 获取所有已发布模块，失败时返回空数组（降级为静态介绍）。
-     */
-    private JSONArray fetchModules(boolean zh) {
-        try {
-            String urlStr = API_BASE + "/modules/list?locale=" + (zh ? "zh" : "en");
-            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-            conn.setConnectTimeout(TIMEOUT);
-            conn.setReadTimeout(TIMEOUT);
-            conn.setRequestProperty("User-Agent", "PandaGenie-Hello/1.0");
-            try {
-                int code = conn.getResponseCode();
-                if (code != 200) return new JSONArray();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-                JSONObject json = new JSONObject(sb.toString());
-                if (json.optBoolean("success", false)) {
-                    return json.optJSONArray("data") != null ? json.getJSONArray("data") : new JSONArray();
-                }
-                return new JSONArray();
-            } finally {
-                conn.disconnect();
-            }
-        } catch (Exception e) {
-            return new JSONArray();
-        }
-    }
-
-    // ── introduce ──
-
     private String doIntroduce(boolean zh) throws Exception {
-        JSONArray mods = fetchModules(zh);
-        int total = mods.length();
+        MarketSnapshot snapshot = fetchMarketSnapshot(zh);
+        List<ModuleInfo> highlights = pickRandomModules(snapshot.modules, HIGHLIGHT_COUNT);
 
         JSONObject out = new JSONObject();
         out.put("name", "PandaGenie");
-        out.put("type", zh ? "AI 手机助手" : "AI Phone Assistant");
-        out.put("moduleCount", total);
-
-        // 随机抽取 3 个模块作为亮点展示
-        List<String> highlights = pickRandomModules(mods, 3);
-
-        StringBuilder sb = new StringBuilder();
-        sb.append((zh
-                ? "🐼 PandaGenie — 你的 AI 手机助手\n\n"
-                + "你好！我是 PandaGenie，一个开源、免费、无广告的安卓 AI 助手。\n\n"
-                + "和普通的聊天机器人不同，我不仅能对话，还能真正帮你操作手机——"
-                + "整理文件、查天气、翻译文字、生成密码、OCR 识别……"
-                + "你说一句话，我就自动规划步骤、调用模块、完成任务。\n\n"
-                + "我的核心理念是「模块化」：每项功能都是一个独立模块，装了就有，不装就没有。"
-                : "🐼 PandaGenie — Your AI Phone Assistant\n\n"
-                + "Hi! I'm PandaGenie, an open-source, free, ad-free Android AI assistant.\n\n"
-                + "Unlike regular chatbots, I can actually operate your phone — "
-                + "organize files, check weather, translate text, generate passwords, OCR recognition... "
-                + "Just say what you want, and I'll plan the steps, invoke modules, and complete the task.\n\n"
-                + "My core concept is 'modularity': each feature is an independent module."
-        ) + "\n\n");
-
-        if (total > 0) {
-            sb.append(zh
-                    ? "目前已有 " + total + " 个功能模块，而且你还可以自己开发模块扩展我的能力。\n\n"
-                    : "Currently " + total + " modules available, and you can develop your own to extend my capabilities.\n\n"
-            );
-            if (!highlights.isEmpty()) {
-                sb.append(zh ? "✨ 亮点模块随机推荐：\n" : "✨ Random module highlights:\n");
-                for (String h : highlights) {
-                    sb.append("  · ").append(h).append("\n");
-                }
-                sb.append("\n");
-            }
-        } else {
-            sb.append(zh
-                    ? "目前已有数十个功能模块，覆盖文件、图片、网络、系统、效率、娱乐等场景。\n\n"
-                    : "Currently dozens of modules available, covering files, images, network, system, productivity, and entertainment.\n\n"
-            );
+        out.put("type", zh ? "\u0041\u0049 \u624b\u673a\u52a9\u624b" : "AI Phone Assistant");
+        out.put("moduleCount", snapshot.totalCount());
+        out.put("source", snapshot.source);
+        JSONArray highlightJson = new JSONArray();
+        for (ModuleInfo item : highlights) {
+            highlightJson.put(new JSONObject()
+                    .put("id", item.id)
+                    .put("name", item.name)
+                    .put("description", item.description)
+                    .put("apiCount", item.apiCount));
         }
+        out.put("highlights", highlightJson);
 
-        sb.append(zh
-                ? "🌐 官网：pandagenie.ai\n💻 GitHub：github.com/Rorschach123/PandaGenieSource"
-                : "🌐 Website: pandagenie.ai\n💻 GitHub: github.com/Rorschach123/PandaGenieSource");
-
-        String moduleMetric = total > 0 ? String.valueOf(total) : "30+";
-        String html = HtmlOutputHelper.card(
-                "🐼",
-                zh ? "关于 PandaGenie" : "About PandaGenie",
-                HtmlOutputHelper.metricGrid(new String[][]{
-                        {zh ? "AI 手机助手" : "AI Phone Assistant", zh ? "定位" : "Type"},
-                        {moduleMetric, zh ? "功能模块" : "Modules"},
-                        {zh ? "开源免费" : "Open & Free", zh ? "价格" : "Price"},
-                        {zh ? "无广告" : "No Ads", zh ? "体验" : "Experience"}
-                })
-                + HtmlOutputHelper.muted(zh
-                        ? "模块化设计：装了就有，不装就没有 — 扩展 AI 的能力边界"
-                        : "Modular design: install to enable, uninstall to remove — extending AI's capability boundary")
-        );
-
-        return ok(out, sb.toString().trim(), html);
+        String displayText = buildIntroText(zh, snapshot, highlights);
+        String displayHtml = buildIntroHtml(zh, snapshot, highlights);
+        return ok(out, displayText, displayHtml);
     }
 
-    // ── capabilities ──
-
     private String doCapabilities(boolean zh, JSONObject params) throws Exception {
-        JSONArray mods = fetchModules(zh);
-        int total = mods.length();
-
+        MarketSnapshot snapshot = fetchMarketSnapshot(zh);
+        List<ModuleInfo> modules = snapshot.modules;
         JSONObject out = new JSONObject();
-        out.put("moduleCount", total);
+        out.put("moduleCount", snapshot.totalCount());
+        out.put("source", snapshot.source);
 
-        if (total == 0) {
-            // 降级：服务端不可用时用静态数据
+        if (modules.isEmpty()) {
             return buildStaticCapabilities(zh, out);
         }
 
-        // 按 modules.json 的模块列表分组展示
-        StringBuilder sb = new StringBuilder();
-        sb.append(zh
-                ? "📦 我的能力概览（共 " + total + " 个模块）\n\n"
-                + "以下是我目前所有可用的功能模块：\n\n"
-                : "📦 My Capabilities (" + total + " modules total)\n\n"
-                + "Here are all currently available modules:\n\n");
-
-        // 列出所有模块名称和简介
-        for (int i = 0; i < mods.length(); i++) {
-            JSONObject m = mods.getJSONObject(i);
-            String name = m.optString("name", m.optString("id", "?"));
-            String desc = m.optString("desc", "");
-            sb.append(i + 1).append(". ").append(name);
-            if (!desc.isEmpty()) {
-                // 截取描述前30个字符避免过长
-                String shortDesc = desc.length() > 30 ? desc.substring(0, 30) + "…" : desc;
-                sb.append(" — ").append(shortDesc);
-            }
-            sb.append("\n");
+        StringBuilder text = new StringBuilder();
+        text.append(zh
+                ? "\uD83D\uDCE6 \u6211\u4ece\u6a21\u5757\u5e02\u573a\u8bfb\u5230\u4e86 " + snapshot.totalCount() + " \u4e2a\u53ef\u7528\u6a21\u5757\uff1a\n\n"
+                : "\uD83D\uDCE6 I found " + snapshot.totalCount() + " available modules in the module market:\n\n");
+        int limit = Math.min(20, modules.size());
+        for (int i = 0; i < limit; i++) {
+            ModuleInfo item = modules.get(i);
+            text.append(i + 1)
+                    .append(". ")
+                    .append(item.name)
+                    .append(" - ")
+                    .append(shortText(item.description, 42))
+                    .append("\n");
+        }
+        if (modules.size() > limit) {
+            text.append(zh ? "\n\u8fd8\u6709 " + (modules.size() - limit) + " \u4e2a\u6a21\u5757\u53ef\u5728\u5e02\u573a\u4e2d\u7ee7\u7eed\u67e5\u770b\u3002"
+                    : "\n" + (modules.size() - limit) + " more modules are available in the market.");
         }
 
-        sb.append("\n").append(zh
-                ? "使用方式很简单：直接用自然语言告诉我你想做什么，我会自动规划步骤并调用对应模块完成。"
-                : "Usage is simple: just tell me what you want in natural language, I'll plan and invoke the right modules.");
-
-        // HTML 部分
         List<String[]> rows = new ArrayList<>();
-        for (int i = 0; i < mods.length(); i++) {
-            JSONObject m = mods.getJSONObject(i);
-            String name = m.optString("name", m.optString("id", "?"));
-            String desc = m.optString("desc", "");
-            rows.add(new String[]{name, desc.length() > 40 ? desc.substring(0, 40) + "…" : desc});
+        for (int i = 0; i < Math.min(10, modules.size()); i++) {
+            ModuleInfo item = modules.get(i);
+            rows.add(new String[]{item.name, shortText(item.description, 54)});
         }
         String html = HtmlOutputHelper.card(
-                "📦",
-                (zh ? "能力概览（" : "Capabilities (") + total + (zh ? " 个模块）" : " modules)"),
-                HtmlOutputHelper.table(
-                        new String[]{zh ? "模块" : "Module", zh ? "说明" : "Description"},
+                "\uD83D\uDCE6",
+                zh ? "\u6a21\u5757\u80fd\u529b\u6982\u89c8" : "Capability Overview",
+                HtmlOutputHelper.metricGrid(new String[][]{
+                        {String.valueOf(snapshot.totalCount()), zh ? "\u5e02\u573a\u6a21\u5757" : "market modules"},
+                        {String.valueOf(totalApis(modules)), zh ? "\u5df2\u66b4\u9732 API" : "published APIs"}
+                })
+                        + HtmlOutputHelper.table(
+                        new String[]{zh ? "\u6a21\u5757" : "Module", zh ? "\u80fd\u529b" : "Capability"},
                         rows
                 )
-                + HtmlOutputHelper.muted(zh
-                        ? "直接用自然语言描述需求，AI 自动选模块执行"
-                        : "Describe needs in plain language, AI auto-selects modules")
+                        + HtmlOutputHelper.muted(zh
+                        ? "\u76f4\u63a5\u7528\u81ea\u7136\u8bed\u8a00\u8bf4\u9700\u6c42\uff0cPandaGenie \u4f1a\u81ea\u52a8\u9009\u6a21\u5757\u5e76\u6267\u884c\u3002"
+                        : "Describe your goal naturally; PandaGenie chooses and executes modules automatically.")
         );
-
-        return ok(out, sb.toString().trim(), html);
+        return ok(out, text.toString().trim(), html);
     }
-
-    private String buildStaticCapabilities(boolean zh, JSONObject out) throws Exception {
-        String[][] categories;
-        if (zh) {
-            categories = new String[][]{
-                    {"📁 文件与存储", "filemanager, archive, file_stats, system_cleaner"},
-                    {"📷 图片与媒体", "image_tools, ocr, led_banner"},
-                    {"🌐 网络与通讯", "weather, network_tools, url_codec, link_parser"},
-                    {"💻 系统与设备", "device_info, battery, app_manager, contacts, flashlight, compass"},
-                    {"📝 效率工具", "notes, reminder, calculator, unit_converter, clipboard, password_gen, qrcode, text_tools, translator, color_picker, signature_checker"},
-                    {"✨ 趣味娱乐", "magic_dice, fortune, farming_game, gomoku_game, snake_game, sudoku_game, tetris_game, tictactoe_game"}
-            };
-        } else {
-            categories = new String[][]{
-                    {"📁 Files & Storage", "filemanager, archive, file_stats, system_cleaner"},
-                    {"📷 Images & Media", "image_tools, ocr, led_banner"},
-                    {"🌐 Network & Comms", "weather, network_tools, url_codec, link_parser"},
-                    {"💻 System & Device", "device_info, battery, app_manager, contacts, flashlight, compass"},
-                    {"📝 Productivity", "notes, reminder, calculator, unit_converter, clipboard, password_gen, qrcode, text_tools, translator, color_picker, signature_checker"},
-                    {"✨ Fun & Games", "magic_dice, fortune, farming_game, gomoku_game, snake_game, sudoku_game, tetris_game, tictactoe_game"}
-            };
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(zh ? "📦 我的能力概览（30+ 模块）\n\n" : "📦 My Capabilities (30+ modules)\n\n");
-        for (String[] cat : categories) {
-            sb.append(cat[0]).append("\n  ").append(cat[1]).append("\n\n");
-        }
-        sb.append(zh
-                ? "直接用自然语言描述需求，AI 自动选模块执行"
-                : "Describe needs in plain language, AI auto-selects modules");
-
-        return ok(out, sb.toString().trim(), null);
-    }
-
-    // ── usage_tips ──
 
     private String doUsageTips(boolean zh) throws Exception {
         JSONObject out = new JSONObject();
+        String[][] tips = zh ? new String[][]{
+                {"\uD83D\uDCAC", "\u50cf\u804a\u5929\u4e00\u6837\u76f4\u63a5\u8bf4\u9700\u6c42\uff0c\u4e0d\u9700\u8981\u8bb0\u547d\u4ee4\u3002"},
+                {"\uD83E\uDDE9", "\u590d\u6742\u4efb\u52a1\u53ef\u4ee5\u4e00\u53e5\u8bdd\u8bf4\u5b8c\uff0cAI \u4f1a\u62c6\u6210\u591a\u6b65\u6267\u884c\u3002"},
+                {"\uD83D\uDCE6", "\u6253\u5f00\u6a21\u5757\u5e02\u573a\u53ef\u4ee5\u5b89\u88c5\u66f4\u591a\u80fd\u529b\uff0c\u5b89\u88c5\u540e\u7acb\u523b\u53ef\u7528\u3002"},
+                {"\uD83D\uDEE1", "\u6bcf\u4e2a\u6a21\u5757\u90fd\u5728\u6c99\u7bb1\u4e2d\u6267\u884c\uff0c\u6743\u9650\u7531 App \u7edf\u4e00\u7ba1\u63a7\u3002"}
+        } : new String[][]{
+                {"\uD83D\uDCAC", "Speak naturally. No commands to memorize."},
+                {"\uD83E\uDDE9", "One sentence can become a multi-step executable task."},
+                {"\uD83D\uDCE6", "Install more capabilities from the Module Market."},
+                {"\uD83D\uDEE1", "Modules run in a sandbox and permissions are controlled by the app."}
+        };
 
-        String[][] tips;
-        if (zh) {
-            tips = new String[][]{
-                    {"💬 说人话就行", "不需要记指令或命令格式，直接用日常语言说需求，比如「帮我整理下载文件夹」"},
-                    {"🔀 多步组合", "一句话可以包含多个操作，AI 会自动拆解：「查天气，要下雨就提醒我带伞，顺便写到笔记里」"},
-                    {"📦 模块市场", "打开「模块市场」可以浏览和安装更多功能模块，装了就有新能力"},
-                    {"🔒 安全沙箱", "每个模块运行在独立沙箱中，互相隔离，无法访问其他模块或你隐私数据"},
-                    {"🛠️ 自定义 LLM", "在设置中可以切换 AI 模型，支持 Gemini/Groq（免费）、OpenAI/Claude/DeepSeek 等"},
-                    {"✅ 可见可控", "AI 的每一步操作都会显示给你看，你可以随时取消，不会在后台偷偷操作"}
-            };
-        } else {
-            tips = new String[][]{
-                    {"💬 Just speak naturally", "No need to memorize commands. Say what you want in everyday language, like 'organize my download folder'"},
-                    {"🔀 Multi-step combos", "One sentence can contain multiple operations: 'check weather, remind me if it rains, also save to notes'"},
-                    {"📦 Module Market", "Open the Module Market to browse and install more modules — each install adds new capabilities"},
-                    {"🔒 Security Sandbox", "Each module runs in an isolated sandbox, cannot access other modules or your private data"},
-                    {"🛠️ Custom LLM", "Switch AI models in Settings — supports Gemini/Groq (free), OpenAI/Claude/DeepSeek and more"},
-                    {"✅ Transparent & Controllable", "Every AI step is shown to you, cancel anytime — nothing happens in the background secretly"}
-            };
-        }
-
-        String[][] examples;
-        if (zh) {
-            examples = new String[][]{
-                    {"📁 整理文件", "「整理下载文件夹，按文件类型分类，大于 100MB 的单独列出来」"},
-                    {"📷 OCR + 翻译", "「拍照识别这段文字，翻译成英文」"},
-                    {"🌦️ 天气提醒", "「查天气，要下雨就提醒我带伞」"},
-                    {"🔐 安全工具", "「生成一个 16 位强密码并复制到剪贴板」"},
-                    {"💾 数据备份", "「导出联系人，压缩加密备份到下载目录」"}
-            };
-        } else {
-            examples = new String[][]{
-                    {"📁 File organize", "'Organize download folder by file type, list files over 100MB separately'"},
-                    {"📷 OCR + Translate", "'Scan this text from photo and translate to English'"},
-                    {"🌦️ Weather alert", "'Check weather, remind me to bring an umbrella if it rains'"},
-                    {"🔐 Security tools", "'Generate a 16-character strong password and copy to clipboard'"},
-                    {"💾 Data backup", "'Export contacts, compress and encrypt backup to downloads'"}
-            };
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(zh ? "💡 使用技巧\n\n" : "💡 Usage Tips\n\n");
+        StringBuilder text = new StringBuilder(zh ? "\uD83D\uDCA1 \u4f7f\u7528\u5efa\u8bae\n\n" : "\uD83D\uDCA1 Usage Tips\n\n");
         for (String[] tip : tips) {
-            sb.append(tip[0]).append("\n  ").append(tip[1]).append("\n\n");
+            text.append(tip[0]).append(" ").append(tip[1]).append("\n");
         }
-        sb.append(zh ? "📌 常用场景示例：\n\n" : "📌 Common examples:\n\n");
-        for (String[] ex : examples) {
-            sb.append(ex[0]).append("\n  ").append(ex[1]).append("\n\n");
-        }
-
-        StringBuilder htmlBody = new StringBuilder();
-        for (String[] tip : tips) {
-            htmlBody.append(HtmlOutputHelper.keyValue(new String[][]{
-                    {tip[0], tip[1]}
-            }));
-        }
-        List<String[]> exRows = new ArrayList<>();
-        for (String[] ex : examples) {
-            exRows.add(new String[]{ex[0], ex[1]});
-        }
-        htmlBody.append(HtmlOutputHelper.table(
-                new String[]{zh ? "场景" : "Scenario", zh ? "示例" : "Example"},
-                exRows
-        ));
+        text.append("\n").append(zh
+                ? "\u4f8b\u5982\uff1a\u201c\u627e\u51fa\u91cd\u590d\u56fe\u7247\u201d\u3001\u201c\u67e5\u8be2\u7a7a\u6587\u4ef6\u5939\u201d\u3001\u201c\u628a\u56fe\u7247\u8f6c\u6210 PNG\u201d\u3002"
+                : "Examples: \"find duplicate images\", \"query empty folders\", \"convert images to PNG\".");
 
         String html = HtmlOutputHelper.card(
-                "💡",
-                zh ? "使用技巧" : "Usage Tips",
-                htmlBody.toString()
+                "\uD83D\uDCA1",
+                zh ? "\u4f7f\u7528\u5efa\u8bae" : "Usage Tips",
+                HtmlOutputHelper.iconList(tips)
+                        + HtmlOutputHelper.muted(zh
+                        ? "\u4e0b\u6b21\u76f4\u63a5\u8bf4\u4f60\u60f3\u5b8c\u6210\u7684\u624b\u673a\u4efb\u52a1\u5c31\u597d\u3002"
+                        : "Next time, just say the phone task you want done.")
         );
-
-        return ok(out, sb.toString().trim(), html);
+        return ok(out, text.toString().trim(), html);
     }
 
-    // ── helpers ──
+    private String buildIntroText(boolean zh, MarketSnapshot snapshot, List<ModuleInfo> highlights) {
+        StringBuilder text = new StringBuilder();
+        text.append(zh
+                ? "\uD83D\uDC3C PandaGenie - \u4f60\u7684 AI \u624b\u673a\u52a9\u624b\n\n"
+                + "\u4f60\u597d\uff0c\u6211\u662f PandaGenie\u3002\u6211\u662f\u4e00\u4e2a\u5f00\u6e90\u3001\u514d\u8d39\u3001\u65e0\u5e7f\u544a\u7684\u5b89\u5353 AI \u52a9\u624b\uff0c\u4e0d\u53ea\u4f1a\u804a\u5929\uff0c\u8fd8\u80fd\u628a\u4f60\u7684\u9700\u6c42\u62c6\u6210\u53ef\u6267\u884c\u6b65\u9aa4\uff0c\u8c03\u7528\u6a21\u5757\u771f\u6b63\u5b8c\u6210\u624b\u673a\u4efb\u52a1\u3002\n\n"
+                : "\uD83D\uDC3C PandaGenie - Your AI Phone Assistant\n\n"
+                + "Hi, I'm PandaGenie: an open-source, free, ad-free Android AI assistant. I do more than chat: I turn your request into executable steps and call modules to complete real phone tasks.\n\n");
 
-    /**
-     * 从模块数组中随机抽取 n 个模块名+描述用于亮点展示。
-     */
-    private List<String> pickRandomModules(JSONArray mods, int n) throws org.json.JSONException {
-        List<String> all = new ArrayList<>();
-        for (int i = 0; i < mods.length(); i++) {
-            JSONObject m = mods.getJSONObject(i);
-            String name = m.optString("name", "");
-            String desc = m.optString("desc", "");
-            if (!name.isEmpty()) {
-                all.add(name + (desc.isEmpty() ? "" : (" — " + (desc.length() > 25 ? desc.substring(0, 25) + "…" : desc))));
+        if (snapshot.totalCount() > 0) {
+            text.append(zh
+                    ? "\u6211\u521a\u901a\u8fc7\u6a21\u5757\u5e02\u573a\u63a5\u53e3\u8bfb\u5230 " + snapshot.totalCount() + " \u4e2a\u53ef\u7528\u6a21\u5757\uff0c\u968f\u673a\u6311\u51e0\u4e2a\u7ed9\u4f60\u770b\u770b\uff1a\n"
+                    : "I just read " + snapshot.totalCount() + " available modules from the module market API. Here are a few random highlights:\n");
+            for (ModuleInfo item : highlights) {
+                text.append("- ").append(item.name);
+                if (!item.description.isEmpty()) {
+                    text.append(": ").append(shortText(item.description, zh ? 36 : 58));
+                }
+                if (item.apiCount > 0) {
+                    text.append(zh ? "\uff08" + item.apiCount + " \u4e2a API\uff09" : " (" + item.apiCount + " APIs)");
+                }
+                text.append("\n");
+            }
+            text.append("\n");
+        } else {
+            text.append(zh
+                    ? "\u6211\u53ef\u4ee5\u8986\u76d6\u6587\u4ef6\u3001\u56fe\u7247\u3001\u5e94\u7528\u3001\u7cfb\u7edf\u3001\u65e5\u7a0b\u3001\u7f51\u7edc\u7b49\u624b\u673a\u4efb\u52a1\u3002\n\n"
+                    : "I can cover files, images, apps, system tools, schedules, network tasks, and more.\n\n");
+        }
+
+        text.append(zh
+                ? "\u4f60\u53ef\u4ee5\u76f4\u63a5\u8bf4\uff1a\u201c\u627e\u51fa\u91cd\u590d\u7167\u7247\u201d\u3001\u201c\u67e5\u8be2\u7a7a\u6587\u4ef6\u5939\u201d\u3001\u201c\u628a\u56fe\u7247\u8f6c\u6210 PNG\u201d\u3001\u201c\u6e05\u7406\u7f13\u5b58\u201d\u3002"
+                : "You can say things like: \"find duplicate photos\", \"query empty folders\", \"convert images to PNG\", or \"clean cache\".");
+        return text.toString().trim();
+    }
+
+    private String buildIntroHtml(boolean zh, MarketSnapshot snapshot, List<ModuleInfo> highlights) {
+        String moduleCount = snapshot.totalCount() > 0 ? String.valueOf(snapshot.totalCount()) : "30+";
+        List<String[]> rows = new ArrayList<>();
+        for (ModuleInfo item : highlights) {
+            String apiText = item.apiCount > 0
+                    ? (zh ? item.apiCount + " \u4e2a API" : item.apiCount + " APIs")
+                    : "";
+            rows.add(new String[]{
+                    item.name,
+                    shortText(item.description, 52),
+                    apiText
+            });
+        }
+        String intro = zh
+                ? "\u6211\u662f\u5f00\u6e90\u3001\u514d\u8d39\u3001\u65e0\u5e7f\u544a\u7684\u5b89\u5353 AI \u624b\u673a\u52a9\u624b\u3002\u4f60\u8bf4\u9700\u6c42\uff0c\u6211\u89c4\u5212\u6b65\u9aa4\u5e76\u8c03\u7528\u6a21\u5757\u5b8c\u6210\u3002"
+                : "I am an open-source, free, ad-free Android AI assistant. You describe the goal; I plan steps and call modules to finish it.";
+        String sourceText = snapshot.fromLiveMarket()
+                ? (zh ? "\u5df2\u8fde\u63a5\u6a21\u5757\u5e02\u573a\u63a5\u53e3" : "Loaded from live module market API")
+                : (zh ? "\u5e02\u573a\u6682\u4e0d\u53ef\u7528\uff0c\u5df2\u4f7f\u7528\u672c\u5730\u515c\u5e95\u4ecb\u7ecd" : "Market unavailable; using local fallback");
+
+        String body = HtmlOutputHelper.metricGrid(new String[][]{
+                {zh ? "AI \u624b\u673a\u52a9\u624b" : "AI Phone Assistant", zh ? "\u5b9a\u4f4d" : "Type"},
+                {moduleCount, zh ? "\u5e02\u573a\u6a21\u5757" : "Market Modules"},
+                {String.valueOf(totalApis(snapshot.modules)), zh ? "\u5df2\u66b4\u9732 API" : "Published APIs"},
+                {zh ? "\u5f00\u6e90\u514d\u8d39" : "Open & Free", zh ? "\u4ef7\u683c" : "Price"}
+        })
+                + HtmlOutputHelper.p(intro)
+                + (rows.isEmpty() ? "" : HtmlOutputHelper.table(
+                new String[]{zh ? "\u968f\u673a\u6a21\u5757" : "Random Module", zh ? "\u80fd\u529b\u4eae\u70b9" : "Capability", "API"},
+                rows
+        ))
+                + HtmlOutputHelper.muted(sourceText);
+
+        return HtmlOutputHelper.card(
+                "\uD83D\uDC3C",
+                zh ? "\u5173\u4e8e PandaGenie" : "About PandaGenie",
+                body
+        );
+    }
+
+    private String buildStaticCapabilities(boolean zh, JSONObject out) throws Exception {
+        String text = zh
+                ? "\uD83D\uDCE6 \u6211\u53ef\u4ee5\u5904\u7406\u6587\u4ef6\u7ba1\u7406\u3001\u538b\u7f29\u89e3\u538b\u3001\u56fe\u7247\u5904\u7406\u3001OCR\u3001\u5929\u6c14\u3001\u5e94\u7528\u7ba1\u7406\u3001\u7cfb\u7edf\u4fe1\u606f\u3001\u65e5\u7a0b\u63d0\u9192\u3001\u4e8c\u7ef4\u7801\u3001\u5bc6\u7801\u751f\u6210\u7b49\u4efb\u52a1\u3002"
+                : "\uD83D\uDCE6 I can handle file management, archives, image tools, OCR, weather, app management, system info, reminders, QR codes, password generation, and more.";
+        String html = HtmlOutputHelper.card(
+                "\uD83D\uDCE6",
+                zh ? "\u80fd\u529b\u6982\u89c8" : "Capabilities",
+                HtmlOutputHelper.iconList(zh ? new String[][]{
+                        {"\uD83D\uDCC1", "\u6587\u4ef6\u7ba1\u7406\u3001\u7a7a\u6587\u4ef6\u5939\u3001\u91cd\u590d\u6587\u4ef6\u3001\u538b\u7f29\u5305"},
+                        {"\uD83D\uDDBC", "\u56fe\u7247\u8f6c\u6362\u3001OCR\u3001\u56fe\u7247\u5206\u6790"},
+                        {"\u2699", "\u5e94\u7528\u7ba1\u7406\u3001\u7cfb\u7edf\u4fe1\u606f\u3001\u6e05\u7406\u5de5\u5177"},
+                        {"\uD83D\uDCDD", "\u7b14\u8bb0\u3001\u63d0\u9192\u3001\u6587\u672c\u5de5\u5177\u3001\u4e8c\u7ef4\u7801"}
+                } : new String[][]{
+                        {"\uD83D\uDCC1", "Files, empty folders, duplicates, archives"},
+                        {"\uD83D\uDDBC", "Image conversion, OCR, image analysis"},
+                        {"\u2699", "App management, system info, cleaning tools"},
+                        {"\uD83D\uDCDD", "Notes, reminders, text tools, QR codes"}
+                })
+        );
+        return ok(out, text, html);
+    }
+
+    private MarketSnapshot fetchMarketSnapshot(boolean zh) {
+        List<ModuleInfo> modules = fetchCatalogModules(zh);
+        if (!modules.isEmpty()) return new MarketSnapshot(modules, "catalog");
+
+        modules = fetchListModules(zh);
+        if (!modules.isEmpty()) return new MarketSnapshot(modules, "list");
+
+        return new MarketSnapshot(new ArrayList<ModuleInfo>(), "fallback");
+    }
+
+    private List<ModuleInfo> fetchCatalogModules(boolean zh) {
+        try {
+            String body = get(API_BASE + "/modules/catalog");
+            JSONObject json = new JSONObject(body);
+            JSONArray arr = json.optJSONArray("modules");
+            if (arr == null) return new ArrayList<>();
+            List<ModuleInfo> modules = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject item = arr.optJSONObject(i);
+                if (item == null) continue;
+                String id = item.optString("id", "");
+                String name = localized(item.optJSONObject("name"), zh, id);
+                String desc = localized(item.optJSONObject("description"), zh, "");
+                int apiCount = 0;
+                JSONArray apis = item.optJSONArray("apis");
+                if (apis != null) apiCount = apis.length();
+                modules.add(new ModuleInfo(id, name, desc, apiCount));
+            }
+            return modules;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private List<ModuleInfo> fetchListModules(boolean zh) {
+        try {
+            String body = get(API_BASE + "/modules/list?locale=" + (zh ? "zh" : "en"));
+            JSONObject json = new JSONObject(body);
+            if (!json.optBoolean("success", false)) return new ArrayList<>();
+            JSONArray arr = json.optJSONArray("data");
+            if (arr == null) return new ArrayList<>();
+            List<ModuleInfo> modules = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject item = arr.optJSONObject(i);
+                if (item == null) continue;
+                String id = item.optString("id", "");
+                String name = item.optString("name", id);
+                String desc = item.optString("desc", "");
+                modules.add(new ModuleInfo(id, name, desc, 0));
+            }
+            return modules;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    private String get(String urlText) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlText).openConnection();
+        conn.setConnectTimeout(TIMEOUT_MS);
+        conn.setReadTimeout(TIMEOUT_MS);
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setRequestProperty("User-Agent", "PandaGenie-Hello/1.2");
+        try {
+            int code = conn.getResponseCode();
+            if (code < 200 || code >= 300) throw new IllegalStateException("HTTP " + code);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+            reader.close();
+            return sb.toString();
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    private List<ModuleInfo> pickRandomModules(List<ModuleInfo> modules, int count) {
+        List<ModuleInfo> clean = new ArrayList<>();
+        for (ModuleInfo item : modules) {
+            if (item.name != null && !item.name.trim().isEmpty()) {
+                clean.add(item);
             }
         }
-        // Fisher-Yates 部分洗牌取前 n 个
-        int count = Math.min(n, all.size());
-        for (int i = 0; i < count; i++) {
-            int j = i + RANDOM.nextInt(all.size() - i);
-            String tmp = all.get(i);
-            all.set(i, all.get(j));
-            all.set(j, tmp);
-        }
-        return all.subList(0, count);
+        Collections.shuffle(clean, RANDOM);
+        return clean.subList(0, Math.min(count, clean.size()));
+    }
+
+    private int totalApis(List<ModuleInfo> modules) {
+        int total = 0;
+        for (ModuleInfo item : modules) total += Math.max(0, item.apiCount);
+        return total;
+    }
+
+    private String localized(JSONObject value, boolean zh, String fallback) {
+        if (value == null) return fallback == null ? "" : fallback;
+        String preferred = zh ? value.optString("zh", "") : value.optString("en", "");
+        if (!preferred.isEmpty()) return preferred;
+        String other = zh ? value.optString("en", "") : value.optString("zh", "");
+        return other.isEmpty() ? (fallback == null ? "" : fallback) : other;
+    }
+
+    private String shortText(String value, int maxChars) {
+        if (value == null) return "";
+        String text = value.trim().replaceAll("\\s+", " ");
+        if (text.length() <= maxChars) return text;
+        return text.substring(0, Math.max(0, maxChars)) + "...";
+    }
+
+    private boolean isZh() {
+        return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
     }
 
     private String emptyJson(String value) {
@@ -380,5 +392,37 @@ public class HelloPlugin implements ModulePlugin {
                 .put("success", false)
                 .put("error", message)
                 .toString();
+    }
+
+    private static final class ModuleInfo {
+        final String id;
+        final String name;
+        final String description;
+        final int apiCount;
+
+        ModuleInfo(String id, String name, String description, int apiCount) {
+            this.id = id == null ? "" : id;
+            this.name = name == null ? "" : name;
+            this.description = description == null ? "" : description;
+            this.apiCount = apiCount;
+        }
+    }
+
+    private static final class MarketSnapshot {
+        final List<ModuleInfo> modules;
+        final String source;
+
+        MarketSnapshot(List<ModuleInfo> modules, String source) {
+            this.modules = modules;
+            this.source = source;
+        }
+
+        int totalCount() {
+            return modules == null ? 0 : modules.size();
+        }
+
+        boolean fromLiveMarket() {
+            return "catalog".equals(source) || "list".equals(source);
+        }
     }
 }

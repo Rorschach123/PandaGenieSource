@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-04",
+    "updated_at":  "2026-05-05",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -5130,7 +5130,7 @@
                                             "zh":  "PandaGenie 自我介绍模块，当用户询问「你是谁」「能做什么」「有什么功能」等问题时，由 AI 自动调用，返回结构化的助手介绍与能力列表",
                                             "en":  "PandaGenie self-introduction module. When users ask \u0027who are you\u0027, \u0027what can you do\u0027, \u0027what features do you have\u0027, etc., AI automatically invokes this to return a structured introduction and capability list."
                                         },
-                        "version":  "1.1",
+                        "version":  "1.2",
                         "icon":  "smart_toy",
                         "filename":  "hello_world.mod",
                         "download_url":  [

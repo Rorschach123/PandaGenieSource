@@ -16,10 +16,24 @@
   <a href="https://cf.pandagenie.ai/sign">提交模块</a> &nbsp;&#x2022;&nbsp;
   <a href="https://cf.pandagenie.ai/marketplace">模块市场</a> &nbsp;&#x2022;&nbsp;
   <a href="#创建你的模块">创建模块</a> &nbsp;&#x2022;&nbsp;
-  <a href="README.md">&#x1F1EC;&#x1F1E7; English</a>
+  <a href="README_EN.md">&#x1F1EC;&#x1F1E7; English</a>
 </p>
 
 </div>
+
+---
+
+## 中文演示
+
+<p align="center">
+  <a href="docs/pandagenie-demo-cn.mp4">
+    <img src="docs/pandagenie-demo-cn.gif" width="360" alt="PandaGenie 中文功能演示：一句话完成手机任务" />
+  </a>
+</p>
+
+<p align="center">
+  GitHub 中展示压缩动图；点击动图可查看原始 MP4。官网首页已接入中文视频并自动播放。
+</p>
 
 ---
 
