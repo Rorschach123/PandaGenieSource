@@ -234,16 +234,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.22)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260504/PandaGenie-v1.0.22.apk)**
+> &#x1F4E5; **[Download APK (v1.0.24)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260507/PandaGenie-v1.0.24.apk)**
 
-- Release tag: [`20260504`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260504)
-- Android project version: `versionName "1.0.22"` / `versionCode 22`
+- Release tag: [`20260507`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260507)
+- Android project version: `versionName "1.0.24"` / `versionCode 24`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.24</b> (2026-05-07)</summary>
+
+- **Fullscreen Countdown module**: added landscape fullscreen countdowns, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts.
+- **Module WebView bridge**: added native vibration bridging for more reliable countdown and H5 module reminders.
+- **LED Banner refresh**: upgraded LED Banner to v1.5 with improved fullscreen landscape playback.
+- **Module catalog sync**: updated `modules.json`, signed `.mod` packages, and GitHub download links to match the official marketplace.
+
+</details>
+
+<details>
 <summary><b>v1.0.22</b> (2026-05-04)</summary>
 
 - **Feedback replies in app**: added admin reply notifications for user feedback, with unread/read handling in the app and admin tools.

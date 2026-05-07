@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>倒计时</title>
+<style>
+:root {
+  --bg: #f7f8f5;
+  --surface: #ffffff;
+  --surface-2: #edf3ef;
+  --text: #18211d;
+  --muted: #66736c;
+  --primary: #276749;
+  --primary-2: #1f513a;
+  --line: #d8e1dc;
+  --danger: #bb3e3e;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { padding: 14px; }
+.page { max-width: 720px; margin: 0 auto; display: grid; gap: 12px; }
+.title { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.title h1 { margin: 0; font-size: 24px; line-height: 1.2; }
+.state-pill { padding: 6px 10px; border-radius: 999px; color: var(--primary); background: var(--surface-2); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.card { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 12px; }
+.field { display: grid; gap: 7px; margin-bottom: 12px; }
+.field label { font-size: 13px; color: var(--muted); font-weight: 700; }
+.title-input, .num-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 16px;
+  background: #fff;
+  color: var(--text);
+}
+.duration-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.duration-box { display: grid; gap: 6px; }
+.duration-box span { font-size: 12px; color: var(--muted); text-align: center; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.toggle-row:first-child { border-top: 0; }
+.toggle-row strong { display: block; font-size: 14px; }
+.toggle-row small { display: block; color: var(--muted); margin-top: 2px; }
+.switch { position: relative; width: 50px; height: 28px; flex: 0 0 auto; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; border-radius: 999px; background: #b8c4be; transition: .2s; }
+.slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.switch input:checked + .slider { background: var(--primary); }
+.switch input:checked + .slider:before { transform: translateX(22px); }
+.inline-input { width: 82px; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font-size: 15px; text-align: center; }
+.countdown-card { display: grid; gap: 8px; text-align: center; cursor: pointer; user-select: none; }
+.countdown-card:active { transform: scale(.995); }
+.countdown-label { color: var(--muted); font-size: 13px; font-weight: 700; }
+.countdown-time { font-variant-numeric: tabular-nums; font-size: clamp(48px, 18vw, 104px); line-height: 1; font-weight: 850; letter-spacing: 0; color: var(--primary-2); }
+.progress-track { height: 10px; background: #dde7e1; border-radius: 999px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width .25s linear; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+button { min-height: 46px; border: 0; border-radius: 8px; font-size: 16px; font-weight: 800; color: #fff; background: var(--primary); }
+button.secondary { background: #e7eee9; color: var(--text); border: 1px solid var(--line); }
+button.danger { background: var(--danger); }
+button:active { transform: scale(.98); }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.fullscreen-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: #020403;
+  color: #f9fff9;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+}
+.fullscreen-overlay.active, .fullscreen-overlay.preparing { display: flex; }
+.fullscreen-inner { width: 100vw; height: 100vh; display: grid; place-items: center; padding: 4vh 5vw; }
+.fullscreen-box { width: 100%; text-align: center; display: grid; gap: 3vh; }
+.fullscreen-title { font-size: clamp(22px, 4vw, 52px); color: #b8dbc8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fullscreen-time { font-variant-numeric: tabular-nums; font-size: clamp(82px, 22vw, 260px); line-height: .9; font-weight: 900; letter-spacing: 0; color: #ffffff; text-shadow: 0 0 24px rgba(95, 223, 145, .45); }
+.fullscreen-progress { width: min(86vw, 1280px); height: 16px; margin: 0 auto; border-radius: 999px; background: rgba(255,255,255,.18); overflow: hidden; }
+.fullscreen-progress-bar { height: 100%; width: 0%; background: #49d17d; transition: width .25s linear; }
+.finished .fullscreen-time, .countdown-card.finished .countdown-time { color: #d14545; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title">
+    <h1 id="pageTitle">倒计时</h1>
+    <div class="state-pill" id="statePill">未开始</div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label id="titleLabel" for="timerTitle">标题</label>
+      <input class="title-input" id="timerTitle" value="倒计时">
+    </div>
+    <div class="field">
+      <label id="durationLabel">倒计时时长</label>
+      <div class="duration-grid">
+        <div class="duration-box">
+          <input class="num-input" id="hoursInput" type="number" min="0" max="99" value="0">
+          <span id="hoursText">小时</span>
+        </div>
+        <div class="duration-box">
+          <input class="num-input" id="minutesInput" type="number" min="0" max="59" value="5">
+          <span id="minutesText">分钟</span>
+        </div>
+        <div class="duration-box">
+          <input class="num-input" id="secondsInput" type="number" min="0" max="59" value="0">
+          <span id="secondsText">秒</span>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <strong id="oneMinuteTitle">剩余1分钟震动三次</strong>
+        <small id="oneMinuteDesc">适合长倒计时提醒</small>
+      </div>
+      <label class="switch">
+        <input id="oneMinuteVibrate" type="checkbox" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <strong id="finalTitle">最后若干秒每秒震动</strong>
+        <small id="finalDesc">设为0则关闭</small>
+      </div>
+      <input class="inline-input" id="finalVibrateSeconds" type="number" min="0" max="60" value="10">
+    </div>
+  </div>
+
+  <div class="card countdown-card" id="countdownCard" onclick="enterFullscreenIfRunning()">
+    <div class="countdown-label" id="countdownLabel">点击开始后会横屏全屏展示</div>
+    <div class="countdown-time" id="countdownTime">05:00</div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+
+  <div class="actions">
+    <button id="startBtn" onclick="startCountdown(true)">开始</button>
+    <button class="secondary" id="pauseBtn" onclick="pauseOrResume()">暂停</button>
+    <button class="secondary" id="resetBtn" onclick="resetCountdown()">重置</button>
+    <button class="danger" id="stopBtn" onclick="stopCountdown()">停止</button>
+  </div>
+  <div class="hint" id="hintText">全屏后点击任意位置退出全屏，倒计时仍会继续；点击倒计时框可再次全屏。</div>
+</div>
+
+<div class="fullscreen-overlay" id="fullscreenOverlay" onclick="exitFullscreenOnly()">
+  <div class="fullscreen-inner">
+    <div class="fullscreen-box" id="fullscreenBox">
+      <div class="fullscreen-title" id="fullscreenTitle">倒计时</div>
+      <div class="fullscreen-time" id="fullscreenTime">05:00</div>
+      <div class="fullscreen-progress"><div class="fullscreen-progress-bar" id="fullscreenProgressBar"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var _lang = (typeof NativeBridge !== 'undefined' && NativeBridge.getLanguage) ? NativeBridge.getLanguage() : 'zh';
+function T(zh,en){ return String(_lang||'zh').indexOf('zh')===0 ? zh : en; }
+var state = {
+  total: 300,
+  remaining: 300,
+  running: false,
+  paused: false,
+  endAt: 0,
+  timer: null,
+  displayHms: false,
+  firedOneMinute: false,
+  lastFinalVibrate: -1,
+  fullscreenTimer: null
+};
+
+function clamp(v,min,max){ v=parseInt(v,10); if(isNaN(v)) v=0; return Math.max(min, Math.min(max, v)); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function getConfiguredSeconds(){
+  var h=clamp(document.getElementById('hoursInput').value,0,99);
+  var m=clamp(document.getElementById('minutesInput').value,0,59);
+  var s=clamp(document.getElementById('secondsInput').value,0,59);
+  return Math.max(1,h*3600+m*60+s);
+}
+function formatTime(seconds){
+  seconds=Math.max(0,Math.ceil(seconds));
+  var h=Math.floor(seconds/3600);
+  var m=Math.floor((seconds%3600)/60);
+  var s=seconds%60;
+  if(state.displayHms) return pad(h)+':'+pad(m)+':'+pad(s);
+  return pad(Math.floor(seconds/60))+':'+pad(s);
+}
+function collectConfig(){
+  var total=getConfiguredSeconds();
+  return {
+    title: document.getElementById('timerTitle').value.trim() || T('倒计时','Countdown'),
+    durationSeconds: total,
+    hours: Math.floor(total/3600),
+    minutes: Math.floor((total%3600)/60),
+    seconds: total%60,
+    displayMode: total>3600?'hms':'ms',
+    vibrateAtOneMinute: document.getElementById('oneMinuteVibrate').checked,
+    finalVibrateSeconds: clamp(document.getElementById('finalVibrateSeconds').value,0,60),
+    autoStartFullscreen: true
+  };
+}
+function applyConfig(config){
+  config=config||{};
+  var total = config.durationSeconds ? clamp(config.durationSeconds,1,359999) :
+    (clamp(config.hours,0,99)*3600 + clamp(config.minutes,0,59)*60 + clamp(config.seconds,0,59));
+  if(!total) total = getConfiguredSeconds();
+  document.getElementById('timerTitle').value = config.title || document.getElementById('timerTitle').value || T('倒计时','Countdown');
+  document.getElementById('hoursInput').value = Math.floor(total/3600);
+  document.getElementById('minutesInput').value = Math.floor((total%3600)/60);
+  document.getElementById('secondsInput').value = total%60;
+  if(typeof config.vibrateAtOneMinute === 'boolean') document.getElementById('oneMinuteVibrate').checked = config.vibrateAtOneMinute;
+  if(config.finalVibrateSeconds !== undefined) document.getElementById('finalVibrateSeconds').value = clamp(config.finalVibrateSeconds,0,60);
+  state.total = total;
+  state.remaining = total;
+  state.displayHms = total > 3600;
+  render();
+}
+function render(){
+  var title=document.getElementById('timerTitle').value.trim() || T('倒计时','Countdown');
+  var text=formatTime(state.remaining);
+  var pct=state.total>0 ? (1 - state.remaining/state.total)*100 : 0;
+  pct=Math.max(0,Math.min(100,pct));
+  document.getElementById('countdownTime').textContent=text;
+  document.getElementById('fullscreenTime').textContent=text;
+  document.getElementById('fullscreenTitle').textContent=title;
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('fullscreenProgressBar').style.width=pct+'%';
+  document.getElementById('statePill').textContent = state.running ? (state.paused ? T('已暂停','Paused') : T('倒计时中','Running')) : (state.remaining<=0 ? T('已结束','Finished') : T('未开始','Ready'));
+  document.getElementById('countdownLabel').textContent = state.running ? T('点击倒计时框再次全屏','Tap timer to fullscreen') : T('点击开始后会横屏全屏展示','Start to open fullscreen landscape');
+  document.getElementById('countdownCard').classList.toggle('finished', state.remaining<=0);
+  document.getElementById('fullscreenBox').classList.toggle('finished', state.remaining<=0);
+  document.getElementById('pauseBtn').textContent = state.paused ? T('继续','Resume') : T('暂停','Pause');
+}
+function tick(){
+  if(!state.running || state.paused) return;
+  state.remaining = Math.max(0, Math.ceil((state.endAt - Date.now())/1000));
+  handleVibration();
+  render();
+  if(state.remaining<=0){
+    state.running=false;
+    clearInterval(state.timer);
+    state.timer=null;
+    vibrate([260,140,260,140,420]);
+    render();
+  }
+}
+function startCountdown(fullscreen){
+  var cfg=collectConfig();
+  state.total=cfg.durationSeconds;
+  state.remaining=cfg.durationSeconds;
+  state.displayHms=state.total>3600;
+  state.running=true;
+  state.paused=false;
+  state.endAt=Date.now()+state.remaining*1000;
+  state.firedOneMinute=false;
+  state.lastFinalVibrate=-1;
+  clearInterval(state.timer);
+  state.timer=setInterval(tick,250);
+  tick();
+  if(fullscreen) enterFullscreen();
+}
+function pauseOrResume(){
+  if(!state.running) return;
+  if(state.paused){
+    state.paused=false;
+    state.endAt=Date.now()+state.remaining*1000;
+  } else {
+    state.paused=true;
+  }
+  render();
+}
+function resetCountdown(){
+  state.remaining=getConfiguredSeconds();
+  state.total=state.remaining;
+  state.displayHms=state.total>3600;
+  state.running=false;
+  state.paused=false;
+  clearInterval(state.timer);
+  state.timer=null;
+  render();
+}
+function stopCountdown(){
+  state.running=false;
+  state.paused=false;
+  state.remaining=0;
+  clearInterval(state.timer);
+  state.timer=null;
+  exitFullscreenOnly();
+  render();
+}
+function enterFullscreenIfRunning(){
+  if(state.running && state.remaining>0) enterFullscreen();
+}
+function enterFullscreen(){
+  var overlay=document.getElementById('fullscreenOverlay');
+  if(overlay.classList.contains('active')||overlay.classList.contains('preparing')) return;
+  overlay.classList.add('preparing');
+  try{ NativeBridge.setLandscape(true); }catch(e){}
+  clearTimeout(state.fullscreenTimer);
+  state.fullscreenTimer=setTimeout(function(){
+    overlay.classList.remove('preparing');
+    overlay.classList.add('active');
+    render();
+  },260);
+}
+function exitFullscreenOnly(){
+  var overlay=document.getElementById('fullscreenOverlay');
+  clearTimeout(state.fullscreenTimer);
+  overlay.classList.remove('active');
+  overlay.classList.remove('preparing');
+  try{ NativeBridge.setLandscape(false); }catch(e){}
+}
+function vibrate(pattern){
+  try{
+    var normalized = Array.isArray(pattern) ? pattern : [pattern];
+    if(typeof NativeBridge !== 'undefined' && NativeBridge.vibrate){
+      NativeBridge.vibrate(JSON.stringify(normalized));
+      return;
+    }
+    if(navigator.vibrate) navigator.vibrate(pattern);
+  }catch(e){}
+}
+function handleVibration(){
+  if(state.remaining<=0) return;
+  if(document.getElementById('oneMinuteVibrate').checked && !state.firedOneMinute && state.remaining===60){
+    state.firedOneMinute=true;
+    vibrate([160,120,160,120,160]);
+  }
+  var finalSeconds=clamp(document.getElementById('finalVibrateSeconds').value,0,60);
+  if(finalSeconds>0 && state.remaining<=finalSeconds && state.remaining!==state.lastFinalVibrate){
+    state.lastFinalVibrate=state.remaining;
+    vibrate(90);
+  }
+}
+function onPendingResult(jsonStr){
+  try{
+    var raw = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    var config = raw && raw.output ? raw.output : raw;
+    applyConfig(config);
+    setTimeout(function(){ startCountdown(config.autoStartFullscreen !== false); },300);
+  }catch(e){ console.log('onPendingResult error', e); }
+}
+function applyI18n(){
+  document.title=T('倒计时','Countdown Timer');
+  document.getElementById('pageTitle').textContent=T('倒计时','Countdown');
+  document.getElementById('titleLabel').textContent=T('标题','Title');
+  document.getElementById('durationLabel').textContent=T('倒计时时长','Duration');
+  document.getElementById('hoursText').textContent=T('小时','Hours');
+  document.getElementById('minutesText').textContent=T('分钟','Minutes');
+  document.getElementById('secondsText').textContent=T('秒','Seconds');
+  document.getElementById('oneMinuteTitle').textContent=T('剩余1分钟震动三次','Triple vibration at one minute');
+  document.getElementById('oneMinuteDesc').textContent=T('适合长倒计时提醒','Useful for long countdowns');
+  document.getElementById('finalTitle').textContent=T('最后若干秒每秒震动','Vibrate every second at the end');
+  document.getElementById('finalDesc').textContent=T('设为0则关闭','Set 0 to disable');
+  document.getElementById('startBtn').textContent=T('开始','Start');
+  document.getElementById('resetBtn').textContent=T('重置','Reset');
+  document.getElementById('stopBtn').textContent=T('停止','Stop');
+  document.getElementById('hintText').textContent=T('全屏后点击任意位置退出全屏，倒计时仍会继续；点击倒计时框可再次全屏。','Tap anywhere in fullscreen to exit; the countdown keeps running. Tap the timer card to re-enter fullscreen.');
+  render();
+}
+['hoursInput','minutesInput','secondsInput','timerTitle','oneMinuteVibrate','finalVibrateSeconds'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){
+    if(!state.running) {
+      state.total=getConfiguredSeconds();
+      state.remaining=state.total;
+      state.displayHms=state.total>3600;
+      render();
+    }
+  });
+});
+window.addEventListener('resize', render);
+window.addEventListener('orientationchange', function(){ setTimeout(render, 180); });
+applyI18n();
+applyConfig(collectConfig());
+</script>
+</body>
+</html>

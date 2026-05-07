@@ -215,16 +215,26 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.22)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260504/PandaGenie-v1.0.22.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.24)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260507/PandaGenie-v1.0.24.apk)**
 
-- Release 标签：[`20260504`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260504)
-- Android 工程版本：`versionName "1.0.22"` / `versionCode 22`
+- Release 标签：[`20260507`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260507)
+- Android 工程版本：`versionName "1.0.24"` / `versionCode 24`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.24</b> (2026-05-07)</summary>
+
+- **新增倒计时模块**：支持横屏全屏倒计时、分钟秒/时分秒自动展示、1 分钟三次震动和最后若干秒每秒震动。
+- **模块 WebView 增强**：新增原生震动桥接，提升倒计时和 H5 模块提醒可靠性。
+- **LED 灯牌更新**：LED 应援灯牌升级到 v1.5，完善全屏横屏播放体验。
+- **模块列表同步**：更新 `modules.json`、签名 `.mod` 包和 GitHub 下载地址，保持 GitHub 与官网模块市场一致。
+
+</details>
+
+<details>
 <summary><b>v1.0.22</b> (2026-05-04)</summary>
 
 - **App 内反馈回复**：新增管理员回复通知，支持用户端未读/已读处理，并同步更新管理工具。

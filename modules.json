@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-05",
+    "updated_at":  "2026-05-07",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -3124,7 +3124,7 @@
                                             "zh":  "LED应援灯牌模块，支持创建滚动/浮现/静止文字横幅，自定义颜色、渐变背景、字体大小、特效（荧光、闪烁、抖动），内置多种赛博风格和应援色模板",
                                             "en":  "LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates"
                                         },
-                        "version":  "1.3",
+                        "version":  "1.5",
                         "icon":  "celebration",
                         "filename":  "led_banner.mod",
                         "download_url":  [
@@ -5646,6 +5646,90 @@
                                      }
                                  ],
                         "api_count":  9
+                    },
+                    {
+                        "id":  "fullscreen_countdown",
+                        "name":  {
+                                     "zh":  "倒计时",
+                                     "en":  "Fullscreen Countdown"
+                                 },
+                        "description":  {
+                                            "zh":  "横屏全屏倒计时模块，支持按小时/分钟/秒设置倒计时时长，自动按分钟秒或时分秒显示，支持剩余1分钟震动三次和最后若干秒每秒震动提醒",
+                                            "en":  "Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts."
+                                        },
+                        "version":  "1.1",
+                        "icon":  "timer",
+                        "filename":  "fullscreen_countdown.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/fullscreen_countdown",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/fullscreen_countdown.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.VIBRATE",
+                                                "desc":  "用于倒计时提醒震动，包括剩余1分钟震动三次和最后若干秒每秒震动",
+                                                "desc_en":  "Vibrate for countdown alerts, including one-minute triple vibration and final per-second vibration."
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "timer",
+                                             "vibration"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "createCountdown",
+                                         "desc":  "创建并启动倒计时，可通过 durationSeconds 或 hours/minutes/seconds 设置时长，支持设置标题、剩余1分钟震动三次、最后若干秒每秒震动。适合用户说“倒计时10分钟”“倒计时1小时30分钟并最后10秒震动”等场景。",
+                                         "desc_en":  "Create and start a countdown. Set duration by durationSeconds or hours/minutes/seconds, with optional title, triple vibration at one minute remaining, and per-second vibration during the final N seconds.",
+                                         "params":  [
+                                                        "durationSeconds",
+                                                        "hours",
+                                                        "minutes",
+                                                        "seconds",
+                                                        "title",
+                                                        "vibrateAtOneMinute",
+                                                        "finalVibrateSeconds",
+                                                        "autoStartFullscreen"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "总倒计时秒数，可选；优先级高于 hours/minutes/seconds",
+                                                           "小时数，可选，默认0",
+                                                           "分钟数，可选，默认页面配置",
+                                                           "秒数，可选，默认0",
+                                                           "倒计时标题，可选",
+                                                           "剩余1分钟时是否震动三次，可选，默认跟随页面默认设置",
+                                                           "最后多少秒每秒震动一次，可选，默认跟随页面默认设置；0表示关闭",
+                                                           "打开页面后是否立即横屏全屏启动，可选，默认true"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Total countdown seconds, optional; takes precedence over hours/minutes/seconds",
+                                                              "Hours, optional, default 0",
+                                                              "Minutes, optional, default follows page defaults",
+                                                              "Seconds, optional, default 0",
+                                                              "Countdown title, optional",
+                                                              "Whether to vibrate three times at one minute remaining; optional, follows page default",
+                                                              "Vibrate once per second during the final N seconds; optional, follows page default; 0 disables",
+                                                              "Start in landscape fullscreen after opening the page; optional, default true"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getDefaultSettings",
+                                         "desc":  "获取倒计时页面默认设置，供未明确设置时参考",
+                                         "desc_en":  "Get default countdown page settings for prompts that omit options.",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     }
+                                 ],
+                        "api_count":  2
                     }
                 ]
 }

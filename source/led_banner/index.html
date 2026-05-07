@@ -27,14 +27,19 @@
 .preview-text {
   white-space: nowrap;
   position: absolute;
+  left: 0;
   user-select: none;
+  will-change: transform, opacity;
 }
 .preview-text.mode-scroll { animation: bannerScroll 6s linear infinite; }
 .preview-text.mode-fade { animation: bannerFade 4s ease-in-out infinite; }
 .preview-text.mode-static { position: relative; }
 .preview-text.eff-shake { animation: bannerShake 0.15s linear infinite; }
 .preview-text.eff-flash { animation: bannerFlash 0.5s step-end infinite; }
-@keyframes bannerScroll { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
+@keyframes bannerScroll {
+  0% { transform: translate3d(var(--scroll-start, 100vw), 0, 0); }
+  100% { transform: translate3d(var(--scroll-end, -100%), 0, 0); }
+}
 @keyframes bannerFade { 0%,100%{opacity:0} 30%,70%{opacity:1} }
 @keyframes bannerShake { 0%,100%{transform:translate(0)} 25%{transform:translate(-2px,2px)} 50%{transform:translate(2px,-2px)} 75%{transform:translate(-2px,-2px)} }
 @keyframes bannerFlash { 0%{opacity:1} 50%{opacity:0.2} }
@@ -42,17 +47,24 @@
 .fullscreen-overlay {
   display: none;
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 9999;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  overflow: hidden;
+  touch-action: none;
 }
 .fullscreen-overlay.active { display: flex; }
+.fullscreen-overlay.preparing { display: flex; background:#000; }
 .fullscreen-text {
   white-space: nowrap;
   user-select: none;
   position: absolute;
+  left: 0;
+  will-change: transform, opacity;
 }
 
 .star {
@@ -96,6 +108,44 @@
 }
 .launch-btn:active { transform: scale(0.97); opacity: 0.9; }
 
+.history-card { margin-top: 10px; }
+.history-toolbar { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.history-toolbar h3 { margin:0; }
+.history-clear {
+  border: 1px solid var(--outline);
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.banner-history-list { display:grid; gap:8px; }
+.banner-history-empty { color:var(--on-surface-variant); font-size:13px; padding:10px 0; }
+.banner-history-item {
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+.banner-history-title { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.banner-history-meta { display:flex; gap:6px; flex-wrap:wrap; color:var(--on-surface-variant); font-size:11px; }
+.banner-history-actions { display:flex; gap:8px; }
+.banner-history-actions button {
+  flex:1;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 8px;
+  font-weight: 700;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.banner-history-actions button.secondary {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
 .api-list { list-style: none; padding: 0; margin: 0; }
 .api-list li { padding: 8px 0; border-bottom: 1px solid var(--outline-variant); font-size: 13px; }
 .api-list li:last-child { border-bottom: none; }
@@ -105,6 +155,7 @@
 <body>
 <div class="tab-bar">
   <div class="tab active" onclick="switchTab('editor')">灯牌编辑</div>
+  <div class="tab" onclick="switchTab('history')">历史</div>
   <div class="tab" onclick="switchTab('templates')">模板</div>
   <div class="tab" onclick="switchTab('api')">接口</div>
 </div>
@@ -138,7 +189,6 @@
   <div class="ctrl-section">
     <label id="labelMode">显示模式</label>
     <div class="chip-row" id="modeChips">
-      <span class="chip" data-mode="scroll" onclick="setMode('scroll')">滚动</span>
       <span class="chip active" data-mode="scroll" onclick="setMode('scroll')">滚动</span>
       <span class="chip" data-mode="fade" onclick="setMode('fade')">浮现</span>
       <span class="chip" data-mode="static" onclick="setMode('static')">静止</span>
@@ -167,6 +217,16 @@
   </div>
 
   <button class="launch-btn" onclick="toggleFullscreen()" id="launchBtn">🔦 全屏展示</button>
+</div>
+
+<div id="tab-history" class="tab-content">
+  <div class="card history-card">
+    <div class="history-toolbar">
+      <h3 id="historyTitle">历史灯牌</h3>
+      <button class="history-clear" id="clearHistoryBtn" onclick="clearBannerHistory()">清空</button>
+    </div>
+    <div id="historyList" class="banner-history-list"></div>
+  </div>
 </div>
 
 <div id="tab-templates" class="tab-content">
@@ -240,9 +300,10 @@ var STAR=[
 ];
 
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['editor','templates','api'][i]===name)});
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['editor','history','templates','api'][i]===name)});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+name).classList.add('active');
+  if(name==='history') renderBannerHistory();
 }
 
 function setMode(m){
@@ -274,48 +335,215 @@ function updatePreview(){
   pt.style.fontWeight=state.effects.bold?'bold':'normal';
   pt.style.fontStyle=state.effects.italic?'italic':'normal';
   pt.style.textShadow=state.effects.glow?'0 0 10px '+fc+',0 0 20px '+fc+',0 0 40px '+fc:'none';
+  pt.style.animation='none';
 
   pt.className='preview-text';
-  if(state.effects.shake) pt.classList.add('eff-shake');
-  else if(state.effects.flash) pt.classList.add('eff-flash');
-  else pt.classList.add('mode-'+state.mode);
-
-  pt.style.animationDuration=spd+'s';
+  applyScrollMetrics(pt, box, 18);
+  applyBannerAnimation(pt,state.mode,state.effects,spd);
 }
 
-function toggleFullscreen(){
-  var overlay=document.getElementById('fullscreenOverlay');
-  if(overlay.classList.contains('active')){
-    overlay.classList.remove('active');
-    clearStars();
-    try{NativeBridge.setLandscape(false);}catch(e){}
-    return;
-  }
-  try{NativeBridge.setLandscape(true);}catch(e){}
+var fullscreenTimer=null;
+var fullscreenConfig=null;
+var isEnteringFullscreen=false;
+
+function collectConfig(){
   var text=document.getElementById('bannerText').value||'LED';
   var fc=document.getElementById('fontColor').value;
   var bg=document.getElementById('bgColor').value;
   var sz=document.getElementById('fontSize').value;
   var spd=document.getElementById('speedRange').value;
+  return {
+    text:text,
+    fontColor:fc,
+    bgColor:bg,
+    fontSize:parseInt(sz)||72,
+    speed:parseInt(spd)||6,
+    mode:state.mode,
+    effects:JSON.parse(JSON.stringify(state.effects)),
+    ts:Date.now()
+  };
+}
 
-  overlay.style.background=bg;
+function applyFullscreenConfig(config){
+  fullscreenConfig=config||collectConfig();
+  var overlay=document.getElementById('fullscreenOverlay');
   var ft=document.getElementById('fullscreenText');
-  ft.textContent=text.replace(/\n/g,' ');
+  var fc=fullscreenConfig.fontColor;
+  var bg=fullscreenConfig.bgColor;
+  var spd=fullscreenConfig.speed;
+  var eff=fullscreenConfig.effects||{};
+  overlay.style.background=bg;
+  ft.textContent=(fullscreenConfig.text||'LED').replace(/\n/g,' ');
   ft.style.color=fc;
-  ft.style.fontSize=Math.min(parseInt(sz)*1.5,200)+'px';
-  ft.style.fontWeight=state.effects.bold?'bold':'normal';
-  ft.style.fontStyle=state.effects.italic?'italic':'normal';
-  ft.style.textShadow=state.effects.glow?'0 0 15px '+fc+',0 0 30px '+fc+',0 0 60px '+fc:'none';
+  ft.style.fontSize=Math.min((parseInt(fullscreenConfig.fontSize)||72)*1.5,220)+'px';
+  ft.style.fontWeight=eff.bold?'bold':'normal';
+  ft.style.fontStyle=eff.italic?'italic':'normal';
+  ft.style.textShadow=eff.glow?'0 0 15px '+fc+',0 0 30px '+fc+',0 0 60px '+fc:'none';
+  ft.style.animation='none';
+  ft.style.transform='translateX(0)';
 
   ft.className='fullscreen-text';
-  if(state.effects.shake) ft.classList.add('eff-shake');
-  else if(state.effects.flash) ft.classList.add('eff-flash');
-  else if(state.mode==='scroll'){ft.style.animation='bannerScroll '+spd+'s linear infinite';}
-  else if(state.mode==='fade'){ft.style.animation='bannerFade '+spd+'s ease-in-out infinite';}
-  else{ft.style.animation='none';}
-
-  overlay.classList.add('active');
+  if(fullscreenConfig.mode==='scroll'){
+    applyScrollMetrics(ft, overlay, 32);
+    restartAnimation(ft);
+  }
+  applyBannerAnimation(ft,fullscreenConfig.mode,eff,spd);
   spawnStars(fc);
+}
+
+function applyScrollMetrics(el, container, padding){
+  padding=padding||0;
+  var width=(container&&container.clientWidth)||window.innerWidth||screen.width||360;
+  var textWidth=el.scrollWidth||el.offsetWidth||width;
+  el.style.setProperty('--scroll-start',(width+padding)+'px');
+  el.style.setProperty('--scroll-end',(-textWidth-padding)+'px');
+}
+
+function restartAnimation(el){
+  el.style.animation='none';
+  void el.offsetWidth;
+}
+
+function applyBannerAnimation(el,mode,effects,speed){
+  speed=parseFloat(speed)||6;
+  if(effects&&effects.shake){
+    el.style.animation='bannerShake 0.15s linear infinite';
+    return;
+  }
+  if(mode==='scroll'){
+    el.style.animation=(effects&&effects.flash)
+      ? 'bannerScroll '+speed+'s linear infinite, bannerFlash 0.5s step-end infinite'
+      : 'bannerScroll '+speed+'s linear infinite';
+  }else if(mode==='fade'){
+    el.style.animation='bannerFade '+speed+'s ease-in-out infinite';
+  }else{
+    el.style.animation=(effects&&effects.flash)?'bannerFlash 0.5s step-end infinite':'none';
+  }
+}
+
+function toggleFullscreen(){
+  var overlay=document.getElementById('fullscreenOverlay');
+  if(overlay.classList.contains('active')||overlay.classList.contains('preparing')){
+    exitFullscreen();
+    return;
+  }
+  enterFullscreen();
+}
+
+function enterFullscreen(config){
+  var overlay=document.getElementById('fullscreenOverlay');
+  fullscreenConfig=config||collectConfig();
+  saveBannerHistory(fullscreenConfig);
+  renderBannerHistory();
+  overlay.classList.add('preparing');
+  try{NativeBridge.setLandscape(true);}catch(e){}
+  if(fullscreenTimer) clearTimeout(fullscreenTimer);
+  isEnteringFullscreen=true;
+  fullscreenTimer=setTimeout(function(){
+    overlay.classList.remove('preparing');
+    overlay.classList.add('active');
+    applyFullscreenConfig(fullscreenConfig);
+    isEnteringFullscreen=false;
+  },260);
+}
+
+function exitFullscreen(){
+  var overlay=document.getElementById('fullscreenOverlay');
+  if(fullscreenTimer) clearTimeout(fullscreenTimer);
+  fullscreenTimer=null;
+  isEnteringFullscreen=false;
+  overlay.classList.remove('active');
+  overlay.classList.remove('preparing');
+  clearStars();
+  try{NativeBridge.setLandscape(false);}catch(e){}
+}
+
+function restartFullscreenFromHistory(index){
+  var item=getBannerHistory()[index];
+  if(!item) return;
+  applyConfigToEditor(item);
+  switchTab('editor');
+  enterFullscreen(item);
+}
+
+function getBannerHistory(){
+  try{
+    var raw=localStorage.getItem('ledBannerHistory');
+    var list=raw?JSON.parse(raw):[];
+    return Array.isArray(list)?list:[];
+  }catch(e){return [];}
+}
+
+function saveBannerHistory(config){
+  try{
+    var item=JSON.parse(JSON.stringify(config));
+    item.ts=Date.now();
+    var list=getBannerHistory().filter(function(h){
+      return !(h.text===item.text&&h.fontColor===item.fontColor&&h.bgColor===item.bgColor&&h.mode===item.mode&&h.fontSize===item.fontSize);
+    });
+    list.unshift(item);
+    localStorage.setItem('ledBannerHistory',JSON.stringify(list.slice(0,20)));
+  }catch(e){}
+}
+
+function clearBannerHistory(){
+  localStorage.removeItem('ledBannerHistory');
+  renderBannerHistory();
+}
+
+function applyConfigToEditor(config){
+  if(!config) return;
+  document.getElementById('bannerText').value=config.text||'LED';
+  if(config.fontColor) document.getElementById('fontColor').value=config.fontColor;
+  if(config.bgColor) document.getElementById('bgColor').value=config.bgColor;
+  if(config.fontSize) {
+    document.getElementById('fontSize').value=config.fontSize;
+    document.getElementById('sizeVal').textContent=config.fontSize;
+  }
+  if(config.speed) {
+    document.getElementById('speedRange').value=config.speed;
+    document.getElementById('speedVal').textContent=config.speed;
+  }
+  if(config.mode) state.mode=config.mode;
+  state.effects={glow:false,bold:false,italic:false,shake:false,flash:false};
+  var eff=config.effects||{};
+  ['glow','bold','italic','shake','flash'].forEach(function(e){
+    state.effects[e]=!!eff[e];
+    var el=document.getElementById('eff'+e.charAt(0).toUpperCase()+e.slice(1));
+    if(el) el.classList.toggle('active',!!eff[e]);
+  });
+  document.querySelectorAll('#modeChips .chip').forEach(function(c){c.classList.toggle('active',c.getAttribute('data-mode')===state.mode)});
+  updatePreview();
+}
+
+function escHtml(s){
+  return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+}
+
+function renderBannerHistory(){
+  var listEl=document.getElementById('historyList');
+  if(!listEl) return;
+  var list=getBannerHistory();
+  if(!list.length){
+    listEl.innerHTML='<div class="banner-history-empty">'+T('暂无历史灯牌，展示一次后会自动保存在这里。','No history yet. Played banners will appear here.')+'</div>';
+    return;
+  }
+  listEl.innerHTML=list.map(function(item,i){
+    var date=new Date(item.ts||Date.now());
+    var meta=[item.mode||'scroll',(item.fontSize||72)+'px',(item.speed||6)+'s'].join(' · ');
+    return '<div class="banner-history-item">'+
+      '<div class="banner-history-title">'+escHtml(item.text||'LED')+'</div>'+
+      '<div class="banner-history-meta"><span>'+escHtml(meta)+'</span><span style="color:'+escHtml(item.fontColor||'#fff')+'">●</span><span>'+date.toLocaleString()+'</span></div>'+
+      '<div class="banner-history-actions"><button onclick="restartFullscreenFromHistory('+i+')">'+T('重新播放','Replay')+'</button><button class="secondary" onclick="applyHistoryOnly('+i+')">'+T('应用编辑','Edit')+'</button></div>'+
+      '</div>';
+  }).join('');
+}
+
+function applyHistoryOnly(index){
+  var item=getBannerHistory()[index];
+  if(!item) return;
+  applyConfigToEditor(item);
+  switchTab('editor');
 }
 
 var starTimers=[];
@@ -382,8 +610,9 @@ function applyI18n(){
   document.title=T('LED灯牌','LED Banner');
   var tabs=document.querySelectorAll('.tab-bar .tab');
   if(tabs[0])tabs[0].textContent=T('灯牌编辑','Editor');
-  if(tabs[1])tabs[1].textContent=T('模板','Templates');
-  if(tabs[2])tabs[2].textContent=T('接口','API');
+  if(tabs[1])tabs[1].textContent=T('历史','History');
+  if(tabs[2])tabs[2].textContent=T('模板','Templates');
+  if(tabs[3])tabs[3].textContent=T('接口','API');
   document.getElementById('pageTitle').textContent=T('LED灯牌','LED Banner');
   document.getElementById('pageDesc').textContent=T('编辑文字和样式，点击预览区全屏展示','Edit text and style, tap preview for fullscreen');
   document.getElementById('labelText').textContent=T('显示文字','Display Text');
@@ -400,6 +629,8 @@ function applyI18n(){
   document.getElementById('effShake').textContent=T('抖动','Shake');
   document.getElementById('effFlash').textContent=T('闪烁','Flash');
   document.getElementById('launchBtn').textContent=T('🔦 全屏展示','🔦 Fullscreen');
+  document.getElementById('historyTitle').textContent=T('历史灯牌','Banner History');
+  document.getElementById('clearHistoryBtn').textContent=T('清空','Clear');
   document.getElementById('cyberTitle').textContent=T('赛博风格','Cyber Style');
   document.getElementById('starTitle').textContent=T('应援色','Support Colors');
   document.getElementById('starSearch').placeholder=T('搜索应援色...','Search support colors...');
@@ -414,27 +645,28 @@ function applyI18n(){
 function onPendingResult(jsonStr) {
   try {
     var config = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-    if (config.text) document.getElementById('bannerText').value = config.text;
-    if (config.fontColor) document.getElementById('fontColor').value = config.fontColor;
-    if (config.bgColor) document.getElementById('bgColor').value = config.bgColor;
-    if (config.fontSize) document.getElementById('fontSize').value = config.fontSize;
-    if (config.speed) document.getElementById('speedRange').value = config.speed;
-    if (config.mode) setMode(config.mode);
-    if (config.effects) {
-      var eff = typeof config.effects === 'string' ? JSON.parse(config.effects) : config.effects;
-      ['glow','bold','italic','shake','flash'].forEach(function(e){
-        if (eff[e]) { state.effects[e] = true; document.getElementById('eff'+e.charAt(0).toUpperCase()+e.slice(1)).classList.add('active'); }
-      });
-    }
-    updatePreview();
+    if(config.effects && typeof config.effects === 'string') config.effects=JSON.parse(config.effects);
+    applyConfigToEditor(config);
     switchTab('editor');
-    setTimeout(function(){ toggleFullscreen(); }, 300);
+    setTimeout(function(){ enterFullscreen(collectConfig()); }, 300);
   } catch(e) { console.log('onPendingResult error:', e); }
 }
+
+window.addEventListener('resize',function(){
+  if(document.getElementById('fullscreenOverlay').classList.contains('active')){
+    setTimeout(function(){ applyFullscreenConfig(fullscreenConfig); },80);
+  }
+});
+window.addEventListener('orientationchange',function(){
+  if(isEnteringFullscreen||document.getElementById('fullscreenOverlay').classList.contains('active')){
+    setTimeout(function(){ applyFullscreenConfig(fullscreenConfig); },220);
+  }
+});
 
 initModeChips();
 applyI18n();
 renderTemplates();
+renderBannerHistory();
 updatePreview();
 </script>
 </body>
