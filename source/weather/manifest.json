@@ -1,108 +1,119 @@
 {
-    "id":  "weather",
-    "name":  "天气助手",
-    "name_en":  "Weather Assistant",
-    "description":  "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
-    "description_en":  "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API",
-    "version":  "1.4",
-    "icon":  "cloud",
-    "soLibraries":  [
-
-                    ],
-    "h5Page":  "index.html",
-    "pluginJar":  "plugin.jar",
-    "pluginClass":  "ai.rorsch.moduleplugins.weather.WeatherPlugin",
-    "soLoadMode":  "skip",
-    "capabilities":  [
-                         "network",
-                         "location"
-                     ],
-    "permissions":  [
-                        {
-                            "name":  "android.permission.INTERNET",
-                            "desc":  "用于查询天气API获取天气数据",
-                            "desc_en":  "Access weather API for weather data"
-                        },
-                        {
-                            "name":  "android.permission.ACCESS_FINE_LOCATION",
-                            "desc":  "用于获取精确位置以查询当前位置天气",
-                            "desc_en":  "Get precise location for local weather"
-                        },
-                        {
-                            "name":  "android.permission.ACCESS_COARSE_LOCATION",
-                            "desc":  "用于获取大致位置以查询当前位置天气",
-                            "desc_en":  "Get approximate location for local weather"
-                        }
-                    ],
-    "developer":  {
-                      "name":  "Jarvan",
-                      "email":  "",
-                      "url":  ""
-                  },
-    "apis":  [
-                 {
-                     "name":  "getCurrentWeather",
-                     "desc":  "查询指定城市的当前天气；city为空时自动使用GPS定位获取当地天气",
-                     "desc_en":  "Get current weather for a city; if city is empty, auto-detect location via GPS",
-                     "params":  [
-                                    "city"
-                                ],
-                     "paramDesc":  [
-                                       "城市名称（可选，留空则自动定位）"
-                                   ],
-                     "paramDesc_en":  [
-                                          "City name (optional, empty to use GPS location)"
-                                      ]
-                 },
-                 {
-                     "name":  "getForecast",
-                     "desc":  "查询指定城市未来多日天气预报；city为空时自动使用GPS定位",
-                     "desc_en":  "Get multi-day forecast; if city is empty, auto-detect location via GPS",
-                     "params":  [
-                                    "city",
-                                    "days"
-                                ],
-                     "paramDesc":  [
-                                       "城市名称（可选，留空则自动定位）",
-                                       "预报天数（1-7），默认3"
-                                   ],
-                     "paramDesc_en":  [
-                                          "City name (optional, empty to use GPS location)",
-                                          "Forecast days (1-7), default 3"
-                                      ]
-                 },
-                 {
-                     "name":  "getWeatherByLocation",
-                     "desc":  "根据经纬度坐标查询天气，用于已知坐标的场景",
-                     "desc_en":  "Get weather by latitude/longitude coordinates",
-                     "params":  [
-                                    "latitude",
-                                    "longitude"
-                                ],
-                     "paramDesc":  [
-                                       "纬度",
-                                       "经度"
-                                   ],
-                     "paramDesc_en":  [
-                                          "Latitude",
-                                          "Longitude"
-                                      ]
-                 },
-                 {
-                     "name":  "openPage",
-                     "desc":  "打开天气助手界面并返回 _openModule 信号",
-                     "desc_en":  "Open Weather UI and return _openModule signal",
-                     "params":  [
-
-                                ],
-                     "paramDesc":  [
-
-                                   ],
-                     "paramDesc_en":  [
-
-                                      ],
-                     "openPage":  true,
-                     "uiIntent":  "openPage"
-                 }
-             ]
+  "id": "weather",
+  "name": "天气助手",
+  "name_en": "Weather Assistant",
+  "description": "天气助手模块，支持查询城市当前天气、多日天气预报，以及今天和明天的气温/天气变化预警，使用 Open-Meteo 免费 API，无需密钥",
+  "description_en": "Weather assistant module, query current weather, multi-day forecasts, and today-vs-tomorrow temperature/weather alerts using the Open-Meteo free API",
+  "version": "1.5",
+  "icon": "cloud",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.weather.WeatherPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "network",
+    "location"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于查询天气 API 获取天气数据",
+      "desc_en": "Access weather API for weather data"
+    },
+    {
+      "name": "android.permission.ACCESS_FINE_LOCATION",
+      "desc": "用于获取精确位置以查询当前位置天气",
+      "desc_en": "Get precise location for local weather"
+    },
+    {
+      "name": "android.permission.ACCESS_COARSE_LOCATION",
+      "desc": "用于获取大致位置以查询当前位置天气",
+      "desc_en": "Get approximate location for local weather"
+    }
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getCurrentWeather",
+      "desc": "查询指定城市的当前天气；city 为空时自动使用 GPS 定位获取当地天气",
+      "desc_en": "Get current weather for a city; if city is empty, auto-detect location via GPS",
+      "params": [
+        "city"
+      ],
+      "paramDesc": [
+        "城市名称（可选，留空则自动定位）"
+      ],
+      "paramDesc_en": [
+        "City name (optional, empty to use GPS location)"
+      ]
+    },
+    {
+      "name": "getForecast",
+      "desc": "查询指定城市未来多日天气预报；city 为空时自动使用 GPS 定位",
+      "desc_en": "Get multi-day forecast; if city is empty, auto-detect location via GPS",
+      "params": [
+        "city",
+        "days"
+      ],
+      "paramDesc": [
+        "城市名称（可选，留空则自动定位）",
+        "预报天数（1-7），默认 3"
+      ],
+      "paramDesc_en": [
+        "City name (optional, empty to use GPS location)",
+        "Forecast days (1-7), default 3"
+      ]
+    },
+    {
+      "name": "getTemperatureAlert",
+      "desc": "统计当前、今天和明天的天气及气温差异，按变化等级返回绿色/蓝色/橙色/红色气温预警与穿衣出行建议",
+      "desc_en": "Compare current, today, and tomorrow weather/temperature and return green/blue/orange/red temperature alerts with practical advice",
+      "params": [
+        "city"
+      ],
+      "paramDesc": [
+        "城市名称（可选，留空则自动定位）"
+      ],
+      "paramDesc_en": [
+        "City name (optional, empty to use GPS location)"
+      ],
+      "examples": [
+        "明天和今天温差大吗？",
+        "北京明天气温预警",
+        "Compare today and tomorrow weather in Shanghai"
+      ]
+    },
+    {
+      "name": "getWeatherByLocation",
+      "desc": "根据经纬度坐标查询天气，用于已知坐标的场景",
+      "desc_en": "Get weather by latitude/longitude coordinates",
+      "params": [
+        "latitude",
+        "longitude"
+      ],
+      "paramDesc": [
+        "纬度",
+        "经度"
+      ],
+      "paramDesc_en": [
+        "Latitude",
+        "Longitude"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开天气助手界面并返回 _openModule 信号",
+      "desc_en": "Open Weather UI and return _openModule signal",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
 }

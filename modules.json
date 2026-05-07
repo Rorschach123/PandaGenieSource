@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-07",
+    "updated_at":  "2026-05-08",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -1996,7 +1996,7 @@
                                             "zh":  "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪、读取相册图片、查找完全重复和视觉相似图片等操作",
                                             "en":  "Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos"
                                         },
-                        "version":  "1.7",
+                        "version":  "1.8",
                         "icon":  "image",
                         "filename":  "image_tools.mod",
                         "download_url":  [
@@ -3124,7 +3124,7 @@
                                             "zh":  "LED应援灯牌模块，支持创建滚动/浮现/静止文字横幅，自定义颜色、渐变背景、字体大小、特效（荧光、闪烁、抖动），内置多种赛博风格和应援色模板",
                                             "en":  "LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates"
                                         },
-                        "version":  "1.6",
+                        "version":  "1.7",
                         "icon":  "celebration",
                         "filename":  "led_banner.mod",
                         "download_url":  [
@@ -4590,10 +4590,10 @@
                                      "en":  "Weather Assistant"
                                  },
                         "description":  {
-                                            "zh":  "天气助手模块，支持查询城市当前天气、未来多日天气预报，使用Open-Meteo免费API，无需密钥",
-                                            "en":  "Weather assistant module, query current weather and multi-day forecast for any city using Open-Meteo free API"
+                                            "zh":  "天气助手模块，支持查询城市当前天气、多日天气预报，以及今天和明天的气温/天气变化预警，使用 Open-Meteo 免费 API，无需密钥",
+                                            "en":  "Weather assistant module, query current weather, multi-day forecasts, and today-vs-tomorrow temperature/weather alerts using the Open-Meteo free API"
                                         },
-                        "version":  "1.4",
+                        "version":  "1.5",
                         "icon":  "cloud",
                         "filename":  "weather.mod",
                         "download_url":  [
@@ -4606,43 +4606,90 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.INTERNET",
-                                                "desc":  "用于查询天气API获取天气数据",
+                                                "desc":  "用于查询天气 API 获取天气数据",
                                                 "desc_en":  "Access weather API for weather data"
+                                            },
+                                            {
+                                                "name":  "android.permission.ACCESS_FINE_LOCATION",
+                                                "desc":  "用于获取精确位置以查询当前位置天气",
+                                                "desc_en":  "Get precise location for local weather"
+                                            },
+                                            {
+                                                "name":  "android.permission.ACCESS_COARSE_LOCATION",
+                                                "desc":  "用于获取大致位置以查询当前位置天气",
+                                                "desc_en":  "Get approximate location for local weather"
                                             }
                                         ],
                         "capabilities":  [
-                                             "network"
+                                             "network",
+                                             "location"
                                          ],
                         "apis":  [
                                      {
                                          "name":  "getCurrentWeather",
-                                         "desc":  "查询指定城市的当前天气，包括温度、湿度、风速、天气状况等",
-                                         "desc_en":  "Get current weather for a city including temperature, humidity, wind speed, conditions",
+                                         "desc":  "查询指定城市的当前天气；city 为空时自动使用 GPS 定位获取当地天气",
+                                         "desc_en":  "Get current weather for a city; if city is empty, auto-detect location via GPS",
                                          "params":  [
                                                         "city"
                                                     ],
                                          "paramDesc":  [
-                                                           "城市名称，支持中文或英文"
+                                                           "城市名称（可选，留空则自动定位）"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "City name in Chinese or English"
+                                                              "City name (optional, empty to use GPS location)"
                                                           ]
                                      },
                                      {
                                          "name":  "getForecast",
-                                         "desc":  "查询指定城市未来多日天气预报，包括每日最高/最低温度、天气状况、降水概率",
-                                         "desc_en":  "Get multi-day forecast for a city with daily high/low temps, conditions, precipitation probability",
+                                         "desc":  "查询指定城市未来多日天气预报；city 为空时自动使用 GPS 定位",
+                                         "desc_en":  "Get multi-day forecast; if city is empty, auto-detect location via GPS",
                                          "params":  [
                                                         "city",
                                                         "days"
                                                     ],
                                          "paramDesc":  [
-                                                           "城市名称",
-                                                           "预报天数（1-7），默认3"
+                                                           "城市名称（可选，留空则自动定位）",
+                                                           "预报天数（1-7），默认 3"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "City name",
+                                                              "City name (optional, empty to use GPS location)",
                                                               "Forecast days (1-7), default 3"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getTemperatureAlert",
+                                         "desc":  "统计当前、今天和明天的天气及气温差异，按变化等级返回绿色/蓝色/橙色/红色气温预警与穿衣出行建议",
+                                         "desc_en":  "Compare current, today, and tomorrow weather/temperature and return green/blue/orange/red temperature alerts with practical advice",
+                                         "params":  [
+                                                        "city"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "城市名称（可选，留空则自动定位）"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "City name (optional, empty to use GPS location)"
+                                                          ],
+                                         "examples":  [
+                                                          "明天和今天温差大吗？",
+                                                          "北京明天气温预警",
+                                                          "Compare today and tomorrow weather in Shanghai"
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "getWeatherByLocation",
+                                         "desc":  "根据经纬度坐标查询天气，用于已知坐标的场景",
+                                         "desc_en":  "Get weather by latitude/longitude coordinates",
+                                         "params":  [
+                                                        "latitude",
+                                                        "longitude"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "纬度",
+                                                           "经度"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Latitude",
+                                                              "Longitude"
                                                           ]
                                      },
                                      {
@@ -4657,10 +4704,12 @@
                                                        ],
                                          "paramDesc_en":  [
 
-                                                          ]
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  3
+                        "api_count":  5
                     },
                     {
                         "id":  "ocr",
@@ -5654,10 +5703,10 @@
                                      "en":  "Fullscreen Countdown"
                                  },
                         "description":  {
-                                            "zh":  "横屏全屏倒计时模块，支持按小时/分钟/秒设置倒计时时长，自动按分钟秒或时分秒显示，支持剩余1分钟震动三次和最后若干秒每秒震动提醒",
-                                            "en":  "Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts."
+                                            "zh":  "横屏全屏倒计时模块，支持按小时/分钟/秒设置时长，自动按分秒或时分秒显示，支持剩余1分钟震动和提示音、最后若干秒每秒震动和提示音提醒。",
+                                            "en":  "Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute vibration and sound alerts, and final per-second vibration and sound prompts."
                                         },
-                        "version":  "1.1",
+                        "version":  "1.2",
                         "icon":  "timer",
                         "filename":  "fullscreen_countdown.mod",
                         "download_url":  [
@@ -5670,19 +5719,19 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.VIBRATE",
-                                                "desc":  "用于倒计时提醒震动，包括剩余1分钟震动三次和最后若干秒每秒震动",
-                                                "desc_en":  "Vibrate for countdown alerts, including one-minute triple vibration and final per-second vibration."
+                                                "desc":  "用于倒计时震动提醒；声音播放由应用内声音能力开关控制，不需要额外 Android 运行时权限。",
+                                                "desc_en":  "Used for countdown vibration alerts. Sound playback is controlled by the app-level audio capability and does not require an extra Android runtime permission."
                                             }
                                         ],
                         "capabilities":  [
-                                             "timer",
-                                             "vibration"
+                                             "vibration",
+                                             "audio"
                                          ],
                         "apis":  [
                                      {
                                          "name":  "createCountdown",
-                                         "desc":  "创建并启动倒计时，可通过 durationSeconds 或 hours/minutes/seconds 设置时长，支持设置标题、剩余1分钟震动三次、最后若干秒每秒震动。适合用户说“倒计时10分钟”“倒计时1小时30分钟并最后10秒震动”等场景。",
-                                         "desc_en":  "Create and start a countdown. Set duration by durationSeconds or hours/minutes/seconds, with optional title, triple vibration at one minute remaining, and per-second vibration during the final N seconds.",
+                                         "desc":  "创建并启动倒计时，可通过 durationSeconds 或 hours/minutes/seconds 设置时长，支持设置标题、剩余1分钟震动三次、剩余1分钟播放提示音、最后若干秒每秒震动和每秒提示音。适合用户说“倒计时30分钟”“倒计时1小时30分钟并最后10秒震动和提示音”等场景。",
+                                         "desc_en":  "Create and start a countdown. Set duration by durationSeconds or hours/minutes/seconds, with optional title, triple vibration and sound at one minute remaining, and per-second vibration and sound during the final N seconds.",
                                          "params":  [
                                                         "durationSeconds",
                                                         "hours",
@@ -5691,6 +5740,8 @@
                                                         "title",
                                                         "vibrateAtOneMinute",
                                                         "finalVibrateSeconds",
+                                                        "soundAtOneMinute",
+                                                        "finalSoundSeconds",
                                                         "autoStartFullscreen"
                                                     ],
                                          "paramDesc":  [
@@ -5700,7 +5751,9 @@
                                                            "秒数，可选，默认0",
                                                            "倒计时标题，可选",
                                                            "剩余1分钟时是否震动三次，可选，默认跟随页面默认设置",
-                                                           "最后多少秒每秒震动一次，可选，默认跟随页面默认设置；0表示关闭",
+                                                           "最后多少秒每秒震动一次，可选，默认跟随页面默认设置，0表示关闭",
+                                                           "剩余1分钟时是否播放提示音，可选，默认开启",
+                                                           "最后多少秒每秒播放提示音，可选，默认10秒，0表示关闭",
                                                            "打开页面后是否立即横屏全屏启动，可选，默认true"
                                                        ],
                                          "paramDesc_en":  [
@@ -5711,12 +5764,14 @@
                                                               "Countdown title, optional",
                                                               "Whether to vibrate three times at one minute remaining; optional, follows page default",
                                                               "Vibrate once per second during the final N seconds; optional, follows page default; 0 disables",
+                                                              "Whether to play a sound at one minute remaining; optional, default on",
+                                                              "Play a sound once per second during the final N seconds; optional, default 10; 0 disables",
                                                               "Start in landscape fullscreen after opening the page; optional, default true"
                                                           ]
                                      },
                                      {
                                          "name":  "getDefaultSettings",
-                                         "desc":  "获取倒计时页面默认设置，供未明确设置时参考",
+                                         "desc":  "获取倒计时页面默认设置，供未明确设置时参考。",
                                          "desc_en":  "Get default countdown page settings for prompts that omit options.",
                                          "params":  [
 

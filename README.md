@@ -99,14 +99,14 @@ APP **不硬编码**任何模块信息。所有能力均由模块的 `manifest.j
 PandaGenieSource/
 ├── README.md / README_CN.md        # 英文和中文说明
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # 模块市场索引，更新于 2026-04-28
+├── modules.json                    # 模块市场索引，更新于 2026-05-08
 ├── modules/                        # 已签名发布的 .mod 模块包
 ├── source/                         # 官方模块源码
 │   ├── shared_api/                 # 模块共用 API 和辅助类
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 当前共 37 个官方模块
+│   └── ...                         # 当前共 40 个官方模块
 ├── module-dev-toolkit/             # 模块构建与签名 PowerShell 工具集
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -120,10 +120,10 @@ PandaGenieSource/
 
 近期结构变化：
 
-- `modules.json` 已更新为 37 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
+- `modules.json` 已更新为 40 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
 - `source/shared_api` 成为模块共用 API 和辅助类入口，减少各模块重复维护接口定义。
 - `module-dev-toolkit` 成为推荐的本地模块打包、签名和证书查看流程。
-- 新增或较新的官方模块包括天气助手、OCR 文字识别、手电筒、翻译助手、指南针、URL 编解码、自我介绍等。
+- 新增或较新的官方模块包括文档处理、设备控制、全屏倒计时、天气助手、OCR 文字识别、手电筒、翻译助手、指南针、URL 编解码、自我介绍等。
 - 文件管理器、压缩解压、计算器等包含原生能力的模块，在各自目录下保留 `native/` 和 `jni_bridge/`。
 
 ---
@@ -167,7 +167,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 已有模块
 
-`modules.json` 当前包含 **39 个官方模块**，最后更新时间为 **2026-05-01**。
+`modules.json` 当前包含 **40 个官方模块**，最后更新时间为 **2026-05-08**。
 
 | 模块 | 功能描述 | 类型 |
 |------|---------|------|
@@ -180,7 +180,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x23F0; **提醒助手** | 日历事件、闹钟、倒计时、生日提醒和近期日程查询 | Java |
 | &#x1F4DD; **文本工具** | 字数统计、Base64、URL 编解码、正则、UUID、文本哈希 | Java |
 | &#x1F4F1; **设备信息** | 机型、系统、CPU、内存、存储、屏幕参数 | Java |
-| &#x1F5BC;&#xFE0F; **图片工具** | 图片信息、缩放、压缩、格式转换、旋转和裁剪 | Java |
+| &#x1F5BC;&#xFE0F; **图片工具** | 图片信息、缩放、压缩、格式转换、旋转、裁剪、相册读取、重复图和相似图查找 | Java |
 | &#x1F4CB; **剪贴板管理** | 读取、设置、清空剪贴板和管理剪贴板历史 | Java |
 | &#x1F50B; **电池管理** | 电量、充电状态、健康状况、温度、电压等信息 | Java |
 | &#x1F310; **网络工具** | Ping、DNS 查询、本机/公网 IP、联网检查和网络信息 | Java |
@@ -188,7 +188,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F4D3; **笔记助手** | 本地笔记创建、查看、编辑、删除、搜索和导出 | Java |
 | &#x1F3AF; **每日运势** | 按日期和姓名生成个性化运势，支持农历日期转换 | Java |
 | &#x1F3B2; **骰子工具** | 掷骰、目标点数、大小判定、豹子、组合枚举和概率统计 | Java |
-| &#x1F4A1; **LED 灯牌** | 滚动、浮现、静止文字横幅，支持颜色、渐变、字号和特效 | H5+Java |
+| &#x1F4A1; **LED 灯牌** | 滚动、浮现、静止文字横幅，支持颜色、渐变、字号、特效和全屏横屏播放 | H5+Java |
 | &#x1F9F9; **系统清理** | 扫描清理临时文件、缓存、空文件夹、缩略图缓存和 APK 安装包 | Java |
 | &#x1F3A8; **颜色工具** | HEX/RGB/HSL/CMYK 互转、配色方案、随机色和 CSS 命名色匹配 | Java |
 | &#x1F4CF; **单位转换** | 长度、重量、温度、面积、体积、速度、时间、数据存储等单位互转 | Java |
@@ -201,13 +201,16 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F9E9; **数独** | 9x9 数独题目生成和难度设置 | H5+Java |
 | &#x274E; **井字棋** | 经典 3x3 人机对战 | H5+Java |
 | &#x1F517; **链接解析** | 提取网页标题、描述、图片、链接、下载文件、HTTP 头和内容类型 | Java |
-| &#x2601;&#xFE0F; **天气助手** | 使用 Open-Meteo 免费 API 查询当前天气和多日天气预报 | Java |
+| &#x2601;&#xFE0F; **天气助手** | 使用 Open-Meteo 免费 API 查询当前天气、多日预报、今天和明天的天气变化预警 | H5+Java |
 | &#x1F50D; **OCR 文字识别** | 从图片中提取中英文文字，支持自动语言检测 | Java |
 | &#x1F526; **手电筒** | 开关闪光灯并查询当前状态 | Java |
 | &#x1F310; **翻译助手** | 支持中、英、日、韩、法、德、西等多语言互译 | Java |
 | &#x1F9ED; **指南针** | 使用设备传感器获取方位角和基本方位信息 | Java |
 | &#x1F517; **URL 编解码** | URL 编码、解码和组件解析 | Java |
 | &#x1F43C; **自我介绍** | 当用户询问“你是谁”“能做什么”等问题时返回助手介绍和能力列表 | Java |
+| &#x1F4C4; **文档处理** | 文档提取、查询、创建、替换、追加、格式转换，以及 CSV/XLSX 表格导入生成 | Java |
+| &#x1F39B;&#xFE0F; **设备控制** | 查询和调节屏幕亮度、媒体/铃声/闹钟音量，并返回当前控制状态 | Java |
+| &#x23F1;&#xFE0F; **倒计时** | 横屏全屏倒计时，支持时分秒显示、1 分钟提醒、最后若干秒震动和提示音 | H5+Java |
 
 > &#x1F4E6; **[在模块市场浏览所有模块](https://cf.pandagenie.ai/marketplace)** — 或在下方了解如何**创建你自己的模块**！
 
@@ -215,16 +218,26 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.24)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260507/PandaGenie-v1.0.24.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.30)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260508/PandaGenie-v1.0.30.apk)**
 
-- Release 标签：[`20260507`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260507)
-- Android 工程版本：`versionName "1.0.24"` / `versionCode 24`
+- Release 标签：[`20260508`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260508)
+- Android 工程版本：`versionName "1.0.30"` / `versionCode 10030`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.30</b> (2026-05-08)</summary>
+
+- **App 版本升级**：Android 工程版本更新为 `versionName "1.0.30"` / `versionCode 10030`，并发布新的最终版 APK。
+- **模块市场刷新**：`modules.json` 同步到 40 个官方模块，更新图片工具、LED 灯牌、天气助手和全屏倒计时模块包。
+- **全屏与提醒体验**：倒计时模块加入提示音、震动和横屏全屏体验优化，LED 灯牌强化全屏横屏与特效表现。
+- **服务端能力更新**：同步 ASR、邮件活动、管理后台和 Cloudflare 版本发布链路相关代码。
+
+</details>
+
+<details>
 <summary><b>v1.0.24</b> (2026-05-07)</summary>
 
 - **新增倒计时模块**：支持横屏全屏倒计时、分钟秒/时分秒自动展示、1 分钟三次震动和最后若干秒每秒震动。

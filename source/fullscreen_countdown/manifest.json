@@ -2,9 +2,9 @@
   "id": "fullscreen_countdown",
   "name": "倒计时",
   "name_en": "Fullscreen Countdown",
-  "description": "横屏全屏倒计时模块，支持按小时/分钟/秒设置倒计时时长，自动按分钟秒或时分秒显示，支持剩余1分钟震动三次和最后若干秒每秒震动提醒",
-  "description_en": "Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts.",
-  "version": "1.1",
+  "description": "横屏全屏倒计时模块，支持按小时/分钟/秒设置时长，自动按分秒或时分秒显示，支持剩余1分钟震动和提示音、最后若干秒每秒震动和提示音提醒。",
+  "description_en": "Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute vibration and sound alerts, and final per-second vibration and sound prompts.",
+  "version": "1.2",
   "icon": "timer",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -12,14 +12,14 @@
   "pluginClass": "ai.rorsch.moduleplugins.fullscreen_countdown.FullscreenCountdownPlugin",
   "soLoadMode": "skip",
   "capabilities": [
-    "timer",
-    "vibration"
+    "vibration",
+    "audio"
   ],
   "permissions": [
     {
       "name": "android.permission.VIBRATE",
-      "desc": "用于倒计时提醒震动，包括剩余1分钟震动三次和最后若干秒每秒震动",
-      "desc_en": "Vibrate for countdown alerts, including one-minute triple vibration and final per-second vibration."
+      "desc": "用于倒计时震动提醒；声音播放由应用内声音能力开关控制，不需要额外 Android 运行时权限。",
+      "desc_en": "Used for countdown vibration alerts. Sound playback is controlled by the app-level audio capability and does not require an extra Android runtime permission."
     }
   ],
   "developer": {
@@ -30,8 +30,8 @@
   "apis": [
     {
       "name": "createCountdown",
-      "desc": "创建并启动倒计时，可通过 durationSeconds 或 hours/minutes/seconds 设置时长，支持设置标题、剩余1分钟震动三次、最后若干秒每秒震动。适合用户说“倒计时10分钟”“倒计时1小时30分钟并最后10秒震动”等场景。",
-      "desc_en": "Create and start a countdown. Set duration by durationSeconds or hours/minutes/seconds, with optional title, triple vibration at one minute remaining, and per-second vibration during the final N seconds.",
+      "desc": "创建并启动倒计时，可通过 durationSeconds 或 hours/minutes/seconds 设置时长，支持设置标题、剩余1分钟震动三次、剩余1分钟播放提示音、最后若干秒每秒震动和每秒提示音。适合用户说“倒计时30分钟”“倒计时1小时30分钟并最后10秒震动和提示音”等场景。",
+      "desc_en": "Create and start a countdown. Set duration by durationSeconds or hours/minutes/seconds, with optional title, triple vibration and sound at one minute remaining, and per-second vibration and sound during the final N seconds.",
       "params": [
         "durationSeconds",
         "hours",
@@ -40,6 +40,8 @@
         "title",
         "vibrateAtOneMinute",
         "finalVibrateSeconds",
+        "soundAtOneMinute",
+        "finalSoundSeconds",
         "autoStartFullscreen"
       ],
       "paramDesc": [
@@ -49,7 +51,9 @@
         "秒数，可选，默认0",
         "倒计时标题，可选",
         "剩余1分钟时是否震动三次，可选，默认跟随页面默认设置",
-        "最后多少秒每秒震动一次，可选，默认跟随页面默认设置；0表示关闭",
+        "最后多少秒每秒震动一次，可选，默认跟随页面默认设置，0表示关闭",
+        "剩余1分钟时是否播放提示音，可选，默认开启",
+        "最后多少秒每秒播放提示音，可选，默认10秒，0表示关闭",
         "打开页面后是否立即横屏全屏启动，可选，默认true"
       ],
       "paramDesc_en": [
@@ -60,12 +64,14 @@
         "Countdown title, optional",
         "Whether to vibrate three times at one minute remaining; optional, follows page default",
         "Vibrate once per second during the final N seconds; optional, follows page default; 0 disables",
+        "Whether to play a sound at one minute remaining; optional, default on",
+        "Play a sound once per second during the final N seconds; optional, default 10; 0 disables",
         "Start in landscape fullscreen after opening the page; optional, default true"
       ]
     },
     {
       "name": "getDefaultSettings",
-      "desc": "获取倒计时页面默认设置，供未明确设置时参考",
+      "desc": "获取倒计时页面默认设置，供未明确设置时参考。",
       "desc_en": "Get default countdown page settings for prompts that omit options.",
       "params": [],
       "paramDesc": [],

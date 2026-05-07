@@ -85,14 +85,14 @@ The current source repository keeps the module ecosystem and release assets toge
 PandaGenieSource/
 ├── README.md / README_CN.md        # English and Chinese project docs
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # Marketplace index, updated 2026-04-28
+├── modules.json                    # Marketplace index, updated 2026-05-08
 ├── modules/                        # Signed release .mod packages
 ├── source/                         # Official module source code
 │   ├── shared_api/                 # Shared module API and helper classes
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 39 official modules in total
+│   └── ...                         # 40 official modules in total
 ├── module-dev-toolkit/             # PowerShell toolkit for building and signing modules
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -106,10 +106,10 @@ PandaGenieSource/
 
 Recent structure updates:
 
-- `modules.json` now lists 39 official modules and provides both CDN and GitHub raw download URLs.
+- `modules.json` now lists 40 official modules and provides both CDN and GitHub raw download URLs.
 - `source/shared_api` centralizes the API/helper layer used by modules.
 - `module-dev-toolkit` is the preferred workflow for module packaging, signing, and certificate inspection.
-- Newer official modules include Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
+- Newer official modules include Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
 - Native-heavy modules such as File Manager, Archive, and Calculator keep their `native/` and `jni_bridge/` folders under the module source directory.
 
 ---
@@ -186,7 +186,7 @@ long usedBytes = storage.getUsedSpace();
 
 ## Available Modules
 
-`modules.json` currently lists **39 official modules**, last updated on **2026-05-01**.
+`modules.json` currently lists **40 official modules**, last updated on **2026-05-08**.
 
 | Module | Description | Type |
 |--------|-------------|------|
@@ -199,7 +199,7 @@ long usedBytes = storage.getUsedSpace();
 | &#x23F0; **Reminder** | Calendar events, alarms, timers, birthday reminders, upcoming schedules | Java |
 | &#x1F4DD; **Text Tools** | Word count, Base64, URL encode/decode, regex, UUID, hashing | Java |
 | &#x1F4F1; **Device Info** | Device, OS, CPU, RAM, storage, display metrics | Java |
-| &#x1F5BC;&#xFE0F; **Image Tools** | Resize, compress, convert, rotate, crop images | Java |
+| &#x1F5BC;&#xFE0F; **Image Tools** | Inspect, resize, compress, convert, rotate, crop, read album images, and find duplicate/similar images | Java |
 | &#x1F4CB; **Clipboard Manager** | Read, set, clear clipboard and manage clipboard history | Java |
 | &#x1F50B; **Battery Manager** | Battery level, charging status, health, temperature, voltage | Java |
 | &#x1F310; **Network Tools** | Ping, DNS lookup, IP lookup, connectivity and network info | Java |
@@ -207,7 +207,7 @@ long usedBytes = storage.getUsedSpace();
 | &#x1F4D3; **Notes** | Create, edit, delete, search, export local notes | Java |
 | &#x1F3AF; **Daily Fortune** | Personalized fortune by date/name with lunar-calendar support | Java |
 | &#x1F3B2; **Dice Tool** | Roll dice, target sums, big/small judgment, probability stats | Java |
-| &#x1F4A1; **LED Banner** | Scrolling/fading/static text banners with colors and effects | H5+Java |
+| &#x1F4A1; **LED Banner** | Scrolling/fading/static text banners with colors, gradients, effects, and fullscreen landscape playback | H5+Java |
 | &#x1F9F9; **System Cleaner** | Clean temp files, cache, empty folders, thumbnails, APK installers | Java |
 | &#x1F3A8; **Color Tools** | HEX/RGB/HSL/CMYK conversion, palettes, random colors | Java |
 | &#x1F4CF; **Unit Converter** | Length, weight, temperature, area, volume, speed, time, data storage | Java |
@@ -220,13 +220,16 @@ long usedBytes = storage.getUsedSpace();
 | &#x1F9E9; **Sudoku** | 9x9 Sudoku with generated puzzles and difficulty settings | H5+Java |
 | &#x274E; **Tic-Tac-Toe** | Classic 3x3 game against AI | H5+Java |
 | &#x1F517; **Link Parser** | Extract titles, descriptions, images, links, downloads, headers, content types | Java |
-| &#x2601;&#xFE0F; **Weather Assistant** | Current weather and multi-day forecasts via Open-Meteo | Java |
+| &#x2601;&#xFE0F; **Weather Assistant** | Current weather, multi-day forecasts, and today/tomorrow change alerts via Open-Meteo | H5+Java |
 | &#x1F50D; **OCR Text Recognition** | Extract Chinese and English text from images | Java |
 | &#x1F526; **Flashlight** | Toggle and inspect the camera torch state | Java |
 | &#x1F310; **Translator** | Translate text across Chinese, English, Japanese, Korean, French, German, Spanish, and more | Java |
 | &#x1F9ED; **Digital Compass** | Heading, azimuth, and cardinal direction from device sensors | Java |
 | &#x1F517; **URL Codec** | URL encoding, decoding, and component parsing | Java |
 | &#x1F43C; **Hello World** | PandaGenie self-introduction and capability list | Java |
+| &#x1F4C4; **Document Tools** | Extract, query, create, replace, append, convert, and import/export CSV/XLSX tables | Java |
+| &#x1F39B;&#xFE0F; **Device Controls** | Query and adjust screen brightness plus media/ring/alarm volumes | Java |
+| &#x23F1;&#xFE0F; **Fullscreen Countdown** | Landscape fullscreen countdowns with h:m:s display, one-minute alerts, final vibration, and sound cues | H5+Java |
 
 > &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
 
@@ -234,16 +237,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.24)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260507/PandaGenie-v1.0.24.apk)**
+> &#x1F4E5; **[Download APK (v1.0.30)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260508/PandaGenie-v1.0.30.apk)**
 
-- Release tag: [`20260507`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260507)
-- Android project version: `versionName "1.0.24"` / `versionCode 24`
+- Release tag: [`20260508`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260508)
+- Android project version: `versionName "1.0.30"` / `versionCode 10030`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.30</b> (2026-05-08)</summary>
+
+- **App version bump**: updated the Android project to `versionName "1.0.30"` / `versionCode 10030` and published a new final APK.
+- **Marketplace refresh**: synced `modules.json` to 40 official modules, updating Image Tools, LED Banner, Weather Assistant, and Fullscreen Countdown packages.
+- **Fullscreen and reminder polish**: improved countdown sound/vibration alerts and fullscreen landscape behavior, with LED Banner fullscreen/effect refinements.
+- **Server capability updates**: synced ASR, email campaign, admin dashboard, and Cloudflare version publishing code.
+
+</details>
+
+<details>
 <summary><b>v1.0.24</b> (2026-05-07)</summary>
 
 - **Fullscreen Countdown module**: added landscape fullscreen countdowns, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts.

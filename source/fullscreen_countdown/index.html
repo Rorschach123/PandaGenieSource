@@ -132,6 +132,23 @@ button:active { transform: scale(.98); }
       </div>
       <input class="inline-input" id="finalVibrateSeconds" type="number" min="0" max="60" value="10">
     </div>
+    <div class="toggle-row">
+      <div>
+        <strong id="oneMinuteSoundTitle">剩余1分钟播放提示音</strong>
+        <small id="oneMinuteSoundDesc">需要开启声音权限</small>
+      </div>
+      <label class="switch">
+        <input id="oneMinuteSound" type="checkbox" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div>
+        <strong id="finalSoundTitle">最后若干秒每秒提示音</strong>
+        <small id="finalSoundDesc">设为0则关闭</small>
+      </div>
+      <input class="inline-input" id="finalSoundSeconds" type="number" min="0" max="60" value="10">
+    </div>
   </div>
 
   <div class="card countdown-card" id="countdownCard" onclick="enterFullscreenIfRunning()">
@@ -172,6 +189,7 @@ var state = {
   displayHms: false,
   firedOneMinute: false,
   lastFinalVibrate: -1,
+  lastFinalSound: -1,
   fullscreenTimer: null
 };
 
@@ -202,6 +220,8 @@ function collectConfig(){
     displayMode: total>3600?'hms':'ms',
     vibrateAtOneMinute: document.getElementById('oneMinuteVibrate').checked,
     finalVibrateSeconds: clamp(document.getElementById('finalVibrateSeconds').value,0,60),
+    soundAtOneMinute: document.getElementById('oneMinuteSound').checked,
+    finalSoundSeconds: clamp(document.getElementById('finalSoundSeconds').value,0,60),
     autoStartFullscreen: true
   };
 }
@@ -216,6 +236,8 @@ function applyConfig(config){
   document.getElementById('secondsInput').value = total%60;
   if(typeof config.vibrateAtOneMinute === 'boolean') document.getElementById('oneMinuteVibrate').checked = config.vibrateAtOneMinute;
   if(config.finalVibrateSeconds !== undefined) document.getElementById('finalVibrateSeconds').value = clamp(config.finalVibrateSeconds,0,60);
+  if(typeof config.soundAtOneMinute === 'boolean') document.getElementById('oneMinuteSound').checked = config.soundAtOneMinute;
+  if(config.finalSoundSeconds !== undefined) document.getElementById('finalSoundSeconds').value = clamp(config.finalSoundSeconds,0,60);
   state.total = total;
   state.remaining = total;
   state.displayHms = total > 3600;
@@ -260,6 +282,7 @@ function startCountdown(fullscreen){
   state.endAt=Date.now()+state.remaining*1000;
   state.firedOneMinute=false;
   state.lastFinalVibrate=-1;
+  state.lastFinalSound=-1;
   clearInterval(state.timer);
   state.timer=setInterval(tick,250);
   tick();
@@ -318,6 +341,7 @@ function exitFullscreenOnly(){
 }
 function vibrate(pattern){
   try{
+    if(!canUseCapability('vibration')) return;
     var normalized = Array.isArray(pattern) ? pattern : [pattern];
     if(typeof NativeBridge !== 'undefined' && NativeBridge.vibrate){
       NativeBridge.vibrate(JSON.stringify(normalized));
@@ -326,16 +350,53 @@ function vibrate(pattern){
     if(navigator.vibrate) navigator.vibrate(pattern);
   }catch(e){}
 }
+function canUseCapability(capability){
+  try{
+    if(typeof NativeBridge !== 'undefined'){
+      if(NativeBridge.canUseCapability) return !!NativeBridge.canUseCapability(capability);
+      return false;
+    }
+  }catch(e){ return false; }
+  return true;
+}
+function playPromptSound(kind){
+  try{
+    if(!canUseCapability('audio')) return;
+    var duration = kind === 'minute' ? 260 : 90;
+    if(typeof NativeBridge !== 'undefined' && NativeBridge.playTone){
+      NativeBridge.playTone(kind, duration);
+      return;
+    }
+    var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContextCtor) return;
+    var ctx = new AudioContextCtor();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = kind === 'minute' ? 880 : 1200;
+    gain.gain.value = 0.08;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    setTimeout(function(){ try{ osc.stop(); ctx.close(); }catch(e){} }, duration);
+  }catch(e){}
+}
 function handleVibration(){
   if(state.remaining<=0) return;
-  if(document.getElementById('oneMinuteVibrate').checked && !state.firedOneMinute && state.remaining===60){
+  if(!state.firedOneMinute && state.remaining===60){
     state.firedOneMinute=true;
-    vibrate([160,120,160,120,160]);
+    if(document.getElementById('oneMinuteVibrate').checked) vibrate([160,120,160,120,160]);
+    if(document.getElementById('oneMinuteSound').checked) playPromptSound('minute');
   }
   var finalSeconds=clamp(document.getElementById('finalVibrateSeconds').value,0,60);
   if(finalSeconds>0 && state.remaining<=finalSeconds && state.remaining!==state.lastFinalVibrate){
     state.lastFinalVibrate=state.remaining;
     vibrate(90);
+  }
+  var finalSoundSeconds=clamp(document.getElementById('finalSoundSeconds').value,0,60);
+  if(finalSoundSeconds>0 && state.remaining<=finalSoundSeconds && state.remaining!==state.lastFinalSound){
+    state.lastFinalSound=state.remaining;
+    playPromptSound('tick');
   }
 }
 function onPendingResult(jsonStr){
@@ -358,13 +419,17 @@ function applyI18n(){
   document.getElementById('oneMinuteDesc').textContent=T('适合长倒计时提醒','Useful for long countdowns');
   document.getElementById('finalTitle').textContent=T('最后若干秒每秒震动','Vibrate every second at the end');
   document.getElementById('finalDesc').textContent=T('设为0则关闭','Set 0 to disable');
+  document.getElementById('oneMinuteSoundTitle').textContent=T('剩余1分钟播放提示音','Play a sound at one minute');
+  document.getElementById('oneMinuteSoundDesc').textContent=T('需要开启声音权限','Requires sound permission');
+  document.getElementById('finalSoundTitle').textContent=T('最后若干秒每秒提示音','Beep every second at the end');
+  document.getElementById('finalSoundDesc').textContent=T('设为0则关闭','Set 0 to disable');
   document.getElementById('startBtn').textContent=T('开始','Start');
   document.getElementById('resetBtn').textContent=T('重置','Reset');
   document.getElementById('stopBtn').textContent=T('停止','Stop');
   document.getElementById('hintText').textContent=T('全屏后点击任意位置退出全屏，倒计时仍会继续；点击倒计时框可再次全屏。','Tap anywhere in fullscreen to exit; the countdown keeps running. Tap the timer card to re-enter fullscreen.');
   render();
 }
-['hoursInput','minutesInput','secondsInput','timerTitle','oneMinuteVibrate','finalVibrateSeconds'].forEach(function(id){
+['hoursInput','minutesInput','secondsInput','timerTitle','oneMinuteVibrate','finalVibrateSeconds','oneMinuteSound','finalSoundSeconds'].forEach(function(id){
   document.getElementById(id).addEventListener('input', function(){
     if(!state.running) {
       state.total=getConfiguredSeconds();

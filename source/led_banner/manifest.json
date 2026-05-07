@@ -4,7 +4,7 @@
   "name_en": "LED Banner",
   "description": "LED应援灯牌模块，支持创建滚动/浮现/静止文字横幅，自定义颜色、渐变背景、字体大小、特效（荧光、闪烁、抖动），内置多种赛博风格和应援色模板，支持全屏横屏播放",
   "description_en": "LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates, with fullscreen landscape mode",
-  "version": "1.6",
+  "version": "1.7",
   "icon": "celebration",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -21,8 +21,8 @@
   "apis": [
     {
       "name": "generateBanner",
-      "desc": "生成LED灯牌配置，返回完整的显示参数（文字、颜色、背景、模式、特效等），可直接用于H5页面渲染",
-      "desc_en": "Generate an LED banner config with full display parameters (text, colors, background, mode, effects) for H5 rendering",
+      "desc": "生成LED灯牌配置，返回完整的显示参数（文字、颜色、背景、模式、特效等），可直接用于H5页面渲染。用户说设置/启动/显示/生成应援灯牌且已提供文字时，必须优先调用本接口直接打开，不要先调用模板查询接口。",
+      "desc_en": "Generate an LED banner config with full display parameters (text, colors, background, mode, effects) for H5 rendering. When the user asks to set/start/show/generate a support banner and already provides text, call this API first and do not call template-list APIs first.",
       "params": [
         "text",
         "fontColor",
@@ -53,24 +53,24 @@
     },
     {
       "name": "getTemplates",
-      "desc": "获取所有内置赛博风格灯牌模板列表，每个模板含名称、字体颜色和背景颜色",
-      "desc_en": "Get all built-in cyber-style banner templates with name, font color and background color",
+      "desc": "获取所有内置赛博风格灯牌模板列表，每个模板含名称、字体颜色和背景颜色。仅当用户明确要求查看/列出/选择模板时调用；不要作为启动灯牌的前置步骤。",
+      "desc_en": "Get all built-in cyber-style banner templates with name, font color and background color. Use only when the user explicitly asks to browse/list/choose templates; do not use as a prerequisite for starting a banner.",
       "params": [],
       "paramDesc": [],
       "paramDesc_en": []
     },
     {
       "name": "getStarTemplates",
-      "desc": "获取所有应援色模板（偶像/明星应援配色），每个模板含名称、字体颜色和背景颜色",
-      "desc_en": "Get all idol/star support color templates with name, font color and background color",
+      "desc": "获取所有应援色模板（偶像/明星应援配色），每个模板含名称、字体颜色和背景颜色。仅当用户明确要求查看/列出/选择应援色模板时调用；不要作为启动灯牌的前置步骤。",
+      "desc_en": "Get all idol/star support color templates with name, font color and background color. Use only when the user explicitly asks to browse/list/choose support color templates; do not use as a prerequisite for starting a banner.",
       "params": [],
       "paramDesc": [],
       "paramDesc_en": []
     },
     {
       "name": "applyTemplate",
-      "desc": "应用指定模板到灯牌，传入模板名称和显示文字，返回完整灯牌配置",
-      "desc_en": "Apply a template to banner by name with display text, returns full banner config",
+      "desc": "应用指定模板到灯牌，传入模板名称和显示文字，返回完整灯牌配置。仅当用户明确给出模板名称或要求使用某个模板时调用；普通启动/显示文字请用 generateBanner。",
+      "desc_en": "Apply a template to banner by name with display text, returns full banner config. Use only when the user explicitly names a template or asks to use one; for normal start/show text requests use generateBanner.",
       "params": [
         "templateName",
         "text"

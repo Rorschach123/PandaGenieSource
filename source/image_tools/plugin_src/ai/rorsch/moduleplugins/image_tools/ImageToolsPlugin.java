@@ -1570,21 +1570,24 @@ public class ImageToolsPlugin implements ModulePlugin {
         String inPath = o.optString("inputPath");
         long before = new File(inPath).length();
         long after = o.optLong("outputSizeBytes");
+        long saved = Math.max(0L, before - after);
+        int pct = before > 0 ? (int) Math.min(100L, (saved * 100L / before)) : 0;
         String path = o.optString("outputPath");
         String title = zh ? "图片已压缩" : "Image compressed";
+        String summary = zh
+                ? String.format(Locale.US, "已将图片从 %s 压缩到 %s，节省 %s（约 %d%%）。",
+                formatFileSizeMb(before), formatFileSizeMb(after), formatFileSizeMb(saved), pct)
+                : String.format(Locale.US, "Compressed from %s to %s, saving %s (~%d%%).",
+                formatFileSizeMb(before), formatFileSizeMb(after), formatFileSizeMb(saved), pct);
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "输入路径" : "Input path", mdCell(inPath) });
         rows.add(new String[] { zh ? "压缩前大小" : "Size before", formatFileSizeMb(before) });
         rows.add(new String[] { zh ? "压缩后大小" : "Size after", formatFileSizeMb(after) });
-        rows.add(new String[] { zh ? "质量" : "Quality", String.valueOf(o.optInt("quality")) });
-        rows.add(new String[] { zh ? "原始尺寸" : "Original size",
-                o.optInt("originalWidth") + "×" + o.optInt("originalHeight") });
-        rows.add(new String[] { zh ? "解码尺寸" : "Decoded size",
-                o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") });
-        rows.add(new String[] { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) });
-        rows.add(new String[] { zh ? "格式" : "Format", mdCell(o.optString("format")) });
-        rows.add(new String[] { zh ? "输出路径" : "Output path", mdCell(path) });
-        return "✅ " + title + "\n\n" + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "值" : "Value" }, rows);
+        rows.add(new String[] { zh ? "节省空间" : "Saved", formatFileSizeMb(saved) + " (~" + pct + "%)" });
+        rows.add(new String[] { zh ? "压缩质量" : "Quality", String.valueOf(o.optInt("quality")) });
+        rows.add(new String[] { zh ? "输出格式" : "Format", mdCell(o.optString("format")) });
+        rows.add(new String[] { zh ? "输出文件" : "Output file", mdCell(path) });
+        return "✅ " + title + "\n\n" + summary + "\n\n"
+                + pgTable(title, new String[] { zh ? "项目" : "Item", zh ? "结果" : "Result" }, rows);
     }
 
     /**
@@ -1866,19 +1869,14 @@ public class ImageToolsPlugin implements ModulePlugin {
         String path = o.optString("outputPath");
         String title = zh ? "图片已压缩" : "Image compressed";
         String body = HtmlOutputHelper.successBadge()
-                + HtmlOutputHelper.keyValue(new String[][] {
-                { zh ? "输入路径" : "Input path", inPath },
-                { zh ? "压缩前大小" : "Size before", formatFileSizeMb(before) },
-                { zh ? "压缩后大小" : "Size after", formatFileSizeMb(after) },
-                { zh ? "节省" : "Saved", formatFileSizeMb(saved) + " (~" + pct + "%)" },
-                { zh ? "质量" : "Quality", String.valueOf(o.optInt("quality")) },
-                { zh ? "原始尺寸" : "Original size", o.optInt("originalWidth") + "×" + o.optInt("originalHeight") },
-                { zh ? "解码尺寸" : "Decoded size", o.optInt("decodedWidth") + "×" + o.optInt("decodedHeight") },
-                { zh ? "降采样" : "Subsampled", yesNo(o.optBoolean("subsampled"), zh) },
-                { zh ? "格式" : "Format", o.optString("format") },
-                { zh ? "输出路径" : "Output path", path }
+                + HtmlOutputHelper.metricGrid(new String[][] {
+                { formatFileSizeMb(before), zh ? "压缩前" : "Before" },
+                { formatFileSizeMb(after), zh ? "压缩后" : "After" },
+                { "~" + pct + "%", zh ? "节省比例" : "Saved" },
+                { String.valueOf(o.optInt("quality")), zh ? "质量" : "Quality" }
         })
-                + HtmlOutputHelper.gauge(pct, "#4CAF50");
+                + HtmlOutputHelper.gauge(pct, "#4CAF50")
+                + HtmlOutputHelper.muted((zh ? "输出文件：" : "Output file: ") + path);
         return HtmlOutputHelper.card("✅", title, body);
     }
 

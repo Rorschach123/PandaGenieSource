@@ -11,6 +11,8 @@ public class FullscreenCountdownPlugin implements ModulePlugin {
     private static final int DEFAULT_MINUTES = 5;
     private static final boolean DEFAULT_VIBRATE_AT_ONE_MINUTE = true;
     private static final int DEFAULT_FINAL_VIBRATE_SECONDS = 10;
+    private static final boolean DEFAULT_SOUND_AT_ONE_MINUTE = true;
+    private static final int DEFAULT_FINAL_SOUND_SECONDS = 10;
 
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
@@ -52,6 +54,12 @@ public class FullscreenCountdownPlugin implements ModulePlugin {
         int finalVibrateSeconds = params.has("finalVibrateSeconds")
                 ? clamp(params.optInt("finalVibrateSeconds", DEFAULT_FINAL_VIBRATE_SECONDS), 0, 60)
                 : DEFAULT_FINAL_VIBRATE_SECONDS;
+        boolean soundAtOneMinute = params.has("soundAtOneMinute")
+                ? params.optBoolean("soundAtOneMinute", DEFAULT_SOUND_AT_ONE_MINUTE)
+                : DEFAULT_SOUND_AT_ONE_MINUTE;
+        int finalSoundSeconds = params.has("finalSoundSeconds")
+                ? clamp(params.optInt("finalSoundSeconds", DEFAULT_FINAL_SOUND_SECONDS), 0, 60)
+                : DEFAULT_FINAL_SOUND_SECONDS;
 
         String title = params.optString("title", "").trim();
         if (title.isEmpty()) title = isZh() ? "倒计时" : "Countdown";
@@ -65,6 +73,8 @@ public class FullscreenCountdownPlugin implements ModulePlugin {
         result.put("displayMode", totalSeconds > 3600 ? "hms" : "ms");
         result.put("vibrateAtOneMinute", vibrateAtOneMinute);
         result.put("finalVibrateSeconds", finalVibrateSeconds);
+        result.put("soundAtOneMinute", soundAtOneMinute);
+        result.put("finalSoundSeconds", finalSoundSeconds);
         result.put("autoStartFullscreen", params.has("autoStartFullscreen")
                 ? params.optBoolean("autoStartFullscreen", true)
                 : true);
@@ -79,37 +89,53 @@ public class FullscreenCountdownPlugin implements ModulePlugin {
         result.put("seconds", 0);
         result.put("vibrateAtOneMinute", DEFAULT_VIBRATE_AT_ONE_MINUTE);
         result.put("finalVibrateSeconds", DEFAULT_FINAL_VIBRATE_SECONDS);
+        result.put("soundAtOneMinute", DEFAULT_SOUND_AT_ONE_MINUTE);
+        result.put("finalSoundSeconds", DEFAULT_FINAL_SOUND_SECONDS);
         result.put("autoStartFullscreen", true);
         return result;
     }
 
     private String formatDisplay(JSONObject config) {
         StringBuilder sb = new StringBuilder();
-        sb.append(isZh() ? "⏱ 倒计时已创建\n" : "⏱ Countdown created\n");
+        sb.append(isZh() ? "倒计时已创建\n" : "Countdown created\n");
         sb.append(isZh() ? "标题: " : "Title: ").append(config.optString("title", "")).append("\n");
         sb.append(isZh() ? "时长: " : "Duration: ").append(formatDuration(config.optInt("durationSeconds", 0))).append("\n");
         if (config.optBoolean("vibrateAtOneMinute", true)) {
             sb.append(isZh() ? "剩余1分钟震动三次\n" : "Triple vibration at one minute remaining\n");
         }
-        int finalSeconds = config.optInt("finalVibrateSeconds", 0);
-        if (finalSeconds > 0) {
-            sb.append(isZh() ? "最后" : "Final ").append(finalSeconds)
-                    .append(isZh() ? "秒每秒震动一次" : " seconds vibrate every second");
+        int finalVibrateSeconds = config.optInt("finalVibrateSeconds", 0);
+        if (finalVibrateSeconds > 0) {
+            sb.append(isZh() ? "最后" : "Final ").append(finalVibrateSeconds)
+                    .append(isZh() ? "秒每秒震动一次\n" : " seconds vibrate every second\n");
+        }
+        if (config.optBoolean("soundAtOneMinute", true)) {
+            sb.append(isZh() ? "剩余1分钟播放提示音\n" : "Play sound at one minute remaining\n");
+        }
+        int finalSoundSeconds = config.optInt("finalSoundSeconds", 0);
+        if (finalSoundSeconds > 0) {
+            sb.append(isZh() ? "最后" : "Final ").append(finalSoundSeconds)
+                    .append(isZh() ? "秒每秒播放提示音" : " seconds play sound every second");
         }
         return sb.toString();
     }
 
     private String formatDisplayHtml(JSONObject config) {
         String title = isZh() ? "倒计时已准备" : "Countdown ready";
-        int finalSeconds = config.optInt("finalVibrateSeconds", 0);
-        String finalAlert = finalSeconds > 0
-                ? (isZh() ? "最后" + finalSeconds + "秒每秒震动" : "Vibrate every second in final " + finalSeconds + "s")
+        int finalVibrateSeconds = config.optInt("finalVibrateSeconds", 0);
+        String finalVibrateAlert = finalVibrateSeconds > 0
+                ? (isZh() ? "最后" + finalVibrateSeconds + "秒每秒震动" : "Vibrate every second in final " + finalVibrateSeconds + "s")
+                : (isZh() ? "关闭" : "Off");
+        int finalSoundSeconds = config.optInt("finalSoundSeconds", 0);
+        String soundAlert = finalSoundSeconds > 0
+                ? (isZh() ? "最后" + finalSoundSeconds + "秒每秒提示音" : "Beep every second in final " + finalSoundSeconds + "s")
                 : (isZh() ? "关闭" : "Off");
         String body = HtmlOutputHelper.keyValue(new String[][]{
                 {isZh() ? "标题" : "Title", config.optString("title", "")},
                 {isZh() ? "时长" : "Duration", formatDuration(config.optInt("durationSeconds", 0))},
-                {isZh() ? "1分钟提醒" : "1-minute alert", config.optBoolean("vibrateAtOneMinute", true) ? (isZh() ? "震动三次" : "Triple vibration") : (isZh() ? "关闭" : "Off")},
-                {isZh() ? "结束提醒" : "Final alert", finalAlert}
+                {isZh() ? "1分钟震动" : "1-minute vibration", config.optBoolean("vibrateAtOneMinute", true) ? (isZh() ? "震动三次" : "Triple vibration") : (isZh() ? "关闭" : "Off")},
+                {isZh() ? "结束震动" : "Final vibration", finalVibrateAlert},
+                {isZh() ? "1分钟提示音" : "1-minute sound", config.optBoolean("soundAtOneMinute", true) ? (isZh() ? "开启" : "On") : (isZh() ? "关闭" : "Off")},
+                {isZh() ? "读秒提示音" : "Final sound", soundAlert}
         }) + HtmlOutputHelper.p(isZh() ? "将打开倒计时页面并横屏全屏启动。" : "The countdown page will open and start fullscreen landscape.");
         return HtmlOutputHelper.card("⏱", title, body + HtmlOutputHelper.successBadge());
     }
