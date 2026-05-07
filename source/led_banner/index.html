@@ -406,14 +406,12 @@ function restartAnimation(el){
 
 function applyBannerAnimation(el,mode,effects,speed){
   speed=parseFloat(speed)||6;
-  if(effects&&effects.shake){
-    el.style.animation='bannerShake 0.15s linear infinite';
-    return;
-  }
   if(mode==='scroll'){
     el.style.animation=(effects&&effects.flash)
       ? 'bannerScroll '+speed+'s linear infinite, bannerFlash 0.5s step-end infinite'
       : 'bannerScroll '+speed+'s linear infinite';
+  }else if(effects&&effects.shake){
+    el.style.animation='bannerShake 0.15s linear infinite';
   }else if(mode==='fade'){
     el.style.animation='bannerFade '+speed+'s ease-in-out infinite';
   }else{

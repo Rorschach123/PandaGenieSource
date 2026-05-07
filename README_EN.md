@@ -248,7 +248,7 @@ long usedBytes = storage.getUsedSpace();
 
 - **Fullscreen Countdown module**: added landscape fullscreen countdowns, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts.
 - **Module WebView bridge**: added native vibration bridging for more reliable countdown and H5 module reminders.
-- **LED Banner refresh**: upgraded LED Banner to v1.5 with improved fullscreen landscape playback.
+- **LED Banner refresh**: upgraded LED Banner to v1.6 with improved fullscreen landscape playback and scrolling effects.
 - **Module catalog sync**: updated `modules.json`, signed `.mod` packages, and GitHub download links to match the official marketplace.
 
 </details>
