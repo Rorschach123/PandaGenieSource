@@ -85,7 +85,7 @@ The current source repository keeps the module ecosystem and release assets toge
 PandaGenieSource/
 ├── README.md / README_CN.md        # English and Chinese project docs
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # Marketplace index, updated 2026-05-08
+├── modules.json                    # Marketplace index, updated 2026-05-09
 ├── modules/                        # Signed release .mod packages
 ├── source/                         # Official module source code
 │   ├── shared_api/                 # Shared module API and helper classes
@@ -186,7 +186,7 @@ long usedBytes = storage.getUsedSpace();
 
 ## Available Modules
 
-`modules.json` currently lists **40 official modules**, last updated on **2026-05-08**.
+`modules.json` currently lists **40 official modules**, last updated on **2026-05-09**.
 
 | Module | Description | Type |
 |--------|-------------|------|
@@ -237,16 +237,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.30)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260508/PandaGenie-v1.0.30.apk)**
+> &#x1F4E5; **[Download APK (v1.0.31)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260509/PandaGenie-v1.0.31.apk)**
 
-- Release tag: [`20260508`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260508)
-- Android project version: `versionName "1.0.30"` / `versionCode 10030`
+- Release tag: [`20260509`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260509)
+- Android project version: `versionName "1.0.31"` / `versionCode 10031`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.31</b> (2026-05-09)</summary>
+
+- **Account experience**: added forgot-password and change-password verification flows with improved auth hints and error handling.
+- **Task experience**: improved completion notifications, launcher badges, history records, task management, and execution trace views.
+- **Server security and analytics**: added sanitized official-chat prompt analytics plus HTTPS/security headers and `security.txt`.
+- **Email and user services**: refined verification emails, welcome CDKey emails, and user-auth APIs.
+
+</details>
+
+<details>
 <summary><b>v1.0.30</b> (2026-05-08)</summary>
 
 - **App version bump**: updated the Android project to `versionName "1.0.30"` / `versionCode 10030` and published a new final APK.

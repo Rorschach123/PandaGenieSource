@@ -99,7 +99,7 @@ APP **不硬编码**任何模块信息。所有能力均由模块的 `manifest.j
 PandaGenieSource/
 ├── README.md / README_CN.md        # 英文和中文说明
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # 模块市场索引，更新于 2026-05-08
+├── modules.json                    # 模块市场索引，更新于 2026-05-09
 ├── modules/                        # 已签名发布的 .mod 模块包
 ├── source/                         # 官方模块源码
 │   ├── shared_api/                 # 模块共用 API 和辅助类
@@ -167,7 +167,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 已有模块
 
-`modules.json` 当前包含 **40 个官方模块**，最后更新时间为 **2026-05-08**。
+`modules.json` 当前包含 **40 个官方模块**，最后更新时间为 **2026-05-09**。
 
 | 模块 | 功能描述 | 类型 |
 |------|---------|------|
@@ -218,16 +218,26 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.30)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260508/PandaGenie-v1.0.30.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.31)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260509/PandaGenie-v1.0.31.apk)**
 
-- Release 标签：[`20260508`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260508)
-- Android 工程版本：`versionName "1.0.30"` / `versionCode 10030`
+- Release 标签：[`20260509`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260509)
+- Android 工程版本：`versionName "1.0.31"` / `versionCode 10031`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.31</b> (2026-05-09)</summary>
+
+- **账号体验升级**：支持忘记密码和修改密码验证码流程，完善登录注册提示与错误处理。
+- **任务体验优化**：增强任务完成通知、桌面角标、历史记录、任务管理和执行追踪展示。
+- **服务端安全与分析**：新增官方聊天提示词脱敏分析，补齐 HTTPS/安全头和 `security.txt`。
+- **邮件与用户服务**：完善验证码邮件、欢迎 CDKey 邮件和用户认证相关接口。
+
+</details>
+
+<details>
 <summary><b>v1.0.30</b> (2026-05-08)</summary>
 
 - **App 版本升级**：Android 工程版本更新为 `versionName "1.0.30"` / `versionCode 10030`，并发布新的最终版 APK。
