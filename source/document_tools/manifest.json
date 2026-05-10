@@ -2,9 +2,9 @@
   "id": "document_tools",
   "name": "文档处理",
   "name_en": "Document Tools",
-  "description": "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换，以及导入/生成 CSV、XLSX 表格。适合一句话修改文档、查询文档内容、生成表格或把文档转为文本/Markdown/HTML/JSON。",
-  "description_en": "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, and importing/creating CSV or XLSX tables.",
-  "version": "1.4",
+  "description": "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换、导入/生成 CSV、XLSX 表格，并可调用大模型总结文档或根据文档问答。",
+  "description_en": "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, importing/creating CSV or XLSX tables, plus LLM-powered document summarization and Q&A.",
+  "version": "1.5",
   "icon": "description",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -13,7 +13,8 @@
   "soLoadMode": "skip",
   "capabilities": [
     "file_read",
-    "file_write"
+    "file_write",
+    "llm"
   ],
   "permissions": [
     {
@@ -80,6 +81,61 @@
         "Search keyword; empty returns preview paragraphs",
         "Maximum result count, default 8",
         "Context length per match, default 120"
+      ]
+    },
+    {
+      "name": "summarizeDocument",
+      "desc": "使用大模型总结文档内容，可生成摘要、要点、行动项、提纲等。适合用户说“总结这个文档”“提炼重点”“整理成会议纪要”等。",
+      "desc_en": "Use the app-provided LLM to summarize a document into a summary, key points, action items, outline, and similar formats.",
+      "params": [
+        "filePath",
+        "mode",
+        "instruction",
+        "language",
+        "maxChars",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "总结模式，如 summary/action_items/outline/key_points，默认 summary",
+        "用户补充要求，例如输出格式、关注重点",
+        "输出语言，默认跟随系统语言",
+        "最多读取字符数，默认 12000，最大 20000",
+        "最多输出 token，官方模型限制在 1024 内"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Summary mode such as summary/action_items/outline/key_points, default summary",
+        "Extra user instruction such as output format or focus",
+        "Output language, default follows system language",
+        "Maximum characters to read, default 12000, max 20000",
+        "Maximum output tokens; official provider is capped at 1024"
+      ]
+    },
+    {
+      "name": "askDocument",
+      "desc": "使用大模型根据文档内容回答问题。适合用户问“这个文档里提到什么”“根据这个文件回答...”等需要理解上下文的查询。",
+      "desc_en": "Use the app-provided LLM to answer questions from a document's content.",
+      "params": [
+        "filePath",
+        "question",
+        "language",
+        "maxChars",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "文档路径",
+        "要询问文档的问题",
+        "输出语言，默认跟随系统语言",
+        "最多读取字符数，默认 12000，最大 20000",
+        "最多输出 token，官方模型限制在 1024 内"
+      ],
+      "paramDesc_en": [
+        "Document path",
+        "Question to answer from the document",
+        "Output language, default follows system language",
+        "Maximum characters to read, default 12000, max 20000",
+        "Maximum output tokens; official provider is capped at 1024"
       ]
     },
     {

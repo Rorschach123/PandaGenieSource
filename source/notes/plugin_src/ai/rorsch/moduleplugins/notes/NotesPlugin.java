@@ -3,6 +3,7 @@ package ai.rorsch.moduleplugins.notes;
 import android.content.Context;
 
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -84,6 +85,18 @@ public class NotesPlugin implements ModulePlugin {
                 case "getNote": {
                     String out = getNote(params);
                     return ok(out, formatGetNoteDisplay(out), formatGetNoteHtml(out));
+                }
+                case "summarizeNote": {
+                    String out = summarizeNote(context, params);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richCode(new JSONObject(out).optString("summary", ""), "text/plain"));
+                    return ok(out, formatNoteLlmDisplay(out, true), rc, formatNoteLlmHtml(out, true));
+                }
+                case "organizeNote": {
+                    String out = organizeNote(context, params);
+                    JSONArray rc = new JSONArray();
+                    rc.put(richCode(new JSONObject(out).optString("suggestedContent", ""), "text/plain"));
+                    return ok(out, formatNoteLlmDisplay(out, false), rc, formatNoteLlmHtml(out, false));
                 }
                 case "updateNote": {
                     String out = updateNote(params);
@@ -230,6 +243,14 @@ public class NotesPlugin implements ModulePlugin {
         if (mimeType != null) rc.put("mimeType", mimeType);
         File f = new File(path);
         if (f.exists()) rc.put("size", f.length());
+        return rc;
+    }
+
+    private static JSONObject richCode(String text, String mimeType) throws Exception {
+        JSONObject rc = new JSONObject();
+        rc.put("type", "text");
+        rc.put("text", text == null ? "" : text);
+        if (mimeType != null) rc.put("mimeType", mimeType);
         return rc;
     }
 
@@ -443,6 +464,48 @@ public class NotesPlugin implements ModulePlugin {
         String path = root.optString("path", "");
         return HtmlOutputHelper.card("\uD83D\uDCE4", isZh() ? "\u5df2\u5bfc\u51fa" : "Exported",
                 HtmlOutputHelper.keyValue(new String[][]{{isZh() ? "\u6587\u4ef6" : "File", path}}) + HtmlOutputHelper.successBadge());
+    }
+
+    private String formatNoteLlmDisplay(String json, boolean summaryMode) throws Exception {
+        JSONObject root = new JSONObject(json);
+        String title = root.optString("title", "");
+        String body = summaryMode ? root.optString("summary", "") : root.optString("suggestedContent", "");
+        String label = summaryMode ? (isZh() ? "笔记总结" : "Note summary") : (isZh() ? "整理建议" : "Organized note");
+        StringBuilder sb = new StringBuilder();
+        sb.append("🧠 ").append(label).append("\n━━━━━━━━━━━━━━\n");
+        if (!title.isEmpty()) {
+            sb.append("▸ ").append(isZh() ? "标题: " : "Title: ").append(title).append("\n");
+        }
+        if (root.optBoolean("truncated", false)) {
+            sb.append("▸ ").append(isZh() ? "已截取长正文处理" : "Long note was truncated").append("\n");
+        }
+        if (!body.isEmpty()) {
+            sb.append("\n").append(body);
+        }
+        return sb.toString().trim();
+    }
+
+    private String formatNoteLlmHtml(String json, boolean summaryMode) throws Exception {
+        try {
+            JSONObject root = new JSONObject(json);
+            String title = root.optString("title", "");
+            String body = summaryMode ? root.optString("summary", "") : root.optString("suggestedContent", "");
+            String cardTitle = summaryMode ? (isZh() ? "笔记总结" : "Note summary") : (isZh() ? "整理后的笔记草稿" : "Organized note draft");
+            java.util.ArrayList<String[]> pairs = new java.util.ArrayList<String[]>();
+            pairs.add(new String[]{isZh() ? "笔记" : "Note", title});
+            pairs.add(new String[]{isZh() ? "模式" : "Mode", root.optString("mode", summaryMode ? "summary" : "organize")});
+            pairs.add(new String[]{isZh() ? "输入字数" : "Input chars", String.valueOf(root.optInt("usedChars", 0))});
+            if (root.optBoolean("truncated", false)) {
+                pairs.add(new String[]{isZh() ? "提示" : "Note", isZh() ? "长正文已截取处理" : "Long note was truncated"});
+            }
+            String content = HtmlOutputHelper.keyValue(pairs.toArray(new String[0][]));
+            if (!body.isEmpty()) {
+                content += HtmlOutputHelper.p(body);
+            }
+            return HtmlOutputHelper.card("🧠", cardTitle, content);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /**
@@ -660,6 +723,103 @@ public class NotesPlugin implements ModulePlugin {
 
         writeFileUtf8(noteFile(id), note.toString());
         return note.toString();
+    }
+
+    private String summarizeNote(Context context, JSONObject params) throws Exception {
+        JSONObject note = loadNoteForLlm(params);
+        String title = note.optString("title", "");
+        String content = note.optString("content", "");
+        if (content.trim().isEmpty()) {
+            throw new IllegalArgumentException("Note content is empty");
+        }
+        String mode = params.optString("mode", "summary").trim();
+        if (mode.isEmpty()) mode = "summary";
+        String instruction = params.optString("instruction", "").trim();
+        int maxChars = clamp(params.optInt("maxInputChars", 8000), 1000, 20000);
+        int maxTokens = clamp(params.optInt("maxTokens", 512), 128, 1024);
+        String used = content.length() > maxChars ? content.substring(0, maxChars) : content;
+        boolean truncated = content.length() > maxChars;
+        String language = params.optString("language", isZh() ? "zh" : "en").trim();
+
+        String prompt = "You are helping organize a local note for the user.\n"
+                + "Return only the requested result, no markdown fence.\n"
+                + "Language: " + language + "\n"
+                + "Task: summarize note. Mode: " + mode + "\n"
+                + (instruction.isEmpty() ? "" : "Extra instruction: " + instruction + "\n")
+                + "Title: " + title + "\n\n"
+                + "Note content:\n" + used;
+        JSONObject llm = callLlm(context, "notes.summarizeNote", prompt, 0.2, maxTokens);
+        JSONObject out = new JSONObject();
+        out.put("id", note.optString("id", ""));
+        out.put("title", title);
+        out.put("mode", mode);
+        out.put("summary", llm.optString("text", "").trim());
+        out.put("inputChars", content.length());
+        out.put("usedChars", used.length());
+        out.put("truncated", truncated);
+        out.put("source", "llm");
+        return out.toString();
+    }
+
+    private String organizeNote(Context context, JSONObject params) throws Exception {
+        JSONObject note = loadNoteForLlm(params);
+        String title = note.optString("title", "");
+        String content = note.optString("content", "");
+        if (content.trim().isEmpty()) {
+            throw new IllegalArgumentException("Note content is empty");
+        }
+        String mode = params.optString("mode", "clean_structure").trim();
+        if (mode.isEmpty()) mode = "clean_structure";
+        String instruction = params.optString("instruction", "").trim();
+        int maxChars = clamp(params.optInt("maxInputChars", 8000), 1000, 20000);
+        int maxTokens = clamp(params.optInt("maxTokens", 768), 128, 1024);
+        String used = content.length() > maxChars ? content.substring(0, maxChars) : content;
+        boolean truncated = content.length() > maxChars;
+        String language = params.optString("language", isZh() ? "zh" : "en").trim();
+
+        String prompt = "You are helping rewrite and organize a local note for the user.\n"
+                + "Keep the original meaning. Do not invent facts. Return only the organized note content.\n"
+                + "Language: " + language + "\n"
+                + "Mode: " + mode + "\n"
+                + (instruction.isEmpty() ? "" : "Extra instruction: " + instruction + "\n")
+                + "Title: " + title + "\n\n"
+                + "Original note:\n" + used;
+        JSONObject llm = callLlm(context, "notes.organizeNote", prompt, 0.25, maxTokens);
+        JSONObject out = new JSONObject();
+        out.put("id", note.optString("id", ""));
+        out.put("title", title);
+        out.put("mode", mode);
+        out.put("suggestedContent", llm.optString("text", "").trim());
+        out.put("inputChars", content.length());
+        out.put("usedChars", used.length());
+        out.put("truncated", truncated);
+        out.put("source", "llm");
+        return out.toString();
+    }
+
+    private JSONObject loadNoteForLlm(JSONObject params) throws Exception {
+        String id = params.optString("id", "").trim();
+        if (id.isEmpty()) {
+            throw new IllegalArgumentException("Missing parameter: id");
+        }
+        return new JSONObject(getNote(new JSONObject().put("id", id)));
+    }
+
+    private JSONObject callLlm(Context context, String action, String prompt, double temperature, int maxTokens) throws Exception {
+        JSONObject req = new JSONObject();
+        req.put("action", action);
+        req.put("prompt", prompt);
+        req.put("temperature", temperature);
+        req.put("maxTokens", maxTokens);
+        JSONObject resp = new JSONObject(ModuleLlm.completeJson(context, req.toString()));
+        if (!resp.optBoolean("success", false)) {
+            throw new IllegalArgumentException(resp.optString("error", "LLM request failed"));
+        }
+        return resp;
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     /**

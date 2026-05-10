@@ -1,0 +1,115 @@
+{
+  "id": "phone_test_recorder",
+  "name": "手机实测记录",
+  "name_en": "Phone Test Recorder",
+  "description": "记录充电、睡前待机、游戏发热等真实使用测试，持续采样电量、温度、电压、电流和内存变化，生成适合酷安分享的曲线报告与对比结论。",
+  "description_en": "Record real usage tests such as charging, overnight standby, and gaming heat, then generate Coolapk-style curve reports and comparison conclusions.",
+  "version": "1.0",
+  "icon": "timeline",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.phone_test_recorder.PhoneTestRecorderPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "startTestSession",
+      "desc": "开始一次充电/待机/游戏记录，返回 sessionId",
+      "desc_en": "Start a charging/standby/game test session and return sessionId",
+      "params": [
+        "mode",
+        "label",
+        "note"
+      ],
+      "paramDesc": [
+        "测试类型：charging/standby/game，默认 charging",
+        "测试名称，例如 原装充电器、王者荣耀 20 分钟",
+        "备注，可记录充电器、数据线、散热条件等"
+      ],
+      "paramDesc_en": [
+        "Test mode: charging/standby/game, default charging",
+        "Test label, e.g. original charger or 20 min gaming",
+        "Note for charger/cable/cooling conditions"
+      ]
+    },
+    {
+      "name": "recordSample",
+      "desc": "给指定测试追加一次采样；可由条件任务每 5 秒/1 分钟重复调用",
+      "desc_en": "Append one sample to a test session; can be repeated by scheduled tasks",
+      "params": [
+        "sessionId"
+      ],
+      "paramDesc": [
+        "startTestSession 返回的 sessionId"
+      ],
+      "paramDesc_en": [
+        "sessionId returned by startTestSession"
+      ]
+    },
+    {
+      "name": "finishTestReport",
+      "desc": "结束测试并生成充电曲线、待机耗电或游戏发热稳定性报告",
+      "desc_en": "Finish a session and generate a charging, standby, or gaming thermal report",
+      "params": [
+        "sessionId"
+      ],
+      "paramDesc": [
+        "startTestSession 返回的 sessionId"
+      ],
+      "paramDesc_en": [
+        "sessionId returned by startTestSession"
+      ]
+    },
+    {
+      "name": "compareTestReports",
+      "desc": "对比两次测试，突出峰值温度、电量变化、充电速度或发热稳定性差异",
+      "desc_en": "Compare two test reports by temperature, battery delta, charging speed, or stability",
+      "params": [
+        "sessionIdA",
+        "sessionIdB"
+      ],
+      "paramDesc": [
+        "第一条测试 sessionId",
+        "第二条测试 sessionId"
+      ],
+      "paramDesc_en": [
+        "First sessionId",
+        "Second sessionId"
+      ]
+    },
+    {
+      "name": "listTestReports",
+      "desc": "列出历史测试，支持充电器对比、连续待机复测和游戏复测",
+      "desc_en": "List historical test sessions for comparison and retesting",
+      "params": [
+        "mode",
+        "limit"
+      ],
+      "paramDesc": [
+        "可选过滤：charging/standby/game",
+        "返回数量，默认 10"
+      ],
+      "paramDesc_en": [
+        "Optional filter: charging/standby/game",
+        "Result limit, default 10"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开模块介绍页",
+      "desc_en": "Open module page",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

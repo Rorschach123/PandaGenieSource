@@ -2,16 +2,18 @@
   "id": "text_tools",
   "name": "文本工具",
   "name_en": "Text Tools",
-  "description": "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希等",
-  "description_en": "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing",
-  "version": "1.5",
+  "description": "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希，以及通过大模型总结、改写、提取和整理文本。",
+  "description_en": "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing, plus LLM-powered summarization, rewriting, extraction and formatting.",
+  "version": "1.6",
   "icon": "text_fields",
   "soLibraries": [],
   "h5Page": "index.html",
   "pluginJar": "plugin.jar",
   "pluginClass": "ai.rorsch.moduleplugins.text_tools.TextToolsPlugin",
   "soLoadMode": "skip",
-  "capabilities": [],
+  "capabilities": [
+    "llm"
+  ],
   "permissions": [],
   "developer": {
     "name": "PandaGenie Official",
@@ -166,6 +168,35 @@
       "paramDesc_en": [
         "Text",
         "Algorithm name"
+      ]
+    },
+    {
+      "name": "aiProcessText",
+      "desc": "使用大模型对文本进行总结、润色改写、信息提取、格式整理、分类判断或按用户指令处理。适合用户说“总结这段话”“帮我改写”“提取要点”“整理成清单”等。",
+      "desc_en": "Use the app-provided LLM to summarize, rewrite, extract, format, classify, translate or process text by instruction.",
+      "params": [
+        "text",
+        "task",
+        "instruction",
+        "language",
+        "maxInputChars",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "要处理的文本",
+        "任务类型：summarize/rewrite/extract/format/classify/translate，默认 summarize",
+        "用户补充要求，例如语气、输出格式、需要提取的字段",
+        "输出语言，默认跟随系统语言",
+        "最多输入字符数，默认 6000，最大 12000",
+        "最多输出 token，官方模型会限制在 1024 内"
+      ],
+      "paramDesc_en": [
+        "Text to process",
+        "Task type: summarize/rewrite/extract/format/classify/translate, default summarize",
+        "Extra user instruction such as tone, output format, or fields to extract",
+        "Output language, default follows system language",
+        "Maximum input characters, default 6000, max 12000",
+        "Maximum output tokens; official provider is capped at 1024"
       ]
     }
   ]

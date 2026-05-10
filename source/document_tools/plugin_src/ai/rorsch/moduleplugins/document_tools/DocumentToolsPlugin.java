@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Environment;
 
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -60,7 +61,7 @@ public class DocumentToolsPlugin implements ModulePlugin {
     private static final List<String> SUPPORTED_ACTIONS = Arrays.asList(
             "getDocumentInfo", "extractText", "queryDocument", "replaceText", "appendText",
             "createDocument", "createTable", "importTable", "deleteDocument", "convertDocument",
-            "listSupportedFormats"
+            "summarizeDocument", "askDocument", "listSupportedFormats"
     );
     private static final int DEFAULT_TABLE_MAX_ROWS = 80;
     private static final int MAX_TABLE_ROWS = 5000;
@@ -78,6 +79,10 @@ public class DocumentToolsPlugin implements ModulePlugin {
                     return handleExtractText(params);
                 case "queryDocument":
                     return handleQueryDocument(params);
+                case "summarizeDocument":
+                    return handleSummarizeDocument(context, params);
+                case "askDocument":
+                    return handleAskDocument(context, params);
                 case "replaceText":
                     return handleReplaceText(params);
                 case "appendText":
@@ -184,6 +189,88 @@ public class DocumentToolsPlugin implements ModulePlugin {
                 .put("matchCount", matches.length())
                 .put("matches", matches);
         return ok(out, queryDisplay(file, query, matches), queryHtml(file, query, matches));
+    }
+
+    private String handleSummarizeDocument(Context context, JSONObject params) throws Exception {
+        File file = requireFile(params, true);
+        int maxChars = clamp(params.optInt("maxChars", 12000), 1000, 20000);
+        DocumentText doc = extractDocumentText(file, maxChars);
+        String mode = firstString(params, "mode", "summaryType", "type").trim();
+        if (mode.isEmpty()) mode = "summary";
+        String instruction = firstString(params, "instruction", "requirement", "prompt").trim();
+        String language = firstString(params, "language", "outputLanguage").trim();
+        if (language.isEmpty()) language = isZh() ? "中文" : "English";
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are PandaGenie Document Tools. Read the document text and produce a useful user-facing summary.\n")
+                .append("Document name: ").append(file.getName()).append("\n")
+                .append("Output language: ").append(language).append("\n")
+                .append("Summary mode: ").append(mode).append("\n")
+                .append("Prefer concise sections, key facts, TODO/action items if present, and mention uncertainty when the document is incomplete.\n")
+                .append("Return only the final answer, no JSON, no markdown fences.\n");
+        if (!instruction.isEmpty()) prompt.append("User instruction: ").append(instruction).append("\n");
+        prompt.append("\nDOCUMENT TEXT:\n").append(doc.text);
+
+        JSONObject llm = callDocumentLlm(context, "document_tools.summarizeDocument", prompt.toString(), 0.25, params.optInt("maxTokens", 1024));
+        String summary = llm.optString("text", "").trim();
+        JSONObject out = new JSONObject()
+                .put("path", file.getAbsolutePath())
+                .put("name", file.getName())
+                .put("format", doc.format)
+                .put("chars", doc.text.length())
+                .put("truncated", doc.truncated)
+                .put("mode", mode)
+                .put("summary", summary)
+                .put("source", "llm");
+        if (!instruction.isEmpty()) out.put("instruction", instruction);
+        JSONArray rich = new JSONArray().put(richCode(summary, "text"));
+        return ok(out, documentLlmDisplay(file, summary, true, doc.truncated), documentLlmHtml(file, summary, true, doc.truncated), rich);
+    }
+
+    private String handleAskDocument(Context context, JSONObject params) throws Exception {
+        File file = requireFile(params, true);
+        String question = firstString(params, "question", "query", "ask", "prompt").trim();
+        if (question.isEmpty()) return error(isZh() ? "请提供要询问文档的问题" : "question is empty");
+        int maxChars = clamp(params.optInt("maxChars", 12000), 1000, 20000);
+        DocumentText doc = extractDocumentText(file, maxChars);
+        String language = firstString(params, "language", "outputLanguage").trim();
+        if (language.isEmpty()) language = isZh() ? "中文" : "English";
+
+        String prompt = "You are PandaGenie Document Tools. Answer the user's question using only the document text.\n"
+                + "Document name: " + file.getName() + "\n"
+                + "Output language: " + language + "\n"
+                + "If the answer is not in the document, say that clearly and suggest what to check next.\n"
+                + "Return only the final answer, no JSON, no markdown fences.\n\n"
+                + "QUESTION:\n" + question + "\n\nDOCUMENT TEXT:\n" + doc.text;
+
+        JSONObject llm = callDocumentLlm(context, "document_tools.askDocument", prompt, 0.2, params.optInt("maxTokens", 1024));
+        String answer = llm.optString("text", "").trim();
+        JSONObject out = new JSONObject()
+                .put("path", file.getAbsolutePath())
+                .put("name", file.getName())
+                .put("format", doc.format)
+                .put("question", question)
+                .put("answer", answer)
+                .put("chars", doc.text.length())
+                .put("truncated", doc.truncated)
+                .put("source", "llm");
+        JSONArray rich = new JSONArray().put(richCode(answer, "text"));
+        return ok(out, documentLlmDisplay(file, answer, false, doc.truncated), documentLlmHtml(file, answer, false, doc.truncated), rich);
+    }
+
+    private static JSONObject callDocumentLlm(Context context, String action, String prompt, double temperature, int requestedMaxTokens) throws Exception {
+        int maxTokens = Math.max(128, Math.min(requestedMaxTokens <= 0 ? 1024 : requestedMaxTokens, 1024));
+        JSONObject request = new JSONObject()
+                .put("action", action)
+                .put("prompt", prompt)
+                .put("temperature", temperature)
+                .put("maxTokens", maxTokens);
+        JSONObject resp = new JSONObject(ModuleLlm.completeJson(context, request.toString()));
+        if (!resp.optBoolean("success", false)) {
+            String msg = resp.optString("error", isZh() ? "文档智能处理失败" : "Document LLM request failed");
+            throw new IllegalStateException(msg);
+        }
+        return resp;
     }
 
     private String handleReplaceText(JSONObject params) throws Exception {
@@ -1983,6 +2070,15 @@ public class DocumentToolsPlugin implements ModulePlugin {
         return sb.toString();
     }
 
+    private static String documentLlmDisplay(File file, String text, boolean summary, boolean truncated) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(summary ? (isZh() ? "文档智能总结" : "Document summary") : (isZh() ? "文档问答结果" : "Document answer"))
+                .append("\n").append(isZh() ? "文件: " : "File: ").append(displayPath(file.getAbsolutePath()));
+        if (truncated) sb.append("\n").append(isZh() ? "内容较长，已按最大长度截取后处理" : "Long document was truncated before processing");
+        sb.append("\n\n").append(text == null ? "" : text);
+        return sb.toString();
+    }
+
     private static String editDisplay(EditResult result) {
         StringBuilder sb = new StringBuilder();
         sb.append(isZh() ? "文档已处理" : "Document updated")
@@ -2041,6 +2137,19 @@ public class DocumentToolsPlugin implements ModulePlugin {
         });
         body += HtmlOutputHelper.table(new String[]{"#", isZh() ? "内容" : "Excerpt"}, rows);
         return HtmlOutputHelper.card("DOC", isZh() ? "文档查询" : "Document Query", body);
+    }
+
+    private static String documentLlmHtml(File file, String text, boolean summary, boolean truncated) {
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "文件" : "File", file.getName()},
+                {isZh() ? "路径" : "Path", displayPath(file.getAbsolutePath())},
+                {isZh() ? "方式" : "Mode", isZh() ? "智能处理" : "AI"}
+        });
+        if (truncated) body += HtmlOutputHelper.muted(isZh() ? "内容较长，已按最大长度截取后处理。" : "Long document was truncated before processing.");
+        String preview = text == null ? "" : text;
+        if (preview.length() > 1600) preview = preview.substring(0, 1600) + "...";
+        body += HtmlOutputHelper.p(preview);
+        return HtmlOutputHelper.card("AI", summary ? (isZh() ? "文档智能总结" : "Document Summary") : (isZh() ? "文档问答" : "Document Q&A"), body);
     }
 
     private static String editHtml(EditResult result) {

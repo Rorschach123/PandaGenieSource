@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.ocr;
 
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -40,6 +41,8 @@ public class OcrPlugin implements ModulePlugin {
             switch (action) {
                 case "recognizeText":
                     return recognizeText(context, params);
+                case "recognizeAndAnalyzeText":
+                    return recognizeAndAnalyzeText(context, params);
                 case "openPage":
                     return new JSONObject()
                             .put("success", true)
@@ -116,6 +119,87 @@ public class OcrPlugin implements ModulePlugin {
         r.put("_displayText", display);
         if (displayHtml != null && !displayHtml.isEmpty()) r.put("_displayHtml", displayHtml);
         return r.toString();
+    }
+
+    private String recognizeAndAnalyzeText(Context context, JSONObject params) throws Exception {
+        JSONObject recognizedResponse = new JSONObject(recognizeText(context, params));
+        if (!recognizedResponse.optBoolean("success", false)) return recognizedResponse.toString();
+
+        JSONObject base = new JSONObject(recognizedResponse.optString("output", "{}"));
+        String rawText = base.optString("text", "").trim();
+        if (rawText.isEmpty()) return recognizedResponse.toString();
+
+        String task = params.optString("task", "clean").trim().toLowerCase(Locale.ROOT);
+        String instruction = params.optString("instruction", "").trim();
+        String outputLanguage = params.optString("outputLanguage", isZh() ? "zh" : "en").trim();
+        int maxChars = clamp(params.optInt("maxTextChars", 12000), 1000, 20000);
+        int maxTokens = clamp(params.optInt("maxTokens", 768), 128, 1024);
+        boolean truncated = rawText.length() > maxChars;
+        String usedText = truncated ? rawText.substring(0, maxChars) : rawText;
+
+        String taskPrompt;
+        if ("extract".equals(task) || "structure".equals(task)) {
+            taskPrompt = isZh()
+                    ? "请从 OCR 文本中提取关键信息，按清晰条目或 JSON 风格输出。"
+                    : "Extract key information from the OCR text in clear bullets or a JSON-like structure.";
+        } else if ("summary".equals(task) || "summarize".equals(task)) {
+            taskPrompt = isZh()
+                    ? "请总结 OCR 文本，保留关键事实、数字和专有名词。"
+                    : "Summarize the OCR text while preserving key facts, numbers, and proper nouns.";
+        } else {
+            taskPrompt = isZh()
+                    ? "请校正 OCR 文本中的明显识别错误，整理成可读文本。不要编造原文没有的信息。"
+                    : "Correct obvious OCR mistakes and format the text readably. Do not invent missing facts.";
+        }
+        if (!instruction.isEmpty()) {
+            taskPrompt += "\n" + (isZh() ? "额外要求：" : "Extra instruction: ") + instruction;
+        }
+
+        String prompt = (isZh() ? "输出语言：" : "Output language: ") + outputLanguage
+                + "\n" + taskPrompt
+                + "\n\nOCR text:\n" + usedText;
+        JSONObject request = new JSONObject()
+                .put("action", "ocr.recognizeAndAnalyzeText")
+                .put("prompt", prompt)
+                .put("temperature", 0.1)
+                .put("maxTokens", maxTokens);
+        JSONObject llm = new JSONObject(ModuleLlm.completeJson(context, request.toString()));
+        if (!llm.optBoolean("success", false)) {
+            throw new IllegalStateException(llm.optString("error", "LLM request failed"));
+        }
+
+        String result = llm.optString("text", "").trim();
+        JSONObject out = new JSONObject();
+        out.put("imagePath", base.optString("imagePath"));
+        out.put("language", base.optString("language"));
+        out.put("provider", base.optString("provider"));
+        out.put("ocrEngine", base.optString("ocrEngine"));
+        out.put("task", task);
+        out.put("rawText", rawText);
+        out.put("rawCharCount", rawText.length());
+        out.put("usedCharCount", usedText.length());
+        out.put("truncated", truncated);
+        out.put("result", result);
+        out.put("source", "llm");
+
+        String display = (isZh() ? "✅ OCR 智能整理完成\n" : "✅ OCR analysis complete\n")
+                + result
+                + "\n\n" + (isZh() ? "原始字数：" : "Raw chars: ") + rawText.length();
+        String html = HtmlOutputHelper.card("✨", isZh() ? "OCR 智能整理" : "OCR AI result",
+                HtmlOutputHelper.badge("LLM", "blue")
+                        + HtmlOutputHelper.keyValue(new String[][]{
+                        {isZh() ? "任务" : "Task", task},
+                        {isZh() ? "原始字数" : "Raw chars", String.valueOf(rawText.length())},
+                        {isZh() ? "图片" : "Image", base.optString("imagePath")}
+                })
+                        + HtmlOutputHelper.p(result)
+                        + HtmlOutputHelper.successBadge());
+        return new JSONObject()
+                .put("success", true)
+                .put("output", out.toString())
+                .put("_displayText", display)
+                .put("_displayHtml", html)
+                .toString();
     }
 
     private OcrResponse recognizeWithFallback(Context context, String imagePath, String ocrLang) throws Exception {
@@ -452,6 +536,10 @@ public class OcrPlugin implements ModulePlugin {
                 || lower.contains("temporar")
                 || lower.contains("http 5")
                 || lower.contains("failed");
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private String formatRecognizeHtml(String recognized, String imagePath, String ocrLang, String provider, String engine, int maxSide) {

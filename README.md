@@ -99,14 +99,14 @@ APP **不硬编码**任何模块信息。所有能力均由模块的 `manifest.j
 PandaGenieSource/
 ├── README.md / README_CN.md        # 英文和中文说明
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # 模块市场索引，更新于 2026-05-09
+├── modules.json                    # 模块市场索引，更新于 2026-05-10
 ├── modules/                        # 已签名发布的 .mod 模块包
 ├── source/                         # 官方模块源码
 │   ├── shared_api/                 # 模块共用 API 和辅助类
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 当前共 40 个官方模块
+│   └── ...                         # 当前共 44 个官方模块
 ├── module-dev-toolkit/             # 模块构建与签名 PowerShell 工具集
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -120,10 +120,10 @@ PandaGenieSource/
 
 近期结构变化：
 
-- `modules.json` 已更新为 40 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
+- `modules.json` 已更新为 44 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
 - `source/shared_api` 成为模块共用 API 和辅助类入口，减少各模块重复维护接口定义。
 - `module-dev-toolkit` 成为推荐的本地模块打包、签名和证书查看流程。
-- 新增或较新的官方模块包括文档处理、设备控制、全屏倒计时、天气助手、OCR 文字识别、手电筒、翻译助手、指南针、URL 编解码、自我介绍等。
+- 新增或较新的官方模块包括手机实测记录、存储雷达报告、机圈验机报告、长图生成器、文档处理、设备控制、全屏倒计时、天气助手、OCR 文字识别、手电筒、翻译助手、指南针、URL 编解码、自我介绍等。
 - 文件管理器、压缩解压、计算器等包含原生能力的模块，在各自目录下保留 `native/` 和 `jni_bridge/`。
 
 ---
@@ -167,7 +167,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 已有模块
 
-`modules.json` 当前包含 **40 个官方模块**，最后更新时间为 **2026-05-09**。
+`modules.json` 当前包含 **44 个官方模块**，最后更新时间为 **2026-05-10**。
 
 | 模块 | 功能描述 | 类型 |
 |------|---------|------|
@@ -211,6 +211,10 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F4C4; **文档处理** | 文档提取、查询、创建、替换、追加、格式转换，以及 CSV/XLSX 表格导入生成 | Java |
 | &#x1F39B;&#xFE0F; **设备控制** | 查询和调节屏幕亮度、媒体/铃声/闹钟音量，并返回当前控制状态 | Java |
 | &#x23F1;&#xFE0F; **倒计时** | 横屏全屏倒计时，支持时分秒显示、1 分钟提醒、最后若干秒震动和提示音 | H5+Java |
+| &#x1F4C8; **手机实测记录** | 记录充电、待机、游戏发热等真实使用测试并生成曲线报告与对比结论 | Java |
+| &#x1F4E1; **存储雷达报告** | 扫描大文件、视频、APK、压缩包、下载目录和疑似重复文件，生成清理建议 | Java |
+| &#x1F4CB; **机圈验机报告** | 汇总设备、系统、屏幕、电池、传感器、Camera2、Widevine 和存储测速，生成验机报告 | Java |
+| &#x1F5BC;&#xFE0F; **长图生成器** | 将文本、Markdown、HTML、Word 文档和网页 URL 转换成 1080px 宽 PNG 长图 | Java |
 
 > &#x1F4E6; **[在模块市场浏览所有模块](https://cf.pandagenie.ai/marketplace)** — 或在下方了解如何**创建你自己的模块**！
 
@@ -218,16 +222,26 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.31)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260509/PandaGenie-v1.0.31.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.32)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260510/PandaGenie-v1.0.32.apk)**
 
-- Release 标签：[`20260509`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260509)
-- Android 工程版本：`versionName "1.0.31"` / `versionCode 10031`
+- Release 标签：[`20260510`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260510)
+- Android 工程版本：`versionName "1.0.32"` / `versionCode 10032`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.32</b> (2026-05-10)</summary>
+
+- **App 版本升级**：Android 工程版本更新为 `versionName "1.0.32"` / `versionCode 10032`，并发布新的最终版 APK。
+- **模块 LLM 能力**：新增模块内官方 LLM 调用桥接、调用来源标记和用量记录，便于官方模块生成更完整的报告与建议。
+- **模块市场扩容**：`modules.json` 同步到 44 个官方模块，新增手机实测记录、存储雷达报告、机圈验机报告和长图生成器模块。
+- **发布链路同步**：刷新 GitHub Release、Cloudflare 下载地址、官网版本数据和模块清单。
+
+</details>
+
+<details>
 <summary><b>v1.0.31</b> (2026-05-09)</summary>
 
 - **账号体验升级**：支持忘记密码和修改密码验证码流程，完善登录注册提示与错误处理。

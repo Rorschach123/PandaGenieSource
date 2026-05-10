@@ -2,9 +2,9 @@
     "id":  "translator",
     "name":  "翻译助手",
     "name_en":  "Translator",
-    "description":  "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
-    "description_en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection",
-    "version":  "1.4",
+    "description":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言，也可调用大模型进行长文本、语气可控的智能翻译。",
+    "description_en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection, plus LLM-powered long-form and tone-aware translation.",
+    "version":  "1.5",
     "icon":  "translate",
     "soLibraries":  [
 
@@ -14,7 +14,8 @@
     "pluginClass":  "ai.rorsch.moduleplugins.translator.TranslatorPlugin",
     "soLoadMode":  "skip",
     "capabilities":  [
-                         "network"
+                         "network",
+                         "llm"
                      ],
     "permissions":  [
                         {
@@ -47,6 +48,38 @@
                                           "Text to translate",
                                           "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto",
                                           "Target language code, supports multiple comma-separated like \u0027en,ja,ko\u0027, pass \u0027all\u0027 to translate into all supported languages, default en"
+                                      ]
+                 },
+                 {
+                     "name":  "translateWithLlm",
+                     "desc":  "使用大模型进行智能翻译，适合长文本、保留上下文、指定语气或对翻译质量要求较高的场景。官方模型会计入体验次数，并限制单次输出长度。",
+                     "desc_en":  "Use the app-provided LLM for higher-quality translation, especially long text, context-sensitive translation, and tone/style instructions.",
+                     "params":  [
+                                    "text",
+                                    "from",
+                                    "to",
+                                    "tone",
+                                    "instruction",
+                                    "maxInputChars",
+                                    "maxTokens"
+                                ],
+                     "paramDesc":  [
+                                       "要翻译的文本",
+                                       "源语言代码，留空或 auto 自动检测",
+                                       "目标语言代码，默认中英互译；智能翻译一次优先处理一个目标语言",
+                                       "语气或风格，例如正式、口语、产品文案",
+                                       "补充要求，例如保留术语、不要翻译代码块",
+                                       "最多输入字符数，默认 8000，最大 12000",
+                                       "最多输出 token，官方模型限制在 1024 内"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Text to translate",
+                                          "Source language code; empty or auto for detection",
+                                          "Target language code; defaults between Chinese and English. AI translation prioritizes one target language per call.",
+                                          "Tone or style, such as formal, casual, product copy",
+                                          "Extra instruction, such as preserving terms or code blocks",
+                                          "Maximum input characters, default 8000, max 12000",
+                                          "Maximum output tokens; official provider is capped at 1024"
                                       ]
                  },
                  {

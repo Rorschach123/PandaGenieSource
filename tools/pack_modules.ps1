@@ -724,55 +724,66 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
         foreach ($modId in $builtModules.Keys) {
             $ver = $builtModules[$modId]
             $modEntry = $index.modules | Where-Object { $_.id -eq $modId } | Select-Object -First 1
+            $srcManifest = Join-Path $srcBase "$modId\manifest.json"
+            if (-not (Test-Path $srcManifest)) {
+                Write-Host "  ! Cannot sync ${modId}: no manifest at ${srcManifest}" -ForegroundColor Yellow
+                if ($modEntry) { $modEntry.version = $ver }
+                continue
+            }
+
+            $mText = [System.IO.File]::ReadAllText($srcManifest, [System.Text.Encoding]::UTF8)
+            $m = $mText | ConvertFrom-Json
+            $nameZh = if ($m.name) { [string]$m.name } else { $modId }
+            $nameEn = if ($m.name_en) { [string]$m.name_en } else { $nameZh }
+            $descZh = if ($m.description) { [string]$m.description } else { "" }
+            $descEn = if ($m.description_en) { [string]$m.description_en } else { $descZh }
+            $icon = if ($m.icon) { [string]$m.icon } else { "extension" }
+            $devName = if ($m.developer -and $m.developer.name) { [string]$m.developer.name } else { "PandaGenie Official" }
+
+            $perms = @()
+            if ($m.permissions) { $perms = @($m.permissions) }
+            $caps = @()
+            if ($m.capabilities) { $caps = @($m.capabilities) }
+            $apis = @()
+            if ($m.apis) { $apis = @($m.apis) }
+
             if ($modEntry) {
+                $modEntry.name = [PSCustomObject]@{ zh = $nameZh; en = $nameEn }
+                $modEntry.description = [PSCustomObject]@{ zh = $descZh; en = $descEn }
                 $modEntry.version = $ver
+                $modEntry.icon = $icon
+                $modEntry.developer = [PSCustomObject]@{ name = $devName }
+                $modEntry.permissions = $perms
+                $modEntry.capabilities = $caps
+                $modEntry.apis = $apis
+                $modEntry.api_count = $apis.Count
+                Write-Host "  + Synced $modId metadata in modules.json" -ForegroundColor Green
             } else {
                 # Auto-add new module from manifest
-                $srcManifest = Join-Path $srcBase "$modId\manifest.json"
-                if (Test-Path $srcManifest) {
-                    $mText = [System.IO.File]::ReadAllText($srcManifest, [System.Text.Encoding]::UTF8)
-                    $m = $mText | ConvertFrom-Json
-                    $nameZh = if ($m.name) { [string]$m.name } else { $modId }
-                    $nameEn = if ($m.name_en) { [string]$m.name_en } else { $nameZh }
-                    $descZh = if ($m.description) { [string]$m.description } else { "" }
-                    $descEn = if ($m.description_en) { [string]$m.description_en } else { $descZh }
-                    $icon = if ($m.icon) { [string]$m.icon } else { "extension" }
-                    $devName = if ($m.developer -and $m.developer.name) { [string]$m.developer.name } else { "PandaGenie Official" }
-
-                    $perms = @()
-                    if ($m.permissions) { $perms = @($m.permissions) }
-                    $caps = @()
-                    if ($m.capabilities) { $caps = @($m.capabilities) }
-                    $apis = @()
-                    if ($m.apis) { $apis = @($m.apis) }
-
-                    $newEntry = [PSCustomObject]@{
-                        id = $modId
-                        name = [PSCustomObject]@{ zh = $nameZh; en = $nameEn }
-                        description = [PSCustomObject]@{ zh = $descZh; en = $descEn }
-                        version = $ver
-                        icon = $icon
-                        filename = "$modId.mod"
-                        download_url = @(
-                            "https://cf.pandagenie.ai/modules/download/$modId",
-                            "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/$modId.mod"
-                        )
-                        developer = [PSCustomObject]@{ name = $devName }
-                        permissions = $perms
-                        capabilities = $caps
-                        apis = $apis
-                        api_count = $apis.Count
-                    }
-                    $index.modules += $newEntry
-                    Write-Host "  + Auto-added $modId to modules.json" -ForegroundColor Green
-                } else {
-                    Write-Host "  ! Cannot auto-add ${modId}: no manifest at ${srcManifest}" -ForegroundColor Yellow
+                $newEntry = [PSCustomObject]@{
+                    id = $modId
+                    name = [PSCustomObject]@{ zh = $nameZh; en = $nameEn }
+                    description = [PSCustomObject]@{ zh = $descZh; en = $descEn }
+                    version = $ver
+                    icon = $icon
+                    filename = "$modId.mod"
+                    download_url = @(
+                        "https://cf.pandagenie.ai/modules/download/$modId",
+                        "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/$modId.mod"
+                    )
+                    developer = [PSCustomObject]@{ name = $devName }
+                    permissions = $perms
+                    capabilities = $caps
+                    apis = $apis
+                    api_count = $apis.Count
                 }
+                $index.modules += $newEntry
+                Write-Host "  + Auto-added $modId to modules.json" -ForegroundColor Green
             }
         }
         $utf8NoBom2 = New-Object System.Text.UTF8Encoding $false
         [System.IO.File]::WriteAllText($modulesJsonPath, ($index | ConvertTo-Json -Depth 20), $utf8NoBom2)
-        Write-Host "  modules.json updated (updated_at, versions)." -ForegroundColor Cyan
+        Write-Host "  modules.json updated (updated_at, metadata, versions)." -ForegroundColor Cyan
     } catch {
         Write-Host "  Warning: could not update modules.json: $_" -ForegroundColor Yellow
     }

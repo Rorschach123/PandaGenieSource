@@ -1,0 +1,122 @@
+{
+  "id": "phone_check_report",
+  "name": "机圈验机报告",
+  "name_en": "Phone Check Report",
+  "description": "一句话生成新机/二手机验机报告，汇总设备、系统、屏幕、电池、传感器、Camera2、Widevine、存储测速和预装应用关注项，输出适合酷安截图分享的重点报告。",
+  "description_en": "Generate a phone inspection report for new/used devices with device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and preinstalled app highlights.",
+  "version": "1.2",
+  "icon": "fact_check",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.phone_check_report.PhoneCheckReportPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "app_list",
+    "llm"
+  ],
+  "categories": [
+    "review",
+    "device",
+    "coolapk"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.QUERY_ALL_PACKAGES",
+      "desc": "用于统计已安装应用数量并识别预装应用关注项",
+      "desc_en": "Count installed apps and identify preinstalled app highlights"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "generateInspectionReport",
+      "desc": "生成新机/二手机验机报告，适用于“帮我做一次新机验机，生成酷安发帖报告”等提示词",
+      "desc_en": "Generate a new/used phone inspection report for Coolapk-style sharing",
+      "params": [
+        "scenario",
+        "runStorageSpeedTest"
+      ],
+      "paramDesc": [
+        "验机场景：new/used/flash/normal，默认 normal",
+        "是否执行轻量存储读写测速，默认 true"
+      ],
+      "paramDesc_en": [
+        "Scenario: new/used/flash/normal, default normal",
+        "Run a lightweight storage read/write test, default true"
+      ],
+      "examples": [
+        "帮我做一次新机验机，生成酷安发帖报告",
+        "二手机到手验机报告",
+        "刷机后帮我复测手机状态"
+      ]
+    },
+    {
+      "name": "generateAiInspectionAdvice",
+      "desc": "生成验机报告后调用 AI 给出更自然的购机、验机或发帖建议",
+      "desc_en": "Generate an inspection report and use AI to provide readable buying, checking, or posting advice",
+      "params": [
+        "scenario",
+        "runStorageSpeedTest",
+        "instruction",
+        "language",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "验机场景：new/used/flash/normal，默认 normal",
+        "是否执行轻量存储读写测速，默认 true",
+        "额外要求，例如 二手机验机重点/酷安发帖语气",
+        "输出语言：zh/en，默认自动判断",
+        "最大输出 token，默认 768，上限 1024"
+      ],
+      "paramDesc_en": [
+        "Scenario: new/used/flash/normal, default normal",
+        "Run a lightweight storage read/write test, default true",
+        "Extra instruction such as used-phone checks or Coolapk post tone",
+        "Output language: zh/en, auto-detected by default",
+        "Max output tokens, default 768, capped at 1024"
+      ],
+      "examples": [
+        "帮我做一次二手机验机，并总结风险点",
+        "生成适合酷安发帖的验机结论",
+        "刷机后复测手机状态并给建议"
+      ]
+    },
+    {
+      "name": "runStorageSpeedTest",
+      "desc": "执行轻量存储读写测速并输出可读结论",
+      "desc_en": "Run a lightweight storage read/write speed test",
+      "params": [
+        "sizeMB"
+      ],
+      "paramDesc": [
+        "测试文件大小 MB，默认 16，范围 4-64"
+      ],
+      "paramDesc_en": [
+        "Test file size in MB, default 16, range 4-64"
+      ]
+    },
+    {
+      "name": "getDeviceArchive",
+      "desc": "读取最近一次验机报告，用于复测对比或生成长图",
+      "desc_en": "Read the latest inspection report for retest comparison or long image generation",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "openPage",
+      "desc": "打开模块介绍页",
+      "desc_en": "Open module page",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

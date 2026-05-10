@@ -85,14 +85,14 @@ The current source repository keeps the module ecosystem and release assets toge
 PandaGenieSource/
 ├── README.md / README_CN.md        # English and Chinese project docs
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # Marketplace index, updated 2026-05-09
+├── modules.json                    # Marketplace index, updated 2026-05-10
 ├── modules/                        # Signed release .mod packages
 ├── source/                         # Official module source code
 │   ├── shared_api/                 # Shared module API and helper classes
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 40 official modules in total
+│   └── ...                         # 44 official modules in total
 ├── module-dev-toolkit/             # PowerShell toolkit for building and signing modules
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -106,10 +106,10 @@ PandaGenieSource/
 
 Recent structure updates:
 
-- `modules.json` now lists 40 official modules and provides both CDN and GitHub raw download URLs.
+- `modules.json` now lists 44 official modules and provides both CDN and GitHub raw download URLs.
 - `source/shared_api` centralizes the API/helper layer used by modules.
 - `module-dev-toolkit` is the preferred workflow for module packaging, signing, and certificate inspection.
-- Newer official modules include Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
+- Newer official modules include Phone Test Recorder, Storage Radar Report, Phone Check Report, Long Image Generator, Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
 - Native-heavy modules such as File Manager, Archive, and Calculator keep their `native/` and `jni_bridge/` folders under the module source directory.
 
 ---
@@ -186,7 +186,7 @@ long usedBytes = storage.getUsedSpace();
 
 ## Available Modules
 
-`modules.json` currently lists **40 official modules**, last updated on **2026-05-09**.
+`modules.json` currently lists **44 official modules**, last updated on **2026-05-10**.
 
 | Module | Description | Type |
 |--------|-------------|------|
@@ -230,6 +230,10 @@ long usedBytes = storage.getUsedSpace();
 | &#x1F4C4; **Document Tools** | Extract, query, create, replace, append, convert, and import/export CSV/XLSX tables | Java |
 | &#x1F39B;&#xFE0F; **Device Controls** | Query and adjust screen brightness plus media/ring/alarm volumes | Java |
 | &#x23F1;&#xFE0F; **Fullscreen Countdown** | Landscape fullscreen countdowns with h:m:s display, one-minute alerts, final vibration, and sound cues | H5+Java |
+| &#x1F4C8; **Phone Test Recorder** | Record charging, standby, and gaming heat tests, then generate curve reports and comparisons | Java |
+| &#x1F4E1; **Storage Radar Report** | Scan large files, videos, APKs, archives, downloads, and duplicate candidates with cleanup advice | Java |
+| &#x1F4CB; **Phone Check Report** | Summarize device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and apps into inspection reports | Java |
+| &#x1F5BC;&#xFE0F; **Long Image Generator** | Convert text, Markdown, HTML, Word documents, and web URLs into 1080px-wide PNG long images | Java |
 
 > &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
 
@@ -237,16 +241,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.31)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260509/PandaGenie-v1.0.31.apk)**
+> &#x1F4E5; **[Download APK (v1.0.32)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260510/PandaGenie-v1.0.32.apk)**
 
-- Release tag: [`20260509`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260509)
-- Android project version: `versionName "1.0.31"` / `versionCode 10031`
+- Release tag: [`20260510`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260510)
+- Android project version: `versionName "1.0.32"` / `versionCode 10032`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.32</b> (2026-05-10)</summary>
+
+- **App version bump**: updated Android to `versionName "1.0.32"` / `versionCode 10032` and published a new final APK.
+- **Module LLM support**: added official LLM bridging for modules, call-source tagging, and usage records for richer module reports and advice.
+- **Marketplace expansion**: synced `modules.json` to 44 official modules with Phone Test Recorder, Storage Radar Report, Phone Check Report, and Long Image Generator.
+- **Release pipeline sync**: refreshed the GitHub Release, Cloudflare download link, website version data, and module catalog.
+
+</details>
+
+<details>
 <summary><b>v1.0.31</b> (2026-05-09)</summary>
 
 - **Account experience**: added forgot-password and change-password verification flows with improved auth hints and error handling.

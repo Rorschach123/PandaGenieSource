@@ -218,6 +218,7 @@ The APP supports Chinese and English. Modules provide English translations via `
 | `location` | 获取位置 / Location access |
 | `microphone` | 使用麦克风 / Microphone access |
 | `clipboard` | 读写剪贴板 / Clipboard access |
+| `llm` | 通过 APP 调用大模型 / Call the configured LLM through the APP |
 
 **重要 / Important**:
 - 未声明 `capabilities` 的模块不受沙箱限制 / Modules without `capabilities` are not sandboxed
@@ -237,6 +238,67 @@ Modules with no special capability needs (e.g. pure computation):
 ```json
 "capabilities": []
 ```
+
+---
+
+### 模块调用大模型 / Module LLM Calls
+
+当模块需要做摘要、分类、结构化抽取、自然语言改写、文档理解等工作时，可以声明 `llm` 能力，并通过 APP 提供的 `ModuleLlm` 运行时接口调用当前配置的大模型。
+
+Use `llm` when a module needs summarization, classification, extraction, rewriting, document understanding, or similar model work. The call is mediated by PandaGenie, not by arbitrary network code.
+
+**声明能力 / Declare capability**:
+
+```json
+"capabilities": ["llm"]
+```
+
+**Java 调用示例 / Java example**:
+
+```java
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
+
+String result = ModuleLlm.complete(context, "Summarize this text in three bullets: " + text);
+```
+
+**JSON 请求示例 / JSON request example**:
+
+```java
+JSONObject req = new JSONObject()
+    .put("prompt", "Extract title, date, and todos from this note: " + note)
+    .put("action", "extractTodos")
+    .put("maxTokens", 512)
+    .put("temperature", 0.2)
+    .put("jsonMode", true);
+
+String resultJson = ModuleLlm.completeJson(context, req.toString());
+```
+
+返回值是 JSON 字符串：
+
+```json
+{
+  "success": true,
+  "text": "...",
+  "provider": "pandagenie_premium",
+  "model": "deepseek-chat",
+  "source": "module",
+  "moduleId": "notes",
+  "moduleAction": "extractTodos",
+  "usage": {
+    "prompt_tokens": 120,
+    "completion_tokens": 80,
+    "total_tokens": 200
+  }
+}
+```
+
+**规则 / Rules**:
+- 模块必须在 `capabilities` 中声明 `llm`，用户也必须在 APP 的权限管控中授权该模块。
+- 使用 PandaGenie Official 模型时，模块调用会单独记录为 `module_llm`，并消耗登录账号的体验/高级次数。
+- PandaGenie Official 模块调用有单次 token 上限，默认 1024，可由服务端 `MODULE_LLM_MAX_TOKENS` 配置。
+- 使用用户自己的 OpenAI-compatible/Claude 配置时，APP 直接调用用户配置的 provider，不进入提示词埋点。
+- 模块不要把隐私文件全文无提示地送入大模型；需要处理用户文件时，应在 API 描述中说明用途，并依赖 APP 的文件权限弹窗。
 
 ---
 

@@ -2,9 +2,9 @@
     "id":  "link_parser",
     "name":  "链接解析",
     "name_en":  "Link Parser",
-    "description":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，分析HTTP头部，检测内容类型，自动分类整理提取结果",
-    "description_en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and more. Analyzes HTTP headers, detects content types, and organizes extracted content by category",
-    "version":  "1.3",
+    "description":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，也可调用 AI 总结网页或回答页面相关问题",
+    "description_en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions",
+    "version":  "1.4",
     "icon":  "link",
     "soLibraries":  [
 
@@ -14,7 +14,8 @@
     "pluginClass":  "ai.rorsch.moduleplugins.link_parser.LinkParserPlugin",
     "soLoadMode":  "skip",
     "capabilities":  [
-                         "network"
+                         "network",
+                         "llm"
                      ],
     "permissions":  [
                         {
@@ -114,6 +115,38 @@
                      "paramDesc_en":  [
                                           "URL to extract text from",
                                           "Max text length (default 5000)"
+                                      ]
+                 },
+                 {
+                     "name":  "summarizeUrl",
+                     "desc":  "调用 AI 总结网页正文，或根据网页内容回答指定问题",
+                     "desc_en":  "Use AI to summarize a web page or answer a question based on page text",
+                     "params":  [
+                                    "url",
+                                    "mode",
+                                    "question",
+                                    "instruction",
+                                    "language",
+                                    "maxTextChars",
+                                    "maxTokens"
+                                ],
+                     "paramDesc":  [
+                                       "要总结或问答的网页地址",
+                                       "处理模式，可选，默认 summary",
+                                       "针对网页提出的问题，可选",
+                                       "额外处理要求，可选",
+                                       "输出语言，可选，默认跟随系统语言",
+                                       "最多送入模型的网页正文字符数，可选",
+                                       "模型最大输出 token，可选"
+                                   ],
+                     "paramDesc_en":  [
+                                          "URL to summarize or ask about",
+                                          "Processing mode, optional, default summary",
+                                          "Question about the page, optional",
+                                          "Extra instruction, optional",
+                                          "Output language, optional, defaults to system language",
+                                          "Max page text characters sent to the model, optional",
+                                          "Max model output tokens, optional"
                                       ]
                  },
                  {

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>手机实测记录</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div class="mod-header">
+  <div class="icon">📈</div>
+  <h2>手机实测记录</h2>
+  <p>记录充电、待机、游戏发热，生成曲线报告和对比结论。</p>
+  <p class="mt-8"><span class="badge">可复测 · 可对比</span></p>
+</div>
+<div class="info-card">
+  <h3>测试类型</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><span class="emoji">⚡</span>充电曲线</div>
+    <div class="feature-item"><span class="emoji">🌙</span>睡前待机</div>
+    <div class="feature-item"><span class="emoji">🎮</span>游戏发热</div>
+    <div class="feature-item"><span class="emoji">🔁</span>历史对比</div>
+  </div>
+</div>
+<div class="info-card">
+  <h3>接口</h3>
+  <ul class="api-list">
+    <li><span class="api-name">startTestSession</span><span>开始一次记录</span></li>
+    <li><span class="api-name">recordSample</span><span>追加一次采样</span></li>
+    <li><span class="api-name">finishTestReport</span><span>生成报告</span></li>
+    <li><span class="api-name">compareTestReports</span><span>对比两次测试</span></li>
+  </ul>
+</div>
+</body>
+</html>

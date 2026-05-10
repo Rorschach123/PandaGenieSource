@@ -1,0 +1,252 @@
+{
+  "id": "long_image_generator",
+  "name": "长图生成器",
+  "name_en": "Long Image Generator",
+  "description": "把文本、Markdown、HTML、Word DOCX 文档、网页 URL 等内容转换成 1080px 宽 PNG 长图，适合文章摘录、报告、网页内容和聊天整理分享。",
+  "description_en": "Convert text, Markdown, HTML, Word DOCX documents, and web pages into 1080px-wide PNG long images for sharing articles, reports, web content, and notes.",
+  "version": "1.7",
+  "icon": "image",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.long_image_generator.LongImageGeneratorPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "file_read",
+    "file_write",
+    "network",
+    "llm"
+  ],
+  "categories": [
+    "image",
+    "document",
+    "share"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于读取本地文本/Word/HTML 文件并保存长图",
+      "desc_en": "Read local text/Word/HTML files and save long images"
+    },
+    {
+      "name": "android.permission.READ_EXTERNAL_STORAGE",
+      "desc": "用于 Android 12 及以下读取本地文件",
+      "desc_en": "Read local files on Android 12 and below"
+    },
+    {
+      "name": "android.permission.WRITE_EXTERNAL_STORAGE",
+      "desc": "用于 Android 9 及以下保存长图",
+      "desc_en": "Save long images on Android 9 and below"
+    },
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于读取网页 URL 内容并转成长图",
+      "desc_en": "Fetch web page URL content and render it as a long image"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "renderInputToImage",
+      "desc": "把文本、文件或网页 URL 转换成 1080px 宽 PNG 长图",
+      "desc_en": "Render text, files, or web page URLs into a 1080px-wide PNG long image",
+      "params": [
+        "title",
+        "subtitle",
+        "text",
+        "inputPath",
+        "url",
+        "html",
+        "inputType",
+        "outputPath",
+        "themeColor",
+        "maxHeight",
+        "language"
+      ],
+      "paramDesc": [
+        "长图标题，可省略并自动从文档/网页推断",
+        "副标题，可用于来源、日期或备注",
+        "直接输入的纯文本或 Markdown",
+        "本地文件路径，支持 txt/md/html/docx",
+        "网页 URL，支持 http/https",
+        "直接输入的 HTML 内容",
+        "输入类型：auto/text/markdown/html/docx/url，默认 auto",
+        "输出 PNG 路径，默认 /storage/emulated/0/PandaGenie/long_images/",
+        "主题色，例如 #17A36B",
+        "最大图片高度，默认 18000，范围 3000-30000",
+        "语言：zh/en，默认自动判断"
+      ],
+      "paramDesc_en": [
+        "Image title; can be inferred from file or web page",
+        "Subtitle for source, date, or notes",
+        "Plain text or Markdown input",
+        "Local file path; supports txt/md/html/docx",
+        "Web page URL, http/https",
+        "Raw HTML input",
+        "Input type: auto/text/markdown/html/docx/url, default auto",
+        "Output PNG path, default /storage/emulated/0/PandaGenie/long_images/",
+        "Theme color, e.g. #17A36B",
+        "Maximum image height, default 18000, range 3000-30000",
+        "Language: zh/en, auto-detected by default"
+      ],
+      "examples": [
+        "把这段文字生成一张长图",
+        "把这个 Word 文档转成 1080 宽长图",
+        "访问这个网页并生成长图"
+      ]
+    },
+    {
+      "name": "generateSmartLongImage",
+      "desc": "先调用 AI 将文本、文件或网页整理成标题、摘要和分段内容，再生成分享长图",
+      "desc_en": "Use AI to organize text, files, or web pages into a title, summary, and sections before rendering a shareable long image",
+      "params": [
+        "title",
+        "subtitle",
+        "text",
+        "inputPath",
+        "url",
+        "html",
+        "inputType",
+        "outputPath",
+        "themeColor",
+        "maxHeight",
+        "language",
+        "instruction",
+        "maxInputChars",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "长图标题，可省略并由 AI/文档推断",
+        "副标题，可用于来源、日期或备注",
+        "直接输入的纯文本或 Markdown",
+        "本地文件路径，支持 txt/md/html/docx",
+        "网页 URL，支持 http/https",
+        "直接输入的 HTML 内容",
+        "输入类型：auto/text/markdown/html/docx/url，默认 auto",
+        "输出 PNG 路径，默认 /storage/emulated/0/PandaGenie/long_images/",
+        "主题色，例如 #17A36B",
+        "最大图片高度，默认 18000，范围 3000-30000",
+        "输出语言：zh/en，默认自动判断",
+        "AI 整理要求，例如 适合酷安发帖/生成会议纪要长图",
+        "最多送入模型的文字数，默认 12000",
+        "最大输出 token，默认 1024，上限 1024"
+      ],
+      "paramDesc_en": [
+        "Image title; can be inferred by AI or source content",
+        "Subtitle for source, date, or notes",
+        "Plain text or Markdown input",
+        "Local file path; supports txt/md/html/docx",
+        "Web page URL, http/https",
+        "Raw HTML input",
+        "Input type: auto/text/markdown/html/docx/url, default auto",
+        "Output PNG path, default /storage/emulated/0/PandaGenie/long_images/",
+        "Theme color, e.g. #17A36B",
+        "Maximum image height, default 18000, range 3000-30000",
+        "Output language: zh/en, auto-detected by default",
+        "AI instruction such as Coolapk post or meeting-note long image",
+        "Max input characters sent to LLM, default 12000",
+        "Max output tokens, default 1024, capped at 1024"
+      ],
+      "examples": [
+        "把这篇文章整理成适合分享的长图",
+        "把这个网页总结成一张长图",
+        "把这个 Word 文档变成会议纪要长图"
+      ]
+    },
+    {
+      "name": "saveLongImage",
+      "desc": "用标题、摘要和分段内容保存通用长图 PNG",
+      "desc_en": "Save a general-purpose long image PNG from title, summary, and sections",
+      "params": [
+        "title",
+        "subtitle",
+        "summary",
+        "sections",
+        "outputPath",
+        "themeColor",
+        "maxHeight",
+        "language"
+      ],
+      "paramDesc": [
+        "长图标题",
+        "副标题",
+        "摘要或核心内容",
+        "分段内容，JSON 数组或换行文本",
+        "输出 PNG 路径",
+        "主题色",
+        "最大图片高度",
+        "语言：zh/en，默认自动判断"
+      ],
+      "paramDesc_en": [
+        "Image title",
+        "Subtitle",
+        "Summary or core content",
+        "Sections as JSON array or newline text",
+        "Output PNG path",
+        "Theme color",
+        "Maximum image height",
+        "Language: zh/en, auto-detected by default"
+      ]
+    },
+    {
+      "name": "extractInputText",
+      "desc": "从文本、文件或网页 URL 提取可渲染的纯文本内容",
+      "desc_en": "Extract renderable plain text from text, file, or web page URL input",
+      "params": [
+        "text",
+        "inputPath",
+        "url",
+        "html",
+        "inputType"
+      ],
+      "paramDesc": [
+        "直接输入文本",
+        "本地文件路径",
+        "网页 URL",
+        "HTML 内容",
+        "输入类型"
+      ],
+      "paramDesc_en": [
+        "Raw text input",
+        "Local file path",
+        "Web page URL",
+        "HTML content",
+        "Input type"
+      ]
+    },
+    {
+      "name": "formatShareText",
+      "desc": "把标题、摘要和分段内容整理为可复制的分享文本",
+      "desc_en": "Format title, summary, and sections into copyable share text",
+      "params": [
+        "title",
+        "summary",
+        "sections"
+      ],
+      "paramDesc": [
+        "标题",
+        "摘要",
+        "分段内容"
+      ],
+      "paramDesc_en": [
+        "Title",
+        "Summary",
+        "Sections"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开模块介绍页",
+      "desc_en": "Open module page",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 package ai.rorsch.moduleplugins.translator;
 
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import android.content.Context;
 import org.json.JSONArray;
@@ -52,6 +53,7 @@ public class TranslatorPlugin implements ModulePlugin {
             JSONObject params = new JSONObject(paramsJson == null || paramsJson.trim().isEmpty() ? "{}" : paramsJson);
             switch (action) {
                 case "translate":              return translate(params);
+                case "translateWithLlm":       return translateWithLlm(context, params);
                 case "detectLanguage":         return detectLanguage(params);
                 case "getSupportedLanguages":  return getSupportedLanguages();
                 case "openPage": {
@@ -95,6 +97,67 @@ public class TranslatorPlugin implements ModulePlugin {
             return translateSingle(text, from, targets[0]);
         }
         return translateBatch(text, from, targets);
+    }
+
+    private String translateWithLlm(Context context, JSONObject params) throws Exception {
+        String text = params.optString("text", "").trim();
+        if (text.isEmpty()) throw new IllegalArgumentException(isZh() ? "请提供要翻译的文本" : "text is required");
+        text = extractJsonTextContent(text);
+
+        String from = params.optString("from", "").trim().toLowerCase(Locale.ROOT);
+        if (from.isEmpty() || "auto".equals(from)) from = detectLangCode(text);
+        String toRaw = params.optString("to", "").trim().toLowerCase(Locale.ROOT);
+        String[] targets = parseTargetLanguages(toRaw, from);
+        String to = targets.length > 0 ? targets[0] : (from.equals("en") ? "zh" : "en");
+        String tone = params.optString("tone", "").trim();
+        String instruction = params.optString("instruction", "").trim();
+        int maxInputChars = Math.max(500, Math.min(params.optInt("maxInputChars", 8000), 12000));
+        String clipped = text.length() > maxInputChars ? text.substring(0, maxInputChars) : text;
+
+        String fromName = getLangName(from);
+        String toName = getLangName(to);
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are PandaGenie Translator. Translate the source text accurately and naturally.\n")
+                .append("Source language: ").append(fromName).append(" (").append(from).append(")\n")
+                .append("Target language: ").append(toName).append(" (").append(to).append(")\n")
+                .append("Preserve names, numbers, URLs, code, and file paths. Return only the translated text.\n");
+        if (!tone.isEmpty()) prompt.append("Tone/style: ").append(tone).append("\n");
+        if (!instruction.isEmpty()) prompt.append("Extra instruction: ").append(instruction).append("\n");
+        prompt.append("\nSOURCE TEXT:\n").append(clipped);
+
+        int maxTokens = Math.max(128, Math.min(params.optInt("maxTokens", 1024), 1024));
+        JSONObject request = new JSONObject()
+                .put("action", "translator.translateWithLlm")
+                .put("prompt", prompt.toString())
+                .put("temperature", 0.2)
+                .put("maxTokens", maxTokens);
+        JSONObject resp = new JSONObject(ModuleLlm.completeJson(context, request.toString()));
+        if (!resp.optBoolean("success", false)) {
+            String msg = resp.optString("error", isZh() ? "智能翻译失败" : "LLM translation failed");
+            throw new IllegalStateException(msg);
+        }
+        String translated = resp.optString("text", "").trim();
+
+        JSONObject out = new JSONObject();
+        out.put("originalText", text);
+        out.put("translatedText", translated);
+        out.put("from", from);
+        out.put("to", to);
+        out.put("fromName", fromName);
+        out.put("toName", toName);
+        out.put("source", "llm");
+        out.put("inputChars", text.length());
+        out.put("usedChars", clipped.length());
+        out.put("truncated", clipped.length() < text.length());
+        if (!tone.isEmpty()) out.put("tone", tone);
+        if (!instruction.isEmpty()) out.put("instruction", instruction);
+
+        String display = (isZh() ? "智能翻译完成" : "AI translation complete")
+                + "\n" + fromName + " → " + toName
+                + (out.optBoolean("truncated") ? "\n" + (isZh() ? "已按最大长度截取后翻译" : "Input was truncated before translation") : "")
+                + "\n\n" + translated;
+        String displayHtml = formatLlmTranslateHtml(text, translated, fromName, toName, out.optBoolean("truncated"));
+        return successResponse(out, display, displayHtml);
     }
 
     private String[] parseTargetLanguages(String toRaw, String from) {
@@ -317,6 +380,18 @@ public class TranslatorPlugin implements ModulePlugin {
                 ? HtmlOutputHelper.muted(isZh() ? ("\u26a0 " + failed + " \u79cd\u8bed\u8a00\u7ffb\u8bd1\u5931\u8d25") : ("\u26a0 " + failed + " language(s) failed"))
                 : HtmlOutputHelper.successBadge();
         return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u591a\u8bed\u8a00\u7ffb\u8bd1" : "Multi-language translation", head + table + footer);
+    }
+
+    private String formatLlmTranslateHtml(String source, String translated, String fromName, String toName, boolean truncated) {
+        String srcShow = source.length() > 500 ? source.substring(0, 500) + "\u2026" : source;
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {isZh() ? "\u65b9\u5411" : "Direction", fromName + " \u2192 " + toName},
+                {isZh() ? "\u65b9\u5f0f" : "Mode", isZh() ? "\u667a\u80fd\u7ffb\u8bd1" : "AI translation"},
+                {isZh() ? "\u539f\u6587" : "Source", srcShow},
+                {isZh() ? "\u8bd1\u6587" : "Translation", translated}
+        });
+        if (truncated) body += HtmlOutputHelper.muted(isZh() ? "\u5185\u5bb9\u8f83\u957f\uff0c\u5df2\u6309\u6700\u5927\u957f\u5ea6\u622a\u53d6\u540e\u7ffb\u8bd1\u3002" : "Long input was truncated before translation.");
+        return HtmlOutputHelper.card("\uD83C\uDF10", isZh() ? "\u667a\u80fd\u7ffb\u8bd1" : "AI Translation", body);
     }
 
     private String formatDetectLanguageHtml(String code, String langName, String textSample) {

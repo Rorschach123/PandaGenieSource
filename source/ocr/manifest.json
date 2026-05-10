@@ -4,7 +4,7 @@
     "name_en":  "OCR Text Recognition",
     "description":  "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测；非图片文件会给出明确中文原因",
     "description_en":  "OCR module for extracting text from images, supports Chinese and English with auto language detection; non-image files return clear error reasons",
-    "version":  "1.6",
+    "version":  "1.7",
     "icon":  "text_snippet",
     "soLibraries":  [
                         "libmlkit_google_ocr_pipeline.so"
@@ -16,7 +16,8 @@
     "capabilities":  [
                          "file_read",
                          "file_write",
-                         "network"
+                         "network",
+                         "llm"
                      ],
     "permissions":  [
                         {
@@ -51,6 +52,38 @@
                      "paramDesc_en":  [
                                           "Absolute path to the image file, supports JPG/PNG/WebP/BMP/GIF/HEIC and similar images only",
                                           "Language: zh(Chinese), en(English), auto(detect), default auto"
+                                      ]
+                 },
+                 {
+                     "name":  "recognizeAndAnalyzeText",
+                     "desc":  "识别图片文字后调用 AI 进行纠错、摘要或结构化提取",
+                     "desc_en":  "Recognize image text and use AI to clean, summarize, or extract structured information",
+                     "params":  [
+                                    "imagePath",
+                                    "language",
+                                    "task",
+                                    "instruction",
+                                    "outputLanguage",
+                                    "maxTextChars",
+                                    "maxTokens"
+                                ],
+                     "paramDesc":  [
+                                       "图片文件路径",
+                                       "OCR 语言：zh/en/auto",
+                                       "处理任务：clean/summary/extract/structure",
+                                       "额外要求",
+                                       "输出语言：zh/en",
+                                       "最多送入模型的文字数，默认 12000",
+                                       "最大输出 token，默认 768，上限 1024"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Image file path",
+                                          "OCR language: zh/en/auto",
+                                          "Task: clean/summary/extract/structure",
+                                          "Extra instruction",
+                                          "Output language: zh/en",
+                                          "Max OCR characters sent to LLM, default 12000",
+                                          "Max output tokens, default 768, capped at 1024"
                                       ]
                  },
                  {

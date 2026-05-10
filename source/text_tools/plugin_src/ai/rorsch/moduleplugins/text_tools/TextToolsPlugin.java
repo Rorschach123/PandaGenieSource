@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Base64;
 
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 
 import org.json.JSONArray;
@@ -106,6 +107,11 @@ public class TextToolsPlugin implements ModulePlugin {
                     JSONObject out = hashText(params.optString("text", ""), params.optString("algorithm", ""));
                     return ok(out, formatHashDisplay(out), formatHashHtml(out),
                             new JSONArray().put(richCode(out.optString("hex"), "text")));
+                }
+                case "aiProcessText": {
+                    JSONObject out = aiProcessText(context, params);
+                    return ok(out, formatAiProcessDisplay(out), formatAiProcessHtml(out),
+                            new JSONArray().put(richCode(out.optString("result"), "text")));
                 }
                 default:
                     return error("Unsupported action: " + action);
@@ -423,6 +429,74 @@ public class TextToolsPlugin implements ModulePlugin {
                 .put("hex", toHex(hash));
     }
 
+    private static JSONObject aiProcessText(Context context, JSONObject params) throws Exception {
+        String text = params.optString("text", "").trim();
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException(isZh() ? "请提供要处理的文本" : "text is required");
+        }
+        String task = params.optString("task", "summarize").trim().toLowerCase(Locale.ROOT);
+        if (task.isEmpty()) task = "summarize";
+        String instruction = params.optString("instruction", "").trim();
+        String language = params.optString("language", isZh() ? "中文" : "English").trim();
+        if (language.isEmpty()) language = isZh() ? "中文" : "English";
+        int maxInputChars = Math.max(500, Math.min(params.optInt("maxInputChars", 6000), 12000));
+        String clipped = text.length() > maxInputChars ? text.substring(0, maxInputChars) : text;
+
+        String taskName = taskName(task);
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are PandaGenie Text Tools. Process the user text for a phone assistant.\n")
+                .append("Task: ").append(taskName).append("\n")
+                .append("Output language: ").append(language).append("\n")
+                .append("Return only the final user-facing result. Do not include JSON or markdown fences.\n");
+        if (!instruction.isEmpty()) {
+            prompt.append("User instruction: ").append(instruction).append("\n");
+        }
+        prompt.append("\nTEXT:\n").append(clipped);
+
+        int maxTokens = Math.max(128, Math.min(params.optInt("maxTokens", 800), 1024));
+        JSONObject request = new JSONObject()
+                .put("action", "text_tools.aiProcessText")
+                .put("prompt", prompt.toString())
+                .put("temperature", 0.3)
+                .put("maxTokens", maxTokens);
+        JSONObject resp = new JSONObject(ModuleLlm.completeJson(context, request.toString()));
+        if (!resp.optBoolean("success", false)) {
+            String msg = resp.optString("error", isZh() ? "智能文本处理失败" : "LLM text processing failed");
+            throw new IllegalStateException(msg);
+        }
+        String result = resp.optString("text", "").trim();
+        return new JSONObject()
+                .put("task", task)
+                .put("taskName", taskName)
+                .put("instruction", instruction)
+                .put("language", language)
+                .put("inputChars", text.length())
+                .put("usedChars", clipped.length())
+                .put("truncated", clipped.length() < text.length())
+                .put("result", result)
+                .put("source", "llm");
+    }
+
+    private static String taskName(String task) {
+        boolean zh = isZh();
+        switch (task == null ? "" : task.toLowerCase(Locale.ROOT)) {
+            case "rewrite":
+            case "polish":
+                return zh ? "润色改写" : "Rewrite";
+            case "extract":
+                return zh ? "提取信息" : "Extract information";
+            case "format":
+                return zh ? "整理格式" : "Format";
+            case "classify":
+                return zh ? "分类判断" : "Classify";
+            case "translate":
+                return zh ? "翻译" : "Translate";
+            case "summarize":
+            default:
+                return zh ? "总结要点" : "Summarize";
+        }
+    }
+
     /** 字节数组转小写十六进制串（每字节两位）。 */
     private static String toHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
@@ -687,6 +761,32 @@ public class TextToolsPlugin implements ModulePlugin {
                 { zh ? "算法" : "Algorithm", o.optString("algorithm") },
                 { zh ? "哈希" : "Hash", o.optString("hex") }
         }));
+    }
+
+    private static String formatAiProcessDisplay(JSONObject o) {
+        boolean zh = isZh();
+        StringBuilder sb = new StringBuilder();
+        sb.append(zh ? "智能文本处理" : "AI text processing")
+                .append("\n").append(zh ? "类型: " : "Task: ").append(o.optString("taskName"))
+                .append("\n").append(zh ? "字数: " : "Characters: ").append(o.optInt("inputChars"));
+        if (o.optBoolean("truncated", false)) {
+            sb.append("\n").append(zh ? "已按最大长度截取后处理" : "Input was truncated before processing");
+        }
+        sb.append("\n\n").append(o.optString("result"));
+        return sb.toString();
+    }
+
+    private static String formatAiProcessHtml(JSONObject o) {
+        boolean zh = isZh();
+        String body = HtmlOutputHelper.keyValue(new String[][]{
+                {zh ? "类型" : "Task", o.optString("taskName")},
+                {zh ? "字数" : "Characters", String.valueOf(o.optInt("inputChars"))},
+                {zh ? "截断" : "Truncated", o.optBoolean("truncated", false) ? (zh ? "是" : "Yes") : (zh ? "否" : "No")}
+        });
+        String result = o.optString("result");
+        if (result.length() > 1200) result = result.substring(0, 1200) + "...";
+        body += HtmlOutputHelper.p(result);
+        return HtmlOutputHelper.card("AI", zh ? "智能文本处理" : "AI Text Processing", body);
     }
 
     /**

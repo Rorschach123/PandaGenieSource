@@ -1,0 +1,113 @@
+{
+  "id": "storage_radar_report",
+  "name": "存储雷达报告",
+  "name_en": "Storage Radar Report",
+  "description": "扫描手机存储，找出大文件、视频、APK、压缩包、下载目录、微信目录和疑似重复文件，生成空间去向报告与清理建议。",
+  "description_en": "Scan storage for large files, videos, APKs, archives, downloads, WeChat folders, and duplicate candidates, then generate a readable cleanup report.",
+  "version": "1.1",
+  "icon": "radar",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.storage_radar_report.StorageRadarReportPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "file_read",
+    "llm"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "desc": "用于扫描手机存储并统计文件占用",
+      "desc_en": "Scan phone storage and calculate file usage"
+    },
+    {
+      "name": "android.permission.READ_EXTERNAL_STORAGE",
+      "desc": "用于读取 Android 12 及以下的存储文件信息",
+      "desc_en": "Read storage files on Android 12 and below"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "scanStorageRadar",
+      "desc": "扫描存储并生成空间雷达报告，适用于“空间到底去哪了”“找出大文件和重复文件”等提示词",
+      "desc_en": "Scan storage and generate a space radar report",
+      "params": [
+        "path",
+        "limit",
+        "maxDepth"
+      ],
+      "paramDesc": [
+        "扫描目录，建议 /storage/emulated/0，默认 /storage/emulated/0",
+        "最大返回条数，默认 20",
+        "最大递归深度，默认 8"
+      ],
+      "paramDesc_en": [
+        "Scan path, recommended /storage/emulated/0, default /storage/emulated/0",
+        "Max returned items, default 20",
+        "Max recursion depth, default 8"
+      ]
+    },
+    {
+      "name": "generateCleanupPlan",
+      "desc": "基于扫描结果生成清理计划，不直接删除文件，等待用户确认后再交给文件/清理模块执行",
+      "desc_en": "Generate a cleanup plan without deleting files; execute only after user confirmation",
+      "params": [
+        "path",
+        "targetFreeMB"
+      ],
+      "paramDesc": [
+        "扫描目录，默认 /storage/emulated/0",
+        "期望释放空间 MB，默认 1024"
+      ],
+      "paramDesc_en": [
+        "Scan path, default /storage/emulated/0",
+        "Target free space in MB, default 1024"
+      ]
+    },
+    {
+      "name": "generateSmartCleanupAdvice",
+      "desc": "扫描手机存储后调用 AI 生成普通用户能看懂的清理建议，不直接删除文件",
+      "desc_en": "Scan storage and use AI to generate readable cleanup advice without deleting files",
+      "params": [
+        "path",
+        "limit",
+        "maxDepth",
+        "focus",
+        "language",
+        "maxTokens"
+      ],
+      "paramDesc": [
+        "扫描目录，默认 /storage/emulated/0",
+        "最大返回条数，默认 20",
+        "最大递归深度，默认 8",
+        "关注点，例如 大文件/重复文件/下载目录/微信目录",
+        "输出语言：zh/en，默认自动判断",
+        "最大输出 token，默认 768，上限 1024"
+      ],
+      "paramDesc_en": [
+        "Scan path, default /storage/emulated/0",
+        "Max returned items, default 20",
+        "Max recursion depth, default 8",
+        "Focus such as large files, duplicates, downloads, or WeChat folders",
+        "Output language: zh/en, auto-detected by default",
+        "Max output tokens, default 768, capped at 1024"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开模块介绍页",
+      "desc_en": "Open module page",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

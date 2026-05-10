@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-09",
+    "updated_at":  "2026-05-10",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -1694,10 +1694,10 @@
                                      "en":  "Text Tools"
                                  },
                         "description":  {
-                                            "zh":  "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希等",
-                                            "en":  "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing"
+                                            "zh":  "文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希，以及通过大模型总结、改写、提取和整理文本。",
+                                            "en":  "Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing, plus LLM-powered summarization, rewriting, extraction and formatting."
                                         },
-                        "version":  "1.5",
+                        "version":  "1.6",
                         "icon":  "text_fields",
                         "filename":  "text_tools.mod",
                         "download_url":  [
@@ -1711,7 +1711,7 @@
 
                                         ],
                         "capabilities":  [
-
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -1868,9 +1868,38 @@
                                                               "Text",
                                                               "Algorithm name"
                                                           ]
+                                     },
+                                     {
+                                         "name":  "aiProcessText",
+                                         "desc":  "使用大模型对文本进行总结、润色改写、信息提取、格式整理、分类判断或按用户指令处理。适合用户说“总结这段话”“帮我改写”“提取要点”“整理成清单”等。",
+                                         "desc_en":  "Use the app-provided LLM to summarize, rewrite, extract, format, classify, translate or process text by instruction.",
+                                         "params":  [
+                                                        "text",
+                                                        "task",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxInputChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要处理的文本",
+                                                           "任务类型：summarize/rewrite/extract/format/classify/translate，默认 summarize",
+                                                           "用户补充要求，例如语气、输出格式、需要提取的字段",
+                                                           "输出语言，默认跟随系统语言",
+                                                           "最多输入字符数，默认 6000，最大 12000",
+                                                           "最多输出 token，官方模型会限制在 1024 内"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to process",
+                                                              "Task type: summarize/rewrite/extract/format/classify/translate, default summarize",
+                                                              "Extra user instruction such as tone, output format, or fields to extract",
+                                                              "Output language, default follows system language",
+                                                              "Maximum input characters, default 6000, max 12000",
+                                                              "Maximum output tokens; official provider is capped at 1024"
+                                                          ]
                                      }
                                  ],
-                        "api_count":  10
+                        "api_count":  11
                     },
                     {
                         "id":  "device_info",
@@ -2724,10 +2753,10 @@
                                      "en":  "Notes"
                                  },
                         "description":  {
-                                            "zh":  "笔记助手模块，支持创建、查看、编辑、删除、搜索和导出笔记，数据本地存储",
-                                            "en":  "Note-taking module: create, view, edit, delete, search and export notes with local file storage"
+                                            "zh":  "笔记助手模块，支持创建、查看、编辑、删除、搜索、导出笔记，并可通过 AI 总结和整理本地笔记",
+                                            "en":  "Note-taking module: create, view, edit, delete, search, export notes, and use AI to summarize or organize local notes"
                                         },
-                        "version":  "1.5",
+                        "version":  "1.6",
                         "icon":  "note",
                         "filename":  "notes.mod",
                         "download_url":  [
@@ -2746,7 +2775,8 @@
                                         ],
                         "capabilities":  [
                                              "file_read",
-                                             "file_write"
+                                             "file_write",
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -2858,9 +2888,83 @@
                                                               "Note id",
                                                               "Output file path or directory"
                                                           ]
+                                     },
+                                     {
+                                         "name":  "summarizeNote",
+                                         "desc":  "调用 AI 对指定笔记进行总结，可按摘要、行动项、会议纪要等模式输出",
+                                         "desc_en":  "Use AI to summarize a note, with modes such as summary, action items, or meeting notes",
+                                         "params":  [
+                                                        "id",
+                                                        "mode",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxInputChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "笔记 ID",
+                                                           "总结模式，可选，默认 summary",
+                                                           "额外处理要求，可选",
+                                                           "输出语言，可选，默认跟随系统语言",
+                                                           "最多送入模型的正文字符数，可选",
+                                                           "模型最大输出 token，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Note id",
+                                                              "Summary mode, optional, default summary",
+                                                              "Extra instruction, optional",
+                                                              "Output language, optional, defaults to system language",
+                                                              "Max note characters sent to the model, optional",
+                                                              "Max model output tokens, optional"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "organizeNote",
+                                         "desc":  "调用 AI 整理指定笔记，返回结构更清晰的草稿，不会自动覆盖原笔记",
+                                         "desc_en":  "Use AI to organize a note and return a clearer draft without overwriting the original note",
+                                         "params":  [
+                                                        "id",
+                                                        "mode",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxInputChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "笔记 ID",
+                                                           "整理模式，可选，默认 clean_structure",
+                                                           "额外处理要求，可选",
+                                                           "输出语言，可选，默认跟随系统语言",
+                                                           "最多送入模型的正文字符数，可选",
+                                                           "模型最大输出 token，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Note id",
+                                                              "Organizing mode, optional, default clean_structure",
+                                                              "Extra instruction, optional",
+                                                              "Output language, optional, defaults to system language",
+                                                              "Max note characters sent to the model, optional",
+                                                              "Max model output tokens, optional"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开笔记助手界面并返回 _openModule 信号",
+                                         "desc_en":  "Open the Notes UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  7
+                        "api_count":  10
                     },
                     {
                         "id":  "fortune",
@@ -4441,10 +4545,10 @@
                                      "en":  "Link Parser"
                                  },
                         "description":  {
-                                            "zh":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，分析HTTP头部，检测内容类型，自动分类整理提取结果",
-                                            "en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and more. Analyzes HTTP headers, detects content types, and organizes extracted content by category"
+                                            "zh":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，也可调用 AI 总结网页或回答页面相关问题",
+                                            "en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions"
                                         },
-                        "version":  "1.3",
+                        "version":  "1.4",
                         "icon":  "link",
                         "filename":  "link_parser.mod",
                         "download_url":  [
@@ -4462,7 +4566,8 @@
                                             }
                                         ],
                         "capabilities":  [
-                                             "network"
+                                             "network",
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -4553,6 +4658,38 @@
                                                           ]
                                      },
                                      {
+                                         "name":  "summarizeUrl",
+                                         "desc":  "调用 AI 总结网页正文，或根据网页内容回答指定问题",
+                                         "desc_en":  "Use AI to summarize a web page or answer a question based on page text",
+                                         "params":  [
+                                                        "url",
+                                                        "mode",
+                                                        "question",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxTextChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要总结或问答的网页地址",
+                                                           "处理模式，可选，默认 summary",
+                                                           "针对网页提出的问题，可选",
+                                                           "额外处理要求，可选",
+                                                           "输出语言，可选，默认跟随系统语言",
+                                                           "最多送入模型的网页正文字符数，可选",
+                                                           "模型最大输出 token，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "URL to summarize or ask about",
+                                                              "Processing mode, optional, default summary",
+                                                              "Question about the page, optional",
+                                                              "Extra instruction, optional",
+                                                              "Output language, optional, defaults to system language",
+                                                              "Max page text characters sent to the model, optional",
+                                                              "Max model output tokens, optional"
+                                                          ]
+                                     },
+                                     {
                                          "name":  "checkUrl",
                                          "desc":  "检查链接是否可访问，返回状态码、响应时间、重定向链、SSL证书信息等",
                                          "desc_en":  "Check URL accessibility: status code, response time, redirect chain, SSL certificate info",
@@ -4579,9 +4716,25 @@
                                          "paramDesc_en":  [
                                                               "URL to extract metadata from"
                                                           ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开链接解析界面并返回 _openModule 信号",
+                                         "desc_en":  "Open the Link Parser UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  8
+                        "api_count":  10
                     },
                     {
                         "id":  "weather",
@@ -4721,7 +4874,7 @@
                                             "zh":  "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测；非图片文件会给出明确中文原因",
                                             "en":  "OCR module for extracting text from images, supports Chinese and English with auto language detection; non-image files return clear error reasons"
                                         },
-                        "version":  "1.6",
+                        "version":  "1.7",
                         "icon":  "text_snippet",
                         "filename":  "ocr.mod",
                         "download_url":  [
@@ -4745,7 +4898,9 @@
                                         ],
                         "capabilities":  [
                                              "file_read",
-                                             "network"
+                                             "file_write",
+                                             "network",
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -4766,6 +4921,38 @@
                                                           ]
                                      },
                                      {
+                                         "name":  "recognizeAndAnalyzeText",
+                                         "desc":  "识别图片文字后调用 AI 进行纠错、摘要或结构化提取",
+                                         "desc_en":  "Recognize image text and use AI to clean, summarize, or extract structured information",
+                                         "params":  [
+                                                        "imagePath",
+                                                        "language",
+                                                        "task",
+                                                        "instruction",
+                                                        "outputLanguage",
+                                                        "maxTextChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "图片文件路径",
+                                                           "OCR 语言：zh/en/auto",
+                                                           "处理任务：clean/summary/extract/structure",
+                                                           "额外要求",
+                                                           "输出语言：zh/en",
+                                                           "最多送入模型的文字数，默认 12000",
+                                                           "最大输出 token，默认 768，上限 1024"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Image file path",
+                                                              "OCR language: zh/en/auto",
+                                                              "Task: clean/summary/extract/structure",
+                                                              "Extra instruction",
+                                                              "Output language: zh/en",
+                                                              "Max OCR characters sent to LLM, default 12000",
+                                                              "Max output tokens, default 768, capped at 1024"
+                                                          ]
+                                     },
+                                     {
                                          "name":  "openPage",
                                          "desc":  "打开文字识别界面并返回 _openModule 信号",
                                          "desc_en":  "Open OCR UI and return _openModule signal",
@@ -4777,10 +4964,12 @@
                                                        ],
                                          "paramDesc_en":  [
 
-                                                          ]
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  2
+                        "api_count":  3
                     },
                     {
                         "id":  "flashlight",
@@ -4893,10 +5082,10 @@
                                      "en":  "Translator"
                                  },
                         "description":  {
-                                            "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译，自动检测源语言",
-                                            "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection"
+                                            "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言，也可调用大模型进行长文本、语气可控的智能翻译。",
+                                            "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection, plus LLM-powered long-form and tone-aware translation."
                                         },
-                        "version":  "1.4",
+                        "version":  "1.5",
                         "icon":  "translate",
                         "filename":  "translator.mod",
                         "download_url":  [
@@ -4914,7 +5103,8 @@
                                             }
                                         ],
                         "capabilities":  [
-                                             "network"
+                                             "network",
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -4929,12 +5119,44 @@
                                          "paramDesc":  [
                                                            "要翻译的文本",
                                                            "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测",
-                                                           "目标语言代码，默认en"
+                                                           "目标语言代码，支持多种语言逗号分隔如\u0027en,ja,ko\u0027，传\u0027all\u0027翻译成所有支持的语言，默认en"
                                                        ],
                                          "paramDesc_en":  [
                                                               "Text to translate",
                                                               "Source language code (zh/en/ja/ko/fr/de/es etc), empty for auto",
-                                                              "Target language code, default en"
+                                                              "Target language code, supports multiple comma-separated like \u0027en,ja,ko\u0027, pass \u0027all\u0027 to translate into all supported languages, default en"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "translateWithLlm",
+                                         "desc":  "使用大模型进行智能翻译，适合长文本、保留上下文、指定语气或对翻译质量要求较高的场景。官方模型会计入体验次数，并限制单次输出长度。",
+                                         "desc_en":  "Use the app-provided LLM for higher-quality translation, especially long text, context-sensitive translation, and tone/style instructions.",
+                                         "params":  [
+                                                        "text",
+                                                        "from",
+                                                        "to",
+                                                        "tone",
+                                                        "instruction",
+                                                        "maxInputChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "要翻译的文本",
+                                                           "源语言代码，留空或 auto 自动检测",
+                                                           "目标语言代码，默认中英互译；智能翻译一次优先处理一个目标语言",
+                                                           "语气或风格，例如正式、口语、产品文案",
+                                                           "补充要求，例如保留术语、不要翻译代码块",
+                                                           "最多输入字符数，默认 8000，最大 12000",
+                                                           "最多输出 token，官方模型限制在 1024 内"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to translate",
+                                                              "Source language code; empty or auto for detection",
+                                                              "Target language code; defaults between Chinese and English. AI translation prioritizes one target language per call.",
+                                                              "Tone or style, such as formal, casual, product copy",
+                                                              "Extra instruction, such as preserving terms or code blocks",
+                                                              "Maximum input characters, default 8000, max 12000",
+                                                              "Maximum output tokens; official provider is capped at 1024"
                                                           ]
                                      },
                                      {
@@ -4977,10 +5199,12 @@
                                                        ],
                                          "paramDesc_en":  [
 
-                                                          ]
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  4
+                        "api_count":  5
                     },
                     {
                         "id":  "compass",
@@ -5248,10 +5472,10 @@
                                      "en":  "Document Tools"
                                  },
                         "description":  {
-                                            "zh":  "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换，以及导入/生成 CSV、XLSX 表格。适合一句话修改文档、查询文档内容、生成表格或把文档转为文本/Markdown/HTML/JSON。",
-                                            "en":  "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, and importing/creating CSV or XLSX tables."
+                                            "zh":  "文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换、导入/生成 CSV、XLSX 表格，并可调用大模型总结文档或根据文档问答。",
+                                            "en":  "Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, importing/creating CSV or XLSX tables, plus LLM-powered document summarization and Q\u0026A."
                                         },
-                        "version":  "1.4",
+                        "version":  "1.5",
                         "icon":  "description",
                         "filename":  "document_tools.mod",
                         "download_url":  [
@@ -5270,7 +5494,8 @@
                                         ],
                         "capabilities":  [
                                              "file_read",
-                                             "file_write"
+                                             "file_write",
+                                             "llm"
                                          ],
                         "apis":  [
                                      {
@@ -5325,6 +5550,61 @@
                                                               "Search keyword; empty returns preview paragraphs",
                                                               "Maximum result count, default 8",
                                                               "Context length per match, default 120"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "summarizeDocument",
+                                         "desc":  "使用大模型总结文档内容，可生成摘要、要点、行动项、提纲等。适合用户说“总结这个文档”“提炼重点”“整理成会议纪要”等。",
+                                         "desc_en":  "Use the app-provided LLM to summarize a document into a summary, key points, action items, outline, and similar formats.",
+                                         "params":  [
+                                                        "filePath",
+                                                        "mode",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "文档路径",
+                                                           "总结模式，如 summary/action_items/outline/key_points，默认 summary",
+                                                           "用户补充要求，例如输出格式、关注重点",
+                                                           "输出语言，默认跟随系统语言",
+                                                           "最多读取字符数，默认 12000，最大 20000",
+                                                           "最多输出 token，官方模型限制在 1024 内"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Document path",
+                                                              "Summary mode such as summary/action_items/outline/key_points, default summary",
+                                                              "Extra user instruction such as output format or focus",
+                                                              "Output language, default follows system language",
+                                                              "Maximum characters to read, default 12000, max 20000",
+                                                              "Maximum output tokens; official provider is capped at 1024"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "askDocument",
+                                         "desc":  "使用大模型根据文档内容回答问题。适合用户问“这个文档里提到什么”“根据这个文件回答...”等需要理解上下文的查询。",
+                                         "desc_en":  "Use the app-provided LLM to answer questions from a document\u0027s content.",
+                                         "params":  [
+                                                        "filePath",
+                                                        "question",
+                                                        "language",
+                                                        "maxChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "文档路径",
+                                                           "要询问文档的问题",
+                                                           "输出语言，默认跟随系统语言",
+                                                           "最多读取字符数，默认 12000，最大 20000",
+                                                           "最多输出 token，官方模型限制在 1024 内"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Document path",
+                                                              "Question to answer from the document",
+                                                              "Output language, default follows system language",
+                                                              "Maximum characters to read, default 12000, max 20000",
+                                                              "Maximum output tokens; official provider is capped at 1024"
                                                           ]
                                      },
                                      {
@@ -5404,12 +5684,15 @@
                                      },
                                      {
                                          "name":  "createTable",
-                                         "desc":  "生成表格/电子表格文件，支持 xlsx、csv、md、html、json。用户要求“生成表格”“做一个 Excel”“整理成表格”时优先使用；可传 headers 和 rows，也可传 CSV/Markdown 文本 content。",
-                                         "desc_en":  "Create a table/spreadsheet file in xlsx, csv, md, html or json. Prefer this when the user asks to generate a table, spreadsheet or Excel file.",
+                                         "desc":  "生成表格/电子表格文件，支持 xlsx、csv、md、html、json。用户要求“生成表格”“做一个 Excel”“整理成表格”时优先使用；可传 headers/rows，也可传 data/jsonData/sourceData 结构化 JSON，或 CSV/Markdown 文本 content。JSON 对象会转为键值表，数组会转为多行，对象数组会按字段成列。",
+                                         "desc_en":  "Create a table/spreadsheet file in xlsx, csv, md, html or json. Prefer this when the user asks to generate a table, spreadsheet or Excel file. Supports explicit headers/rows, structured JSON via data/jsonData/sourceData, or CSV/Markdown content. JSON objects become key-value tables, arrays become multiple rows, and object arrays become field columns.",
                                          "params":  [
                                                         "path",
                                                         "headers",
                                                         "rows",
+                                                        "data",
+                                                        "jsonData",
+                                                        "sourceData",
                                                         "format",
                                                         "title",
                                                         "content"
@@ -5417,18 +5700,24 @@
                                          "paramDesc":  [
                                                            "输出路径，留空则保存到 /sdcard/PandaGenie/documents/；可用 .xlsx 或 .csv 扩展名推断格式",
                                                            "表头数组，例如 [\"姓名\",\"金额\"]",
-                                                           "二维数组或对象数组，例如 [[\"张三\",\"10\"]] 或 [{\"姓名\":\"张三\",\"金额\":\"10\"}]",
+                                                           "二维数组或对象数组，例如 [[\"张三\",\"10\"]] 或 [{\"姓名\":\"张三\",\"金额\":\"10\"}]；数组会按多行处理",
+                                                           "通用结构化数据，可传完整 JSON 对象或数组；对象默认转为键/值两列，数组转为多行，对象数组按字段成列；若含 tableHeaders/tableRows 会优先按表格数据处理",
+                                                           "data 的别名，适合传 JSON 字符串",
+                                                           "data 的别名，适合传上一步模块的完整结构化输出",
                                                            "输出格式 xlsx/csv/md/html/json，默认 xlsx",
                                                            "表格标题或工作表名称，可选",
-                                                           "可选的 CSV 或 Markdown 表格文本；没有 rows 时会解析 content"
+                                                           "可选的 CSV、Markdown 或 JSON 文本；没有 rows/data 时会解析 content"
                                                        ],
                                          "paramDesc_en":  [
                                                               "Output path; empty saves under /sdcard/PandaGenie/documents/. Extension can infer format.",
                                                               "Header array, for example [\"Name\",\"Amount\"]",
-                                                              "Array rows or object rows",
+                                                              "Array rows or object rows; arrays are written as multiple rows",
+                                                              "Generic structured data. Pass a full JSON object or array; objects become key/value rows, arrays become rows, object arrays become field columns. tableHeaders/tableRows are preferred when present.",
+                                                              "Alias of data for JSON strings",
+                                                              "Alias of data for full structured output from a previous step",
                                                               "Output format xlsx/csv/md/html/json, default xlsx",
                                                               "Optional table title or sheet name",
-                                                              "Optional CSV or Markdown table text parsed when rows are not provided"
+                                                              "Optional CSV, Markdown or JSON text parsed when rows/data are not provided"
                                                           ]
                                      },
                                      {
@@ -5500,7 +5789,7 @@
                                                           ]
                                      }
                                  ],
-                        "api_count":  11
+                        "api_count":  13
                     },
                     {
                         "id":  "device_controls",
@@ -5512,7 +5801,7 @@
                                             "zh":  "基础设备控制模块，支持查询和调节屏幕亮度、媒体/铃声/闹钟等音量，并返回当前控制状态。",
                                             "en":  "Basic device controls for reading and adjusting screen brightness and stream volume."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.2",
                         "icon":  "tune",
                         "filename":  "device_controls.mod",
                         "download_url":  [
@@ -5785,6 +6074,649 @@
                                      }
                                  ],
                         "api_count":  2
+                    },
+                    {
+                        "id":  "phone_test_recorder",
+                        "name":  {
+                                     "zh":  "手机实测记录",
+                                     "en":  "Phone Test Recorder"
+                                 },
+                        "description":  {
+                                            "zh":  "记录充电、睡前待机、游戏发热等真实使用测试，持续采样电量、温度、电压、电流和内存变化，生成适合酷安分享的曲线报告与对比结论。",
+                                            "en":  "Record real usage tests such as charging, overnight standby, and gaming heat, then generate Coolapk-style curve reports and comparison conclusions."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "timeline",
+                        "filename":  "phone_test_recorder.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/phone_test_recorder",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/phone_test_recorder.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "startTestSession",
+                                         "desc":  "开始一次充电/待机/游戏记录，返回 sessionId",
+                                         "desc_en":  "Start a charging/standby/game test session and return sessionId",
+                                         "params":  [
+                                                        "mode",
+                                                        "label",
+                                                        "note"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "测试类型：charging/standby/game，默认 charging",
+                                                           "测试名称，例如 原装充电器、王者荣耀 20 分钟",
+                                                           "备注，可记录充电器、数据线、散热条件等"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Test mode: charging/standby/game, default charging",
+                                                              "Test label, e.g. original charger or 20 min gaming",
+                                                              "Note for charger/cable/cooling conditions"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "recordSample",
+                                         "desc":  "给指定测试追加一次采样；可由条件任务每 5 秒/1 分钟重复调用",
+                                         "desc_en":  "Append one sample to a test session; can be repeated by scheduled tasks",
+                                         "params":  [
+                                                        "sessionId"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "startTestSession 返回的 sessionId"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "sessionId returned by startTestSession"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "finishTestReport",
+                                         "desc":  "结束测试并生成充电曲线、待机耗电或游戏发热稳定性报告",
+                                         "desc_en":  "Finish a session and generate a charging, standby, or gaming thermal report",
+                                         "params":  [
+                                                        "sessionId"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "startTestSession 返回的 sessionId"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "sessionId returned by startTestSession"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "compareTestReports",
+                                         "desc":  "对比两次测试，突出峰值温度、电量变化、充电速度或发热稳定性差异",
+                                         "desc_en":  "Compare two test reports by temperature, battery delta, charging speed, or stability",
+                                         "params":  [
+                                                        "sessionIdA",
+                                                        "sessionIdB"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "第一条测试 sessionId",
+                                                           "第二条测试 sessionId"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "First sessionId",
+                                                              "Second sessionId"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "listTestReports",
+                                         "desc":  "列出历史测试，支持充电器对比、连续待机复测和游戏复测",
+                                         "desc_en":  "List historical test sessions for comparison and retesting",
+                                         "params":  [
+                                                        "mode",
+                                                        "limit"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "可选过滤：charging/standby/game",
+                                                           "返回数量，默认 10"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Optional filter: charging/standby/game",
+                                                              "Result limit, default 10"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开模块介绍页",
+                                         "desc_en":  "Open module page",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  6
+                    },
+                    {
+                        "id":  "storage_radar_report",
+                        "name":  {
+                                     "zh":  "存储雷达报告",
+                                     "en":  "Storage Radar Report"
+                                 },
+                        "description":  {
+                                            "zh":  "扫描手机存储，找出大文件、视频、APK、压缩包、下载目录、微信目录和疑似重复文件，生成空间去向报告与清理建议。",
+                                            "en":  "Scan storage for large files, videos, APKs, archives, downloads, WeChat folders, and duplicate candidates, then generate a readable cleanup report."
+                                        },
+                        "version":  "1.1",
+                        "icon":  "radar",
+                        "filename":  "storage_radar_report.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/storage_radar_report",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/storage_radar_report.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.MANAGE_EXTERNAL_STORAGE",
+                                                "desc":  "用于扫描手机存储并统计文件占用",
+                                                "desc_en":  "Scan phone storage and calculate file usage"
+                                            },
+                                            {
+                                                "name":  "android.permission.READ_EXTERNAL_STORAGE",
+                                                "desc":  "用于读取 Android 12 及以下的存储文件信息",
+                                                "desc_en":  "Read storage files on Android 12 and below"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "file_read",
+                                             "llm"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "scanStorageRadar",
+                                         "desc":  "扫描存储并生成空间雷达报告，适用于“空间到底去哪了”“找出大文件和重复文件”等提示词",
+                                         "desc_en":  "Scan storage and generate a space radar report",
+                                         "params":  [
+                                                        "path",
+                                                        "limit",
+                                                        "maxDepth"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "扫描目录，建议 /storage/emulated/0，默认 /storage/emulated/0",
+                                                           "最大返回条数，默认 20",
+                                                           "最大递归深度，默认 8"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Scan path, recommended /storage/emulated/0, default /storage/emulated/0",
+                                                              "Max returned items, default 20",
+                                                              "Max recursion depth, default 8"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "generateCleanupPlan",
+                                         "desc":  "基于扫描结果生成清理计划，不直接删除文件，等待用户确认后再交给文件/清理模块执行",
+                                         "desc_en":  "Generate a cleanup plan without deleting files; execute only after user confirmation",
+                                         "params":  [
+                                                        "path",
+                                                        "targetFreeMB"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "扫描目录，默认 /storage/emulated/0",
+                                                           "期望释放空间 MB，默认 1024"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Scan path, default /storage/emulated/0",
+                                                              "Target free space in MB, default 1024"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "generateSmartCleanupAdvice",
+                                         "desc":  "扫描手机存储后调用 AI 生成普通用户能看懂的清理建议，不直接删除文件",
+                                         "desc_en":  "Scan storage and use AI to generate readable cleanup advice without deleting files",
+                                         "params":  [
+                                                        "path",
+                                                        "limit",
+                                                        "maxDepth",
+                                                        "focus",
+                                                        "language",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "扫描目录，默认 /storage/emulated/0",
+                                                           "最大返回条数，默认 20",
+                                                           "最大递归深度，默认 8",
+                                                           "关注点，例如 大文件/重复文件/下载目录/微信目录",
+                                                           "输出语言：zh/en，默认自动判断",
+                                                           "最大输出 token，默认 768，上限 1024"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Scan path, default /storage/emulated/0",
+                                                              "Max returned items, default 20",
+                                                              "Max recursion depth, default 8",
+                                                              "Focus such as large files, duplicates, downloads, or WeChat folders",
+                                                              "Output language: zh/en, auto-detected by default",
+                                                              "Max output tokens, default 768, capped at 1024"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开模块介绍页",
+                                         "desc_en":  "Open module page",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  4
+                    },
+                    {
+                        "id":  "phone_check_report",
+                        "name":  {
+                                     "zh":  "机圈验机报告",
+                                     "en":  "Phone Check Report"
+                                 },
+                        "description":  {
+                                            "zh":  "一句话生成新机/二手机验机报告，汇总设备、系统、屏幕、电池、传感器、Camera2、Widevine、存储测速和预装应用关注项，输出适合酷安截图分享的重点报告。",
+                                            "en":  "Generate a phone inspection report for new/used devices with device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and preinstalled app highlights."
+                                        },
+                        "version":  "1.2",
+                        "icon":  "fact_check",
+                        "filename":  "phone_check_report.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/phone_check_report",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/phone_check_report.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.QUERY_ALL_PACKAGES",
+                                                "desc":  "用于统计已安装应用数量并识别预装应用关注项",
+                                                "desc_en":  "Count installed apps and identify preinstalled app highlights"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "app_list",
+                                             "llm"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "generateInspectionReport",
+                                         "desc":  "生成新机/二手机验机报告，适用于“帮我做一次新机验机，生成酷安发帖报告”等提示词",
+                                         "desc_en":  "Generate a new/used phone inspection report for Coolapk-style sharing",
+                                         "params":  [
+                                                        "scenario",
+                                                        "runStorageSpeedTest"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "验机场景：new/used/flash/normal，默认 normal",
+                                                           "是否执行轻量存储读写测速，默认 true"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Scenario: new/used/flash/normal, default normal",
+                                                              "Run a lightweight storage read/write test, default true"
+                                                          ],
+                                         "examples":  [
+                                                          "帮我做一次新机验机，生成酷安发帖报告",
+                                                          "二手机到手验机报告",
+                                                          "刷机后帮我复测手机状态"
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "generateAiInspectionAdvice",
+                                         "desc":  "生成验机报告后调用 AI 给出更自然的购机、验机或发帖建议",
+                                         "desc_en":  "Generate an inspection report and use AI to provide readable buying, checking, or posting advice",
+                                         "params":  [
+                                                        "scenario",
+                                                        "runStorageSpeedTest",
+                                                        "instruction",
+                                                        "language",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "验机场景：new/used/flash/normal，默认 normal",
+                                                           "是否执行轻量存储读写测速，默认 true",
+                                                           "额外要求，例如 二手机验机重点/酷安发帖语气",
+                                                           "输出语言：zh/en，默认自动判断",
+                                                           "最大输出 token，默认 768，上限 1024"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Scenario: new/used/flash/normal, default normal",
+                                                              "Run a lightweight storage read/write test, default true",
+                                                              "Extra instruction such as used-phone checks or Coolapk post tone",
+                                                              "Output language: zh/en, auto-detected by default",
+                                                              "Max output tokens, default 768, capped at 1024"
+                                                          ],
+                                         "examples":  [
+                                                          "帮我做一次二手机验机，并总结风险点",
+                                                          "生成适合酷安发帖的验机结论",
+                                                          "刷机后复测手机状态并给建议"
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "runStorageSpeedTest",
+                                         "desc":  "执行轻量存储读写测速并输出可读结论",
+                                         "desc_en":  "Run a lightweight storage read/write speed test",
+                                         "params":  [
+                                                        "sizeMB"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "测试文件大小 MB，默认 16，范围 4-64"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Test file size in MB, default 16, range 4-64"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getDeviceArchive",
+                                         "desc":  "读取最近一次验机报告，用于复测对比或生成长图",
+                                         "desc_en":  "Read the latest inspection report for retest comparison or long image generation",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开模块介绍页",
+                                         "desc_en":  "Open module page",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  5
+                    },
+                    {
+                        "id":  "long_image_generator",
+                        "name":  {
+                                     "zh":  "长图生成器",
+                                     "en":  "Long Image Generator"
+                                 },
+                        "description":  {
+                                            "zh":  "把文本、Markdown、HTML、Word DOCX 文档、网页 URL 等内容转换成 1080px 宽 PNG 长图，适合文章摘录、报告、网页内容和聊天整理分享。",
+                                            "en":  "Convert text, Markdown, HTML, Word DOCX documents, and web pages into 1080px-wide PNG long images for sharing articles, reports, web content, and notes."
+                                        },
+                        "version":  "1.7",
+                        "icon":  "image",
+                        "filename":  "long_image_generator.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/long_image_generator",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/long_image_generator.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.MANAGE_EXTERNAL_STORAGE",
+                                                "desc":  "用于读取本地文本/Word/HTML 文件并保存长图",
+                                                "desc_en":  "Read local text/Word/HTML files and save long images"
+                                            },
+                                            {
+                                                "name":  "android.permission.READ_EXTERNAL_STORAGE",
+                                                "desc":  "用于 Android 12 及以下读取本地文件",
+                                                "desc_en":  "Read local files on Android 12 and below"
+                                            },
+                                            {
+                                                "name":  "android.permission.WRITE_EXTERNAL_STORAGE",
+                                                "desc":  "用于 Android 9 及以下保存长图",
+                                                "desc_en":  "Save long images on Android 9 and below"
+                                            },
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于读取网页 URL 内容并转成长图",
+                                                "desc_en":  "Fetch web page URL content and render it as a long image"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "file_read",
+                                             "file_write",
+                                             "network",
+                                             "llm"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "renderInputToImage",
+                                         "desc":  "把文本、文件或网页 URL 转换成 1080px 宽 PNG 长图",
+                                         "desc_en":  "Render text, files, or web page URLs into a 1080px-wide PNG long image",
+                                         "params":  [
+                                                        "title",
+                                                        "subtitle",
+                                                        "text",
+                                                        "inputPath",
+                                                        "url",
+                                                        "html",
+                                                        "inputType",
+                                                        "outputPath",
+                                                        "themeColor",
+                                                        "maxHeight",
+                                                        "language"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "长图标题，可省略并自动从文档/网页推断",
+                                                           "副标题，可用于来源、日期或备注",
+                                                           "直接输入的纯文本或 Markdown",
+                                                           "本地文件路径，支持 txt/md/html/docx",
+                                                           "网页 URL，支持 http/https",
+                                                           "直接输入的 HTML 内容",
+                                                           "输入类型：auto/text/markdown/html/docx/url，默认 auto",
+                                                           "输出 PNG 路径，默认 /storage/emulated/0/PandaGenie/long_images/",
+                                                           "主题色，例如 #17A36B",
+                                                           "最大图片高度，默认 18000，范围 3000-30000",
+                                                           "语言：zh/en，默认自动判断"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Image title; can be inferred from file or web page",
+                                                              "Subtitle for source, date, or notes",
+                                                              "Plain text or Markdown input",
+                                                              "Local file path; supports txt/md/html/docx",
+                                                              "Web page URL, http/https",
+                                                              "Raw HTML input",
+                                                              "Input type: auto/text/markdown/html/docx/url, default auto",
+                                                              "Output PNG path, default /storage/emulated/0/PandaGenie/long_images/",
+                                                              "Theme color, e.g. #17A36B",
+                                                              "Maximum image height, default 18000, range 3000-30000",
+                                                              "Language: zh/en, auto-detected by default"
+                                                          ],
+                                         "examples":  [
+                                                          "把这段文字生成一张长图",
+                                                          "把这个 Word 文档转成 1080 宽长图",
+                                                          "访问这个网页并生成长图"
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "generateSmartLongImage",
+                                         "desc":  "先调用 AI 将文本、文件或网页整理成标题、摘要和分段内容，再生成分享长图",
+                                         "desc_en":  "Use AI to organize text, files, or web pages into a title, summary, and sections before rendering a shareable long image",
+                                         "params":  [
+                                                        "title",
+                                                        "subtitle",
+                                                        "text",
+                                                        "inputPath",
+                                                        "url",
+                                                        "html",
+                                                        "inputType",
+                                                        "outputPath",
+                                                        "themeColor",
+                                                        "maxHeight",
+                                                        "language",
+                                                        "instruction",
+                                                        "maxInputChars",
+                                                        "maxTokens"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "长图标题，可省略并由 AI/文档推断",
+                                                           "副标题，可用于来源、日期或备注",
+                                                           "直接输入的纯文本或 Markdown",
+                                                           "本地文件路径，支持 txt/md/html/docx",
+                                                           "网页 URL，支持 http/https",
+                                                           "直接输入的 HTML 内容",
+                                                           "输入类型：auto/text/markdown/html/docx/url，默认 auto",
+                                                           "输出 PNG 路径，默认 /storage/emulated/0/PandaGenie/long_images/",
+                                                           "主题色，例如 #17A36B",
+                                                           "最大图片高度，默认 18000，范围 3000-30000",
+                                                           "输出语言：zh/en，默认自动判断",
+                                                           "AI 整理要求，例如 适合酷安发帖/生成会议纪要长图",
+                                                           "最多送入模型的文字数，默认 12000",
+                                                           "最大输出 token，默认 1024，上限 1024"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Image title; can be inferred by AI or source content",
+                                                              "Subtitle for source, date, or notes",
+                                                              "Plain text or Markdown input",
+                                                              "Local file path; supports txt/md/html/docx",
+                                                              "Web page URL, http/https",
+                                                              "Raw HTML input",
+                                                              "Input type: auto/text/markdown/html/docx/url, default auto",
+                                                              "Output PNG path, default /storage/emulated/0/PandaGenie/long_images/",
+                                                              "Theme color, e.g. #17A36B",
+                                                              "Maximum image height, default 18000, range 3000-30000",
+                                                              "Output language: zh/en, auto-detected by default",
+                                                              "AI instruction such as Coolapk post or meeting-note long image",
+                                                              "Max input characters sent to LLM, default 12000",
+                                                              "Max output tokens, default 1024, capped at 1024"
+                                                          ],
+                                         "examples":  [
+                                                          "把这篇文章整理成适合分享的长图",
+                                                          "把这个网页总结成一张长图",
+                                                          "把这个 Word 文档变成会议纪要长图"
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "saveLongImage",
+                                         "desc":  "用标题、摘要和分段内容保存通用长图 PNG",
+                                         "desc_en":  "Save a general-purpose long image PNG from title, summary, and sections",
+                                         "params":  [
+                                                        "title",
+                                                        "subtitle",
+                                                        "summary",
+                                                        "sections",
+                                                        "outputPath",
+                                                        "themeColor",
+                                                        "maxHeight",
+                                                        "language"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "长图标题",
+                                                           "副标题",
+                                                           "摘要或核心内容",
+                                                           "分段内容，JSON 数组或换行文本",
+                                                           "输出 PNG 路径",
+                                                           "主题色",
+                                                           "最大图片高度",
+                                                           "语言：zh/en，默认自动判断"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Image title",
+                                                              "Subtitle",
+                                                              "Summary or core content",
+                                                              "Sections as JSON array or newline text",
+                                                              "Output PNG path",
+                                                              "Theme color",
+                                                              "Maximum image height",
+                                                              "Language: zh/en, auto-detected by default"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractInputText",
+                                         "desc":  "从文本、文件或网页 URL 提取可渲染的纯文本内容",
+                                         "desc_en":  "Extract renderable plain text from text, file, or web page URL input",
+                                         "params":  [
+                                                        "text",
+                                                        "inputPath",
+                                                        "url",
+                                                        "html",
+                                                        "inputType"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "直接输入文本",
+                                                           "本地文件路径",
+                                                           "网页 URL",
+                                                           "HTML 内容",
+                                                           "输入类型"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Raw text input",
+                                                              "Local file path",
+                                                              "Web page URL",
+                                                              "HTML content",
+                                                              "Input type"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "formatShareText",
+                                         "desc":  "把标题、摘要和分段内容整理为可复制的分享文本",
+                                         "desc_en":  "Format title, summary, and sections into copyable share text",
+                                         "params":  [
+                                                        "title",
+                                                        "summary",
+                                                        "sections"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "标题",
+                                                           "摘要",
+                                                           "分段内容"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Title",
+                                                              "Summary",
+                                                              "Sections"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开模块介绍页",
+                                         "desc_en":  "Open module page",
+                                         "params":  [
+
+                                                    ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  6,
+                        "categories":  [
+                                           "image",
+                                           "document",
+                                           "share"
+                                       ]
                     }
                 ]
 }

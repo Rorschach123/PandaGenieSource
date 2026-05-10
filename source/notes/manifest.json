@@ -2,9 +2,9 @@
     "id":  "notes",
     "name":  "笔记助手",
     "name_en":  "Notes",
-    "description":  "笔记助手模块，支持创建、查看、编辑、删除、搜索和导出笔记，数据本地存储",
-    "description_en":  "Note-taking module: create, view, edit, delete, search and export notes with local file storage",
-    "version":  "1.5",
+    "description":  "笔记助手模块，支持创建、查看、编辑、删除、搜索、导出笔记，并可通过 AI 总结和整理本地笔记",
+    "description_en":  "Note-taking module: create, view, edit, delete, search, export notes, and use AI to summarize or organize local notes",
+    "version":  "1.6",
     "icon":  "note",
     "soLibraries":  [
 
@@ -15,7 +15,8 @@
     "soLoadMode":  "skip",
     "capabilities":  [
                          "file_read",
-                         "file_write"
+                         "file_write",
+                         "llm"
                      ],
     "permissions":  [
                         {
@@ -138,6 +139,64 @@
                      "paramDesc_en":  [
                                           "Note id",
                                           "Output file path or directory"
+                                      ]
+                 },
+                 {
+                     "name":  "summarizeNote",
+                     "desc":  "调用 AI 对指定笔记进行总结，可按摘要、行动项、会议纪要等模式输出",
+                     "desc_en":  "Use AI to summarize a note, with modes such as summary, action items, or meeting notes",
+                     "params":  [
+                                    "id",
+                                    "mode",
+                                    "instruction",
+                                    "language",
+                                    "maxInputChars",
+                                    "maxTokens"
+                                ],
+                     "paramDesc":  [
+                                       "笔记 ID",
+                                       "总结模式，可选，默认 summary",
+                                       "额外处理要求，可选",
+                                       "输出语言，可选，默认跟随系统语言",
+                                       "最多送入模型的正文字符数，可选",
+                                       "模型最大输出 token，可选"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Note id",
+                                          "Summary mode, optional, default summary",
+                                          "Extra instruction, optional",
+                                          "Output language, optional, defaults to system language",
+                                          "Max note characters sent to the model, optional",
+                                          "Max model output tokens, optional"
+                                      ]
+                 },
+                 {
+                     "name":  "organizeNote",
+                     "desc":  "调用 AI 整理指定笔记，返回结构更清晰的草稿，不会自动覆盖原笔记",
+                     "desc_en":  "Use AI to organize a note and return a clearer draft without overwriting the original note",
+                     "params":  [
+                                    "id",
+                                    "mode",
+                                    "instruction",
+                                    "language",
+                                    "maxInputChars",
+                                    "maxTokens"
+                                ],
+                     "paramDesc":  [
+                                       "笔记 ID",
+                                       "整理模式，可选，默认 clean_structure",
+                                       "额外处理要求，可选",
+                                       "输出语言，可选，默认跟随系统语言",
+                                       "最多送入模型的正文字符数，可选",
+                                       "模型最大输出 token，可选"
+                                   ],
+                     "paramDesc_en":  [
+                                          "Note id",
+                                          "Organizing mode, optional, default clean_structure",
+                                          "Extra instruction, optional",
+                                          "Output language, optional, defaults to system language",
+                                          "Max note characters sent to the model, optional",
+                                          "Max model output tokens, optional"
                                       ]
                  },
                  {

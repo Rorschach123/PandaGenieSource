@@ -2,6 +2,7 @@ package ai.rorsch.moduleplugins.link_parser;
 
 import android.content.Context;
 import ai.rorsch.pandagenie.module.runtime.HtmlOutputHelper;
+import ai.rorsch.pandagenie.module.runtime.ModuleLlm;
 import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,6 +36,14 @@ public class LinkParserPlugin implements ModulePlugin {
         "jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico", "tiff"
     ));
 
+    private static boolean isZh() {
+        try {
+            return Locale.getDefault().getLanguage().toLowerCase(Locale.ROOT).startsWith("zh");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Override
     public String invoke(Context context, String action, String paramsJson) throws Exception {
         JSONObject params = (paramsJson != null && !paramsJson.isEmpty())
@@ -47,6 +56,7 @@ public class LinkParserPlugin implements ModulePlugin {
             case "extractLinks":   return extractLinks(params);
             case "extractDownloads": return extractDownloads(params);
             case "extractText":    return extractText(params);
+            case "summarizeUrl":    return summarizeUrl(context, params);
             case "checkUrl":       return checkUrl(params);
             case "extractMeta":    return extractMeta(params);
             case "openPage": {
@@ -331,6 +341,64 @@ public class LinkParserPlugin implements ModulePlugin {
 
         } catch (Exception e) {
             return error("Failed to extract text: " + e.getMessage());
+        }
+    }
+
+    // ── summarizeUrl ──
+
+    private String summarizeUrl(Context context, JSONObject params) {
+        String url = params.optString("url", "").trim();
+        if (url.isEmpty()) return error("Missing parameter: url");
+        url = normalizeUrl(url);
+        int maxTextChars = clamp(params.optInt("maxTextChars", 10000), 1000, 20000);
+        int maxTokens = clamp(params.optInt("maxTokens", 768), 128, 1024);
+        String mode = params.optString("mode", "summary").trim();
+        if (mode.isEmpty()) mode = "summary";
+        String question = params.optString("question", "").trim();
+        String instruction = params.optString("instruction", "").trim();
+        String language = params.optString("language", isZh() ? "zh" : "en").trim();
+
+        try {
+            FetchResult fetch = fetchUrl(url, true);
+            if (!fetch.isHtml()) {
+                return error("URL is not an HTML page (Content-Type: " + fetch.contentType + ")");
+            }
+            JSONObject meta = extractMetaFromHtml(fetch.body, fetch.finalUrl);
+            String title = meta.optString("title", "");
+            String text = extractPlainText(fetch.body, maxTextChars);
+            boolean truncated = fetch.body != null && extractPlainText(fetch.body, maxTextChars + 1).length() > maxTextChars;
+
+            String prompt = "You are helping the user understand a web page.\n"
+                    + "Return only the answer, no markdown fence.\n"
+                    + "Language: " + language + "\n"
+                    + "Mode: " + mode + "\n"
+                    + (question.isEmpty() ? "" : "Question: " + question + "\n")
+                    + (instruction.isEmpty() ? "" : "Extra instruction: " + instruction + "\n")
+                    + "URL: " + fetch.finalUrl + "\n"
+                    + "Title: " + title + "\n\n"
+                    + "Page text:\n" + text;
+            JSONObject req = new JSONObject();
+            req.put("action", "link_parser.summarizeUrl");
+            req.put("prompt", prompt);
+            req.put("temperature", 0.2);
+            req.put("maxTokens", maxTokens);
+            JSONObject llm = new JSONObject(ModuleLlm.completeJson(context, req.toString()));
+            if (!llm.optBoolean("success", false)) {
+                return error(llm.optString("error", "LLM request failed"));
+            }
+
+            JSONObject result = new JSONObject();
+            result.put("url", fetch.finalUrl);
+            result.put("title", title);
+            result.put("mode", mode);
+            result.put("question", question);
+            result.put("answer", llm.optString("text", "").trim());
+            result.put("textChars", text.length());
+            result.put("truncated", truncated);
+            result.put("source", "llm");
+            return ok(result.toString(), buildUrlLlmDisplay(result), formatUrlLlmHtml(result));
+        } catch (Exception e) {
+            return error("Failed to summarize URL: " + e.getMessage());
         }
     }
 
@@ -986,6 +1054,57 @@ public class LinkParserPlugin implements ModulePlugin {
 
         } catch (Exception ignored) {}
         return sb.toString().trim();
+    }
+
+    private String buildUrlLlmDisplay(JSONObject result) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            sb.append("🧠 ").append(isZh() ? "网页总结" : "Web page summary").append("\n");
+            String title = result.optString("title", "");
+            if (!title.isEmpty()) {
+                sb.append("▸ ").append(isZh() ? "标题: " : "Title: ").append(title).append("\n");
+            }
+            sb.append("▸ URL: ").append(result.optString("url", "")).append("\n");
+            String q = result.optString("question", "");
+            if (!q.isEmpty()) {
+                sb.append("▸ ").append(isZh() ? "问题: " : "Question: ").append(q).append("\n");
+            }
+            if (result.optBoolean("truncated", false)) {
+                sb.append("▸ ").append(isZh() ? "网页正文较长，已截取主要内容处理" : "Long page text was truncated").append("\n");
+            }
+            sb.append("\n").append(result.optString("answer", ""));
+        } catch (Exception ignored) {}
+        return sb.toString().trim();
+    }
+
+    private String formatUrlLlmHtml(JSONObject result) {
+        try {
+            String answer = result.optString("answer", "");
+            String title = result.optString("title", "");
+            if (title.isEmpty()) title = isZh() ? "网页内容" : "Web page";
+            java.util.ArrayList<String[]> pairs = new java.util.ArrayList<>();
+            pairs.add(new String[]{isZh() ? "标题" : "Title", title});
+            pairs.add(new String[]{isZh() ? "模式" : "Mode", result.optString("mode", "summary")});
+            pairs.add(new String[]{"URL", result.optString("url", "")});
+            String question = result.optString("question", "");
+            if (!question.isEmpty()) {
+                pairs.add(new String[]{isZh() ? "问题" : "Question", question});
+            }
+            if (result.optBoolean("truncated", false)) {
+                pairs.add(new String[]{isZh() ? "提示" : "Note", isZh() ? "网页正文较长，已截取主要内容处理" : "Long page text was truncated"});
+            }
+            String body = HtmlOutputHelper.keyValue(pairs.toArray(new String[0][]));
+            if (!answer.isEmpty()) {
+                body += HtmlOutputHelper.p(answer);
+            }
+            return HtmlOutputHelper.card("🧠", isZh() ? "网页总结" : "Web summary", body);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     // ── JSON response helpers ──
