@@ -229,32 +229,75 @@ $devPrivateDir = Join-Path $devSigningRoot "private"
 $devMetadataPath = Join-Path $devSigningRoot "signing-metadata.json"
 $devKeystorePath = Join-Path $devPrivateDir "dev-keystore.p12"
 $devSecretPath = Join-Path $devPrivateDir "signing-secret.dpapi"
+$devKeyExplicit = -not [string]::IsNullOrWhiteSpace($DevKey)
 
-if (-not [string]::IsNullOrWhiteSpace($DevKey)) {
-    $altDevRoot = if ([System.IO.Path]::IsPathRooted($DevKey)) { $DevKey } else { Join-Path $rootDir $DevKey }
-    if (-not (Test-Path $altDevRoot)) { throw "DevKey path not found: $altDevRoot" }
-    $devSigningRoot = $altDevRoot
-    $devPrivateDir = Join-Path $devSigningRoot "private"
-    $devMetadataPath = Join-Path $devSigningRoot "signing-metadata.json"
-    # Auto-detect keystore filename in private dir
-    $devKeystoreFile = Get-ChildItem (Join-Path $devPrivateDir "*.p12") -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($devKeystoreFile) { $devKeystorePath = $devKeystoreFile.FullName }
-    else { throw "No .p12 keystore found in $devPrivateDir" }
-    # Try DPAPI secret first; if not found, look for plaintext password file
-    $devSecretFile = Get-ChildItem (Join-Path $devPrivateDir "*signing-secret.dpapi") -ErrorAction SilentlyContinue | Select-Object -First 1
+function Set-DeveloperSigningRoot([string]$root, [string]$reason) {
+    $resolvedRoot = if ([System.IO.Path]::IsPathRooted($root)) { $root } else { Join-Path $rootDir $root }
+    if (-not (Test-Path $resolvedRoot)) { throw "DevKey path not found: $resolvedRoot" }
+    $script:devSigningRoot = $resolvedRoot
+    $script:devPrivateDir = Join-Path $script:devSigningRoot "private"
+    $script:devMetadataPath = Join-Path $script:devSigningRoot "signing-metadata.json"
+    $script:altDevPassword = $null
+
+    $devKeystoreFile = Get-ChildItem (Join-Path $script:devPrivateDir "*.p12") -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($devKeystoreFile) { $script:devKeystorePath = $devKeystoreFile.FullName }
+    else { throw "No .p12 keystore found in $script:devPrivateDir" }
+
+    $devSecretFile = Get-ChildItem (Join-Path $script:devPrivateDir "*signing-secret.dpapi") -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($devSecretFile) {
-        $devSecretPath = $devSecretFile.FullName
+        $script:devSecretPath = $devSecretFile.FullName
     } else {
-        # Check for plaintext password file (for new developers who haven't set up DPAPI)
-        $passwordFile = Join-Path $devPrivateDir "signing-password.txt"
+        $passwordFile = Join-Path $script:devPrivateDir "signing-password.txt"
         if (Test-Path $passwordFile) {
             $script:altDevPassword = (Get-Content $passwordFile -Raw).Trim()
-            $devSecretPath = $null  # Signal to use plaintext password
+            $script:devSecretPath = $null
         } else {
-            throw "No signing-secret.dpapi or signing-password.txt found in $devPrivateDir"
+            throw "No signing-secret.dpapi or signing-password.txt found in $script:devPrivateDir"
         }
     }
-    Write-Host "  Using alternate dev key: $devSigningRoot" -ForegroundColor Cyan
+
+    if ($reason) {
+        Write-Host "  Using dev key for ${reason}: $script:devSigningRoot" -ForegroundColor Cyan
+    }
+}
+
+function Resolve-DeveloperSigningRoot([string]$developerName) {
+    switch ($developerName) {
+        "Jarvan" { return "Keystore\dev_signing_jarvan" }
+        "noneai" { return "Keystore\noneai_dev_signing" }
+        "PandaGenie Games" { return "Keystore\dev_signing_games" }
+        "PandaGenie Ecosystem Labs" { return "PandaGenieThirdModule\signing_ecosystem" }
+        "PandaGenie File Insights Labs" { return "PandaGenieThirdModule\signing_file_insights" }
+        "PandaGenie Media Labs" { return "PandaGenieThirdModule\signing_media" }
+        "StarForge Labs" { return "PandaGenieThirdModule\signing" }
+        "claw" { return "Keystore\dev_signing_claw" }
+        default { return "Keystore\dev_signing" }
+    }
+}
+
+function Select-DeveloperSigningForModule([string]$moduleId, [string]$developerName) {
+    if ($SkipSigning) { return }
+
+    if (-not $devKeyExplicit) {
+        $autoRoot = Resolve-DeveloperSigningRoot $developerName
+        Set-DeveloperSigningRoot $autoRoot $developerName
+    }
+
+    if (Test-Path $devMetadataPath) {
+        $devMeta = Get-Content $devMetadataPath -Raw | ConvertFrom-Json
+        $keyDeveloper = [string]$devMeta.developerName
+        if (-not [string]::IsNullOrWhiteSpace($developerName) -and
+            -not [string]::IsNullOrWhiteSpace($keyDeveloper) -and
+            $developerName -ne $keyDeveloper) {
+            throw "Developer signing key mismatch for ${moduleId}: manifest developer '$developerName', key developer '$keyDeveloper' ($devSigningRoot). Use -DevKey with the matching key."
+        }
+    }
+}
+
+if ($devKeyExplicit) {
+    $altDevRoot = if ([System.IO.Path]::IsPathRooted($DevKey)) { $DevKey } else { Join-Path $rootDir $DevKey }
+    if (-not (Test-Path $altDevRoot)) { throw "DevKey path not found: $altDevRoot" }
+    Set-DeveloperSigningRoot $altDevRoot "explicit -DevKey"
 }
 
 if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory -Path $logsDir -Force | Out-Null }
@@ -385,14 +428,19 @@ function Get-SigningConfig($metaPath, $secretFile, $keystoreFile, $label) {
     if ($label -eq "Developer" -and $script:altDevPassword) {
         $password = $script:altDevPassword
     } elseif ($secretFile -and (Test-Path $secretFile)) {
-        $protectedBase64 = Get-Content $secretFile -Raw
-        $protectedBytes = [Convert]::FromBase64String($protectedBase64.Trim())
-        $bytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
-            $protectedBytes,
-            $null,
-            [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-        )
-        $password = [System.Text.Encoding]::UTF8.GetString($bytes)
+        try {
+            $protectedBase64 = Get-Content $secretFile -Raw
+            $protectedBytes = [Convert]::FromBase64String($protectedBase64.Trim())
+            $bytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+                $protectedBytes,
+                $null,
+                [System.Security.Cryptography.DataProtectionScope]::CurrentUser
+            )
+            $password = [System.Text.Encoding]::UTF8.GetString($bytes)
+        } catch {
+            $password = Get-PasswordFromLocalVault $label $keystoreFile
+            if (-not $password) { throw }
+        }
     } else {
         # Fallback: check for plaintext password file in same directory as keystore
         $keystoreDir = Split-Path $keystoreFile -Parent
@@ -400,7 +448,10 @@ function Get-SigningConfig($metaPath, $secretFile, $keystoreFile, $label) {
         if (Test-Path $plainFile) {
             $password = (Get-Content $plainFile -Raw).Trim()
         } else {
-            throw "$label signing password not found. Provide signing-secret.dpapi or signing-password.txt"
+            $password = Get-PasswordFromLocalVault $label $keystoreFile
+            if (-not $password) {
+                throw "$label signing password not found. Provide signing-secret.dpapi or signing-password.txt"
+            }
         }
     }
 
@@ -409,6 +460,32 @@ function Get-SigningConfig($metaPath, $secretFile, $keystoreFile, $label) {
         Password = $password
         Keystore = $keystoreFile
     }
+}
+
+function Get-PasswordFromLocalVault($label, $keystoreFile) {
+    $vaultPath = Join-Path $rootDir "Keystore\keystore-passwords.json"
+    if (-not (Test-Path $vaultPath)) { return $null }
+
+    try {
+        $vault = Get-Content $vaultPath -Raw | ConvertFrom-Json
+        $key = $null
+        if ($label -eq "Official") {
+            $key = "module_signing"
+        } elseif ($label -eq "Developer") {
+            $normalized = $keystoreFile.Replace("/", "\")
+            if ($normalized -match "\\dev_signing\\") { $key = "dev_signing" }
+        }
+        if (-not $key) { return $null }
+
+        $prop = $vault.PSObject.Properties[$key]
+        if ($prop -and -not [string]::IsNullOrWhiteSpace([string]$prop.Value)) {
+            Write-Host "  Using local keystore password vault for $label signing" -ForegroundColor DarkGray
+            return [string]$prop.Value
+        }
+    } catch {
+        Write-Host "  ! local keystore password vault unavailable for ${label}: $_" -ForegroundColor Yellow
+    }
+    return $null
 }
 
 function Build-PluginJar($modId, $destinationJar) {
@@ -627,6 +704,8 @@ foreach ($modDir in $moduleDirs) {
     $manifestText = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8)
     $manifest = $manifestText | ConvertFrom-Json
     $version = if ($manifest.version) { [string]$manifest.version } else { "1.0" }
+    $developerName = if ($manifest.developer -and $manifest.developer.name) { [string]$manifest.developer.name } else { "PandaGenie Official" }
+    Select-DeveloperSigningForModule $modId $developerName
     $soLibs = @()
     if ($manifest.soLibraries) { $soLibs = @($manifest.soLibraries) }
 

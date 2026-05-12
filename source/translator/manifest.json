@@ -2,9 +2,9 @@
     "id":  "translator",
     "name":  "翻译助手",
     "name_en":  "Translator",
-    "description":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言，也可调用大模型进行长文本、语气可控的智能翻译。",
-    "description_en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection, plus LLM-powered long-form and tone-aware translation.",
-    "version":  "1.5",
+    "description":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言；遇到阿根廷西班牙语、粤语、繁体中文等地域/非标准语种时会自动调用大模型翻译。",
+    "description_en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto detection; regional or non-standard targets such as Argentine Spanish, Cantonese, or Traditional Chinese automatically use LLM translation.",
+    "version":  "1.8",
     "icon":  "translate",
     "soLibraries":  [
 
@@ -32,13 +32,16 @@
     "apis":  [
                  {
                      "name":  "translate",
-                     "desc":  "翻译文本，支持指定源语言和目标语言",
-                     "desc_en":  "Translate text with specified source and target languages",
+                     "desc":  "翻译文本，支持指定源语言和目标语言；非标准/地域语种会自动转入智能翻译",
+                     "desc_en":  "Translate text with specified source and target languages; unsupported regional targets automatically fall back to AI translation",
                      "params":  [
                                     "text",
                                     "from",
                                     "to"
                                 ],
+                     "capabilities":  [
+                                          "network"
+                                      ],
                      "paramDesc":  [
                                        "要翻译的文本",
                                        "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测",
@@ -63,6 +66,9 @@
                                     "maxInputChars",
                                     "maxTokens"
                                 ],
+                     "capabilities":  [
+                                          "llm"
+                                      ],
                      "paramDesc":  [
                                        "要翻译的文本",
                                        "源语言代码，留空或 auto 自动检测",
@@ -89,6 +95,9 @@
                      "params":  [
                                     "text"
                                 ],
+                     "capabilities":  [
+
+                                      ],
                      "paramDesc":  [
                                        "要检测语言的文本"
                                    ],
@@ -103,6 +112,9 @@
                      "params":  [
 
                                 ],
+                     "capabilities":  [
+
+                                      ],
                      "paramDesc":  [
 
                                    ],
@@ -117,6 +129,9 @@
                      "params":  [
 
                                 ],
+                     "capabilities":  [
+
+                                      ],
                      "paramDesc":  [
 
                                    ],

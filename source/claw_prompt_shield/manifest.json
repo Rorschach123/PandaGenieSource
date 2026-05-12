@@ -1,0 +1,57 @@
+{
+  "id": "claw_prompt_shield",
+  "name": "Claw 提示词安全盾",
+  "name_en": "Claw Prompt Shield",
+  "description": "从 SkillScan/Shield CN 思路改造的提示词安全模块，面向中文场景检查 prompt 注入、凭证泄露、外发数据和危险动作。",
+  "description_en": "Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind.",
+  "version": "1.0",
+  "icon": "shield",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.promptshield.ClawPromptShieldPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "categories": [
+    "security",
+    "review"
+  ],
+  "permissions": [],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "scanPrompt",
+      "desc": "扫描用户提示词、系统提示词或任务配置，返回风险等级和命中项",
+      "desc_en": "Scan a user prompt, system prompt, or task config and return risk level plus findings",
+      "params": ["text", "context"],
+      "capabilities": [],
+      "paramDesc": ["要扫描的文本", "场景说明，可选"],
+      "paramDesc_en": ["Text to scan", "Optional context"]
+    },
+    {
+      "name": "redactSecrets",
+      "desc": "对文本中的 API Key、Token、手机号、邮箱等敏感信息做脱敏",
+      "desc_en": "Redact API keys, tokens, phone numbers, emails, and other sensitive values",
+      "params": ["text"],
+      "capabilities": [],
+      "paramDesc": ["要脱敏的文本"],
+      "paramDesc_en": ["Text to redact"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 提示词安全盾界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Prompt Shield UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

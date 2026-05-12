@@ -1,0 +1,68 @@
+{
+  "id": "claw_workflow_planner",
+  "name": "Claw 工作流规划器",
+  "name_en": "Claw Workflow Planner",
+  "description": "从 Automation Workflows / Proactive Agent 思路改造的规划模块，把目标整理成手机端可执行的步骤、模块建议和风险提示。",
+  "description_en": "Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes.",
+  "version": "1.0",
+  "icon": "account_tree",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.workflowplanner.ClawWorkflowPlannerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "llm"
+  ],
+  "categories": [
+    "automation",
+    "productivity"
+  ],
+  "permissions": [],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "planWorkflow",
+      "desc": "调用宿主 LLM，把目标拆成可执行步骤、建议模块、检查点和风险提示",
+      "desc_en": "Use the host LLM to break a goal into steps, module suggestions, checkpoints, and risk notes",
+      "params": ["goal", "constraints", "availableModules", "language", "maxTokens"],
+      "capabilities": ["llm"],
+      "paramDesc": ["目标", "约束条件，可选", "可用模块列表，可选", "输出语言，默认 zh", "最大输出 token，默认 768"],
+      "paramDesc_en": ["Goal", "Optional constraints", "Optional available modules", "Output language, default zh", "Maximum output tokens, default 768"]
+    },
+    {
+      "name": "makeChecklist",
+      "desc": "不调用 LLM，把多行计划文本整理成检查清单",
+      "desc_en": "Convert plain plan text into a checklist without LLM",
+      "params": ["planText"],
+      "capabilities": [],
+      "paramDesc": ["计划文本"],
+      "paramDesc_en": ["Plan text"]
+    },
+    {
+      "name": "riskCheckPlan",
+      "desc": "本地检查计划中是否包含删除、转账、外发密钥等高风险动作",
+      "desc_en": "Locally check whether a plan contains risky actions such as deletion, payments, or secret sharing",
+      "params": ["planText"],
+      "capabilities": [],
+      "paramDesc": ["计划文本"],
+      "paramDesc_en": ["Plan text"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 工作流规划器界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Workflow Planner UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

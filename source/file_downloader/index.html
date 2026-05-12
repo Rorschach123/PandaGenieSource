@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件下载器</title>
+  <link rel="stylesheet" href="../common.css">
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f7faf9; color: #18231f; }
+    main { padding: 18px; max-width: 760px; margin: 0 auto; }
+    .hero { background: linear-gradient(135deg, #167a5c, #2aa876); color: white; border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(22, 122, 92, 0.22); }
+    .hero h1 { margin: 0; font-size: 26px; letter-spacing: 0; }
+    .hero p { margin: 10px 0 0; opacity: .88; line-height: 1.55; }
+    .panel { margin-top: 16px; background: white; border: 1px solid #dce7e2; border-radius: 14px; padding: 16px; box-shadow: 0 6px 18px rgba(20, 45, 35, 0.06); }
+    .panel h2 { margin: 0 0 10px; font-size: 18px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    label { display: grid; gap: 6px; font-size: 13px; color: #5e6d66; }
+    input, textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd8d3; border-radius: 10px; padding: 12px; font-size: 15px; background: #fbfdfc; color: inherit; }
+    textarea { min-height: 88px; resize: vertical; }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button { border: none; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-weight: 700; background: #167a5c; color: white; }
+    button.secondary { background: #e8f3ef; color: #12654b; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f6f4; border-radius: 12px; padding: 12px; min-height: 80px; }
+    .tips { display: grid; gap: 8px; padding-left: 0; list-style: none; margin: 0; }
+    .tips li { background: #f1f6f4; border-radius: 10px; padding: 10px 12px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>文件下载器</h1>
+      <p>分析网页或直链中的下载候选，构造可能存在的文件地址，并保存到 PandaGenie 下载目录。</p>
+    </section>
+
+    <section class="panel">
+      <h2>快速调用</h2>
+      <div class="grid">
+        <label>链接 URL
+          <input id="url" placeholder="https://example.com/download">
+        </label>
+        <label>文件名或关键词
+          <input id="fileName" placeholder="app-release.apk / manual / report">
+        </label>
+        <label>扩展名
+          <input id="extensions" placeholder="apk,pdf,zip,docx">
+        </label>
+      </div>
+      <div class="buttons">
+        <button onclick="callAction('analyzeDownloadCandidates')">分析候选</button>
+        <button onclick="callAction('downloadBestCandidate')" class="secondary">下载最佳候选</button>
+      </div>
+      <pre id="result">等待操作...</pre>
+    </section>
+
+    <section class="panel">
+      <h2>一句话使用建议</h2>
+      <ul class="tips">
+        <li>“解析这个网页里有哪些 APK 可以下载。”</li>
+        <li>“从这个链接下找到 PDF 说明书并下载。”</li>
+        <li>“这个页面可能有 app-release.apk，帮我构造下载链接并下载。”</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    function buildParams() {
+      return {
+        url: document.getElementById('url').value.trim(),
+        fileName: document.getElementById('fileName').value.trim(),
+        extensions: document.getElementById('extensions').value.trim(),
+        outputDir: '/sdcard/PandaGenie/downloads'
+      };
+    }
+
+    function callAction(action) {
+      var result = document.getElementById('result');
+      var params = buildParams();
+      if (!params.url) {
+        result.textContent = '请先输入链接。';
+        return;
+      }
+      result.textContent = '执行中...';
+      if (window.PandaGenie && window.PandaGenie.invoke) {
+        window.PandaGenie.invoke(action, JSON.stringify(params), function(resp) {
+          result.textContent = typeof resp === 'string' ? resp : JSON.stringify(resp, null, 2);
+        });
+      } else {
+        result.textContent = JSON.stringify({ action: action, params: params }, null, 2);
+      }
+    }
+  </script>
+</body>
+</html>

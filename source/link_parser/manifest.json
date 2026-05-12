@@ -4,7 +4,7 @@
     "name_en":  "Link Parser",
     "description":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，也可调用 AI 总结网页或回答页面相关问题",
     "description_en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions",
-    "version":  "1.4",
+    "version":  "1.5",
     "icon":  "link",
     "soLibraries":  [
 

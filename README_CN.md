@@ -99,14 +99,14 @@ APP **不硬编码**任何模块信息。所有能力均由模块的 `manifest.j
 PandaGenieSource/
 ├── README.md / README_CN.md        # 英文和中文说明
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # 模块市场索引，更新于 2026-05-10
+├── modules.json                    # 模块市场索引，更新于 2026-05-12
 ├── modules/                        # 已签名发布的 .mod 模块包
 ├── source/                         # 官方模块源码
 │   ├── shared_api/                 # 模块共用 API 和辅助类
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 当前共 44 个官方模块
+│   └── ...                         # 当前共 52 个官方模块
 ├── module-dev-toolkit/             # 模块构建与签名 PowerShell 工具集
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -120,10 +120,10 @@ PandaGenieSource/
 
 近期结构变化：
 
-- `modules.json` 已更新为 44 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
+- `modules.json` 已更新为 52 个官方模块，并为每个模块保留 CDN 下载地址和 GitHub raw `.mod` 地址。
 - `source/shared_api` 成为模块共用 API 和辅助类入口，减少各模块重复维护接口定义。
 - `module-dev-toolkit` 成为推荐的本地模块打包、签名和证书查看流程。
-- 新增或较新的官方模块包括手机实测记录、存储雷达报告、机圈验机报告、长图生成器、文档处理、设备控制、全屏倒计时、天气助手、OCR 文字识别、手电筒、翻译助手、指南针、URL 编解码、自我介绍等。
+- 新增或较新的官方模块包括 Claw 文档更新助手、Claw 文本人味化、Claw 知识图谱、Claw 提示词安全盾、Claw 技能发现、Claw Skill 体检、Claw 工作流规划器、文件下载器、手机实测记录、存储雷达报告、机圈验机报告、长图生成器等。
 - 文件管理器、压缩解压、计算器等包含原生能力的模块，在各自目录下保留 `native/` 和 `jni_bridge/`。
 
 ---
@@ -167,7 +167,7 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 已有模块
 
-`modules.json` 当前包含 **44 个官方模块**，最后更新时间为 **2026-05-10**。
+`modules.json` 当前包含 **52 个官方模块**，最后更新时间为 **2026-05-12**。
 
 | 模块 | 功能描述 | 类型 |
 |------|---------|------|
@@ -215,6 +215,14 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 | &#x1F4E1; **存储雷达报告** | 扫描大文件、视频、APK、压缩包、下载目录和疑似重复文件，生成清理建议 | Java |
 | &#x1F4CB; **机圈验机报告** | 汇总设备、系统、屏幕、电池、传感器、Camera2、Widevine 和存储测速，生成验机报告 | Java |
 | &#x1F5BC;&#xFE0F; **长图生成器** | 将文本、Markdown、HTML、Word 文档和网页 URL 转换成 1080px 宽 PNG 长图 | Java |
+| &#x1F4E5; **文件下载器** | 分析网页或直链中的可下载文件，并保存到 PandaGenie 下载目录 | Java |
+| &#x1F4DD; **Claw 文档更新助手** | 比较两版文本，生成变更摘要、更新计划和待办项 | Java |
+| &#x270D;&#xFE0F; **Claw 文本人味化** | 将生硬、模板化或 AI 感较强的文字改写成更自然的表达 | Java |
+| &#x1F5C2;&#xFE0F; **Claw 知识图谱** | 在模块沙箱中记录和查询 subject-relation-object 事实 | Java |
+| &#x1F6E1;&#xFE0F; **Claw 提示词安全盾** | 检查 prompt 注入、凭证泄露、外发数据和危险动作风险 | Java |
+| &#x1F50E; **Claw 技能发现** | 查询热门、认证、新增和关键词匹配的 ClawHub 技能 | Java |
+| &#x1F512; **Claw Skill 体检** | 扫描技能文本、文件或 URL 中的危险命令和隐藏指令风险 | Java |
+| &#x1F5FA;&#xFE0F; **Claw 工作流规划器** | 将目标整理成手机端可执行步骤、模块建议和风险提示 | Java |
 
 > &#x1F4E6; **[在模块市场浏览所有模块](https://cf.pandagenie.ai/marketplace)** — 或在下方了解如何**创建你自己的模块**！
 
@@ -222,16 +230,26 @@ AI 读取你的 `manifest.json`，理解模块能做什么，然后自动调用 
 
 ## 下载体验
 
-> &#x1F4E5; **[下载 APK (v1.0.32)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260510/PandaGenie-v1.0.32.apk)**
+> &#x1F4E5; **[下载 APK (v1.0.33)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260512/PandaGenie-v1.0.33.apk)**
 
-- Release 标签：[`20260510`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260510)
-- Android 工程版本：`versionName "1.0.32"` / `versionCode 10032`
+- Release 标签：[`20260512`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260512)
+- Android 工程版本：`versionName "1.0.33"` / `versionCode 10033`
 
 ---
 
 ## 更新日志
 
 <details open>
+<summary><b>v1.0.33</b> (2026-05-12)</summary>
+
+- **App 版本升级**：Android 工程版本更新为 `versionName "1.0.33"` / `versionCode 10033`，并发布新的最终版 APK。
+- **模块生态扩展**：`modules.json` 同步到 52 个官方模块，新增 Claw 系列能力模块和文件下载器。
+- **配置市场优化**：完善共享配置多语言字段、相似匹配和管理端审核展示，提升配置发布体验。
+- **运行时与沙箱优化**：优化模块 LLM、IO Guard/PLT Hook、模块市场和结果展示链路。
+
+</details>
+
+<details>
 <summary><b>v1.0.32</b> (2026-05-10)</summary>
 
 - **App 版本升级**：Android 工程版本更新为 `versionName "1.0.32"` / `versionCode 10032`，并发布新的最终版 APK。

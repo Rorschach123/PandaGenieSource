@@ -85,14 +85,14 @@ The current source repository keeps the module ecosystem and release assets toge
 PandaGenieSource/
 ├── README.md / README_CN.md        # English and Chinese project docs
 ├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # Marketplace index, updated 2026-05-10
+├── modules.json                    # Marketplace index, updated 2026-05-12
 ├── modules/                        # Signed release .mod packages
 ├── source/                         # Official module source code
 │   ├── shared_api/                 # Shared module API and helper classes
 │   ├── calculator/
 │   ├── filemanager/
 │   ├── archive/
-│   └── ...                         # 44 official modules in total
+│   └── ...                         # 52 official modules in total
 ├── module-dev-toolkit/             # PowerShell toolkit for building and signing modules
 │   ├── mk_module.ps1
 │   ├── init_dev_signing.ps1
@@ -106,10 +106,10 @@ PandaGenieSource/
 
 Recent structure updates:
 
-- `modules.json` now lists 44 official modules and provides both CDN and GitHub raw download URLs.
+- `modules.json` now lists 52 official modules and provides both CDN and GitHub raw download URLs.
 - `source/shared_api` centralizes the API/helper layer used by modules.
 - `module-dev-toolkit` is the preferred workflow for module packaging, signing, and certificate inspection.
-- Newer official modules include Phone Test Recorder, Storage Radar Report, Phone Check Report, Long Image Generator, Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
+- Newer official modules include the Claw capability modules, File Downloader, Phone Test Recorder, Storage Radar Report, Phone Check Report, Long Image Generator, Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
 - Native-heavy modules such as File Manager, Archive, and Calculator keep their `native/` and `jni_bridge/` folders under the module source directory.
 
 ---
@@ -186,7 +186,7 @@ long usedBytes = storage.getUsedSpace();
 
 ## Available Modules
 
-`modules.json` currently lists **44 official modules**, last updated on **2026-05-10**.
+`modules.json` currently lists **52 official modules**, last updated on **2026-05-12**.
 
 | Module | Description | Type |
 |--------|-------------|------|
@@ -234,6 +234,14 @@ long usedBytes = storage.getUsedSpace();
 | &#x1F4E1; **Storage Radar Report** | Scan large files, videos, APKs, archives, downloads, and duplicate candidates with cleanup advice | Java |
 | &#x1F4CB; **Phone Check Report** | Summarize device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and apps into inspection reports | Java |
 | &#x1F5BC;&#xFE0F; **Long Image Generator** | Convert text, Markdown, HTML, Word documents, and web URLs into 1080px-wide PNG long images | Java |
+| &#x1F4E5; **File Downloader** | Analyze web pages or direct links for downloadable files and save selections to PandaGenie downloads | Java |
+| &#x1F4DD; **Claw Doc Updater** | Compare text versions and generate change summaries, update plans, and todos | Java |
+| &#x270D;&#xFE0F; **Claw Humanizer** | Rewrite stiff, templated, or AI-sounding copy into more natural language | Java |
+| &#x1F5C2;&#xFE0F; **Claw Ontology** | Store and query subject-relation-object facts in the module sandbox | Java |
+| &#x1F6E1;&#xFE0F; **Claw Prompt Shield** | Check prompt injection, credential leaks, data exfiltration, and dangerous-action risks | Java |
+| &#x1F50E; **Claw Skill Discovery** | Search popular, certified, new, and keyword-matched ClawHub skills | Java |
+| &#x1F512; **Claw Skill Vetter** | Scan skill text, files, or URLs for risky commands and hidden-instruction patterns | Java |
+| &#x1F5FA;&#xFE0F; **Claw Workflow Planner** | Turn goals into mobile-friendly steps, module suggestions, and risk notes | Java |
 
 > &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
 
@@ -241,16 +249,26 @@ long usedBytes = storage.getUsedSpace();
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.32)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260510/PandaGenie-v1.0.32.apk)**
+> &#x1F4E5; **[Download APK (v1.0.33)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260512/PandaGenie-v1.0.33.apk)**
 
-- Release tag: [`20260510`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260510)
-- Android project version: `versionName "1.0.32"` / `versionCode 10032`
+- Release tag: [`20260512`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260512)
+- Android project version: `versionName "1.0.33"` / `versionCode 10033`
 
 ---
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.33</b> (2026-05-12)</summary>
+
+- **App version bump**: updated Android to `versionName "1.0.33"` / `versionCode 10033` and published a new final APK.
+- **Module ecosystem expansion**: synced `modules.json` to 52 official modules with the new Claw capability modules and File Downloader.
+- **Config marketplace polish**: improved shared-config i18n fields, similarity matching, and admin review visibility.
+- **Runtime and sandbox polish**: refined module LLM, IO Guard/PLT hooks, marketplace flows, and result presentation.
+
+</details>
+
+<details>
 <summary><b>v1.0.32</b> (2026-05-10)</summary>
 
 - **App version bump**: updated Android to `versionName "1.0.32"` / `versionCode 10032` and published a new final APK.

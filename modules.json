@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-10",
+    "updated_at":  "2026-05-12",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -4548,7 +4548,7 @@
                                             "zh":  "链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，也可调用 AI 总结网页或回答页面相关问题",
                                             "en":  "Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions"
                                         },
-                        "version":  "1.4",
+                        "version":  "1.5",
                         "icon":  "link",
                         "filename":  "link_parser.mod",
                         "download_url":  [
@@ -4871,10 +4871,10 @@
                                      "en":  "OCR Text Recognition"
                                  },
                         "description":  {
-                                            "zh":  "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测；非图片文件会给出明确中文原因",
-                                            "en":  "OCR module for extracting text from images, supports Chinese and English with auto language detection; non-image files return clear error reasons"
+                                            "zh":  "图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测；会自动清理行首附件占位符，非图片文件会给出明确中文原因",
+                                            "en":  "OCR module for extracting text from images, supports Chinese and English with auto language detection; automatically removes leading attachment placeholders and returns clear non-image errors"
                                         },
-                        "version":  "1.7",
+                        "version":  "1.10",
                         "icon":  "text_snippet",
                         "filename":  "ocr.mod",
                         "download_url":  [
@@ -4905,8 +4905,8 @@
                         "apis":  [
                                      {
                                          "name":  "recognizeText",
-                                         "desc":  "识别图片中的文字，支持中文和英文，返回提取的文本内容；仅支持图片文件",
-                                         "desc_en":  "Recognize text in an image, supports Chinese and English, returns extracted text; image files only",
+                                         "desc":  "识别图片中的文字，支持中文和英文，返回提取的文本内容，并清理行首 ${input_file_N} 附件占位符；仅支持图片文件",
+                                         "desc_en":  "Recognize text in an image, supports Chinese and English, returns extracted text and removes leading ${input_file_N} attachment placeholders; image files only",
                                          "params":  [
                                                         "imagePath",
                                                         "language"
@@ -5082,10 +5082,10 @@
                                      "en":  "Translator"
                                  },
                         "description":  {
-                                            "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言，也可调用大模型进行长文本、语气可控的智能翻译。",
-                                            "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto language detection, plus LLM-powered long-form and tone-aware translation."
+                                            "zh":  "文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言；遇到阿根廷西班牙语、粤语、繁体中文等地域/非标准语种时会自动调用大模型翻译。",
+                                            "en":  "Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto detection; regional or non-standard targets such as Argentine Spanish, Cantonese, or Traditional Chinese automatically use LLM translation."
                                         },
-                        "version":  "1.5",
+                        "version":  "1.8",
                         "icon":  "translate",
                         "filename":  "translator.mod",
                         "download_url":  [
@@ -5109,13 +5109,16 @@
                         "apis":  [
                                      {
                                          "name":  "translate",
-                                         "desc":  "翻译文本，支持指定源语言和目标语言",
-                                         "desc_en":  "Translate text with specified source and target languages",
+                                         "desc":  "翻译文本，支持指定源语言和目标语言；非标准/地域语种会自动转入智能翻译",
+                                         "desc_en":  "Translate text with specified source and target languages; unsupported regional targets automatically fall back to AI translation",
                                          "params":  [
                                                         "text",
                                                         "from",
                                                         "to"
                                                     ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
                                          "paramDesc":  [
                                                            "要翻译的文本",
                                                            "源语言代码(zh/en/ja/ko/fr/de/es等)，留空自动检测",
@@ -5140,6 +5143,9 @@
                                                         "maxInputChars",
                                                         "maxTokens"
                                                     ],
+                                         "capabilities":  [
+                                                              "llm"
+                                                          ],
                                          "paramDesc":  [
                                                            "要翻译的文本",
                                                            "源语言代码，留空或 auto 自动检测",
@@ -5166,6 +5172,9 @@
                                          "params":  [
                                                         "text"
                                                     ],
+                                         "capabilities":  [
+
+                                                          ],
                                          "paramDesc":  [
                                                            "要检测语言的文本"
                                                        ],
@@ -5180,6 +5189,9 @@
                                          "params":  [
 
                                                     ],
+                                         "capabilities":  [
+
+                                                          ],
                                          "paramDesc":  [
 
                                                        ],
@@ -5194,6 +5206,9 @@
                                          "params":  [
 
                                                     ],
+                                         "capabilities":  [
+
+                                                          ],
                                          "paramDesc":  [
 
                                                        ],
@@ -6717,6 +6732,1066 @@
                                            "document",
                                            "share"
                                        ]
+                    },
+                    {
+                        "id":  "file_downloader",
+                        "name":  {
+                                     "zh":  "文件下载器",
+                                     "en":  "File Downloader"
+                                 },
+                        "description":  {
+                                            "zh":  "文件下载模块，支持分析网页或直链中的可下载文件，构造可能存在的下载链接，并把选中的文件保存到 PandaGenie 下载目录。",
+                                            "en":  "Download files by analyzing web pages or direct links, constructing likely download candidates, and saving selected files to the PandaGenie downloads folder."
+                                        },
+                        "version":  "1.1",
+                        "icon":  "download",
+                        "filename":  "file_downloader.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/file_downloader",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/file_downloader.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "PandaGenie Official"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于访问网页、检查下载链接并下载文件",
+                                                "desc_en":  "Access web pages, inspect download URLs, and download files"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "network",
+                                             "file_write"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "analyzeDownloadCandidates",
+                                         "desc":  "分析网页或直链中可能存在的下载文件。适合用户说“解析这个链接里可下载的文件”“看看这个页面下有哪些安装包/文档/压缩包”。会抓取页面、提取 href/src/download 按钮，识别 PDF/ZIP/APK/文档/媒体等直链；如果用户给了 fileName 或 extensions，会基于当前链接目录构造可能存在的下载 URL，并用 HEAD/GET 轻量探测可访问性。需要下载时，先调用本接口选择候选，再调用 downloadFile；如果用户让你直接下载最佳文件，可调用 downloadBestCandidate。",
+                                         "desc_en":  "Analyze a page or direct URL for downloadable files. Use this when the user asks to parse a link and find packages, documents, archives, media, etc. It extracts href/src/download buttons, detects direct file URLs, and when fileName or extensions are provided, constructs likely download URLs from the current URL directory and lightly probes them. To download, call this first then downloadFile; if the user asks to download the best match directly, call downloadBestCandidate.",
+                                         "params":  [
+                                                        "url",
+                                                        "fileName",
+                                                        "extensions",
+                                                        "keywords",
+                                                        "probe",
+                                                        "maxCandidates"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要分析的网页地址或文件直链，支持 http/https；如果用户只给域名也可传入",
+                                                           "可选，用户期望的文件名或文件名前缀，例如 app-release.apk、manual、report；传入后会在链接所在目录下构造候选下载链接",
+                                                           "可选，期望文件扩展名数组或逗号分隔字符串，例如 apk,pdf,zip,docx；未提供时默认覆盖常见文档、压缩包、安装包、图片、音视频",
+                                                           "可选，筛选关键词数组或逗号分隔字符串，例如 下载,release,manual；用于提高候选排序",
+                                                           "是否探测候选链接状态，默认 true；为 true 时会返回 statusCode/contentType/fileSize 等",
+                                                           "最多返回候选数量，默认 20，最大 80"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Page URL or direct file URL, http/https only",
+                                                              "Optional expected file name or prefix such as app-release.apk, manual, report; used to construct candidates under the URL directory",
+                                                              "Optional expected extensions as array or comma-separated string, such as apk,pdf,zip,docx",
+                                                              "Optional keywords as array or comma-separated string, such as download, release, manual; used for ranking",
+                                                              "Probe candidate status, default true",
+                                                              "Maximum candidates to return, default 20, max 80"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "downloadFile",
+                                         "desc":  "下载指定文件 URL 到本地。适合已经从 analyzeDownloadCandidates/link_parser.extractDownloads 得到明确 url 后调用。默认保存到 /sdcard/PandaGenie/downloads；不要把网页 URL 直接传来下载，除非它本身就是文件直链。",
+                                         "desc_en":  "Download a specific file URL. Use after analyzeDownloadCandidates or link_parser.extractDownloads returns a clear file URL. Defaults to /sdcard/PandaGenie/downloads; do not pass a normal HTML page unless it is itself a direct file URL.",
+                                         "params":  [
+                                                        "url",
+                                                        "outputDir",
+                                                        "fileName",
+                                                        "overwrite",
+                                                        "maxBytes"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network",
+                                                              "file_write"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要下载的文件 URL，必须是 http/https",
+                                                           "保存目录，默认 /sdcard/PandaGenie/downloads；用户指定目录时必须传目录路径",
+                                                           "可选保存文件名；不传则从 Content-Disposition 或 URL 自动推断",
+                                                           "同名文件是否覆盖，默认 false；false 时自动追加 (1)、(2)",
+                                                           "最大允许下载字节数，默认 104857600(100MB)，防止误下超大文件；传 0 表示不限制"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "File URL to download, http/https only",
+                                                              "Output directory, default /sdcard/PandaGenie/downloads",
+                                                              "Optional output file name; inferred from Content-Disposition or URL when empty",
+                                                              "Overwrite existing file, default false; false auto-appends (1), (2)",
+                                                              "Maximum bytes, default 100MB; 0 means unlimited"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "downloadBestCandidate",
+                                         "desc":  "从网页或链接中自动分析并下载最匹配的文件。适合用户说“打开这个链接，找到里面的安装包/文档并下载”。内部会先执行候选分析，优先选择状态可访问、扩展名匹配、文件名/按钮文案匹配关键词的候选，再调用下载。若结果不确定或候选很多，建议先只调用 analyzeDownloadCandidates 给用户确认。",
+                                         "desc_en":  "Analyze a page/link and download the best matching file. Use when the user asks to open a link, find the APK/document/archive, and download it. Internally analyzes candidates, ranks accessible URLs with matching extension/name/button text, then downloads. If many candidates are ambiguous, call analyzeDownloadCandidates first for confirmation.",
+                                         "params":  [
+                                                        "url",
+                                                        "fileName",
+                                                        "extensions",
+                                                        "keywords",
+                                                        "outputDir",
+                                                        "overwrite",
+                                                        "maxBytes"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network",
+                                                              "file_write"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要分析并下载的网页地址或直链",
+                                                           "可选，期望文件名或前缀，例如 app-release.apk、说明书、report",
+                                                           "可选，期望扩展名，例如 apk,pdf,zip,docx；用户说安装包时传 apk，说压缩包时传 zip,rar,7z",
+                                                           "可选，关键词，例如 下载,release,manual,arm64，用于排序",
+                                                           "保存目录，默认 /sdcard/PandaGenie/downloads",
+                                                           "同名文件是否覆盖，默认 false",
+                                                           "最大允许下载字节数，默认 104857600(100MB)，0 表示不限制"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Page URL or direct URL to analyze and download",
+                                                              "Optional expected file name or prefix",
+                                                              "Optional expected extensions; use apk for app package, zip/rar/7z for archive, etc.",
+                                                              "Optional ranking keywords such as download, release, manual, arm64",
+                                                              "Output directory, default /sdcard/PandaGenie/downloads",
+                                                              "Overwrite existing file, default false",
+                                                              "Maximum bytes, default 100MB, 0 means unlimited"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "getDownloadInfo",
+                                         "desc":  "检查单个下载链接，返回重定向后的最终 URL、状态码、Content-Type、文件大小和推断文件名。适合下载前确认链接是否真的是文件。",
+                                         "desc_en":  "Inspect a single download URL and return final URL, status code, Content-Type, file size, and inferred file name. Use before downloading to verify it is really a file.",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要检查的 http/https 链接"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "HTTP/HTTPS URL to inspect"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "batchDownload",
+                                         "desc":  "批量下载多个明确的文件 URL。仅在已经有多个直链时使用；如果只有网页地址，应先调用 analyzeDownloadCandidates。",
+                                         "desc_en":  "Download multiple clear file URLs. Use only when direct URLs are already known; if only a page URL is provided, call analyzeDownloadCandidates first.",
+                                         "params":  [
+                                                        "urls",
+                                                        "outputDir",
+                                                        "overwrite",
+                                                        "maxBytes"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network",
+                                                              "file_write"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "文件 URL 数组，最多 10 个",
+                                                           "保存目录，默认 /sdcard/PandaGenie/downloads",
+                                                           "同名文件是否覆盖，默认 false",
+                                                           "每个文件最大允许下载字节数，默认 104857600(100MB)，0 表示不限制"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Array of file URLs, max 10",
+                                                              "Output directory, default /sdcard/PandaGenie/downloads",
+                                                              "Overwrite existing files, default false",
+                                                              "Maximum bytes per file, default 100MB, 0 means unlimited"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开文件下载器界面并返回 _openModule 信号",
+                                         "desc_en":  "Open File Downloader UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  6
+                    },
+                    {
+                        "id":  "claw_skill_vetter",
+                        "name":  {
+                                     "zh":  "Claw Skill 体检",
+                                     "en":  "Claw Skill Vetter"
+                                 },
+                        "description":  {
+                                            "zh":  "面向 ClawHub/Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
+                                            "en":  "Lightweight security vetter for ClawHub/Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "security",
+                        "filename":  "claw_skill_vetter.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_skill_vetter",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_skill_vetter.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于按用户给定 URL 拉取 skill 文本进行体检",
+                                                "desc_en":  "Fetch user-provided skill URLs for vetting"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "file_read",
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "vetText",
+                                         "desc":  "扫描一段 skill 文本或提示词，返回风险等级、命中项和整改建议",
+                                         "desc_en":  "Scan skill text or a prompt and return risk level, findings, and recommendations",
+                                         "params":  [
+                                                        "text",
+                                                        "name"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要扫描的 skill 文本",
+                                                           "可选名称，用于结果展示"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Skill text to scan",
+                                                              "Optional display name"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "vetFile",
+                                         "desc":  "读取并扫描本地 skill 文件，适合检查 SKILL.md、脚本片段或 manifest",
+                                         "desc_en":  "Read and scan a local skill file such as SKILL.md, script snippets, or manifests",
+                                         "params":  [
+                                                        "path"
+                                                    ],
+                                         "capabilities":  [
+                                                              "file_read"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "本地文件路径，最大读取 512KB"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Local file path, up to 512KB"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "vetUrl",
+                                         "desc":  "从 URL 拉取 skill 文本后扫描，适合检查公开的 raw 文档或代码片段",
+                                         "desc_en":  "Fetch and scan skill text from a URL, useful for public raw docs or snippets",
+                                         "params":  [
+                                                        "url"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "http/https URL，最大读取 512KB"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "http/https URL, up to 512KB"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractFindings",
+                                         "desc":  "vetText 的别名，用于只提取风险命中项",
+                                         "desc_en":  "Alias of vetText for extracting risk findings",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要扫描的文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to scan"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw Skill 体检界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Skill Vetter UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  5
+                    },
+                    {
+                        "id":  "claw_ontology",
+                        "name":  {
+                                     "zh":  "Claw 知识图谱",
+                                     "en":  "Claw Ontology"
+                                 },
+                        "description":  {
+                                            "zh":  "轻量本地知识图谱模块，在模块沙箱中记录 subject-relation-object 事实，支持查询、导入、删除和结构摘要。",
+                                            "en":  "Lightweight local ontology module. Stores subject-relation-object facts in the module sandbox with query, import, delete, and summary actions."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "account_tree",
+                        "filename":  "claw_ontology.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_ontology",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_ontology.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "addFact",
+                                         "desc":  "添加一个 subject-relation-object 事实，可附带类型、标签、置信度和来源",
+                                         "desc_en":  "Add a subject-relation-object fact with optional type, tags, confidence, and source",
+                                         "params":  [
+                                                        "subject",
+                                                        "relation",
+                                                        "object",
+                                                        "type",
+                                                        "tags",
+                                                        "confidence",
+                                                        "source"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "主体",
+                                                           "关系",
+                                                           "客体",
+                                                           "事实类型，可选",
+                                                           "标签数组或逗号分隔字符串，可选",
+                                                           "0-1 置信度，可选",
+                                                           "来源说明，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Subject",
+                                                              "Relation",
+                                                              "Object",
+                                                              "Optional fact type",
+                                                              "Optional tag array or comma-separated string",
+                                                              "Optional confidence from 0 to 1",
+                                                              "Optional source"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "queryFacts",
+                                         "desc":  "按关键词、主体、关系、客体或标签查询本地事实",
+                                         "desc_en":  "Query local facts by keyword, subject, relation, object, or tag",
+                                         "params":  [
+                                                        "query",
+                                                        "subject",
+                                                        "relation",
+                                                        "object",
+                                                        "tag",
+                                                        "limit"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "全文关键词，可选",
+                                                           "主体过滤，可选",
+                                                           "关系过滤，可选",
+                                                           "客体过滤，可选",
+                                                           "标签过滤，可选",
+                                                           "返回数量，默认 20"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Optional full-text keyword",
+                                                              "Optional subject filter",
+                                                              "Optional relation filter",
+                                                              "Optional object filter",
+                                                              "Optional tag filter",
+                                                              "Result limit, default 20"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "importFacts",
+                                         "desc":  "从多行文本批量导入事实，支持 A -\u003e relation -\u003e B 或 A | relation | B",
+                                         "desc_en":  "Import facts from text lines in A -\u003e relation -\u003e B or A | relation | B format",
+                                         "params":  [
+                                                        "text",
+                                                        "tags",
+                                                        "source"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "多行事实文本",
+                                                           "默认标签，可选",
+                                                           "来源说明，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Multi-line fact text",
+                                                              "Optional default tags",
+                                                              "Optional source"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "summarizeGraph",
+                                         "desc":  "统计本地知识图谱的事实数、常见关系、常见主体和标签分布",
+                                         "desc_en":  "Summarize graph size, top relations, top subjects, and tag distribution",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "deleteFact",
+                                         "desc":  "按事实 ID 删除一条记录",
+                                         "desc_en":  "Delete one fact by id",
+                                         "params":  [
+                                                        "id"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "事实 ID"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Fact id"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "clearGraph",
+                                         "desc":  "清空本地知识图谱，需要 confirm=true",
+                                         "desc_en":  "Clear the local ontology, requires confirm=true",
+                                         "params":  [
+                                                        "confirm"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "确认清空"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Confirmation flag"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 知识图谱界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Ontology UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  7
+                    },
+                    {
+                        "id":  "claw_humanizer",
+                        "name":  {
+                                     "zh":  "Claw 文本人味化",
+                                     "en":  "Claw Humanizer"
+                                 },
+                        "description":  {
+                                            "zh":  "基于宿主 LLM 的文本润色模块，将生硬、模板化或过度 AI 感的文字改写成更自然、可读、适合手机屏幕的表达。",
+                                            "en":  "LLM-backed text humanizer that rewrites stiff, templated, or AI-sounding copy into natural, readable mobile-friendly language."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "edit_note",
+                        "filename":  "claw_humanizer.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_humanizer",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_humanizer.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+                                             "llm"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "humanizeText",
+                                         "desc":  "调用宿主 LLM 改写文本，可指定风格、受众、语言和保真要求",
+                                         "desc_en":  "Rewrite text through the host LLM with style, audience, language, and meaning-preservation controls",
+                                         "params":  [
+                                                        "text",
+                                                        "style",
+                                                        "audience",
+                                                        "language",
+                                                        "preserveMeaning",
+                                                        "maxTokens"
+                                                    ],
+                                         "capabilities":  [
+                                                              "llm"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要改写的文本",
+                                                           "风格，如 natural/formal/casual/product/support",
+                                                           "目标受众，可选",
+                                                           "输出语言，默认 zh",
+                                                           "是否严格保留原意，默认 true",
+                                                           "最大输出 token，默认 768"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to rewrite",
+                                                              "Style such as natural/formal/casual/product/support",
+                                                              "Optional target audience",
+                                                              "Output language, default zh",
+                                                              "Whether to preserve meaning strictly, default true",
+                                                              "Maximum output tokens, default 768"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "makeNatural",
+                                         "desc":  "humanizeText 的便捷别名，默认输出自然口语化文本",
+                                         "desc_en":  "Convenience alias of humanizeText for natural conversational rewriting",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "capabilities":  [
+                                                              "llm"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要改写的文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to rewrite"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "scoreText",
+                                         "desc":  "不调用 LLM，给文本做可读性和模板化倾向的本地粗评",
+                                         "desc_en":  "Local heuristic readability and templated-copy scoring without LLM",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要评分的文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to score"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 文本人味化界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Humanizer UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  4
+                    },
+                    {
+                        "id":  "claw_doc_updater",
+                        "name":  {
+                                     "zh":  "Claw 文档更新助手",
+                                     "en":  "Claw Doc Updater"
+                                 },
+                        "description":  {
+                                            "zh":  "从 Auto Document Updater 思路改造的手机端文档更新模块，比较两版文本、生成变更摘要、更新计划和待办项。",
+                                            "en":  "Mobile doc update helper adapted from Auto Document Updater ideas. Compares text versions and generates change summaries, update plans, and todos."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "difference",
+                        "filename":  "claw_doc_updater.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_doc_updater",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_doc_updater.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "compareDocs",
+                                         "desc":  "比较旧版和新版文本，返回新增/删除/修改线索与 Markdown 变更摘要",
+                                         "desc_en":  "Compare old and new text and return added/removed/changed signals plus a Markdown changelog",
+                                         "params":  [
+                                                        "oldText",
+                                                        "newText",
+                                                        "title"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "旧版文本",
+                                                           "新版文本",
+                                                           "文档标题，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Old text",
+                                                              "New text",
+                                                              "Optional document title"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "generateUpdatePlan",
+                                         "desc":  "根据更新说明生成文档维护计划，适合 README/帮助文档/发布说明",
+                                         "desc_en":  "Generate a documentation maintenance plan from update notes",
+                                         "params":  [
+                                                        "notes",
+                                                        "audience",
+                                                        "docType"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "更新说明或需求",
+                                                           "目标读者，可选",
+                                                           "文档类型，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Update notes or requirements",
+                                                              "Optional audience",
+                                                              "Optional doc type"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "extractTodos",
+                                         "desc":  "从文档中提取 TODO、FIXME、待补充、未完成等待办项",
+                                         "desc_en":  "Extract TODO/FIXME/incomplete items from documentation text",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要扫描的文档文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Document text to scan"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 文档更新助手界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Doc Updater UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  4
+                    },
+                    {
+                        "id":  "claw_skill_discovery",
+                        "name":  {
+                                     "zh":  "Claw 技能发现",
+                                     "en":  "Claw Skill Discovery"
+                                 },
+                        "description":  {
+                                            "zh":  "基于 ClawHub 热门 skill/Top ClawHub Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
+                                            "en":  "Mobile skill discovery module inspired by ClawHub curation and Top ClawHub Skills. Supports top downloads, certified skills, newest skills, and keyword search."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "travel_explore",
+                        "filename":  "claw_skill_discovery.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_skill_discovery",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_skill_discovery.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+                                            {
+                                                "name":  "android.permission.INTERNET",
+                                                "desc":  "用于读取 ClawHub 热门技能数据",
+                                                "desc_en":  "Fetch ClawHub skill ranking data"
+                                            }
+                                        ],
+                        "capabilities":  [
+                                             "network"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "topDownloads",
+                                         "desc":  "查询 ClawHub 下载量靠前的 skill",
+                                         "desc_en":  "List ClawHub skills by top downloads",
+                                         "params":  [
+                                                        "limit"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "返回数量，默认 10，最大 50"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Result limit, default 10, max 50"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "certifiedSkills",
+                                         "desc":  "查询通过安全筛查的热门 skill",
+                                         "desc_en":  "List security-certified popular skills",
+                                         "params":  [
+                                                        "limit"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "返回数量，默认 10，最大 50"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Result limit, default 10, max 50"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "newestSkills",
+                                         "desc":  "查询最近新增的 skill",
+                                         "desc_en":  "List newest ClawHub skills",
+                                         "params":  [
+                                                        "limit"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "返回数量，默认 10，最大 50"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Result limit, default 10, max 50"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "searchSkills",
+                                         "desc":  "按关键词搜索 ClawHub skill",
+                                         "desc_en":  "Search ClawHub skills by keyword",
+                                         "params":  [
+                                                        "query",
+                                                        "limit"
+                                                    ],
+                                         "capabilities":  [
+                                                              "network"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "搜索关键词",
+                                                           "返回数量，默认 10，最大 50"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Search keyword",
+                                                              "Result limit, default 10, max 50"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 技能发现界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Skill Discovery UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  5
+                    },
+                    {
+                        "id":  "claw_workflow_planner",
+                        "name":  {
+                                     "zh":  "Claw 工作流规划器",
+                                     "en":  "Claw Workflow Planner"
+                                 },
+                        "description":  {
+                                            "zh":  "从 Automation Workflows / Proactive Agent 思路改造的规划模块，把目标整理成手机端可执行的步骤、模块建议和风险提示。",
+                                            "en":  "Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "account_tree",
+                        "filename":  "claw_workflow_planner.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_workflow_planner",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_workflow_planner.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+                                             "llm"
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "planWorkflow",
+                                         "desc":  "调用宿主 LLM，把目标拆成可执行步骤、建议模块、检查点和风险提示",
+                                         "desc_en":  "Use the host LLM to break a goal into steps, module suggestions, checkpoints, and risk notes",
+                                         "params":  [
+                                                        "goal",
+                                                        "constraints",
+                                                        "availableModules",
+                                                        "language",
+                                                        "maxTokens"
+                                                    ],
+                                         "capabilities":  [
+                                                              "llm"
+                                                          ],
+                                         "paramDesc":  [
+                                                           "目标",
+                                                           "约束条件，可选",
+                                                           "可用模块列表，可选",
+                                                           "输出语言，默认 zh",
+                                                           "最大输出 token，默认 768"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Goal",
+                                                              "Optional constraints",
+                                                              "Optional available modules",
+                                                              "Output language, default zh",
+                                                              "Maximum output tokens, default 768"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "makeChecklist",
+                                         "desc":  "不调用 LLM，把多行计划文本整理成检查清单",
+                                         "desc_en":  "Convert plain plan text into a checklist without LLM",
+                                         "params":  [
+                                                        "planText"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "计划文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Plan text"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "riskCheckPlan",
+                                         "desc":  "本地检查计划中是否包含删除、转账、外发密钥等高风险动作",
+                                         "desc_en":  "Locally check whether a plan contains risky actions such as deletion, payments, or secret sharing",
+                                         "params":  [
+                                                        "planText"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "计划文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Plan text"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 工作流规划器界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Workflow Planner UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  4
+                    },
+                    {
+                        "id":  "claw_prompt_shield",
+                        "name":  {
+                                     "zh":  "Claw 提示词安全盾",
+                                     "en":  "Claw Prompt Shield"
+                                 },
+                        "description":  {
+                                            "zh":  "从 SkillScan/Shield CN 思路改造的提示词安全模块，面向中文场景检查 prompt 注入、凭证泄露、外发数据和危险动作。",
+                                            "en":  "Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind."
+                                        },
+                        "version":  "1.0",
+                        "icon":  "shield",
+                        "filename":  "claw_prompt_shield.mod",
+                        "download_url":  [
+                                             "https://cf.pandagenie.ai/modules/download/claw_prompt_shield",
+                                             "https://github.com/Rorschach123/PandaGenieSource/raw/main/modules/claw_prompt_shield.mod"
+                                         ],
+                        "developer":  {
+                                          "name":  "claw"
+                                      },
+                        "permissions":  [
+
+                                        ],
+                        "capabilities":  [
+
+                                         ],
+                        "apis":  [
+                                     {
+                                         "name":  "scanPrompt",
+                                         "desc":  "扫描用户提示词、系统提示词或任务配置，返回风险等级和命中项",
+                                         "desc_en":  "Scan a user prompt, system prompt, or task config and return risk level plus findings",
+                                         "params":  [
+                                                        "text",
+                                                        "context"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要扫描的文本",
+                                                           "场景说明，可选"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to scan",
+                                                              "Optional context"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "redactSecrets",
+                                         "desc":  "对文本中的 API Key、Token、手机号、邮箱等敏感信息做脱敏",
+                                         "desc_en":  "Redact API keys, tokens, phone numbers, emails, and other sensitive values",
+                                         "params":  [
+                                                        "text"
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+                                                           "要脱敏的文本"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "Text to redact"
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "openPage",
+                                         "desc":  "打开 Claw 提示词安全盾界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Claw Prompt Shield UI and return _openModule signal",
+                                         "params":  [
+
+                                                    ],
+                                         "capabilities":  [
+
+                                                          ],
+                                         "paramDesc":  [
+
+                                                       ],
+                                         "paramDesc_en":  [
+
+                                                          ],
+                                         "openPage":  true,
+                                         "uiIntent":  "openPage"
+                                     }
+                                 ],
+                        "api_count":  3
                     }
                 ]
 }

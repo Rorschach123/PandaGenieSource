@@ -84,7 +84,7 @@ public class OcrPlugin implements ModulePlugin {
         }
 
         OcrResponse ocr = recognizeWithFallback(context, imagePath, ocrLang);
-        String recognized = ocr.text.trim();
+        String recognized = cleanRecognizedText(ocr.text);
 
         JSONObject out = new JSONObject();
         out.put("imagePath", imagePath);
@@ -387,6 +387,24 @@ public class OcrPlugin implements ModulePlugin {
         throw new IllegalArgumentException(decodeImageFailureMessage(imagePath));
     }
 
+    private static String cleanRecognizedText(String text) {
+        if (text == null || text.isEmpty()) return "";
+        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+        String[] lines = normalized.split("\n", -1);
+        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            String cleanedLine = line;
+            for (int i = 0; i < 3; i++) {
+                String next = cleanedLine.replaceFirst("^\\s*\\$\\s*\\{\\s*input_(?:file|image|audio)_\\d+\\s*\\}\\s*[:：,，;；|｜\\-–—]*\\s*", "");
+                if (next.equals(cleanedLine)) break;
+                cleanedLine = next;
+            }
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(cleanedLine);
+        }
+        return sb.toString().trim();
+    }
+
     private static String extensionOf(String path) {
         if (path == null) return "";
         String clean = path.trim();
@@ -553,14 +571,12 @@ public class OcrPlugin implements ModulePlugin {
                 {isZh() ? "\u65b9\u5f0f" : "Provider", provider},
                 {isZh() ? "\u5f15\u64ce" : "Engine", engine},
                 {isZh() ? "\u7f29\u653e" : "Max side", String.valueOf(maxSide)},
-                {isZh() ? "\u5b57\u6570" : "Characters", String.valueOf(recognized.length())},
-                {isZh() ? "\u56fe\u7247" : "Image", imagePath}
+                {isZh() ? "\u5b57\u6570" : "Characters", String.valueOf(recognized.length())}
         } : new String[][]{
                 {isZh() ? "\u8bed\u8a00" : "Language", ocrLang},
                 {isZh() ? "\u65b9\u5f0f" : "Provider", provider},
                 {isZh() ? "\u5f15\u64ce" : "Engine", engine},
-                {isZh() ? "\u5b57\u6570" : "Characters", String.valueOf(recognized.length())},
-                {isZh() ? "\u56fe\u7247" : "Image", imagePath}
+                {isZh() ? "\u5b57\u6570" : "Characters", String.valueOf(recognized.length())}
         };
         String body = HtmlOutputHelper.keyValue(rows) + HtmlOutputHelper.p(preview);
         return HtmlOutputHelper.card("\u2705", isZh() ? "\u6587\u5b57\u8bc6\u522b" : "Text recognized", body + HtmlOutputHelper.successBadge());

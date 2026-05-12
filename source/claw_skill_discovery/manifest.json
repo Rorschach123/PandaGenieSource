@@ -1,0 +1,84 @@
+{
+  "id": "claw_skill_discovery",
+  "name": "Claw 技能发现",
+  "name_en": "Claw Skill Discovery",
+  "description": "基于 ClawHub 热门 skill/Top ClawHub Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
+  "description_en": "Mobile skill discovery module inspired by ClawHub curation and Top ClawHub Skills. Supports top downloads, certified skills, newest skills, and keyword search.",
+  "version": "1.0",
+  "icon": "travel_explore",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.skilldiscovery.ClawSkillDiscoveryPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "network"
+  ],
+  "categories": [
+    "dev",
+    "network",
+    "community"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于读取 ClawHub 热门技能数据",
+      "desc_en": "Fetch ClawHub skill ranking data"
+    }
+  ],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "topDownloads",
+      "desc": "查询 ClawHub 下载量靠前的 skill",
+      "desc_en": "List ClawHub skills by top downloads",
+      "params": ["limit"],
+      "capabilities": ["network"],
+      "paramDesc": ["返回数量，默认 10，最大 50"],
+      "paramDesc_en": ["Result limit, default 10, max 50"]
+    },
+    {
+      "name": "certifiedSkills",
+      "desc": "查询通过安全筛查的热门 skill",
+      "desc_en": "List security-certified popular skills",
+      "params": ["limit"],
+      "capabilities": ["network"],
+      "paramDesc": ["返回数量，默认 10，最大 50"],
+      "paramDesc_en": ["Result limit, default 10, max 50"]
+    },
+    {
+      "name": "newestSkills",
+      "desc": "查询最近新增的 skill",
+      "desc_en": "List newest ClawHub skills",
+      "params": ["limit"],
+      "capabilities": ["network"],
+      "paramDesc": ["返回数量，默认 10，最大 50"],
+      "paramDesc_en": ["Result limit, default 10, max 50"]
+    },
+    {
+      "name": "searchSkills",
+      "desc": "按关键词搜索 ClawHub skill",
+      "desc_en": "Search ClawHub skills by keyword",
+      "params": ["query", "limit"],
+      "capabilities": ["network"],
+      "paramDesc": ["搜索关键词", "返回数量，默认 10，最大 50"],
+      "paramDesc_en": ["Search keyword", "Result limit, default 10, max 50"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 技能发现界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Skill Discovery UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

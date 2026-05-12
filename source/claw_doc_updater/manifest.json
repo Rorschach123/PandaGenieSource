@@ -1,0 +1,66 @@
+{
+  "id": "claw_doc_updater",
+  "name": "Claw 文档更新助手",
+  "name_en": "Claw Doc Updater",
+  "description": "从 Auto Document Updater 思路改造的手机端文档更新模块，比较两版文本、生成变更摘要、更新计划和待办项。",
+  "description_en": "Mobile doc update helper adapted from Auto Document Updater ideas. Compares text versions and generates change summaries, update plans, and todos.",
+  "version": "1.0",
+  "icon": "difference",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.docupdater.ClawDocUpdaterPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "categories": [
+    "document",
+    "productivity"
+  ],
+  "permissions": [],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "compareDocs",
+      "desc": "比较旧版和新版文本，返回新增/删除/修改线索与 Markdown 变更摘要",
+      "desc_en": "Compare old and new text and return added/removed/changed signals plus a Markdown changelog",
+      "params": ["oldText", "newText", "title"],
+      "capabilities": [],
+      "paramDesc": ["旧版文本", "新版文本", "文档标题，可选"],
+      "paramDesc_en": ["Old text", "New text", "Optional document title"]
+    },
+    {
+      "name": "generateUpdatePlan",
+      "desc": "根据更新说明生成文档维护计划，适合 README/帮助文档/发布说明",
+      "desc_en": "Generate a documentation maintenance plan from update notes",
+      "params": ["notes", "audience", "docType"],
+      "capabilities": [],
+      "paramDesc": ["更新说明或需求", "目标读者，可选", "文档类型，可选"],
+      "paramDesc_en": ["Update notes or requirements", "Optional audience", "Optional doc type"]
+    },
+    {
+      "name": "extractTodos",
+      "desc": "从文档中提取 TODO、FIXME、待补充、未完成等待办项",
+      "desc_en": "Extract TODO/FIXME/incomplete items from documentation text",
+      "params": ["text"],
+      "capabilities": [],
+      "paramDesc": ["要扫描的文档文本"],
+      "paramDesc_en": ["Document text to scan"]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 文档更新助手界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Doc Updater UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

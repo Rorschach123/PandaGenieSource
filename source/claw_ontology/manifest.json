@@ -1,0 +1,158 @@
+{
+  "id": "claw_ontology",
+  "name": "Claw 知识图谱",
+  "name_en": "Claw Ontology",
+  "description": "轻量本地知识图谱模块，在模块沙箱中记录 subject-relation-object 事实，支持查询、导入、删除和结构摘要。",
+  "description_en": "Lightweight local ontology module. Stores subject-relation-object facts in the module sandbox with query, import, delete, and summary actions.",
+  "version": "1.0",
+  "icon": "account_tree",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.ontology.ClawOntologyPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [],
+  "permissions": [],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "addFact",
+      "desc": "添加一个 subject-relation-object 事实，可附带类型、标签、置信度和来源",
+      "desc_en": "Add a subject-relation-object fact with optional type, tags, confidence, and source",
+      "params": [
+        "subject",
+        "relation",
+        "object",
+        "type",
+        "tags",
+        "confidence",
+        "source"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "主体",
+        "关系",
+        "客体",
+        "事实类型，可选",
+        "标签数组或逗号分隔字符串，可选",
+        "0-1 置信度，可选",
+        "来源说明，可选"
+      ],
+      "paramDesc_en": [
+        "Subject",
+        "Relation",
+        "Object",
+        "Optional fact type",
+        "Optional tag array or comma-separated string",
+        "Optional confidence from 0 to 1",
+        "Optional source"
+      ]
+    },
+    {
+      "name": "queryFacts",
+      "desc": "按关键词、主体、关系、客体或标签查询本地事实",
+      "desc_en": "Query local facts by keyword, subject, relation, object, or tag",
+      "params": [
+        "query",
+        "subject",
+        "relation",
+        "object",
+        "tag",
+        "limit"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "全文关键词，可选",
+        "主体过滤，可选",
+        "关系过滤，可选",
+        "客体过滤，可选",
+        "标签过滤，可选",
+        "返回数量，默认 20"
+      ],
+      "paramDesc_en": [
+        "Optional full-text keyword",
+        "Optional subject filter",
+        "Optional relation filter",
+        "Optional object filter",
+        "Optional tag filter",
+        "Result limit, default 20"
+      ]
+    },
+    {
+      "name": "importFacts",
+      "desc": "从多行文本批量导入事实，支持 A -> relation -> B 或 A | relation | B",
+      "desc_en": "Import facts from text lines in A -> relation -> B or A | relation | B format",
+      "params": [
+        "text",
+        "tags",
+        "source"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "多行事实文本",
+        "默认标签，可选",
+        "来源说明，可选"
+      ],
+      "paramDesc_en": [
+        "Multi-line fact text",
+        "Optional default tags",
+        "Optional source"
+      ]
+    },
+    {
+      "name": "summarizeGraph",
+      "desc": "统计本地知识图谱的事实数、常见关系、常见主体和标签分布",
+      "desc_en": "Summarize graph size, top relations, top subjects, and tag distribution",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": []
+    },
+    {
+      "name": "deleteFact",
+      "desc": "按事实 ID 删除一条记录",
+      "desc_en": "Delete one fact by id",
+      "params": [
+        "id"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "事实 ID"
+      ],
+      "paramDesc_en": [
+        "Fact id"
+      ]
+    },
+    {
+      "name": "clearGraph",
+      "desc": "清空本地知识图谱，需要 confirm=true",
+      "desc_en": "Clear the local ontology, requires confirm=true",
+      "params": [
+        "confirm"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "确认清空"
+      ],
+      "paramDesc_en": [
+        "Confirmation flag"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 知识图谱界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Ontology UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

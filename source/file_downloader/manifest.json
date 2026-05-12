@@ -1,0 +1,185 @@
+{
+  "id": "file_downloader",
+  "name": "文件下载器",
+  "name_en": "File Downloader",
+  "description": "文件下载模块，支持分析网页或直链中的可下载文件，构造可能存在的下载链接，并把选中的文件保存到 PandaGenie 下载目录。",
+  "description_en": "Download files by analyzing web pages or direct links, constructing likely download candidates, and saving selected files to the PandaGenie downloads folder.",
+  "version": "1.1",
+  "icon": "download",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.file_downloader.FileDownloaderPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "network",
+    "file_write"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于访问网页、检查下载链接并下载文件",
+      "desc_en": "Access web pages, inspect download URLs, and download files"
+    }
+  ],
+  "developer": {
+    "name": "PandaGenie Official",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "analyzeDownloadCandidates",
+      "desc": "分析网页或直链中可能存在的下载文件。适合用户说“解析这个链接里可下载的文件”“看看这个页面下有哪些安装包/文档/压缩包”。会抓取页面、提取 href/src/download 按钮，识别 PDF/ZIP/APK/文档/媒体等直链；如果用户给了 fileName 或 extensions，会基于当前链接目录构造可能存在的下载 URL，并用 HEAD/GET 轻量探测可访问性。需要下载时，先调用本接口选择候选，再调用 downloadFile；如果用户让你直接下载最佳文件，可调用 downloadBestCandidate。",
+      "desc_en": "Analyze a page or direct URL for downloadable files. Use this when the user asks to parse a link and find packages, documents, archives, media, etc. It extracts href/src/download buttons, detects direct file URLs, and when fileName or extensions are provided, constructs likely download URLs from the current URL directory and lightly probes them. To download, call this first then downloadFile; if the user asks to download the best match directly, call downloadBestCandidate.",
+      "params": [
+        "url",
+        "fileName",
+        "extensions",
+        "keywords",
+        "probe",
+        "maxCandidates"
+      ],
+      "capabilities": [
+        "network"
+      ],
+      "paramDesc": [
+        "要分析的网页地址或文件直链，支持 http/https；如果用户只给域名也可传入",
+        "可选，用户期望的文件名或文件名前缀，例如 app-release.apk、manual、report；传入后会在链接所在目录下构造候选下载链接",
+        "可选，期望文件扩展名数组或逗号分隔字符串，例如 apk,pdf,zip,docx；未提供时默认覆盖常见文档、压缩包、安装包、图片、音视频",
+        "可选，筛选关键词数组或逗号分隔字符串，例如 下载,release,manual；用于提高候选排序",
+        "是否探测候选链接状态，默认 true；为 true 时会返回 statusCode/contentType/fileSize 等",
+        "最多返回候选数量，默认 20，最大 80"
+      ],
+      "paramDesc_en": [
+        "Page URL or direct file URL, http/https only",
+        "Optional expected file name or prefix such as app-release.apk, manual, report; used to construct candidates under the URL directory",
+        "Optional expected extensions as array or comma-separated string, such as apk,pdf,zip,docx",
+        "Optional keywords as array or comma-separated string, such as download, release, manual; used for ranking",
+        "Probe candidate status, default true",
+        "Maximum candidates to return, default 20, max 80"
+      ]
+    },
+    {
+      "name": "downloadFile",
+      "desc": "下载指定文件 URL 到本地。适合已经从 analyzeDownloadCandidates/link_parser.extractDownloads 得到明确 url 后调用。默认保存到 /sdcard/PandaGenie/downloads；不要把网页 URL 直接传来下载，除非它本身就是文件直链。",
+      "desc_en": "Download a specific file URL. Use after analyzeDownloadCandidates or link_parser.extractDownloads returns a clear file URL. Defaults to /sdcard/PandaGenie/downloads; do not pass a normal HTML page unless it is itself a direct file URL.",
+      "params": [
+        "url",
+        "outputDir",
+        "fileName",
+        "overwrite",
+        "maxBytes"
+      ],
+      "capabilities": [
+        "network",
+        "file_write"
+      ],
+      "paramDesc": [
+        "要下载的文件 URL，必须是 http/https",
+        "保存目录，默认 /sdcard/PandaGenie/downloads；用户指定目录时必须传目录路径",
+        "可选保存文件名；不传则从 Content-Disposition 或 URL 自动推断",
+        "同名文件是否覆盖，默认 false；false 时自动追加 (1)、(2)",
+        "最大允许下载字节数，默认 104857600(100MB)，防止误下超大文件；传 0 表示不限制"
+      ],
+      "paramDesc_en": [
+        "File URL to download, http/https only",
+        "Output directory, default /sdcard/PandaGenie/downloads",
+        "Optional output file name; inferred from Content-Disposition or URL when empty",
+        "Overwrite existing file, default false; false auto-appends (1), (2)",
+        "Maximum bytes, default 100MB; 0 means unlimited"
+      ]
+    },
+    {
+      "name": "downloadBestCandidate",
+      "desc": "从网页或链接中自动分析并下载最匹配的文件。适合用户说“打开这个链接，找到里面的安装包/文档并下载”。内部会先执行候选分析，优先选择状态可访问、扩展名匹配、文件名/按钮文案匹配关键词的候选，再调用下载。若结果不确定或候选很多，建议先只调用 analyzeDownloadCandidates 给用户确认。",
+      "desc_en": "Analyze a page/link and download the best matching file. Use when the user asks to open a link, find the APK/document/archive, and download it. Internally analyzes candidates, ranks accessible URLs with matching extension/name/button text, then downloads. If many candidates are ambiguous, call analyzeDownloadCandidates first for confirmation.",
+      "params": [
+        "url",
+        "fileName",
+        "extensions",
+        "keywords",
+        "outputDir",
+        "overwrite",
+        "maxBytes"
+      ],
+      "capabilities": [
+        "network",
+        "file_write"
+      ],
+      "paramDesc": [
+        "要分析并下载的网页地址或直链",
+        "可选，期望文件名或前缀，例如 app-release.apk、说明书、report",
+        "可选，期望扩展名，例如 apk,pdf,zip,docx；用户说安装包时传 apk，说压缩包时传 zip,rar,7z",
+        "可选，关键词，例如 下载,release,manual,arm64，用于排序",
+        "保存目录，默认 /sdcard/PandaGenie/downloads",
+        "同名文件是否覆盖，默认 false",
+        "最大允许下载字节数，默认 104857600(100MB)，0 表示不限制"
+      ],
+      "paramDesc_en": [
+        "Page URL or direct URL to analyze and download",
+        "Optional expected file name or prefix",
+        "Optional expected extensions; use apk for app package, zip/rar/7z for archive, etc.",
+        "Optional ranking keywords such as download, release, manual, arm64",
+        "Output directory, default /sdcard/PandaGenie/downloads",
+        "Overwrite existing file, default false",
+        "Maximum bytes, default 100MB, 0 means unlimited"
+      ]
+    },
+    {
+      "name": "getDownloadInfo",
+      "desc": "检查单个下载链接，返回重定向后的最终 URL、状态码、Content-Type、文件大小和推断文件名。适合下载前确认链接是否真的是文件。",
+      "desc_en": "Inspect a single download URL and return final URL, status code, Content-Type, file size, and inferred file name. Use before downloading to verify it is really a file.",
+      "params": [
+        "url"
+      ],
+      "capabilities": [
+        "network"
+      ],
+      "paramDesc": [
+        "要检查的 http/https 链接"
+      ],
+      "paramDesc_en": [
+        "HTTP/HTTPS URL to inspect"
+      ]
+    },
+    {
+      "name": "batchDownload",
+      "desc": "批量下载多个明确的文件 URL。仅在已经有多个直链时使用；如果只有网页地址，应先调用 analyzeDownloadCandidates。",
+      "desc_en": "Download multiple clear file URLs. Use only when direct URLs are already known; if only a page URL is provided, call analyzeDownloadCandidates first.",
+      "params": [
+        "urls",
+        "outputDir",
+        "overwrite",
+        "maxBytes"
+      ],
+      "capabilities": [
+        "network",
+        "file_write"
+      ],
+      "paramDesc": [
+        "文件 URL 数组，最多 10 个",
+        "保存目录，默认 /sdcard/PandaGenie/downloads",
+        "同名文件是否覆盖，默认 false",
+        "每个文件最大允许下载字节数，默认 104857600(100MB)，0 表示不限制"
+      ],
+      "paramDesc_en": [
+        "Array of file URLs, max 10",
+        "Output directory, default /sdcard/PandaGenie/downloads",
+        "Overwrite existing files, default false",
+        "Maximum bytes per file, default 100MB, 0 means unlimited"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开文件下载器界面并返回 _openModule 信号",
+      "desc_en": "Open File Downloader UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

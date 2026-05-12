@@ -1,0 +1,101 @@
+{
+  "id": "claw_humanizer",
+  "name": "Claw 文本人味化",
+  "name_en": "Claw Humanizer",
+  "description": "基于宿主 LLM 的文本润色模块，将生硬、模板化或过度 AI 感的文字改写成更自然、可读、适合手机屏幕的表达。",
+  "description_en": "LLM-backed text humanizer that rewrites stiff, templated, or AI-sounding copy into natural, readable mobile-friendly language.",
+  "version": "1.0",
+  "icon": "edit_note",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.humanizer.ClawHumanizerPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "llm"
+  ],
+  "permissions": [],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "humanizeText",
+      "desc": "调用宿主 LLM 改写文本，可指定风格、受众、语言和保真要求",
+      "desc_en": "Rewrite text through the host LLM with style, audience, language, and meaning-preservation controls",
+      "params": [
+        "text",
+        "style",
+        "audience",
+        "language",
+        "preserveMeaning",
+        "maxTokens"
+      ],
+      "capabilities": [
+        "llm"
+      ],
+      "paramDesc": [
+        "要改写的文本",
+        "风格，如 natural/formal/casual/product/support",
+        "目标受众，可选",
+        "输出语言，默认 zh",
+        "是否严格保留原意，默认 true",
+        "最大输出 token，默认 768"
+      ],
+      "paramDesc_en": [
+        "Text to rewrite",
+        "Style such as natural/formal/casual/product/support",
+        "Optional target audience",
+        "Output language, default zh",
+        "Whether to preserve meaning strictly, default true",
+        "Maximum output tokens, default 768"
+      ]
+    },
+    {
+      "name": "makeNatural",
+      "desc": "humanizeText 的便捷别名，默认输出自然口语化文本",
+      "desc_en": "Convenience alias of humanizeText for natural conversational rewriting",
+      "params": [
+        "text"
+      ],
+      "capabilities": [
+        "llm"
+      ],
+      "paramDesc": [
+        "要改写的文本"
+      ],
+      "paramDesc_en": [
+        "Text to rewrite"
+      ]
+    },
+    {
+      "name": "scoreText",
+      "desc": "不调用 LLM，给文本做可读性和模板化倾向的本地粗评",
+      "desc_en": "Local heuristic readability and templated-copy scoring without LLM",
+      "params": [
+        "text"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "要评分的文本"
+      ],
+      "paramDesc_en": [
+        "Text to score"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw 文本人味化界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Humanizer UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+

@@ -52,7 +52,7 @@ public class TranslatorPlugin implements ModulePlugin {
         try {
             JSONObject params = new JSONObject(paramsJson == null || paramsJson.trim().isEmpty() ? "{}" : paramsJson);
             switch (action) {
-                case "translate":              return translate(params);
+                case "translate":              return translate(context, params);
                 case "translateWithLlm":       return translateWithLlm(context, params);
                 case "detectLanguage":         return detectLanguage(params);
                 case "getSupportedLanguages":  return getSupportedLanguages();
@@ -73,7 +73,7 @@ public class TranslatorPlugin implements ModulePlugin {
         }
     }
 
-    private String translate(JSONObject params) throws Exception {
+    private String translate(Context context, JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
         if (text.isEmpty()) throw new IllegalArgumentException(isZh() ? "请提供要翻译的文本" : "text is required");
 
@@ -84,14 +84,18 @@ public class TranslatorPlugin implements ModulePlugin {
         }
 
         String from = params.optString("from", "").trim().toLowerCase(Locale.ROOT);
-        String toRaw = params.optString("to", "").trim().toLowerCase(Locale.ROOT);
+        String toRawOriginal = params.optString("to", "").trim();
 
         if (from.isEmpty()) {
             from = detectLangCode(text);
         }
 
+        if (shouldUseLlmForTarget(toRawOriginal, from)) {
+            return translateWithLlm(context, params);
+        }
+
         // Support batch: "to" can be comma-separated, e.g. "en,ja,ko" or "all"
-        String[] targets = parseTargetLanguages(toRaw, from);
+        String[] targets = parseTargetLanguages(toRawOriginal.toLowerCase(Locale.ROOT), from);
 
         if (targets.length == 1) {
             return translateSingle(text, from, targets[0]);
@@ -106,21 +110,24 @@ public class TranslatorPlugin implements ModulePlugin {
 
         String from = params.optString("from", "").trim().toLowerCase(Locale.ROOT);
         if (from.isEmpty() || "auto".equals(from)) from = detectLangCode(text);
-        String toRaw = params.optString("to", "").trim().toLowerCase(Locale.ROOT);
-        String[] targets = parseTargetLanguages(toRaw, from);
-        String to = targets.length > 0 ? targets[0] : (from.equals("en") ? "zh" : "en");
+        String toRaw = params.optString("to", "").trim();
+        TargetLanguage target = resolveLlmTarget(toRaw, from);
+        String to = target.code;
         String tone = params.optString("tone", "").trim();
         String instruction = params.optString("instruction", "").trim();
         int maxInputChars = Math.max(500, Math.min(params.optInt("maxInputChars", 8000), 12000));
         String clipped = text.length() > maxInputChars ? text.substring(0, maxInputChars) : text;
 
         String fromName = getLangName(from);
-        String toName = getLangName(to);
+        String toName = target.displayName;
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are PandaGenie Translator. Translate the source text accurately and naturally.\n")
                 .append("Source language: ").append(fromName).append(" (").append(from).append(")\n")
-                .append("Target language: ").append(toName).append(" (").append(to).append(")\n")
+                .append("Target language: ").append(target.promptName).append(" (").append(to).append(")\n")
                 .append("Preserve names, numbers, URLs, code, and file paths. Return only the translated text.\n");
+        if (target.llmOnly) {
+            prompt.append("The requested target is a regional, dialect, or non-standard language label. Follow that requested variety instead of falling back to a generic language.\n");
+        }
         if (!tone.isEmpty()) prompt.append("Tone/style: ").append(tone).append("\n");
         if (!instruction.isEmpty()) prompt.append("Extra instruction: ").append(instruction).append("\n");
         prompt.append("\nSOURCE TEXT:\n").append(clipped);
@@ -160,6 +167,186 @@ public class TranslatorPlugin implements ModulePlugin {
         return successResponse(out, display, displayHtml);
     }
 
+    private static final class TargetLanguage {
+        final String code;
+        final String displayName;
+        final String promptName;
+        final boolean llmOnly;
+
+        TargetLanguage(String code, String displayName, String promptName, boolean llmOnly) {
+            this.code = code;
+            this.displayName = displayName;
+            this.promptName = promptName;
+            this.llmOnly = llmOnly;
+        }
+    }
+
+    private boolean shouldUseLlmForTarget(String raw, String from) {
+        String value = raw == null ? "" : raw.trim();
+        if (value.isEmpty() || value.equalsIgnoreCase("all") || value.equals("*")) return false;
+        String[] parts = value.split("[,;\\s/|]+");
+        for (String part : parts) {
+            if (part.trim().isEmpty()) continue;
+            if (normalizeDialectLanguageCode(part) != null) return true;
+            String direct = normalizeDirectLanguageCode(part);
+            if (direct == null || !LANGUAGES.containsKey(direct)) return true;
+        }
+        return false;
+    }
+
+    private TargetLanguage resolveLlmTarget(String raw, String from) {
+        String value = raw == null ? "" : raw.trim();
+        String dialect = normalizeDialectLanguageCode(value);
+        if (dialect != null) return dialectTarget(dialect, value);
+
+        String direct = normalizeDirectLanguageCode(value);
+        if (direct != null && LANGUAGES.containsKey(direct) && !direct.equals(from)) {
+            String[] names = LANGUAGES.get(direct);
+            String display = isZh() ? names[0] : names[1];
+            return new TargetLanguage(direct, display, names[0] + " / " + names[1], false);
+        }
+
+        if (!value.isEmpty() && !value.equalsIgnoreCase("all") && !value.equals("*")) {
+            return new TargetLanguage(value, value, value, true);
+        }
+
+        String fallback = from.equals("en") ? "zh" : "en";
+        String[] names = LANGUAGES.get(fallback);
+        String display = isZh() ? names[0] : names[1];
+        return new TargetLanguage(fallback, display, names[0] + " / " + names[1], false);
+    }
+
+    private TargetLanguage dialectTarget(String code, String raw) {
+        switch (code) {
+            case "es-AR": return namedDialect(code, "阿根廷西班牙语", "Argentine Spanish");
+            case "es-419": return namedDialect(code, "拉丁美洲西班牙语", "Latin American Spanish");
+            case "es-MX": return namedDialect(code, "墨西哥西班牙语", "Mexican Spanish");
+            case "pt-BR": return namedDialect(code, "巴西葡萄牙语", "Brazilian Portuguese");
+            case "pt-PT": return namedDialect(code, "欧洲葡萄牙语", "European Portuguese");
+            case "zh-Hant": return namedDialect(code, "繁体中文", "Traditional Chinese");
+            case "zh-TW": return namedDialect(code, "台湾中文", "Taiwan Mandarin");
+            case "yue": return namedDialect(code, "粤语", "Cantonese");
+            case "en-US": return namedDialect(code, "美式英语", "American English");
+            case "en-GB": return namedDialect(code, "英式英语", "British English");
+            default: return new TargetLanguage(code, raw, raw, true);
+        }
+    }
+
+    private TargetLanguage namedDialect(String code, String zhName, String enName) {
+        return new TargetLanguage(code, isZh() ? zhName : enName, zhName + " / " + enName, true);
+    }
+
+    private String normalizeDialectLanguageCode(String raw) {
+        if (raw == null) return null;
+        String lower = raw.trim().toLowerCase(Locale.ROOT);
+        String compact = compactLanguageToken(raw);
+        if (compact.isEmpty()) return null;
+        if (compact.equals("esar") || compact.contains("argentin") || compact.contains("阿根廷")) return "es-AR";
+        if (compact.equals("es419") || compact.contains("latinamericanspanish") || compact.contains("latamspanish")
+                || compact.contains("拉美西班牙语") || compact.contains("拉丁美洲西班牙语")) return "es-419";
+        if (compact.equals("esmx") || compact.contains("mexicanspanish") || compact.contains("墨西哥西班牙语")) return "es-MX";
+        if (compact.equals("ptbr") || compact.contains("brazilianportuguese") || compact.contains("巴西葡萄牙语")) return "pt-BR";
+        if (compact.equals("ptpt") || compact.contains("europeanportuguese") || compact.contains("葡萄牙葡萄牙语") || compact.contains("欧洲葡萄牙语")) return "pt-PT";
+        if (compact.equals("zhhant") || compact.contains("traditionalchinese") || compact.contains("繁体中文") || compact.contains("繁體中文")) return "zh-Hant";
+        if (compact.equals("zhtw") || compact.contains("taiwanmandarin") || compact.contains("taiwanchinese") || compact.contains("台湾中文") || compact.contains("臺灣中文")) return "zh-TW";
+        if (compact.equals("yue") || compact.contains("cantonese") || compact.contains("粤语") || compact.contains("粵語") || compact.contains("广东话") || compact.contains("廣東話")) return "yue";
+        if (compact.equals("enus") || compact.contains("americanenglish") || compact.contains("美式英语") || compact.contains("美式英文")) return "en-US";
+        if (compact.equals("engb") || compact.contains("britishenglish") || compact.contains("英式英语") || compact.contains("英式英文")) return "en-GB";
+        if (lower.contains("rioplatense")) return "es-AR";
+        return null;
+    }
+
+    private String normalizeDirectLanguageCode(String raw) {
+        if (raw == null) return null;
+        String value = raw.trim();
+        if (value.isEmpty()) return null;
+        String lower = value.toLowerCase(Locale.ROOT);
+        if (LANGUAGES.containsKey(lower)) return lower;
+        for (Map.Entry<String, String[]> entry : LANGUAGES.entrySet()) {
+            String[] names = entry.getValue();
+            if (value.equals(names[0]) || lower.equals(names[1].toLowerCase(Locale.ROOT))) return entry.getKey();
+        }
+        switch (compactLanguageToken(value)) {
+            case "cn":
+            case "zhcn":
+            case "chinese":
+            case "mandarin":
+            case "中文":
+            case "汉语":
+            case "普通话":
+                return "zh";
+            case "english":
+            case "英文":
+            case "英语":
+                return "en";
+            case "japanese":
+            case "日文":
+            case "日语":
+                return "ja";
+            case "korean":
+            case "韩文":
+            case "韩语":
+                return "ko";
+            case "french":
+            case "法文":
+            case "法语":
+                return "fr";
+            case "german":
+            case "德文":
+            case "德语":
+                return "de";
+            case "spanish":
+            case "espanol":
+            case "español":
+            case "西语":
+            case "西班牙语":
+                return "es";
+            case "portuguese":
+            case "葡语":
+            case "葡萄牙语":
+                return "pt";
+            case "russian":
+            case "俄文":
+            case "俄语":
+                return "ru";
+            case "italian":
+            case "意大利语":
+                return "it";
+            case "arabic":
+            case "阿拉伯语":
+                return "ar";
+            case "thai":
+            case "泰语":
+                return "th";
+            case "vietnamese":
+            case "越南语":
+                return "vi";
+            case "dutch":
+            case "荷兰语":
+                return "nl";
+            case "polish":
+            case "波兰语":
+                return "pl";
+            case "turkish":
+            case "土耳其语":
+                return "tr";
+            default:
+                return null;
+        }
+    }
+
+    private static String compactLanguageToken(String raw) {
+        return raw.trim()
+                .toLowerCase(Locale.ROOT)
+                .replace("-", "")
+                .replace("_", "")
+                .replace(" ", "")
+                .replace("（", "")
+                .replace("）", "")
+                .replace("(", "")
+                .replace(")", "");
+    }
+
     private String[] parseTargetLanguages(String toRaw, String from) {
         if (toRaw.isEmpty()) {
             return new String[]{ from.equals("en") ? "zh" : "en" };
@@ -175,8 +362,8 @@ public class TranslatorPlugin implements ModulePlugin {
         String[] parts = toRaw.split("[,;\\s/|]+");
         java.util.List<String> valid = new java.util.ArrayList<>();
         for (String p : parts) {
-            String code = p.trim();
-            if (!code.isEmpty() && LANGUAGES.containsKey(code) && !code.equals(from)) {
+            String code = normalizeDirectLanguageCode(p.trim());
+            if (code != null && !code.isEmpty() && LANGUAGES.containsKey(code) && !code.equals(from)) {
                 valid.add(code);
             }
         }

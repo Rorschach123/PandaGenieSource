@@ -1,0 +1,111 @@
+{
+  "id": "claw_skill_vetter",
+  "name": "Claw Skill 体检",
+  "name_en": "Claw Skill Vetter",
+  "description": "面向 ClawHub/Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
+  "description_en": "Lightweight security vetter for ClawHub/Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks.",
+  "version": "1.0",
+  "icon": "security",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.claw.skillvetter.ClawSkillVetterPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "file_read",
+    "network"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于按用户给定 URL 拉取 skill 文本进行体检",
+      "desc_en": "Fetch user-provided skill URLs for vetting"
+    }
+  ],
+  "developer": {
+    "name": "claw",
+    "email": "",
+    "url": "https://clawhub.ai/"
+  },
+  "apis": [
+    {
+      "name": "vetText",
+      "desc": "扫描一段 skill 文本或提示词，返回风险等级、命中项和整改建议",
+      "desc_en": "Scan skill text or a prompt and return risk level, findings, and recommendations",
+      "params": [
+        "text",
+        "name"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "要扫描的 skill 文本",
+        "可选名称，用于结果展示"
+      ],
+      "paramDesc_en": [
+        "Skill text to scan",
+        "Optional display name"
+      ]
+    },
+    {
+      "name": "vetFile",
+      "desc": "读取并扫描本地 skill 文件，适合检查 SKILL.md、脚本片段或 manifest",
+      "desc_en": "Read and scan a local skill file such as SKILL.md, script snippets, or manifests",
+      "params": [
+        "path"
+      ],
+      "capabilities": [
+        "file_read"
+      ],
+      "paramDesc": [
+        "本地文件路径，最大读取 512KB"
+      ],
+      "paramDesc_en": [
+        "Local file path, up to 512KB"
+      ]
+    },
+    {
+      "name": "vetUrl",
+      "desc": "从 URL 拉取 skill 文本后扫描，适合检查公开的 raw 文档或代码片段",
+      "desc_en": "Fetch and scan skill text from a URL, useful for public raw docs or snippets",
+      "params": [
+        "url"
+      ],
+      "capabilities": [
+        "network"
+      ],
+      "paramDesc": [
+        "http/https URL，最大读取 512KB"
+      ],
+      "paramDesc_en": [
+        "http/https URL, up to 512KB"
+      ]
+    },
+    {
+      "name": "extractFindings",
+      "desc": "vetText 的别名，用于只提取风险命中项",
+      "desc_en": "Alias of vetText for extracting risk findings",
+      "params": [
+        "text"
+      ],
+      "capabilities": [],
+      "paramDesc": [
+        "要扫描的文本"
+      ],
+      "paramDesc_en": [
+        "Text to scan"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开 Claw Skill 体检界面并返回 _openModule 信号",
+      "desc_en": "Open Claw Skill Vetter UI and return _openModule signal",
+      "params": [],
+      "capabilities": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}
+
