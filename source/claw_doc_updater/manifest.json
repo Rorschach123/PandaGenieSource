@@ -1,10 +1,10 @@
 {
   "id": "claw_doc_updater",
-  "name": "Claw 文档更新助手",
-  "name_en": "Claw Doc Updater",
+  "name": "文档更新助手",
+  "name_en": "Doc Updater",
   "description": "从 Auto Document Updater 思路改造的手机端文档更新模块，比较两版文本、生成变更摘要、更新计划和待办项。",
   "description_en": "Mobile doc update helper adapted from Auto Document Updater ideas. Compares text versions and generates change summaries, update plans, and todos.",
-  "version": "1.0",
+    "version": "1.0.4",
   "icon": "difference",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -52,8 +52,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 文档更新助手界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Doc Updater UI and return _openModule signal",
+      "desc": "打开文档更新助手界面并返回 _openModule 信号",
+      "desc_en": "Open Doc Updater UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -63,4 +63,3 @@
     }
   ]
 }
-

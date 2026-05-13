@@ -823,6 +823,14 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
             if ($m.permissions) { $perms = @($m.permissions) }
             $caps = @()
             if ($m.capabilities) { $caps = @($m.capabilities) }
+            $cats = @()
+            if ($m.categories) {
+                $cats = @($m.categories | Where-Object {
+                    $_ -ne $null -and
+                    "$_".Trim() -ne "" -and
+                    "$_".Trim().ToLowerInvariant() -notin @("null", "none", "undefined", "na", "n/a")
+                })
+            }
             $apis = @()
             if ($m.apis) { $apis = @($m.apis) }
 
@@ -834,6 +842,7 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                 $modEntry.developer = [PSCustomObject]@{ name = $devName }
                 $modEntry.permissions = $perms
                 $modEntry.capabilities = $caps
+                $modEntry | Add-Member -NotePropertyName categories -NotePropertyValue $cats -Force
                 $modEntry.apis = $apis
                 $modEntry.api_count = $apis.Count
                 Write-Host "  + Synced $modId metadata in modules.json" -ForegroundColor Green
@@ -853,6 +862,7 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                     developer = [PSCustomObject]@{ name = $devName }
                     permissions = $perms
                     capabilities = $caps
+                    categories = $cats
                     apis = $apis
                     api_count = $apis.Count
                 }

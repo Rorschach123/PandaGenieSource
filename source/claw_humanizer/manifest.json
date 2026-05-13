@@ -1,10 +1,10 @@
 {
   "id": "claw_humanizer",
-  "name": "Claw 文本人味化",
-  "name_en": "Claw Humanizer",
+  "name": "文本人味化",
+  "name_en": "Humanizer",
   "description": "基于宿主 LLM 的文本润色模块，将生硬、模板化或过度 AI 感的文字改写成更自然、可读、适合手机屏幕的表达。",
   "description_en": "LLM-backed text humanizer that rewrites stiff, templated, or AI-sounding copy into natural, readable mobile-friendly language.",
-  "version": "1.0",
+    "version": "1.0.4",
   "icon": "edit_note",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -13,6 +13,10 @@
   "soLoadMode": "skip",
   "capabilities": [
     "llm"
+  ],
+  "categories": [
+    "document",
+    "productivity"
   ],
   "permissions": [],
   "developer": {
@@ -87,8 +91,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 文本人味化界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Humanizer UI and return _openModule signal",
+      "desc": "打开文本人味化界面并返回 _openModule 信号",
+      "desc_en": "Open Humanizer UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -98,4 +102,3 @@
     }
   ]
 }
-

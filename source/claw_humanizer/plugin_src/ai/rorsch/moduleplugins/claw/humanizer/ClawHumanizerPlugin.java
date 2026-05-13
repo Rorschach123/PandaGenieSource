@@ -36,7 +36,7 @@ public class ClawHumanizerPlugin implements ModulePlugin {
 
     private String humanize(Context context, JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
-        if (text.isEmpty()) throw new IllegalArgumentException("text is required");
+        if (text.isEmpty()) return humanizeDemo(params);
         if (text.length() > MAX_INPUT_CHARS) text = text.substring(0, MAX_INPUT_CHARS);
 
         String style = firstNonEmpty(params.optString("style", ""), "natural");
@@ -80,16 +80,39 @@ public class ClawHumanizerPlugin implements ModulePlugin {
                 .put("before", before)
                 .put("after", after)
                 .put("usage", llm.optJSONObject("usage"));
-        return ok(out, rewritten, formatRewriteHtml(out));
+        return ok(out, formatRewriteText(out), formatRewriteHtml(out));
     }
 
     private String score(JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
-        if (text.isEmpty()) throw new IllegalArgumentException("text is required");
+        boolean demo = text.isEmpty();
+        if (demo) {
+            text = "综上所述，本功能旨在为用户提供极具价值且高效便捷的体验，需要注意的是，使用前请充分了解所有相关事项。";
+        }
         JSONObject out = analyze(text)
                 .put("module", "claw_humanizer")
+                .put("demo", demo)
                 .put("text", text);
         return ok(out, formatScoreText(out), formatScoreHtml(out));
+    }
+
+    private String humanizeDemo(JSONObject params) throws Exception {
+        String style = firstNonEmpty(params.optString("style", ""), "natural");
+        String language = firstNonEmpty(params.optString("language", ""), "zh");
+        String text = "综上所述，本功能旨在为用户提供极具价值且高效便捷的体验，需要注意的是，使用前请充分了解所有相关事项。";
+        String rewritten = "这个功能会把生硬的说明改得更自然，也更适合在手机上读。使用前看一下关键限制就行。";
+        JSONObject out = new JSONObject()
+                .put("module", "claw_humanizer")
+                .put("demo", true)
+                .put("style", style)
+                .put("audience", params.optString("audience", ""))
+                .put("language", language)
+                .put("preserveMeaning", true)
+                .put("originalText", text)
+                .put("rewrittenText", rewritten)
+                .put("before", analyze(text))
+                .put("after", analyze(rewritten));
+        return ok(out, formatRewriteText(out), formatRewriteHtml(out));
     }
 
     private JSONObject analyze(String text) throws Exception {
@@ -176,41 +199,127 @@ public class ClawHumanizerPlugin implements ModulePlugin {
     }
 
     private String formatRewriteHtml(JSONObject out) {
+        boolean zh = prefersZh(out.optString("language", ""));
         JSONObject before = out.optJSONObject("before");
         JSONObject after = out.optJSONObject("after");
-        String body = HtmlOutputHelper.badge("LLM", "blue")
+        String beforeScore = before != null ? before.optInt("naturalnessScore") + "/100" : "-";
+        String afterScore = after != null ? after.optInt("naturalnessScore") + "/100" : "-";
+        String body = HtmlOutputHelper.badge(out.optBoolean("demo", false) ? (zh ? "示例" : "Demo") : "LLM", "blue")
                 + HtmlOutputHelper.keyValue(new String[][]{
-                {"Style", out.optString("style", "natural")},
-                {"Language", out.optString("language", "zh")},
-                {"Before", before != null ? before.optInt("naturalnessScore") + "/100" : "-"},
-                {"After", after != null ? after.optInt("naturalnessScore") + "/100" : "-"}
+                {zh ? "风格" : "Style", styleName(out.optString("style", "natural"), zh)},
+                {zh ? "语言" : "Language", languageName(out.optString("language", "zh"), zh)}
         })
-                + HtmlOutputHelper.p(out.optString("rewrittenText", ""));
-        return HtmlOutputHelper.card("TXT", "Claw Humanizer", body);
+                + HtmlOutputHelper.metricGrid(new String[][]{
+                {beforeScore, zh ? "改写前自然度" : "Before"},
+                {afterScore, zh ? "改写后自然度" : "After"}
+        })
+                + sectionHtml(zh ? "改写结果" : "Rewritten text",
+                HtmlOutputHelper.p(out.optString("rewrittenText", "")));
+        return HtmlOutputHelper.card(zh ? "写" : "TX", zh ? "文本润色结果" : "Humanized Text", body);
     }
 
     private String formatScoreHtml(JSONObject out) {
+        boolean zh = isZh();
         String body = HtmlOutputHelper.badge(out.optString("readability", "-"), colorFor(out.optInt("naturalnessScore")))
                 + HtmlOutputHelper.keyValue(new String[][]{
-                {"Score", out.optInt("naturalnessScore") + "/100"},
-                {"Chars", String.valueOf(out.optInt("chars"))},
-                {"Sentences", String.valueOf(out.optInt("sentences"))},
-                {"Long sentences", String.valueOf(out.optInt("longSentences"))},
-                {"Template markers", String.valueOf(out.optJSONArray("templatedMarkers") != null ? out.optJSONArray("templatedMarkers").length() : 0)}
+                {zh ? "自然度" : "Score", out.optInt("naturalnessScore") + "/100"},
+                {zh ? "字数" : "Chars", String.valueOf(out.optInt("chars"))},
+                {zh ? "句子数" : "Sentences", String.valueOf(out.optInt("sentences"))},
+                {zh ? "长句" : "Long sentences", String.valueOf(out.optInt("longSentences"))},
+                {zh ? "模板化痕迹" : "Template markers", String.valueOf(out.optJSONArray("templatedMarkers") != null ? out.optJSONArray("templatedMarkers").length() : 0)}
         });
-        return HtmlOutputHelper.card("TXT", "Claw Humanizer Score", body);
+        return HtmlOutputHelper.card(zh ? "评" : "TX", zh ? "文本自然度评分" : "Humanizer Score", body);
+    }
+
+    private String formatRewriteText(JSONObject out) {
+        boolean zh = prefersZh(out.optString("language", ""));
+        JSONObject before = out.optJSONObject("before");
+        JSONObject after = out.optJSONObject("after");
+        StringBuilder sb = new StringBuilder();
+        if (zh) {
+            sb.append("文本已润色完成\n");
+            sb.append("风格：").append(styleName(out.optString("style", "natural"), true)).append("\n");
+            if (before != null && after != null) {
+                sb.append("自然度：").append(before.optInt("naturalnessScore")).append("/100 -> ")
+                        .append(after.optInt("naturalnessScore")).append("/100\n");
+            }
+            sb.append("\n改写结果：\n").append(out.optString("rewrittenText", ""));
+        } else {
+            sb.append("Text humanized\n");
+            sb.append("Style: ").append(styleName(out.optString("style", "natural"), false)).append("\n");
+            if (before != null && after != null) {
+                sb.append("Naturalness: ").append(before.optInt("naturalnessScore")).append("/100 -> ")
+                        .append(after.optInt("naturalnessScore")).append("/100\n");
+            }
+            sb.append("\nResult:\n").append(out.optString("rewrittenText", ""));
+        }
+        return sb.toString();
     }
 
     private String formatScoreText(JSONObject out) {
+        boolean zh = isZh();
         List<String> markers = new ArrayList<>();
         JSONArray arr = out.optJSONArray("templatedMarkers");
         if (arr != null) {
             for (int i = 0; i < arr.length(); i++) markers.add(arr.optString(i));
         }
+        if (zh) {
+            return "文本自然度：" + out.optInt("naturalnessScore") + "/100"
+                    + "\n可读性：" + readabilityName(out.optString("readability"), true)
+                    + "\n长句数量：" + out.optInt("longSentences")
+                    + "\n模板化痕迹：" + (markers.isEmpty() ? "未发现" : join(markers, "、"));
+        }
         return "Naturalness: " + out.optInt("naturalnessScore") + "/100"
                 + "\nReadability: " + out.optString("readability")
                 + "\nLong sentences: " + out.optInt("longSentences")
                 + "\nTemplate markers: " + (markers.isEmpty() ? "-" : join(markers, ", "));
+    }
+
+    private boolean prefersZh(String language) {
+        String lang = language == null ? "" : language.trim().toLowerCase(Locale.ROOT);
+        return lang.startsWith("zh") || (lang.isEmpty() && isZh());
+    }
+
+    private boolean isZh() {
+        return Locale.getDefault().getLanguage().startsWith("zh");
+    }
+
+    private String sectionHtml(String title, String bodyHtml) {
+        return "<div class='pg-section'><div class='pg-section-title'>" + escHtml(title)
+                + "</div>" + bodyHtml + "</div>";
+    }
+
+    private String escHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String styleName(String style, boolean zh) {
+        if (!zh) return style;
+        String s = style == null ? "" : style.toLowerCase(Locale.ROOT);
+        if ("formal".equals(s)) return "正式";
+        if ("casual".equals(s)) return "口语";
+        if ("product".equals(s)) return "产品说明";
+        if ("support".equals(s)) return "客服沟通";
+        return "自然";
+    }
+
+    private String languageName(String language, boolean zh) {
+        if (!zh) return language;
+        String s = language == null ? "" : language.toLowerCase(Locale.ROOT);
+        if (s.startsWith("en")) return "英文";
+        if (s.startsWith("zh")) return "中文";
+        return language;
+    }
+
+    private String readabilityName(String readability, boolean zh) {
+        if (!zh) return readability;
+        if ("natural".equals(readability)) return "自然";
+        if ("mostly_natural".equals(readability)) return "基本自然";
+        if ("needs_polish".equals(readability)) return "需要润色";
+        if ("stiff_or_templated".equals(readability)) return "生硬或模板化";
+        return readability;
     }
 
     private String colorFor(int score) {
@@ -254,4 +363,3 @@ public class ClawHumanizerPlugin implements ModulePlugin {
         return value == null || value.trim().isEmpty() ? "{}" : value;
     }
 }
-

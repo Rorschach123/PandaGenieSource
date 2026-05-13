@@ -34,6 +34,14 @@ public final class HtmlOutputHelper {
                 .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
+    public static boolean isZh() {
+        return Locale.getDefault().getLanguage().startsWith("zh");
+    }
+
+    public static String escape(String s) {
+        return esc(s);
+    }
+
     /** Wrap content in a card with optional icon + title. */
     public static String card(String icon, String title, String bodyHtml) {
         StringBuilder sb = new StringBuilder();
@@ -74,7 +82,7 @@ public final class HtmlOutputHelper {
 
     /** HTML table with headers and rows. */
     public static String table(String[] headers, List<String[]> rows) {
-        StringBuilder sb = new StringBuilder("<table class='pg-table'><thead><tr>");
+        StringBuilder sb = new StringBuilder("<div class='pg-table-scroll'><table class='pg-table'><thead><tr>");
         for (String h : headers) {
             sb.append("<th>").append(esc(h)).append("</th>");
         }
@@ -86,8 +94,44 @@ public final class HtmlOutputHelper {
             }
             sb.append("</tr>");
         }
-        sb.append("</tbody></table>");
+        sb.append("</tbody></table></div>");
         return sb.toString();
+    }
+
+    public static String section(String title, String bodyHtml) {
+        return "<div class='pg-section'><div class='pg-section-title'>" + esc(title) +
+                "</div>" + bodyHtml + "</div>";
+    }
+
+    public static String callout(String title, String text, String type) {
+        String cls = "pg-callout";
+        if ("warn".equals(type)) cls += " warn";
+        if ("err".equals(type)) cls += " err";
+        StringBuilder sb = new StringBuilder("<div class='").append(cls).append("'>");
+        if (title != null && !title.isEmpty()) {
+            sb.append("<div class='pg-section-title'>").append(esc(title)).append("</div>");
+        }
+        sb.append("<div>").append(esc(text)).append("</div></div>");
+        return sb.toString();
+    }
+
+    public static String item(String title, String meta, String text) {
+        StringBuilder sb = new StringBuilder("<div class='pg-item'>");
+        if (title != null && !title.isEmpty()) {
+            sb.append("<div class='pg-item-title'>").append(esc(title)).append("</div>");
+        }
+        if (meta != null && !meta.isEmpty()) {
+            sb.append("<div class='pg-item-meta'>").append(esc(meta)).append("</div>");
+        }
+        if (text != null && !text.isEmpty()) {
+            sb.append("<div>").append(esc(text)).append("</div>");
+        }
+        sb.append("</div>");
+        return sb.toString();
+    }
+
+    public static String pre(String text) {
+        return "<div class='pg-code'>" + esc(text) + "</div>";
     }
 
     /** Inline colored badge. colorClass: "green", "orange", "red", "blue". */

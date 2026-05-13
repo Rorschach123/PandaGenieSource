@@ -1,10 +1,10 @@
 {
   "id": "claw_ontology",
-  "name": "Claw 知识图谱",
-  "name_en": "Claw Ontology",
+  "name": "知识图谱",
+  "name_en": "Ontology",
   "description": "轻量本地知识图谱模块，在模块沙箱中记录 subject-relation-object 事实，支持查询、导入、删除和结构摘要。",
   "description_en": "Lightweight local ontology module. Stores subject-relation-object facts in the module sandbox with query, import, delete, and summary actions.",
-  "version": "1.0",
+    "version": "1.0.4",
   "icon": "account_tree",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -12,6 +12,10 @@
   "pluginClass": "ai.rorsch.moduleplugins.claw.ontology.ClawOntologyPlugin",
   "soLoadMode": "skip",
   "capabilities": [],
+  "categories": [
+    "data",
+    "productivity"
+  ],
   "permissions": [],
   "developer": {
     "name": "claw",
@@ -144,8 +148,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 知识图谱界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Ontology UI and return _openModule signal",
+      "desc": "打开知识图谱界面并返回 _openModule 信号",
+      "desc_en": "Open Ontology UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -155,4 +159,3 @@
     }
   ]
 }
-

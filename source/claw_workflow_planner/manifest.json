@@ -1,10 +1,10 @@
 {
   "id": "claw_workflow_planner",
-  "name": "Claw 工作流规划器",
-  "name_en": "Claw Workflow Planner",
+  "name": "工作流规划器",
+  "name_en": "Workflow Planner",
   "description": "从 Automation Workflows / Proactive Agent 思路改造的规划模块，把目标整理成手机端可执行的步骤、模块建议和风险提示。",
   "description_en": "Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes.",
-  "version": "1.0",
+    "version": "1.0.4",
   "icon": "account_tree",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -54,8 +54,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 工作流规划器界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Workflow Planner UI and return _openModule signal",
+      "desc": "打开工作流规划器界面并返回 _openModule 信号",
+      "desc_en": "Open Workflow Planner UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -65,4 +65,3 @@
     }
   ]
 }
-

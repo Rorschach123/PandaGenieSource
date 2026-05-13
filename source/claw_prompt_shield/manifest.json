@@ -1,10 +1,10 @@
 {
   "id": "claw_prompt_shield",
-  "name": "Claw 提示词安全盾",
-  "name_en": "Claw Prompt Shield",
+  "name": "提示词安全盾",
+  "name_en": "Prompt Shield",
   "description": "从 SkillScan/Shield CN 思路改造的提示词安全模块，面向中文场景检查 prompt 注入、凭证泄露、外发数据和危险动作。",
   "description_en": "Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind.",
-  "version": "1.0",
+    "version": "1.0.4",
   "icon": "shield",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -43,8 +43,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 提示词安全盾界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Prompt Shield UI and return _openModule signal",
+      "desc": "打开提示词安全盾界面并返回 _openModule 信号",
+      "desc_en": "Open Prompt Shield UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -54,4 +54,3 @@
     }
   ]
 }
-

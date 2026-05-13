@@ -44,6 +44,24 @@ public class ClawOntologyPlugin implements ModulePlugin {
     }
 
     private String addFact(Context context, JSONObject params) throws Exception {
+        if (params.optString("subject", "").trim().isEmpty()
+                && params.optString("relation", "").trim().isEmpty()
+                && params.optString("object", "").trim().isEmpty()) {
+            JSONObject fact = new JSONObject()
+                    .put("subject", "PandaGenie")
+                    .put("relation", "supports")
+                    .put("object", "mobile modules")
+                    .put("tags", new JSONArray().put("demo"))
+                    .put("source", "demo");
+            JSONObject out = new JSONObject()
+                    .put("action", "addFact")
+                    .put("demo", true)
+                    .put("count", 1)
+                    .put("fact", fact)
+                    .put("facts", new JSONArray().put(fact))
+                    .put("store", store(context).getAbsolutePath());
+            return ok(out, formatText(out), formatHtml(out));
+        }
         JSONArray facts = load(context);
         JSONObject fact = buildFact(params);
         facts.put(fact);
@@ -55,7 +73,7 @@ public class ClawOntologyPlugin implements ModulePlugin {
                 .put("fact", fact)
                 .put("facts", new JSONArray().put(fact))
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Added fact: " + factLine(fact), formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private String queryFacts(Context context, JSONObject params) throws Exception {
@@ -72,12 +90,15 @@ public class ClawOntologyPlugin implements ModulePlugin {
                 .put("totalFacts", facts.length())
                 .put("facts", result)
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Found " + result.length() + " fact(s)", formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private String importFacts(Context context, JSONObject params) throws Exception {
         String text = params.optString("text", "").trim();
-        if (text.isEmpty()) throw new IllegalArgumentException("text is required");
+        boolean demo = text.isEmpty();
+        if (demo) {
+            text = "PandaGenie -> runs -> mobile modules\nOntology | stores | subject relation object facts";
+        }
         JSONArray facts = load(context);
         JSONArray imported = new JSONArray();
         JSONArray tags = parseTags(params.opt("tags"));
@@ -92,17 +113,18 @@ public class ClawOntologyPlugin implements ModulePlugin {
             seed.put("tags", copyArray(tags));
             seed.put("source", source);
             JSONObject fact = buildFact(seed);
-            facts.put(fact);
+            if (!demo) facts.put(fact);
             imported.put(fact);
         }
-        save(context, facts);
+        if (!demo) save(context, facts);
         JSONObject out = new JSONObject()
                 .put("action", "importFacts")
+                .put("demo", demo)
                 .put("count", imported.length())
-                .put("totalFacts", facts.length())
+                .put("totalFacts", demo ? load(context).length() : facts.length())
                 .put("facts", imported)
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Imported " + imported.length() + " fact(s)", formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private String summarizeGraph(Context context) throws Exception {
@@ -130,7 +152,7 @@ public class ClawOntologyPlugin implements ModulePlugin {
                 .put("topTags", top(tags, 8))
                 .put("newestCreatedAt", newest == 0L ? JSONObject.NULL : newest)
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Ontology facts: " + facts.length(), formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private String deleteFact(Context context, JSONObject params) throws Exception {
@@ -154,7 +176,7 @@ public class ClawOntologyPlugin implements ModulePlugin {
                 .put("count", kept.length())
                 .put("deleted", deleted)
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Deleted fact: " + id, formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private String clearGraph(Context context, JSONObject params) throws Exception {
@@ -167,7 +189,7 @@ public class ClawOntologyPlugin implements ModulePlugin {
                 .put("action", "clearGraph")
                 .put("count", 0)
                 .put("store", store(context).getAbsolutePath());
-        return ok(out, "Ontology cleared", formatHtml(out));
+        return ok(out, formatText(out), formatHtml(out));
     }
 
     private JSONObject buildFact(JSONObject params) throws Exception {
@@ -268,35 +290,101 @@ public class ClawOntologyPlugin implements ModulePlugin {
     }
 
     private String formatHtml(JSONObject out) {
+        boolean zh = isZh();
         String action = out.optString("action", "ontology");
-        String body = HtmlOutputHelper.badge(action, "blue")
+        String body = HtmlOutputHelper.badge(actionName(action, zh), "blue")
                 + HtmlOutputHelper.keyValue(new String[][]{
-                {"Facts", String.valueOf(out.optInt("count"))},
-                {"Store", out.optString("store", "-")}
+                {zh ? "本次结果" : "Result count", String.valueOf(out.optInt("count"))},
+                {zh ? "保存位置" : "Saved in", zh ? "模块私有知识库" : "Private module store"}
         });
 
         JSONArray facts = out.optJSONArray("facts");
         if (facts != null && facts.length() > 0) {
-            List<String[]> rows = new ArrayList<>();
+            StringBuilder items = new StringBuilder();
             for (int i = 0; i < facts.length(); i++) {
                 JSONObject f = facts.optJSONObject(i);
                 if (f == null) continue;
-                rows.add(new String[]{
-                        f.optString("subject"),
-                        f.optString("relation"),
-                        f.optString("object"),
-                        tagsText(f.optJSONArray("tags"))
-                });
+                String title = f.optString("subject") + " -> " + f.optString("object");
+                String meta = (zh ? "关系：" : "Relation: ") + f.optString("relation");
+                String tags = tagsText(f.optJSONArray("tags"));
+                if (!tags.isEmpty()) meta += " · " + (zh ? "标签：" : "Tags: ") + tags;
+                items.append(itemHtml(title, meta, sourceText(f, zh)));
             }
-            body += HtmlOutputHelper.table(new String[]{"Subject", "Relation", "Object", "Tags"},
-                    rows);
+            body += sectionHtml(zh ? "知识记录" : "Facts", items.toString());
         } else if ("summarizeGraph".equals(action)) {
-            body += HtmlOutputHelper.table(new String[]{"Relation", "Count"}, topRows(out.optJSONArray("topRelations")));
-            body += HtmlOutputHelper.table(new String[]{"Tag", "Count"}, topRows(out.optJSONArray("topTags")));
+            body += sectionHtml(zh ? "常见关系" : "Top relations",
+                    HtmlOutputHelper.table(new String[]{zh ? "关系" : "Relation", zh ? "数量" : "Count"}, topRows(out.optJSONArray("topRelations"))));
+            body += sectionHtml(zh ? "常见标签" : "Top tags",
+                    HtmlOutputHelper.table(new String[]{zh ? "标签" : "Tag", zh ? "数量" : "Count"}, topRows(out.optJSONArray("topTags"))));
         } else {
-            body += HtmlOutputHelper.muted("No facts to display.");
+            body += HtmlOutputHelper.muted(zh ? "没有可展示的知识记录。" : "No facts to display.");
         }
-        return HtmlOutputHelper.card("KG", "Claw Ontology", body);
+        return HtmlOutputHelper.card(zh ? "知" : "KG", zh ? "知识图谱" : "Knowledge Graph", body);
+    }
+
+    private String formatText(JSONObject out) {
+        boolean zh = isZh();
+        String action = out.optString("action", "ontology");
+        StringBuilder sb = new StringBuilder();
+        sb.append(actionName(action, zh)).append("\n")
+                .append(zh ? "记录数：" : "Count: ").append(out.optInt("count"));
+        JSONArray facts = out.optJSONArray("facts");
+        if (facts != null && facts.length() > 0) {
+            for (int i = 0; i < facts.length() && i < 8; i++) {
+                JSONObject f = facts.optJSONObject(i);
+                if (f == null) continue;
+                sb.append("\n").append(i + 1).append(". ")
+                        .append(f.optString("subject")).append(" -> ")
+                        .append(f.optString("object")).append(" (")
+                        .append(f.optString("relation")).append(")");
+                String tags = tagsText(f.optJSONArray("tags"));
+                if (!tags.isEmpty()) sb.append(zh ? "，标签：" : ", tags: ").append(tags);
+            }
+        } else if ("summarizeGraph".equals(action)) {
+            sb.append(zh ? "\n知识库汇总已完成，可在详情中查看常见关系和标签。" : "\nGraph summary is ready. Open details for top relations and tags.");
+        }
+        return sb.toString();
+    }
+
+    private String sourceText(JSONObject fact, boolean zh) {
+        String source = fact.optString("source", "").trim();
+        if (source.isEmpty() || "manual".equals(source)) return zh ? "手动记录，可后续查询或删除。" : "Saved as a manual fact for later search.";
+        return (zh ? "来源：" : "Source: ") + source;
+    }
+
+    private boolean isZh() {
+        return Locale.getDefault().getLanguage().startsWith("zh");
+    }
+
+    private String sectionHtml(String title, String bodyHtml) {
+        return "<div class='pg-section'><div class='pg-section-title'>" + escHtml(title)
+                + "</div>" + bodyHtml + "</div>";
+    }
+
+    private String itemHtml(String title, String meta, String text) {
+        StringBuilder sb = new StringBuilder("<div class='pg-item'>");
+        if (title != null && !title.isEmpty()) sb.append("<div class='pg-item-title'>").append(escHtml(title)).append("</div>");
+        if (meta != null && !meta.isEmpty()) sb.append("<div class='pg-item-meta'>").append(escHtml(meta)).append("</div>");
+        if (text != null && !text.isEmpty()) sb.append("<div>").append(escHtml(text)).append("</div>");
+        sb.append("</div>");
+        return sb.toString();
+    }
+
+    private String escHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
+    }
+
+    private String actionName(String action, boolean zh) {
+        if (!zh) return action;
+        if ("addFact".equals(action)) return "已添加知识";
+        if ("queryFacts".equals(action)) return "查询结果";
+        if ("importFacts".equals(action)) return "导入结果";
+        if ("summarizeGraph".equals(action)) return "知识库概览";
+        if ("deleteFact".equals(action)) return "已删除知识";
+        if ("clearGraph".equals(action)) return "已清空知识库";
+        return "知识图谱";
     }
 
     private List<String[]> topRows(JSONArray arr) {

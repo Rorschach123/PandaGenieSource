@@ -1,10 +1,10 @@
 {
   "id": "claw_skill_vetter",
-  "name": "Claw Skill 体检",
-  "name_en": "Claw Skill Vetter",
-  "description": "面向 ClawHub/Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
-  "description_en": "Lightweight security vetter for ClawHub/Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks.",
-  "version": "1.0",
+  "name": "Skill 体检",
+  "name_en": "Skill Vetter",
+  "description": "面向 Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
+  "description_en": "Lightweight security vetter for Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks.",
+    "version": "1.0.4",
   "icon": "security",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -14,6 +14,11 @@
   "capabilities": [
     "file_read",
     "network"
+  ],
+  "categories": [
+    "security",
+    "review",
+    "dev"
   ],
   "permissions": [
     {
@@ -97,8 +102,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw Skill 体检界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Skill Vetter UI and return _openModule signal",
+      "desc": "打开 Skill 体检界面并返回 _openModule 信号",
+      "desc_en": "Open Skill Vetter UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -108,4 +113,3 @@
     }
   ]
 }
-

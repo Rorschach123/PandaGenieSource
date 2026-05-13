@@ -1,10 +1,10 @@
 {
   "id": "claw_skill_discovery",
-  "name": "Claw 技能发现",
-  "name_en": "Claw Skill Discovery",
-  "description": "基于 ClawHub 热门 skill/Top ClawHub Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
-  "description_en": "Mobile skill discovery module inspired by ClawHub curation and Top ClawHub Skills. Supports top downloads, certified skills, newest skills, and keyword search.",
-  "version": "1.0",
+  "name": "技能发现",
+  "name_en": "Skill Discovery",
+  "description": "基于热门 skill/Top Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
+  "description_en": "Mobile skill discovery module inspired by curated Top Skills. Supports top downloads, certified skills, newest skills, and keyword search.",
+    "version": "1.0.4",
   "icon": "travel_explore",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -22,8 +22,8 @@
   "permissions": [
     {
       "name": "android.permission.INTERNET",
-      "desc": "用于读取 ClawHub 热门技能数据",
-      "desc_en": "Fetch ClawHub skill ranking data"
+      "desc": "用于读取热门技能数据",
+      "desc_en": "Fetch skill ranking data"
     }
   ],
   "developer": {
@@ -34,8 +34,8 @@
   "apis": [
     {
       "name": "topDownloads",
-      "desc": "查询 ClawHub 下载量靠前的 skill",
-      "desc_en": "List ClawHub skills by top downloads",
+      "desc": "查询下载量靠前的 skill",
+      "desc_en": "List skills by top downloads",
       "params": ["limit"],
       "capabilities": ["network"],
       "paramDesc": ["返回数量，默认 10，最大 50"],
@@ -53,7 +53,7 @@
     {
       "name": "newestSkills",
       "desc": "查询最近新增的 skill",
-      "desc_en": "List newest ClawHub skills",
+      "desc_en": "List newest skills",
       "params": ["limit"],
       "capabilities": ["network"],
       "paramDesc": ["返回数量，默认 10，最大 50"],
@@ -61,8 +61,8 @@
     },
     {
       "name": "searchSkills",
-      "desc": "按关键词搜索 ClawHub skill",
-      "desc_en": "Search ClawHub skills by keyword",
+      "desc": "按关键词搜索 skill",
+      "desc_en": "Search skills by keyword",
       "params": ["query", "limit"],
       "capabilities": ["network"],
       "paramDesc": ["搜索关键词", "返回数量，默认 10，最大 50"],
@@ -70,8 +70,8 @@
     },
     {
       "name": "openPage",
-      "desc": "打开 Claw 技能发现界面并返回 _openModule 信号",
-      "desc_en": "Open Claw Skill Discovery UI and return _openModule signal",
+      "desc": "打开技能发现界面并返回 _openModule 信号",
+      "desc_en": "Open Skill Discovery UI and return _openModule signal",
       "params": [],
       "capabilities": [],
       "paramDesc": [],
@@ -81,4 +81,3 @@
     }
   ]
 }
-

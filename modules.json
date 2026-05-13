@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-12",
+    "updated_at":  "2026-05-13",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -6932,14 +6932,14 @@
                     {
                         "id":  "claw_skill_vetter",
                         "name":  {
-                                     "zh":  "Claw Skill 体检",
-                                     "en":  "Claw Skill Vetter"
+                                     "zh":  "Skill 体检",
+                                     "en":  "Skill Vetter"
                                  },
                         "description":  {
-                                            "zh":  "面向 ClawHub/Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
-                                            "en":  "Lightweight security vetter for ClawHub/Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks."
+                                            "zh":  "面向 Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。",
+                                            "en":  "Lightweight security vetter for Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "security",
                         "filename":  "claw_skill_vetter.mod",
                         "download_url":  [
@@ -7034,8 +7034,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw Skill 体检界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Skill Vetter UI and return _openModule signal",
+                                         "desc":  "打开 Skill 体检界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Skill Vetter UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7052,19 +7052,24 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  5
+                        "api_count":  5,
+                        "categories":  [
+                                           "security",
+                                           "review",
+                                           "dev"
+                                       ]
                     },
                     {
                         "id":  "claw_ontology",
                         "name":  {
-                                     "zh":  "Claw 知识图谱",
-                                     "en":  "Claw Ontology"
+                                     "zh":  "知识图谱",
+                                     "en":  "Ontology"
                                  },
                         "description":  {
                                             "zh":  "轻量本地知识图谱模块，在模块沙箱中记录 subject-relation-object 事实，支持查询、导入、删除和结构摘要。",
                                             "en":  "Lightweight local ontology module. Stores subject-relation-object facts in the module sandbox with query, import, delete, and summary actions."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "account_tree",
                         "filename":  "claw_ontology.mod",
                         "download_url":  [
@@ -7224,8 +7229,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 知识图谱界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Ontology UI and return _openModule signal",
+                                         "desc":  "打开知识图谱界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Ontology UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7242,19 +7247,23 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  7
+                        "api_count":  7,
+                        "categories":  [
+                                           "data",
+                                           "productivity"
+                                       ]
                     },
                     {
                         "id":  "claw_humanizer",
                         "name":  {
-                                     "zh":  "Claw 文本人味化",
-                                     "en":  "Claw Humanizer"
+                                     "zh":  "文本人味化",
+                                     "en":  "Humanizer"
                                  },
                         "description":  {
                                             "zh":  "基于宿主 LLM 的文本润色模块，将生硬、模板化或过度 AI 感的文字改写成更自然、可读、适合手机屏幕的表达。",
                                             "en":  "LLM-backed text humanizer that rewrites stiff, templated, or AI-sounding copy into natural, readable mobile-friendly language."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "edit_note",
                         "filename":  "claw_humanizer.mod",
                         "download_url":  [
@@ -7339,8 +7348,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 文本人味化界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Humanizer UI and return _openModule signal",
+                                         "desc":  "打开文本人味化界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Humanizer UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7357,19 +7366,23 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  4
+                        "api_count":  4,
+                        "categories":  [
+                                           "document",
+                                           "productivity"
+                                       ]
                     },
                     {
                         "id":  "claw_doc_updater",
                         "name":  {
-                                     "zh":  "Claw 文档更新助手",
-                                     "en":  "Claw Doc Updater"
+                                     "zh":  "文档更新助手",
+                                     "en":  "Doc Updater"
                                  },
                         "description":  {
                                             "zh":  "从 Auto Document Updater 思路改造的手机端文档更新模块，比较两版文本、生成变更摘要、更新计划和待办项。",
                                             "en":  "Mobile doc update helper adapted from Auto Document Updater ideas. Compares text versions and generates change summaries, update plans, and todos."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "difference",
                         "filename":  "claw_doc_updater.mod",
                         "download_url":  [
@@ -7451,8 +7464,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 文档更新助手界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Doc Updater UI and return _openModule signal",
+                                         "desc":  "打开文档更新助手界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Doc Updater UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7469,19 +7482,23 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  4
+                        "api_count":  4,
+                        "categories":  [
+                                           "document",
+                                           "productivity"
+                                       ]
                     },
                     {
                         "id":  "claw_skill_discovery",
                         "name":  {
-                                     "zh":  "Claw 技能发现",
-                                     "en":  "Claw Skill Discovery"
+                                     "zh":  "技能发现",
+                                     "en":  "Skill Discovery"
                                  },
                         "description":  {
-                                            "zh":  "基于 ClawHub 热门 skill/Top ClawHub Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
-                                            "en":  "Mobile skill discovery module inspired by ClawHub curation and Top ClawHub Skills. Supports top downloads, certified skills, newest skills, and keyword search."
+                                            "zh":  "基于热门 skill/Top Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。",
+                                            "en":  "Mobile skill discovery module inspired by curated Top Skills. Supports top downloads, certified skills, newest skills, and keyword search."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "travel_explore",
                         "filename":  "claw_skill_discovery.mod",
                         "download_url":  [
@@ -7494,8 +7511,8 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.INTERNET",
-                                                "desc":  "用于读取 ClawHub 热门技能数据",
-                                                "desc_en":  "Fetch ClawHub skill ranking data"
+                                                "desc":  "用于读取热门技能数据",
+                                                "desc_en":  "Fetch skill ranking data"
                                             }
                                         ],
                         "capabilities":  [
@@ -7504,8 +7521,8 @@
                         "apis":  [
                                      {
                                          "name":  "topDownloads",
-                                         "desc":  "查询 ClawHub 下载量靠前的 skill",
-                                         "desc_en":  "List ClawHub skills by top downloads",
+                                         "desc":  "查询下载量靠前的 skill",
+                                         "desc_en":  "List skills by top downloads",
                                          "params":  [
                                                         "limit"
                                                     ],
@@ -7539,7 +7556,7 @@
                                      {
                                          "name":  "newestSkills",
                                          "desc":  "查询最近新增的 skill",
-                                         "desc_en":  "List newest ClawHub skills",
+                                         "desc_en":  "List newest skills",
                                          "params":  [
                                                         "limit"
                                                     ],
@@ -7555,8 +7572,8 @@
                                      },
                                      {
                                          "name":  "searchSkills",
-                                         "desc":  "按关键词搜索 ClawHub skill",
-                                         "desc_en":  "Search ClawHub skills by keyword",
+                                         "desc":  "按关键词搜索 skill",
+                                         "desc_en":  "Search skills by keyword",
                                          "params":  [
                                                         "query",
                                                         "limit"
@@ -7575,8 +7592,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 技能发现界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Skill Discovery UI and return _openModule signal",
+                                         "desc":  "打开技能发现界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Skill Discovery UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7593,19 +7610,24 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  5
+                        "api_count":  5,
+                        "categories":  [
+                                           "dev",
+                                           "network",
+                                           "community"
+                                       ]
                     },
                     {
                         "id":  "claw_workflow_planner",
                         "name":  {
-                                     "zh":  "Claw 工作流规划器",
-                                     "en":  "Claw Workflow Planner"
+                                     "zh":  "工作流规划器",
+                                     "en":  "Workflow Planner"
                                  },
                         "description":  {
                                             "zh":  "从 Automation Workflows / Proactive Agent 思路改造的规划模块，把目标整理成手机端可执行的步骤、模块建议和风险提示。",
                                             "en":  "Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "account_tree",
                         "filename":  "claw_workflow_planner.mod",
                         "download_url":  [
@@ -7687,8 +7709,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 工作流规划器界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Workflow Planner UI and return _openModule signal",
+                                         "desc":  "打开工作流规划器界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Workflow Planner UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7705,19 +7727,23 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  4
+                        "api_count":  4,
+                        "categories":  [
+                                           "automation",
+                                           "productivity"
+                                       ]
                     },
                     {
                         "id":  "claw_prompt_shield",
                         "name":  {
-                                     "zh":  "Claw 提示词安全盾",
-                                     "en":  "Claw Prompt Shield"
+                                     "zh":  "提示词安全盾",
+                                     "en":  "Prompt Shield"
                                  },
                         "description":  {
                                             "zh":  "从 SkillScan/Shield CN 思路改造的提示词安全模块，面向中文场景检查 prompt 注入、凭证泄露、外发数据和危险动作。",
                                             "en":  "Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind."
                                         },
-                        "version":  "1.0",
+                        "version":  "1.0.4",
                         "icon":  "shield",
                         "filename":  "claw_prompt_shield.mod",
                         "download_url":  [
@@ -7773,8 +7799,8 @@
                                      },
                                      {
                                          "name":  "openPage",
-                                         "desc":  "打开 Claw 提示词安全盾界面并返回 _openModule 信号",
-                                         "desc_en":  "Open Claw Prompt Shield UI and return _openModule signal",
+                                         "desc":  "打开提示词安全盾界面并返回 _openModule 信号",
+                                         "desc_en":  "Open Prompt Shield UI and return _openModule signal",
                                          "params":  [
 
                                                     ],
@@ -7791,7 +7817,11 @@
                                          "uiIntent":  "openPage"
                                      }
                                  ],
-                        "api_count":  3
+                        "api_count":  3,
+                        "categories":  [
+                                           "security",
+                                           "review"
+                                       ]
                     }
                 ]
 }
