@@ -36,6 +36,8 @@
     <div class="feature-item"><span class="emoji">🔊</span><span data-i18n="feat_volume"></span></div>
     <div class="feature-item"><span class="emoji">🎚️</span><span data-i18n="feat_adjust"></span></div>
     <div class="feature-item"><span class="emoji">🧭</span><span data-i18n="feat_summary"></span></div>
+    <div class="feature-item"><span class="emoji">📶</span><span data-i18n="feat_wifi"></span></div>
+    <div class="feature-item"><span class="emoji">🟦</span><span data-i18n="feat_bluetooth"></span></div>
   </div>
 </div>
 
@@ -51,6 +53,13 @@
     <li><span class="api-name">increaseVolume(delta)</span><span data-i18n="api_inc_volume"></span></li>
     <li><span class="api-name">decreaseVolume(delta)</span><span data-i18n="api_dec_volume"></span></li>
     <li><span class="api-name">getControlSummary</span><span data-i18n="api_summary"></span></li>
+    <li><span class="api-name">getWirelessStatus</span><span data-i18n="api_wireless"></span></li>
+    <li><span class="api-name">openWifiPanel</span><span data-i18n="api_wifi_panel"></span></li>
+    <li><span class="api-name">openInternetPanel</span><span data-i18n="api_internet_panel"></span></li>
+    <li><span class="api-name">openBluetoothSettings</span><span data-i18n="api_bt_settings"></span></li>
+    <li><span class="api-name">requestEnableBluetooth</span><span data-i18n="api_bt_enable"></span></li>
+    <li><span class="api-name">setWifiEnabled(enabled)</span><span data-i18n="api_set_wifi"></span></li>
+    <li><span class="api-name">setBluetoothEnabled(enabled)</span><span data-i18n="api_set_bt"></span></li>
   </ul>
 </div>
 
@@ -74,13 +83,15 @@ var _lang = 'zh';
 var i18n = {
   zh: {
     title: '设备控制',
-    desc: '查询和调节屏幕亮度、媒体音量、铃声、通知和闹钟音量。',
+    desc: '查询和调节屏幕亮度、音量，并打开 Wi-Fi/蓝牙系统控制入口。',
     badge: '基础手机控制',
     features_title: '核心能力',
     feat_brightness: '亮度查询与调节',
     feat_volume: '媒体/铃声/通知/闹钟音量',
     feat_adjust: '按百分比增减',
     feat_summary: '设备控制状态汇总',
+    feat_wifi: 'Wi-Fi 状态与系统控制面板',
+    feat_bluetooth: '蓝牙状态与开启请求',
     api_title: '功能接口',
     api_get_brightness: '查询当前屏幕亮度与自动/手动模式',
     api_set_brightness: '设置屏幕亮度，level 为 0-100',
@@ -91,23 +102,32 @@ var i18n = {
     api_inc_volume: '调高指定音量通道',
     api_dec_volume: '调低指定音量通道',
     api_summary: '返回亮度和媒体音量概览',
+    api_wireless: '查询 Wi-Fi、当前网络和蓝牙状态',
+    api_wifi_panel: '打开系统 Wi-Fi 控制面板',
+    api_internet_panel: '打开互联网连接面板',
+    api_bt_settings: '打开蓝牙设置页',
+    api_bt_enable: '请求开启蓝牙，需要系统确认',
+    api_set_wifi: '请求开启或关闭 Wi-Fi，现代 Android 会打开系统面板确认',
+    api_set_bt: '请求开启或关闭蓝牙，按系统规则确认',
     examples_title: '使用示例',
     ex1: '“把媒体音量调到 60%”',
     ex2: '“亮度调高一点”',
     ex3: '“现在手机音量是多少？”',
     ex4: '“把闹钟音量调低 20%”',
     permission_title: '权限说明',
-    permission_desc: '音量调节使用系统普通权限。亮度写入需要授予“修改系统设置”，PandaGenie 会在执行前引导授权。'
+    permission_desc: '音量调节使用系统普通权限。亮度写入需要授予“修改系统设置”。Wi-Fi 和蓝牙控制在现代 Android 上需要系统面板或确认弹窗，不能静默开关。'
   },
   en: {
     title: 'Device Controls',
-    desc: 'Read and adjust screen brightness, media volume, ringtone, notification and alarm volume.',
+    desc: 'Read and adjust screen brightness, volume, Wi-Fi status and Bluetooth controls.',
     badge: 'Basic phone controls',
     features_title: 'Highlights',
     feat_brightness: 'Brightness read/write',
     feat_volume: 'Media/ring/notification/alarm volume',
     feat_adjust: 'Percent-based adjustments',
     feat_summary: 'Control status summary',
+    feat_wifi: 'Wi-Fi status and system panel',
+    feat_bluetooth: 'Bluetooth status and enable request',
     api_title: 'API Reference',
     api_get_brightness: 'Get current brightness and brightness mode',
     api_set_brightness: 'Set brightness. level is 0-100',
@@ -118,13 +138,20 @@ var i18n = {
     api_inc_volume: 'Increase stream volume',
     api_dec_volume: 'Decrease stream volume',
     api_summary: 'Return brightness and media volume summary',
+    api_wireless: 'Get Wi-Fi, active network and Bluetooth status',
+    api_wifi_panel: 'Open the system Wi-Fi control panel',
+    api_internet_panel: 'Open the internet connectivity panel',
+    api_bt_settings: 'Open Bluetooth settings',
+    api_bt_enable: 'Request enabling Bluetooth with system confirmation',
+    api_set_wifi: 'Request Wi-Fi on/off; modern Android opens a system panel',
+    api_set_bt: 'Request Bluetooth on/off according to Android confirmation rules',
     examples_title: 'Examples',
     ex1: '"Set media volume to 60%"',
     ex2: '"Make the screen brighter"',
     ex3: '"What is my phone volume now?"',
     ex4: '"Lower alarm volume by 20%"',
     permission_title: 'Permissions',
-    permission_desc: 'Volume uses a normal Android permission. Brightness changes require Modify system settings; PandaGenie will guide authorization before execution.'
+    permission_desc: 'Volume uses a normal Android permission. Brightness changes require Modify system settings. Wi-Fi and Bluetooth controls need system panels or confirmation prompts on modern Android and cannot be silently toggled.'
   }
 };
 function applyI18n() {

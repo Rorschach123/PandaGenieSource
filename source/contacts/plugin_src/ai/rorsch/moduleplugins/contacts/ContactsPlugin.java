@@ -131,8 +131,9 @@ public class ContactsPlugin implements ModulePlugin {
                 JSONArray rc = null;
                 String exportPath = exportObj.optString("path", "");
                 if (!exportPath.isEmpty()) {
+                    String title = exportFileTitle(exportPath);
                     rc = new JSONArray();
-                    rc.put(richFile(exportPath, null, "text/vcard"));
+                    rc.put(richFile(exportPath, title, "text/vcard"));
                 }
                 return ok(exportJson, formatExportContactsDisplay(exportObj), null, rc);
             }
@@ -414,6 +415,9 @@ public class ContactsPlugin implements ModulePlugin {
             writer.flush();
             return new JSONObject()
                     .put("path", outFile.getAbsolutePath())
+                    .put("fileName", outFile.getName())
+                    .put("mimeType", "text/vcard")
+                    .put("size", outFile.length())
                     .put("exported", exported)
                     .toString();
         } catch (Exception e) {
@@ -1125,6 +1129,11 @@ public class ContactsPlugin implements ModulePlugin {
         return rc;
     }
 
+    private static String exportFileTitle(String path) {
+        String name = new File(path).getName();
+        return name == null || name.trim().isEmpty() ? "contacts_export.vcf" : name;
+    }
+
     /**
      * 格式化搜索结果用于 {@code _displayText}。
      *
@@ -1301,12 +1310,19 @@ public class ContactsPlugin implements ModulePlugin {
         int exported = result.optInt("exported", 0);
         String path = result.optString("path", "").trim();
         boolean zh = isZh();
-        String[] headers = zh ? new String[]{"项目", "值"} : new String[]{"Item", "Value"};
-        List<String[]> rows = new ArrayList<>();
-        rows.add(new String[]{zh ? "文件" : "File", path.isEmpty() ? "—" : path});
         StringBuilder sb = new StringBuilder();
-        sb.append(zh ? "📤 已导出 " : "📤 Exported ").append(exported).append(zh ? " 个联系人\n\n" : " contacts\n\n");
-        sb.append(pgTable("", headers, rows));
+        sb.append("📤 ");
+        if (zh) {
+            sb.append("已导出 ").append(exported).append(" 个联系人");
+            if (!path.isEmpty()) {
+                sb.append("\n文件: ").append(path);
+            }
+        } else {
+            sb.append("Exported ").append(exported).append(" contacts");
+            if (!path.isEmpty()) {
+                sb.append("\nFile: ").append(path);
+            }
+        }
         return sb.toString().trim();
     }
 

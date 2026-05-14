@@ -108,7 +108,7 @@ public class NotesPlugin implements ModulePlugin {
                 }
                 case "searchNotes": {
                     String out = searchNotes(params);
-                    String kw = params.optString("keyword", "").trim();
+                    String kw = noteKeyword(params);
                     return ok(out, formatSearchNotesDisplay(out, kw), formatSearchNotesHtml(out, kw));
                 }
                 case "exportNote": {
@@ -830,7 +830,7 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception IO 或 JSON 异常
      */
     private String listNotes(JSONObject params) throws Exception {
-        String keyword = params.optString("keyword", "").trim();
+        String keyword = noteKeyword(params);
         String kwLower = keyword.isEmpty() ? "" : keyword.toLowerCase(Locale.ROOT);
         List<JSONObject> all = loadAllNotes();
         JSONArray out = new JSONArray();
@@ -927,7 +927,7 @@ public class NotesPlugin implements ModulePlugin {
      * @throws Exception 参数非法或 IO 错误
      */
     private String searchNotes(JSONObject params) throws Exception {
-        String keyword = params.optString("keyword", "").trim();
+        String keyword = noteKeyword(params);
         if (keyword.isEmpty()) {
             throw new IllegalArgumentException("Missing parameter: keyword");
         }
@@ -940,6 +940,14 @@ public class NotesPlugin implements ModulePlugin {
             }
         }
         return new JSONObject().put("notes", out).put("count", out.length()).toString();
+    }
+
+    private String noteKeyword(JSONObject params) {
+        String keyword = params.optString("keyword", "").trim();
+        if (!keyword.isEmpty()) return keyword;
+        keyword = params.optString("keywords", "").trim();
+        if (!keyword.isEmpty()) return keyword;
+        return params.optString("query", "").trim();
     }
 
     /**

@@ -1,739 +1,125 @@
 <div align="center">
 
-<h1>&#x1F43C; PandaGenie</h1>
+# PandaGenie
 
-<p><strong>AI-Powered Modular Android Assistant</strong></p>
+**AI-powered modular Android assistant**
 
-<p>
-Tell PandaGenie what you need in natural language.<br/>
-It plans, executes, and delivers — powered by <strong>any LLM</strong> and a growing library of <strong>hot-loadable modules</strong>.
-</p>
+Tell PandaGenie what you need in natural language. It plans, executes, and returns results through your LLM and hot-loadable Android modules.
 
-<p>
-  <a href="https://cf.pandagenie.ai">Official Website</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://discord.gg/Cfc7pjrjt2">Discord</a> &nbsp;&#x2022;&nbsp;
-  <a href="#join-us--developers-welcome">Join Us</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://cf.pandagenie.ai/sign">Submit a Module</a> &nbsp;&#x2022;&nbsp;
-  <a href="https://cf.pandagenie.ai/marketplace">Module Marketplace</a> &nbsp;&#x2022;&nbsp;
-  <a href="#create-your-own-module">Create a Module</a> &nbsp;&#x2022;&nbsp;
-  <a href="README.md">&#x1F1E8;&#x1F1F3; 中文</a>
-</p>
+[Official Website](https://cf.pandagenie.ai) | [Module Marketplace](https://cf.pandagenie.ai/marketplace) | [Submit a Module](https://cf.pandagenie.ai/sign) | [Chinese](README_CN.md)
 
 </div>
 
 ---
 
-## Why PandaGenie
+## 1.0.35 Highlight: On-Device Memory
 
-The explosion of generative AI marks a new internet revolution — following the PC era and the mobile era. Computing power is now quantified as **Tokens**, much like data plans from telecom carriers. If this is a new cycle in history, ChatGPT was Year Zero, and an entirely new class of applications is about to emerge.
+PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal module; it is a data-layer capability wired into chat, Agent mode, LLM requests, and settings so the assistant can carry preferences, task habits, corrections, and recurring context across conversations.
 
-Here's the fundamental insight: everything in computing is **computation**. Users want **results**, not processes. So the role of AI is to **bridge every step** — turning natural language intent directly into executed outcomes.
+- **Three modes**: choose Full app memory, Private memory, or Memory off in the Chat & App Memory settings card.
+- **Local first**: memory is stored in app-private storage at `app_memory/memories.json`. It is not cloud-synced and is not imported/exported; clearing local app data removes it.
+- **Retrieval injection**: `AppMemoryStore` retrieves up to 8 relevant memories for the current query and keeps the prompt budget around 1800 characters before appending them to LLM and Agent system prompts.
+- **Privacy boundaries**: API keys, tokens, passwords, phone numbers, email addresses, and ID numbers are detected locally. Full mode stores sensitive values in the local Vault and sends only `{{vault:name}}` variables to the model; Private mode keeps redacted context only; Off mode does not extract, store, or inject memory.
+- **Lifecycle control**: short-term memories are retained for 30 days by default, explicit preferences are prioritized, and the local store is capped at 500 deduplicated entries.
 
-PandaGenie starts from this premise: **make your smartphone a true AI assistant**, where any task can be accomplished through a single conversation.
+## Memory Implementation
 
-### Design Principles
+| Layer | Implementation | Notes |
+|---|---|---|
+| Settings | `SettingsActivity` / `SettingsDataStore` | Exposes and persists the three memory modes. |
+| Storage and retrieval | `data/memory/AppMemoryStore.kt` | Handles writes, dedupe, tags, retention, ranking, and prompt construction. |
+| Sensitive values | `SecureVaultStore` + `MemoryVaultVariables` | Full mode stores sensitive values under Vault category `app_memory_sensitive`; prompts only receive variable names. |
+| Chat integration | `ChatViewModel` | Remembers user/assistant turns and prepares safe text, history, and memory context before dispatch. |
+| LLM and Agent injection | `ChatTaskService` | Appends `memoryContext` to both regular LLM calls and Agent-mode system prompts. |
+| Module boundary | App-layer capability | Third-party modules cannot directly read the full memory store; memory only guides AI planning and does not change module permissions. |
 
-| Principle | Description |
-|-----------|-------------|
-| **Transparent & Secure** | Every step the AI takes, every piece of data it touches — fully visible and user-controllable. All module code is open-source and auditable |
-| **Low Token Cost** | Tokens are like a data plan — not unlimited. Precise prompt engineering and task planning minimize consumption |
-| **Built for Everyone** | Users only need to know *what* they want, not *which button to press* or *how many steps to click through* |
-| **Connecting Devs & Users** | Developers build modules, modules carry capabilities, AI dispatches on user commands — a new model of developer-user collaboration |
+## Current Module Catalog
 
----
+`modules.json` currently lists **52 official modules** with **328 APIs**, last updated on **2026-05-15**.
 
-## How It Works
-
-> "Compress all photos in /Download into a zip" — that's all you say.
-
-PandaGenie connects to your preferred LLM (GPT, Claude, DeepSeek, or any OpenAI-compatible API), reads the capabilities of all installed modules, and automatically plans multi-step tasks. No coding, no clicking through menus.
-
-<p align="center">
-  <img src="docs/architecture.svg" width="100%" alt="PandaGenie Architecture" />
-</p>
-
-**Key highlights:**
-
-- **Any LLM backend** — OpenAI, Anthropic Claude, self-hosted, or any compatible API
-- **Hot-loadable modules** — drop a `.mod` file, restart, done. No APK rebuild needed
-- **AI auto-discovers** new capabilities from module manifests
-- **Sandboxed execution** — file access, network, and permission controls per module with two-tier enforcement
-- **Dual-signature security** — tamper-proof module verification
-
----
-
-## Architecture
-
-PandaGenie follows a clean separation between the **AI brain** and the **module ecosystem**:
-
-```
-User  ──>  AI Engine  ──>  Task Executor  ──>  Module Runtime  ──>  Plugin.invoke()
-             │                   │                    │
-        Build prompt        Run steps           Sandbox + verify
-        from modules       resolve vars        ClassLoader isolation
-```
-
-The app **never hardcodes** any module. All capabilities are declared in each module's `manifest.json` and dynamically injected into the AI system prompt at runtime.
-
----
-
-## Current Repository Structure
-
-The current source repository keeps the module ecosystem and release assets together:
-
-```text
-PandaGenieSource/
-├── README.md / README_CN.md        # English and Chinese project docs
-├── CONTRIBUTING.md / CONTRIBUTING_CN.md
-├── modules.json                    # Marketplace index, updated 2026-05-12
-├── modules/                        # Signed release .mod packages
-├── source/                         # Official module source code
-│   ├── shared_api/                 # Shared module API and helper classes
-│   ├── calculator/
-│   ├── filemanager/
-│   ├── archive/
-│   └── ...                         # 52 official modules in total
-├── module-dev-toolkit/             # PowerShell toolkit for building and signing modules
-│   ├── mk_module.ps1
-│   ├── init_dev_signing.ps1
-│   ├── init_module_signing.ps1
-│   ├── list_keystore_info.ps1
-│   └── MODULE_DEVELOPMENT_GUIDE.md
-├── docs/                           # Architecture and signing diagrams
-├── tools/                          # Utility scripts
-└── keys/                           # Local signing keys, ignored by git
-```
-
-Recent structure updates:
-
-- `modules.json` now lists 52 official modules and provides both CDN and GitHub raw download URLs.
-- `source/shared_api` centralizes the API/helper layer used by modules.
-- `module-dev-toolkit` is the preferred workflow for module packaging, signing, and certificate inspection.
-- Newer official modules include the Claw capability modules, File Downloader, Phone Test Recorder, Storage Radar Report, Phone Check Report, Long Image Generator, Document Tools, Device Controls, Fullscreen Countdown, Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World.
-- Native-heavy modules such as File Manager, Archive, and Calculator keep their `native/` and `jni_bridge/` folders under the module source directory.
-
----
-
-## Module System
-
-Each `.mod` file is a self-contained package:
-
-<p align="center">
-  <img src="docs/mod-structure.svg" width="100%" alt=".mod File Structure" />
-</p>
-
-A module only needs to implement **one interface**:
-
-```java
-public interface ModulePlugin {
-    String invoke(Context context, String action, String paramsJson) throws Exception;
-}
-```
-
-The AI reads your `manifest.json`, understands what your module can do, and calls `invoke()` with the right `action` and `params` — automatically.
-
----
-
-## Security: Dual-Signature Model
-
-Every `.mod` carries two layers of JAR signatures for tamper-proof distribution:
-
-<p align="center">
-  <img src="docs/signing-flow.svg" width="100%" alt="Dual-Signature Flow" />
-</p>
-
-| Layer | Purpose |
-|-------|---------|
-| **DEV** (Developer) | Identifies the module author. Fingerprint bound to manifest |
-| **OFFICIAL** | Proves the module passed official review. Verified against app-embedded cert |
-
-Developer Mode allows loading DEV-only signed modules for testing.
-
----
-
-## Module Private Storage
-
-Each module gets an **isolated private directory** for storing configuration, caches, and data. Modules **cannot** read or write other modules' private data or the app's internal files.
-
-| Layer | Enforcement |
-|-------|-------------|
-| **Java API** | `SandboxedContext` remaps `getFilesDir()` / `getCacheDir()` to `module_sandbox/<moduleId>/` |
-| **Native (libc)** | PLT-hooked `open`, `fopen`, `stat`, `mkdir`, etc. — only the current module's sandbox path is allowed within app private storage. Cross-module and app-private access is blocked and logged |
-
-**Use the `ModuleStorage` helper** in your plugin code:
-
-```java
-ModuleStorage storage = ModuleStorage.from(context);
-
-// Read/write files
-storage.writeText("config.json", "{\"key\":\"value\"}");
-String config = storage.readText("config.json");
-
-// Get file references
-File db = storage.getFile("data/cache.db");
-File imagesDir = storage.getDir("images");
-
-// Check existence, delete, list
-boolean exists = storage.exists("config.json");
-storage.delete("config.json");
-String[] files = storage.list("data");
-
-// Check storage usage
-long usedBytes = storage.getUsedSpace();
-```
-
----
-
-## Available Modules
-
-`modules.json` currently lists **52 official modules**, last updated on **2026-05-12**.
-
-| Module | Description | Type |
-|--------|-------------|------|
-| &#x1F9EE; **Calculator** | Scientific math: arithmetic, trigonometry, logarithms, factorials, combinations | Native |
-| &#x1F4C1; **File Manager** | Browse, create, copy, move, delete, search files | Native |
-| &#x1F4E6; **Archive** | ZIP, password ZIP, TAR, GZ, TAR.GZ compression/extraction | Native |
-| &#x1F50F; **Signature Checker** | Verify APK and module signatures, fingerprints, and developer info | Java |
-| &#x1F4F1; **App Manager** | List, launch, uninstall apps, view package/version/install details | Java |
-| &#x1F4CA; **File Stats** | Hash, compare, checksum, directory stats, duplicate and large-file scans | Java |
-| &#x23F0; **Reminder** | Calendar events, alarms, timers, birthday reminders, upcoming schedules | Java |
-| &#x1F4DD; **Text Tools** | Word count, Base64, URL encode/decode, regex, UUID, hashing | Java |
-| &#x1F4F1; **Device Info** | Device, OS, CPU, RAM, storage, display metrics | Java |
-| &#x1F5BC;&#xFE0F; **Image Tools** | Inspect, resize, compress, convert, rotate, crop, read album images, and find duplicate/similar images | Java |
-| &#x1F4CB; **Clipboard Manager** | Read, set, clear clipboard and manage clipboard history | Java |
-| &#x1F50B; **Battery Manager** | Battery level, charging status, health, temperature, voltage | Java |
-| &#x1F310; **Network Tools** | Ping, DNS lookup, IP lookup, connectivity and network info | Java |
-| &#x1F4C7; **Contacts Manager** | Search, view, list, export contacts, find duplicates | Java |
-| &#x1F4D3; **Notes** | Create, edit, delete, search, export local notes | Java |
-| &#x1F3AF; **Daily Fortune** | Personalized fortune by date/name with lunar-calendar support | Java |
-| &#x1F3B2; **Dice Tool** | Roll dice, target sums, big/small judgment, probability stats | Java |
-| &#x1F4A1; **LED Banner** | Scrolling/fading/static text banners with colors, gradients, effects, and fullscreen landscape playback | H5+Java |
-| &#x1F9F9; **System Cleaner** | Clean temp files, cache, empty folders, thumbnails, APK installers | Java |
-| &#x1F3A8; **Color Tools** | HEX/RGB/HSL/CMYK conversion, palettes, random colors | Java |
-| &#x1F4CF; **Unit Converter** | Length, weight, temperature, area, volume, speed, time, data storage | Java |
-| &#x1F511; **Password Generator** | Strong passwords, passphrases, custom complexity, strength checks | Java |
-| &#x1F4F7; **QR Code Tools** | Generate QR codes and decode QR codes from images | H5+Java |
-| &#x1F40D; **Snake Game** | Classic Snake with difficulty settings | H5+Java |
-| &#x1F331; **Farming Game** | Plant, water, fertilize, weed, harvest, save records, scheduled tasks | H5+Java |
-| &#x26AB; **Gomoku** | 15x15 five-in-a-row game against AI | H5+Java |
-| &#x1FA86; **Tetris Game** | Classic Tetris with movement, rotation, row clearing, difficulty | H5+Java |
-| &#x1F9E9; **Sudoku** | 9x9 Sudoku with generated puzzles and difficulty settings | H5+Java |
-| &#x274E; **Tic-Tac-Toe** | Classic 3x3 game against AI | H5+Java |
-| &#x1F517; **Link Parser** | Extract titles, descriptions, images, links, downloads, headers, content types | Java |
-| &#x2601;&#xFE0F; **Weather Assistant** | Current weather, multi-day forecasts, and today/tomorrow change alerts via Open-Meteo | H5+Java |
-| &#x1F50D; **OCR Text Recognition** | Extract Chinese and English text from images | Java |
-| &#x1F526; **Flashlight** | Toggle and inspect the camera torch state | Java |
-| &#x1F310; **Translator** | Translate text across Chinese, English, Japanese, Korean, French, German, Spanish, and more | Java |
-| &#x1F9ED; **Digital Compass** | Heading, azimuth, and cardinal direction from device sensors | Java |
-| &#x1F517; **URL Codec** | URL encoding, decoding, and component parsing | Java |
-| &#x1F43C; **Hello World** | PandaGenie self-introduction and capability list | Java |
-| &#x1F4C4; **Document Tools** | Extract, query, create, replace, append, convert, and import/export CSV/XLSX tables | Java |
-| &#x1F39B;&#xFE0F; **Device Controls** | Query and adjust screen brightness plus media/ring/alarm volumes | Java |
-| &#x23F1;&#xFE0F; **Fullscreen Countdown** | Landscape fullscreen countdowns with h:m:s display, one-minute alerts, final vibration, and sound cues | H5+Java |
-| &#x1F4C8; **Phone Test Recorder** | Record charging, standby, and gaming heat tests, then generate curve reports and comparisons | Java |
-| &#x1F4E1; **Storage Radar Report** | Scan large files, videos, APKs, archives, downloads, and duplicate candidates with cleanup advice | Java |
-| &#x1F4CB; **Phone Check Report** | Summarize device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and apps into inspection reports | Java |
-| &#x1F5BC;&#xFE0F; **Long Image Generator** | Convert text, Markdown, HTML, Word documents, and web URLs into 1080px-wide PNG long images | Java |
-| &#x1F4E5; **File Downloader** | Analyze web pages or direct links for downloadable files and save selections to PandaGenie downloads | Java |
-| &#x1F4DD; **Claw Doc Updater** | Compare text versions and generate change summaries, update plans, and todos | Java |
-| &#x270D;&#xFE0F; **Claw Humanizer** | Rewrite stiff, templated, or AI-sounding copy into more natural language | Java |
-| &#x1F5C2;&#xFE0F; **Claw Ontology** | Store and query subject-relation-object facts in the module sandbox | Java |
-| &#x1F6E1;&#xFE0F; **Claw Prompt Shield** | Check prompt injection, credential leaks, data exfiltration, and dangerous-action risks | Java |
-| &#x1F50E; **Claw Skill Discovery** | Search popular, certified, new, and keyword-matched ClawHub skills | Java |
-| &#x1F512; **Claw Skill Vetter** | Scan skill text, files, or URLs for risky commands and hidden-instruction patterns | Java |
-| &#x1F5FA;&#xFE0F; **Claw Workflow Planner** | Turn goals into mobile-friendly steps, module suggestions, and risk notes | Java |
-
-> &#x1F4E6; **[Browse all modules on the Marketplace](https://cf.pandagenie.ai/marketplace)** — or **create your own** below!
-
----
+| ID | Module | Description | Version | APIs |
+|---|---|---|---|---|
+| `calculator` | Calculator | Scientific calculator with arithmetic, trigonometry, logarithms, factorials, combinations and expression parsing | 1.3 | 17 |
+| `filemanager` | File Manager | File manager with directory browsing, file CRUD, search and more | 2.3 | 13 |
+| `archive` | Archive | Archive module supporting ZIP (with password), TAR, GZ, TAR.GZ formats | 1.7 | 9 |
+| `signature_checker` | Signature Checker | Verify APK and module signatures (official & developer), display fingerprints and developer info to ensure integrity | 1.5 | 4 |
+| `app_manager` | App Manager | Manage installed apps: list, launch, view details (package name, version, install time, source), uninstall, and open system app info page | 1.5 | 5 |
+| `file_stats` | File Stats | File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, empty file/folder finder, filename search, text stats | 1.9 | 11 |
+| `reminder` | Reminder | Reminder assistant: create/query/update/delete calendar events, set alarms and timers, birthday reminders, view upcoming schedule | 1.4 | 10 |
+| `text_tools` | Text Tools | Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing, plus LLM-powered summarization, rewriting, extraction and formatting. | 1.6 | 11 |
+| `device_info` | Device Info | Device information module: model/OS, CPU, RAM, storage, display metrics, and one-call summary using public Android APIs only. | 1.6 | 6 |
+| `image_tools` | Image Tools | Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos | 1.8 | 9 |
+| `clipboard` | Clipboard Manager | Clipboard manager: read, set, clear clipboard, and manage clipboard history | 1.5 | 7 |
+| `battery` | Battery Manager | Battery management module: view battery level, charging status, health, temperature, voltage and more | 1.5 | 3 |
+| `network_tools` | Network Tools | Network tools: ping reachability, TCP port check, DNS lookup, local/public IP, connectivity check, network info | 1.6 | 8 |
+| `contacts` | Contacts Manager | Contacts manager: search, view details, list all, export to VCF, find duplicates | 1.5 | 6 |
+| `notes` | Notes | Note-taking module: create, view, edit, delete, search, export notes, and use AI to summarize or organize local notes | 1.6 | 10 |
+| `fortune` | Daily Fortune | Daily fortune module with personalized fortune by date and name, lunar calendar conversion, seven fortune levels and rich fortune vocabulary | 1.3 | 4 |
+| `magic_dice` | Dice Tool | Dice tool module: roll 1-6 dice, roll with target sum, big/small judgment, all-same (leopard), combination enumeration and probability statistics | 1.2 | 6 |
+| `led_banner` | LED Banner | LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates | 1.7 | 4 |
+| `system_cleaner` | System Cleaner | System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space | 2.1 | 5 |
+| `color_picker` | Color Tools | Color picker and conversion across HEX, RGB, HSL, CMYK; harmonious palettes (complementary, analogous, triadic, split-complementary, tetradic); random colors; closest CSS named color lookup | 1.4 | 4 |
+| `unit_converter` | Unit Converter | Universal unit converter: length, weight, temperature, area, volume, speed, time, data storage, and more | 1.4 | 3 |
+| `password_gen` | Password Generator | Secure password generator: create strong passwords with customizable length, complexity, and character types. Also includes passphrase generation and password strength checker. | 1.7 | 4 |
+| `qrcode` | QR Code Tools | QR code tools: generate QR codes from text or URLs, decode QR codes from images, view and share generated codes | 1.6 | 3 |
+| `snake_game` | Snake Game | Classic Snake game. Control the snake to eat food and grow longer while avoiding walls and yourself. Supports difficulty settings | 1.4 | 4 |
+| `farming_game` | Farming Game | Farming simulation game. Plant seeds, water, fertilize and weed to help plants grow. Save harvest records. Supports scheduled tasks. Single save slot | 1.4 | 10 |
+| `gomoku_game` | Gomoku | Classic Gomoku (Five in a Row) game. Player (black) vs AI (white) on a 15x15 board. First to get five in a row wins | 1.4 | 4 |
+| `tetris_game` | Tetris Game | Classic Tetris game. Control blocks to move and rotate, stack them to complete rows for points. Supports difficulty settings | 1.5 | 7 |
+| `sudoku_game` | Sudoku | Classic Sudoku game. Fill a 9x9 grid with digits 1-9 so each row, column and 3x3 box is unique. Supports difficulty-based puzzle generation | 1.4 | 7 |
+| `tictactoe_game` | Tic-Tac-Toe | Classic Tic-Tac-Toe game. Player (X) vs AI (O) on a 3x3 grid. First to get three in a row wins | 1.4 | 4 |
+| `link_parser` | Link Parser | Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions | 1.5 | 10 |
+| `weather` | Weather Assistant | Weather assistant module, query current weather, multi-day forecasts, and today-vs-tomorrow temperature/weather alerts using the Open-Meteo free API | 1.5 | 5 |
+| `ocr` | OCR Text Recognition | OCR module for extracting text from images, supports Chinese and English with auto language detection; automatically removes leading attachment placeholders and returns clear non-image errors | 1.10 | 3 |
+| `flashlight` | Flashlight | Flashlight control module, toggle camera torch on/off, check current status | 1.3 | 5 |
+| `translator` | Translator | Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto detection; regional or non-standard targets such as Argentine Spanish, Cantonese, or Traditional Chinese automatically use LLM translation. | 1.8 | 5 |
+| `compass` | Digital Compass | Digital compass module using device sensors to show current heading, azimuth and cardinal direction | 1.3 | 2 |
+| `url_codec` | URL Codec | URL encoding/decoding tool. Supports URL encoding, URL decoding, and URL component parsing. Use when user says 'URL encode', 'URL decode', or 'parse URL' | 1.2 | 6 |
+| `hello_world` | Hello World | PandaGenie self-introduction module. When users ask 'who are you', 'what can you do', 'what features do you have', etc., AI automatically invokes this to return a structured introduction and capability list. | 1.2 | 3 |
+| `document_tools` | Document Tools | Document content tools for extracting, querying, creating, deleting, replacing, appending, converting documents, importing/creating CSV or XLSX tables, plus LLM-powered document summarization and Q&A. | 1.5 | 13 |
+| `device_controls` | Device Controls | Device, WiFi/Wi-Fi and Bluetooth controls: read and adjust brightness and stream volume, check Wi-Fi/Bluetooth status, and open Wi-Fi, internet and Bluetooth system panels. | 1.3 | 17 |
+| `fullscreen_countdown` | Fullscreen Countdown | Landscape fullscreen countdown timer with hour/minute/second settings, automatic mm:ss or hh:mm:ss display, one-minute vibration and sound alerts, and final per-second vibration and sound prompts. | 1.2 | 2 |
+| `phone_test_recorder` | Phone Test Recorder | Record real usage tests such as charging, overnight standby, and gaming heat, then generate Coolapk-style curve reports and comparison conclusions. | 1.0 | 6 |
+| `storage_radar_report` | Storage Radar Report | Scan storage for large files, videos, APKs, archives, downloads, WeChat folders, and duplicate candidates, then generate a readable cleanup report. | 1.1 | 4 |
+| `phone_check_report` | Phone Check Report | Generate a phone inspection report for new/used devices with device, OS, display, battery, sensors, Camera2, Widevine, storage speed, and preinstalled app highlights. | 1.2 | 5 |
+| `long_image_generator` | Long Image Generator | Convert text, Markdown, HTML, Word DOCX documents, and web pages into 1080px-wide PNG long images for sharing articles, reports, web content, and notes. | 1.7 | 6 |
+| `file_downloader` | File Downloader | Download files by analyzing web pages or direct links, constructing likely download candidates, and saving selected files to the PandaGenie downloads folder. | 1.1 | 6 |
+| `claw_skill_vetter` | Skill Vetter | Lightweight security vetter for Claude Code skills. Scans text, files, or URLs for destructive commands, secret exfiltration, persistence, and hidden-instruction risks. | 1.0.4 | 5 |
+| `claw_ontology` | Ontology | Lightweight local ontology module. Stores subject-relation-object facts in the module sandbox with query, import, delete, and summary actions. | 1.0.4 | 7 |
+| `claw_humanizer` | Humanizer | LLM-backed text humanizer that rewrites stiff, templated, or AI-sounding copy into natural, readable mobile-friendly language. | 1.0.4 | 4 |
+| `claw_doc_updater` | Doc Updater | Mobile doc update helper adapted from Auto Document Updater ideas. Compares text versions and generates change summaries, update plans, and todos. | 1.0.4 | 4 |
+| `claw_skill_discovery` | Skill Discovery | Mobile skill discovery module inspired by curated Top Skills. Supports top downloads, certified skills, newest skills, and keyword search. | 1.0.4 | 5 |
+| `claw_workflow_planner` | Workflow Planner | Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes. | 1.0.4 | 4 |
+| `claw_prompt_shield` | Prompt Shield | Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind. | 1.0.4 | 3 |
 
 ## Download
 
-> &#x1F4E5; **[Download APK (v1.0.33)](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260512/PandaGenie-v1.0.33.apk)**
+> [Download APK v1.0.35](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260515/PandaGenie-v1.0.35.apk)
 
-- Release tag: [`20260512`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260512)
-- Android project version: `versionName "1.0.33"` / `versionCode 10033`
-
----
+- Release tag: [`20260515`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260515)
+- Android project version: `versionName "1.0.35"` / `versionCode 10035`
+- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10035>
 
 ## Changelog
 
 <details open>
-<summary><b>v1.0.33</b> (2026-05-12)</summary>
+<summary><b>v1.0.35</b> (2026-05-15)</summary>
 
-- **App version bump**: updated Android to `versionName "1.0.33"` / `versionCode 10033` and published a new final APK.
-- **Module ecosystem expansion**: synced `modules.json` to 52 official modules with the new Claw capability modules and File Downloader.
-- **Config marketplace polish**: improved shared-config i18n fields, similarity matching, and admin review visibility.
-- **Runtime and sandbox polish**: refined module LLM, IO Guard/PLT hooks, marketplace flows, and result presentation.
-
-</details>
-
-<details>
-<summary><b>v1.0.32</b> (2026-05-10)</summary>
-
-- **App version bump**: updated Android to `versionName "1.0.32"` / `versionCode 10032` and published a new final APK.
-- **Module LLM support**: added official LLM bridging for modules, call-source tagging, and usage records for richer module reports and advice.
-- **Marketplace expansion**: synced `modules.json` to 44 official modules with Phone Test Recorder, Storage Radar Report, Phone Check Report, and Long Image Generator.
-- **Release pipeline sync**: refreshed the GitHub Release, Cloudflare download link, website version data, and module catalog.
+- App version bump: updated Android to `versionName "1.0.35"` / `versionCode 10035` and published a new final APK.
+- On-device memory system: added Full app memory, Private memory, and Memory off modes, with local extraction, storage, retrieval, and LLM/Agent prompt injection.
+- Memory privacy guardrails: the regular memory store stays in app-private storage; secrets, tokens, phone numbers, and emails are detected locally. Full mode stores sensitive values as Vault variables, while Private mode keeps only redacted context.
+- Module ecosystem refresh: `modules.json` stays at 52 official modules and expands to 328 APIs, including Contacts, Device Controls, and Notes updates.
+- Server sync: updated shared configs, premium credits, share rate limits, and website release metadata.
 
 </details>
 
-<details>
-<summary><b>v1.0.31</b> (2026-05-09)</summary>
-
-- **Account experience**: added forgot-password and change-password verification flows with improved auth hints and error handling.
-- **Task experience**: improved completion notifications, launcher badges, history records, task management, and execution trace views.
-- **Server security and analytics**: added sanitized official-chat prompt analytics plus HTTPS/security headers and `security.txt`.
-- **Email and user services**: refined verification emails, welcome CDKey emails, and user-auth APIs.
-
-</details>
-
-<details>
-<summary><b>v1.0.30</b> (2026-05-08)</summary>
-
-- **App version bump**: updated the Android project to `versionName "1.0.30"` / `versionCode 10030` and published a new final APK.
-- **Marketplace refresh**: synced `modules.json` to 40 official modules, updating Image Tools, LED Banner, Weather Assistant, and Fullscreen Countdown packages.
-- **Fullscreen and reminder polish**: improved countdown sound/vibration alerts and fullscreen landscape behavior, with LED Banner fullscreen/effect refinements.
-- **Server capability updates**: synced ASR, email campaign, admin dashboard, and Cloudflare version publishing code.
-
-</details>
-
-<details>
-<summary><b>v1.0.24</b> (2026-05-07)</summary>
-
-- **Fullscreen Countdown module**: added landscape fullscreen countdowns, automatic mm:ss or hh:mm:ss display, one-minute triple vibration, and final per-second vibration alerts.
-- **Module WebView bridge**: added native vibration bridging for more reliable countdown and H5 module reminders.
-- **LED Banner refresh**: upgraded LED Banner to v1.6 with improved fullscreen landscape playback and scrolling effects.
-- **Module catalog sync**: updated `modules.json`, signed `.mod` packages, and GitHub download links to match the official marketplace.
-
-</details>
-
-<details>
-<summary><b>v1.0.22</b> (2026-05-04)</summary>
-
-- **Feedback replies in app**: added admin reply notifications for user feedback, with unread/read handling in the app and admin tools.
-- **Task generation reliability**: improved fallback planning, task JSON repair heuristics, module invocation diagnostics, and output path extraction.
-- **Module runtime hardening**: tightened sandbox enforcement, permission handling, module update trust policy, and official chat error handling.
-- **Module ecosystem refresh**: updated Document Tools, File Stats, Image Tools, Network Tools, OCR, and System Cleaner packages and metadata.
-- **Admin and server polish**: refreshed admin data views, feedback APIs, submission validation, and database schema for the new notification flow.
-
-</details>
-
-<details>
-<summary><b>v1.0.21</b> (2026-05-01)</summary>
-
-- **Module catalog expansion**: added Document Tools and Device Controls, bringing the official module catalog to 39 modules.
-- **File and utility modules refreshed**: updated manifests, signed packages, and runtime behavior for device info, file manager, OCR, password generation, and system cleaner.
-- **Game module polish**: refreshed Snake, Farming, Gomoku, Tetris, Sudoku, and Tic-Tac-Toe manifests/packages for the current signing and registry flow.
-- **App diagnostics**: added module API test surfaces and improved task, trace, permission, result, and busy-state handling.
-- **Server validation**: tightened shared config submission and module validation paths for the updated module ecosystem.
-
-</details>
-
-<details>
-<summary><b>v1.0.20</b> (2026-04-30)</summary>
-
-- **Premium app refresh**: updated launch animation, app icons, theme colors, typography, and the official website pages.
-- **Chat and task workflow upgrades**: improved conversation management, batch actions, attachment input, result rendering, and scheduled/config task flows.
-- **Config market compatibility**: added a standalone config-market page and app-version metadata so older app builds do not execute incompatible shared configs.
-- **Module ecosystem refresh**: updated Archive to `1.7`, OCR to `1.5`, and refreshed the game/tool module manifests and package outputs.
-- **Runtime reliability**: hardened Android permission handling, module runtime calls, variable resolution, config sanitization, and error formatting for complex task execution.
-
-</details>
-
-<details>
-<summary><b>v1.0.13</b> (2026-04-27)</summary>
-
-- **Latest APK** — updated the download link to the verified `20260427` GitHub release asset: `PandaGenie-v1.0.13.apk`
-- **Module ecosystem refresh** — documentation now reflects the current 37 official modules in `modules.json`, including Weather, OCR, Flashlight, Translator, Compass, URL Codec, and Hello World
-- **Repository structure update** — documented `source/shared_api`, `module-dev-toolkit`, signed `.mod` outputs, and native/JNI module source layout
-- **App improvements in this release cycle** — task action buttons in multi-task conversations, scheduled execution condition dialogs, favorite de-duplication, welcome panda branding, and registration password confirmation
-
-</details>
-
-<details>
-<summary><b>v1.0.12</b> (2026-04-26)</summary>
-
-- **hello_world 模块** — 新增自我介绍模块，当用户问「你是谁」「能做什么」「怎么用」时 AI 自动调用，从服务端实时拉取模块列表展示（随机抽取亮点 + 全部模块名称），支持中英文双语，服务端不可用时自动降级到静态分类。已签名发布至模块市场
-- **悬浮窗关闭行为优化** — 长按关闭按钮后，悬浮窗 + 通知栏常驻通知同时清除，服务不再重启；Activity 切换也不再重新拉起已关闭的悬浮窗；系统 START_STICKY 重启服务时若用户已关闭则立即停止
-- **能力边界公告** — 数据库新增中英双语公告，说明 PandaGenie 本质是模块调度器，无法操控其他 APP、修改系统设置或执行 Root 操作
-
-</details>
-
-<details>
-<summary><b>v1.0.11</b> (2026-04-23)</summary>
-
-- **Unified Icon System** — 100 custom vector drawable icons (`pg_ic_*`) with a consistent rounded-line style (24dp grid, 1.8dp stroke, round caps/joins). All UI icons now use the centralized `PgIcons` registry for theme-aware tinting
-- **Emoji-Free UI** — Removed all decorative emoji from user-facing strings (EN + ZH), chat messages, execution results, and status labels. Replaced with clean text markers (`[OK]`, `[FAIL]`, `[!]`) for a professional, consistent look
-- **Merged Permission Card** — Security authorization prompt now renders the request title, description, and action buttons inside a single orange card instead of a separate chat bubble + card
-- **Module Deletion Cleanup** — Removing a module now also deletes its sandbox permissions, DataStore enabled-key, and private directory — previously only the Settings UI path cleaned these up
-- **Prompt Analytics** — User prompts are sanitized and hashed for anonymous server-side analytics
-- **Referral Source Tracking** — New users are prompted to identify how they discovered the app
-- **Bug Fixes** — Config Market text display, Data Vault layout in English, File Manager search returning too few results
-
-</details>
-
-<details>
-<summary><b>v1.0.10</b> (2026-04-22)</summary>
-
-- **Module Private Storage** — Each module now gets a fully isolated private directory (`module_sandbox/<moduleId>/`). Cross-module and app-private file access is blocked at both Java API and native libc (PLT hook) layers
-- **ModuleStorage API** — New convenience API (`ModuleStorage.from(ctx)`) for modules to read/write/list/delete files in their private sandbox with zero boilerplate
-- **Config Market Locale Filter** — Shared configs are now auto-tagged with language (zh/en) on upload. Users see only configs matching their language setting; own configs always visible regardless of language
-
-</details>
-
-<details>
-<summary><b>v1.0.9</b> (2026-04-21)</summary>
-
-- **LLM Privacy Controls** — New "AI Data Sharing" panel in Security settings lets you choose exactly which device info (system time, timezone, language, device model, OS version, nickname) is sent to the AI model. Unchecked items are stripped before every request
-- **Execution Trace: Device Context** — Each execution trace now shows a "Info Sent to AI" card listing all device info that was included in the request, so you can verify what data left your phone
-- **Smart Loop Iteration** — Loop steps now extract arrays from nested JSON objects (e.g. `{files:[...]}`) automatically, so multi-step workflows like "find large files → compress each → zip" work reliably end-to-end
-- **Partial Loop Tolerance** — A single failed iteration no longer aborts the entire task. Subsequent steps proceed with successful results, making batch operations far more resilient
-- **Param Alias Engine** — 15+ common parameter name aliases (`imagePath`→`path`, `dir`→`path`, `minSize`→`minSizeMB` with auto unit conversion, etc.) are normalized before module calls, dramatically reducing config mismatch errors
-- **History-Aware Token Management** — Chat history sent to the LLM is now intelligently truncated (800 chars/message, 12K total cap), preventing empty responses when conversations grow long
-- **Path Sanitization** — Chinese quotation marks (`「」` `『』` `""`) and stray quotes in file paths are automatically stripped, fixing archive and file operations that received LLM-generated paths
-- **Enhanced Typography & Trust UX** — Refined type scale (4 sizes, 2 weights), trust-oriented color tokens, rewritten copy for safety/simplicity/omnipotence feel across the entire app
-
-</details>
-
-<details>
-<summary><b>v1.0.8</b> (2026-04-20)</summary>
-
-- **Rich HTML5 Module Output** — All 35 modules now return beautifully styled HTML5 mini-cards with interactive UIs via `_displayHtml`. Game modules render playable canvases, file modules show visual file trees, calculators present formatted results — all inside the chat bubble
-- **Sandbox Auto-Allow for Scheduled Tasks** — New sub-option under "Ask each time" in Security settings: when enabled (default ON), scheduled and conditional tasks automatically bypass permission prompts with temporary session-level grants — no permanent permissions are written
-- **Smart Welcome UX** — Empty chat now persistently shows the panda mascot with interactive suggestion chips until the user sends their first message. Greeting bubble no longer replaces the helpful prompt suggestions
-- **Graceful "No Capability" Response** — When a request can't be fulfilled by any module, the AI now responds with a friendly message listing all available capabilities from installed and market modules, plus a link to build custom modules on pandagenie.ai
-- **Direct APK Download** — Official website now serves APK downloads directly from Cloudflare KV edge storage for faster, more reliable downloads worldwide
-
-</details>
-
-<details>
-<summary><b>v1.0.7</b> (2026-04-18)</summary>
-
-- **Execution Trace (Action View)** — After each task, tap "Execution Trace" to see a full graphical flow diagram: every module involved, input/output data, permissions used, data access paths, and step timing — all in one intuitive vertical flow. Tap any step card to expand detailed input/output fields, permission grants, and data operations
-- **Zero-Token Config Market Match** — Before calling the LLM, PandaGenie now searches the shared Config Market for a matching task configuration. If a high-confidence match is found, it executes directly — **completely bypassing the LLM and consuming zero tokens**. Toggle on/off in Settings → Modules
-- **Smart LLM Response Handling** — Non-JSON LLM responses (quota exhaustion, conversational replies, error messages) are now detected and displayed gracefully instead of showing "Invalid JSON" errors. Actionable suggestions guide users to resolve quota issues
-- **First-Open Welcome UX** — New users see a friendly panda greeting with interactive suggestion chips ("Browse Module Store", "What can you do?", etc.) instead of a bare "No modules installed" message
-
-</details>
-
-<details>
-<summary><b>v1.0.6</b> (2026-04-18)</summary>
-
-- **Config Market Scheduling** — Conditional execution now uses the full task scheduler (once / daily / weekly / monthly / event trigger)
-- **Config Market Delete** — Own uploaded configurations show a prominent delete button
-- **Local Capability Response** — When no LLM is configured, asking "what can you do?" returns a local capability list with setup instructions
-- **Chat Feedback** — Submit feedback directly from the chat input bar
-- **Data Vault** — Secure encrypted storage with master password, accessible from Security settings
-- **File Manager v1.8** — Batch move/copy/delete, hidden file filtering, same-directory skip, search type filter (`file`/`dir`/`all`), increased display limits
-- **Sandbox Permission Fix** — "Allow all directories" grants now work correctly across `/sdcard` ↔ `/storage/emulated/0` path formats
-- **Module Name Fix** — i18n module names display correctly in sandbox prompts instead of raw JSON
-- **Update Check** — Interval reduced to 30 minutes for faster update delivery
-- 35+ modules updated in marketplace
-
-</details>
-
-<details>
-<summary><b>v1.0.5</b> (2026-04-16)</summary>
-
-- Multi-conversation support with sidebar drawer
-- Conditional task isolation (scheduled tasks write to dedicated conversations)
-- Android runtime permission auto-request (Calendar, Contacts, etc.)
-- Unified JSON response format (no more parse errors in chat)
-- Six new themes (Bamboo Breeze, Sunset Lava, etc.) + localized audit log
-- QR Code module v1.2: image scan, camera scan, detect API
-- Link Parser module (community developer Jarvan)
-- Variable reference enhancements: `_random` pick, smart JSON object unpack
-- Multiple bug fixes and UX improvements
-
-</details>
-
----
-
-## Create Your Own Module
-
-Building a PandaGenie module is **incredibly simple** — perfect for vibe coding with AI assistants like Cursor.
-
-### Use the Module Template (Recommended)
-
-The fastest way to get started — click the button below to create your own module repo from our template:
-
-[![Use this template](https://img.shields.io/badge/Use%20this-Template-6c5ce7?style=for-the-badge)](https://github.com/Rorschach123/PandaGenie-Module-Template/generate)
-
-Or clone it manually:
-
-```bash
-git clone https://github.com/Rorschach123/PandaGenie-Module-Template.git my-awesome-module
-```
-
-The template includes a working example module with `manifest.json`, `MyModulePlugin.java`, and `index.html` — just rename, edit, and build.
-
-### 3 Files. That's It.
-
-```
-source/my_module/
-├── manifest.json      ← Tell AI what you can do
-├── index.html         ← Optional UI page
-└── plugin_src/
-    └── .../MyPlugin.java   ← Your logic
-```
-
-### Quick Example
-
-**manifest.json** — describe your APIs:
-
-```json
-{
-  "id": "my_module",
-  "name": "My Module",
-  "name_en": "My Module",
-  "description": "Does something cool",
-  "version": "1.0",
-  "apis": [
-    {
-      "name": "doSomething",
-      "desc": "Does the thing",
-      "desc_en": "Does the thing",
-      "params": ["input"],
-      "paramDesc": ["The input"],
-      "paramDesc_en": ["The input"]
-    }
-  ]
-}
-```
-
-**MyPlugin.java** — implement one method:
-
-```java
-public class MyPlugin implements ModulePlugin {
-    @Override
-    public String invoke(Context ctx, String action, String params) throws Exception {
-        JSONObject p = new JSONObject(params);
-        if ("doSomething".equals(action)) {
-            JSONObject output = new JSONObject().put("result", "hello");
-            return new JSONObject()
-                .put("success", true)
-                .put("output", output.toString())
-                .put("_displayText", "| Item | Value |\n|---|---|\n| Result | hello |")
-                .toString();
-        }
-        return new JSONObject().put("success", false).put("error", "Unknown action").toString();
-    }
-}
-```
-
-### Plugin Output Format
-
-Every `invoke()` call must return a JSON string with these fields:
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `success` | boolean | Yes | Whether the operation succeeded |
-| `output` | string | Yes | Machine-readable result (JSON string for structured data) |
-| `error` | string | On failure | Human-readable error message |
-| `_displayText` | string | No | Rich formatted text for chat display (supports Markdown tables, links, bold) |
-| `_openModule` | boolean | No | If `true`, the app opens the module's HTML UI |
-
-**Rich Display Formats** — The `_displayText` field supports:
-
-- **Markdown tables** — `| Col1 | Col2 |\n|---|---|\n| val1 | val2 |` → rendered as Unicode box-drawing tables
-- **Bold** — `**text**` → rendered bold
-- **Links** — `[text](url)` or bare `https://...` → clickable
-- **Inline code** — `` `code` `` → monospace with accent color
-
-Example with table output:
-
-```java
-private String formatResult(JSONObject data) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("📊 Analysis Result\n\n");
-    sb.append("| Metric | Value |\n");
-    sb.append("|---|---|\n");
-    sb.append("| Files | ").append(data.optInt("count")).append(" |\n");
-    sb.append("| Total Size | ").append(data.optString("size")).append(" |\n");
-    return sb.toString();
-}
-```
-
-### The `.mod` File Format
-
-A `.mod` file is a signed ZIP archive with a specific structure:
-
-```
-my_module.mod (ZIP)
-├── manifest.json          # Module metadata, API definitions, permissions
-├── plugin.jar             # Compiled plugin (contains DEX bytecode)
-├── index.html             # Optional: module UI page
-├── common.css             # Optional: shared stylesheet
-├── META-INF/
-│   ├── MANIFEST.MF        # JAR manifest
-│   ├── DEV.SF / DEV.RSA   # Developer signature
-│   └── OFFICIAL.SF / ...  # Official signature (after review)
-└── libs/                  # Optional: native libraries
-    ├── arm64-v8a/
-    │   └── libmodule.so
-    └── armeabi-v7a/
-        └── libmodule.so
-```
-
-The `plugin.jar` inside the `.mod` contains DEX bytecode (not standard Java bytecode), produced by the Android `d8` tool. The pack script handles this conversion automatically.
-
-### Build & Test Locally
+## Build
 
 ```powershell
-# In PandaGenieSource/module-dev-toolkit/ (or module-dev-toolkit/ from repo root)
-.\mk_module.ps1 -Action init-dev-signing    # First time only
-.\mk_module.ps1 -Action pack -Modules "my_module"
-
-adb push ..\modules\my_module.mod /sdcard/PandaGenie/modules/
+cd E:\ProjectAI\PandaGenie\PandaGenie
+.\gradlew.bat assembleRelease -PfinalRelease --no-daemon
 ```
-
-### Get Official Signature & Publish
-
-Once your module works, head to **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** to upload it. The system validates your module and applies the official signature — you can then publish it to the marketplace with one click.
-
-For the full development guide, see [module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md](module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md) (also on [GitHub](https://github.com/Rorschach123/PandaGenieSource/blob/main/module-dev-toolkit/MODULE_DEVELOPMENT_GUIDE.md)).
-
----
-
-## Project Structure
-
-Module source, build tooling, compiled `.mod` outputs, `modules.json`, and `module-dev-toolkit/` all live in this repository. A separate template repo helps you bootstrap new modules:
-
-| Repo | Purpose |
-|------|---------|
-| **[PandaGenieSource](.)** (this repo) | Module source (`source/`), `tools/`, `module-dev-toolkit/`, built `.mod` files (`modules/`), and `modules.json` |
-| **[PandaGenie-Module-Template](https://github.com/Rorschach123/PandaGenie-Module-Template)** | GitHub template repo — one-click starting point for new modules |
-
-```
-PandaGenieSource/
-├── source/                    # Module source files
-│   ├── shared_api/            # ModulePlugin interface
-│   ├── calculator/
-│   ├── filemanager/
-│   ├── archive/
-│   ├── app_manager/
-│   ├── file_stats/
-│   ├── reminder/
-│   └── signature_checker/
-├── module-dev-toolkit/        # mk_module.ps1, signing init, dev guide
-├── modules/                   # Packed .mod outputs (from pack scripts)
-├── modules.json               # Marketplace-style module index (updated by pack)
-└── tools/
-    ├── pack_modules.ps1       # Pack & sign .mod files
-    └── build_all_native.ps1   # Compile native libraries
-```
-
----
-
-## Join Us — Developers Welcome!
-
-> **We believe the best modules will come from the community, not just us.**
-
-[![Discord](https://img.shields.io/discord/1234567890?color=5865F2&logo=discord&logoColor=white&label=Discord)](https://discord.gg/Cfc7pjrjt2)
-
-**Join our Discord community:** [https://discord.gg/Cfc7pjrjt2](https://discord.gg/Cfc7pjrjt2) — discuss ideas, get help, share your modules, and collaborate with other developers.
-
-PandaGenie is a **co-creation platform** — we sincerely invite developers of all levels to join and build a richer module ecosystem together. Whether you're a seasoned Android developer or someone who just learned to code last week with an AI assistant, **there's room for you here**.
-
-### Why Build a PandaGenie Module?
-
-- **Incredibly low barrier** — 3 files, one Java interface, done. You can **vibe code** the entire thing with AI assistants like Cursor. This whole project was built that way.
-- **Instant distribution** — your module reaches all PandaGenie users through the built-in marketplace
-- **Revenue sharing** — if PandaGenie generates revenue in the future (premium features, donations, sponsorships, etc.), **module developers will receive a share of that revenue** proportional to their module's usage and impact. We are committed to making this a platform where contributors are fairly rewarded.
-
-### How to Submit Your Module
-
-There are **two ways** to get your module officially signed and published:
-
-#### Option A: Online Signing Portal (Recommended)
-
-Visit **[https://cf.pandagenie.ai/sign](https://cf.pandagenie.ai/sign)** — the official PandaGenie module signing service:
-
-1. Build your `.mod` file locally using the dev toolkit
-2. Upload it on the website — it will automatically validate the file format, developer signature, and security checks
-3. If everything passes, the official signature is applied and you can **download the signed `.mod`**
-4. You'll also be asked if you want to **publish it to the module marketplace** — one click and it's live!
-
-#### Option B: Pull Request
-
-1. **Fork** this repo
-2. Create your module in `source/<your_module_id>/`
-3. Test it with Developer Mode enabled on the app
-4. **Submit a Pull Request** — after review, we'll add the official signature and publish
-
-### Co-creation Guidelines
-
-- **Open & transparent code** — all module code is publicly auditable to ensure trustworthy behavior
-- **Protect your developer key** — sign modules with your dev key first, submit for review, then official signing
-- Clear API descriptions (the AI reads them!)
-- Support both Chinese and English (`_en` fields)
-- Minimal permissions — request only what you need
-
-### Ideas for New Modules
-
-The module ecosystem is growing fast — there's **still so much to build**:
-
-- &#x1F4E7; **SMS manager** — search, export messages
-- &#x1F3B5; **Audio tools** — metadata, convert formats
-- &#x1F4CD; **Location tools** — nearby places, coordinates
-- &#x1F4C8; **Health tracker** — step count, sleep, exercise
-- &#x1F4B0; **Finance tools** — expense tracking, currency conversion
-- &#x1F4E2; **Social tools** — share content across platforms
-- ...and anything else you can imagine!
-
-> Every module you build makes PandaGenie smarter for everyone. **Let's build the future of AI-powered mobile together.**
-
-### Join Our Community
-
-[![Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
-
-Have questions? Want to show off your module? Need help getting started? Join our **[Discord server](https://discord.gg/Cfc7pjrjt2)** — we'd love to meet you.
-
----
-
-## Contributing
-
-We welcome contributions of all kinds! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines on:
-
-- Building and submitting new modules
-- Reporting bugs and suggesting features
-- Code style and PR process
-
----
-
-## Contributors
-
-<a href="https://github.com/Rorschach123/PandaGenieSource/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Rorschach123/PandaGenieSource" />
-</a>
-
----
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| App | Kotlin, Jetpack Compose, Material 3 |
-| AI | Any OpenAI-compatible / Claude API |
-| Modules | Java plugins, DEX ClassLoader, optional JNI/C++ |
-| Signing | PKCS12 keystores, jarsigner, DPAPI |
-| Build | PowerShell, Android SDK (d8, javac) |
-
----
 
 ## License
 
-This project is licensed under the LGPL-3.0 License. See [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-
-**Built with &#x2764;&#xFE0F; and a lot of vibe coding**
-
-*PandaGenie — Let AI handle the boring stuff on your phone*
-
-[![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/Cfc7pjrjt2)
-
-</div>
+PandaGenie is licensed under LGPL-3.0.
