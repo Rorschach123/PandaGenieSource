@@ -2,9 +2,9 @@
   "id": "app_manager",
   "name": "应用管理",
   "name_en": "App Manager",
-  "description": "已安装应用管理模块，支持获取应用列表、打开应用、查看应用详情（包名、版本、安装时间、来源等）、卸载应用、跳转系统设置应用信息页",
-  "description_en": "Manage installed apps: list, launch, view details (package name, version, install time, source), uninstall, and open system app info page",
-  "version": "1.5",
+  "description": "应用管理模块，支持获取已安装应用列表、打开应用、查看应用详情、卸载应用、跳转系统设置应用信息页，并可从 PandaGenie 服务端获取已审核的可交互应用与能力列表",
+  "description_en": "Manage apps: list installed apps, launch apps, view details, request uninstall, open system app info, and fetch approved interactable SDK apps and capabilities from PandaGenie server",
+  "version": "1.6",
   "icon": "apps",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -12,9 +12,15 @@
   "pluginClass": "ai.rorsch.moduleplugins.app_manager.AppManagerPlugin",
   "soLoadMode": "skip",
   "capabilities": [
-    "app_list"
+    "app_list",
+    "network"
   ],
   "permissions": [
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于从 PandaGenie 服务端获取已审核的可交互应用与能力列表",
+      "desc_en": "Fetch approved interactable SDK apps and capabilities from PandaGenie server"
+    },
     {
       "name": "android.permission.REQUEST_DELETE_PACKAGES",
       "desc": "用于请求卸载应用",
@@ -59,6 +65,26 @@
         "Number of days to look back (default 30)",
         "Include system apps (default false)",
         "Sort field: firstInstallTime (default) or lastUpdateTime"
+      ]
+    },
+    {
+      "name": "listCallableApps",
+      "desc": "从 PandaGenie 服务端获取最新已审核的可交互/可调用应用列表及能力。用户问【哪些应用可以被操作】【有哪些应用可以交互】【哪些应用能被调用】【可用能力应用】【SDK 应用能力】时使用。不要用 listApps 回答这类问题",
+      "desc_en": "Fetch the latest approved interactable/callable app list and capabilities from PandaGenie server. Use when the user asks which apps can be operated, interacted with, called, or what SDK app capabilities are available. Do not use listApps for these questions",
+      "params": [
+        "search",
+        "limit",
+        "onlyInstalled"
+      ],
+      "paramDesc": [
+        "按应用名、包名或能力关键词搜索，可为空",
+        "返回数量，默认50，最大100",
+        "是否只显示本机已安装应用，默认false"
+      ],
+      "paramDesc_en": [
+        "Search by app name, package name, or capability keyword. Optional",
+        "Result limit, default 50, max 100",
+        "Only show apps installed on this device, default false"
       ]
     },
     {

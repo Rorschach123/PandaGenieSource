@@ -12,6 +12,13 @@ import ai.rorsch.pandagenie.module.runtime.ModulePlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +42,9 @@ import java.util.Locale;
  * </p>
  */
 public class AppManagerPlugin implements ModulePlugin {
+
+    private static final String SDK_APPS_URL = "https://cf.pandagenie.ai/sdk/apps";
+    private static final int SDK_TIMEOUT_MS = 12000;
 
     private static boolean isZh() {
         try {
@@ -84,6 +94,13 @@ public class AppManagerPlugin implements ModulePlugin {
             case "listRecentApps": {
                 String output = listRecentApps(context, params);
                 return ok(output, formatRecentAppsDisplay(new JSONObject(output)), formatListRecentAppsHtml(output));
+            }
+            case "listCallableApps":
+            case "listInteractableApps":
+            case "listSdkApps": {
+                String output = listCallableApps(context, params);
+                JSONObject obj = new JSONObject(output);
+                return ok(output, formatCallableAppsDisplay(obj), formatCallableAppsHtml(obj));
             }
             case "openApp":
                 return openApp(context, params);
@@ -174,6 +191,64 @@ public class AppManagerPlugin implements ModulePlugin {
         result.put("days", days);
         result.put("dateField", dateField);
         result.put("apps", arr);
+        return result.toString();
+    }
+
+    private String listCallableApps(Context context, JSONObject params) throws Exception {
+        int limit = Math.max(1, Math.min(params.optInt("limit", 50), 100));
+        String search = params.optString("search", params.optString("q", "")).trim();
+        boolean onlyInstalled = params.optBoolean("onlyInstalled", false);
+        String locale = isZh() ? "zh" : "en";
+
+        StringBuilder url = new StringBuilder(SDK_APPS_URL)
+                .append("?role=provider")
+                .append("&limit=").append(limit)
+                .append("&locale=").append(URLEncoder.encode(locale, "UTF-8"));
+        if (!search.isEmpty()) {
+            url.append("&search=").append(URLEncoder.encode(search, "UTF-8"));
+        }
+
+        JSONObject response = new JSONObject(httpGet(url.toString()));
+        if (!response.optBoolean("success", false)) {
+            throw new IOException(response.optString("error", "Fetch SDK apps failed"));
+        }
+        JSONObject data = response.optJSONObject("data");
+        JSONArray items = data != null ? data.optJSONArray("items") : null;
+        JSONArray apps = new JSONArray();
+
+        if (items != null) {
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null) continue;
+                String packageName = item.optString("package_name", "");
+                boolean installed = isPackageInstalled(context, packageName);
+                if (onlyInstalled && !installed) continue;
+
+                JSONObject app = new JSONObject();
+                app.put("id", item.optInt("id", 0));
+                app.put("appName", item.optString("app_name", ""));
+                app.put("packageName", packageName);
+                app.put("role", item.optString("role", "provider"));
+                app.put("developerName", item.optString("developer_name", ""));
+                app.put("description", item.optString("description", ""));
+                app.put("homepageUrl", item.optString("homepage_url", ""));
+                app.put("updatedAt", item.optString("updated_at", ""));
+                app.put("signatureCount", item.optInt("signature_count", 0));
+                app.put("capabilityCount", item.optInt("capability_count", 0));
+                app.put("installed", installed);
+                app.put("capabilities", parseExpectedApis(item.optString("expected_apis", "")));
+                apps.put(app);
+            }
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("count", apps.length());
+        result.put("total", data != null ? data.optInt("total", apps.length()) : apps.length());
+        result.put("limit", limit);
+        result.put("search", search);
+        result.put("onlyInstalled", onlyInstalled);
+        result.put("serverTime", data != null ? data.optString("server_time", "") : "");
+        result.put("apps", apps);
         return result.toString();
     }
 
@@ -345,6 +420,96 @@ public class AppManagerPlugin implements ModulePlugin {
         return bestMatch;
     }
 
+    private static String httpGet(String urlStr) throws IOException {
+        HttpURLConnection conn = null;
+        InputStream stream = null;
+        try {
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(SDK_TIMEOUT_MS);
+            conn.setReadTimeout(SDK_TIMEOUT_MS);
+            conn.setRequestProperty("Accept", "application/json");
+            int code = conn.getResponseCode();
+            stream = code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream();
+            String body = readAll(stream);
+            if (code < 200 || code >= 300) {
+                throw new IOException("HTTP " + code + ": " + body);
+            }
+            return body;
+        } finally {
+            if (stream != null) {
+                try { stream.close(); } catch (Exception ignored) {}
+            }
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static String readAll(InputStream stream) throws IOException {
+        if (stream == null) return "";
+        BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line);
+        }
+        return sb.toString();
+    }
+
+    private static JSONArray parseExpectedApis(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return new JSONArray();
+        try {
+            Object parsed = new org.json.JSONTokener(raw).nextValue();
+            if (parsed instanceof JSONArray) return (JSONArray) parsed;
+            if (parsed instanceof JSONObject) {
+                JSONArray arr = new JSONArray();
+                arr.put(parsed);
+                return arr;
+            }
+        } catch (Exception ignored) {}
+        return new JSONArray();
+    }
+
+    private boolean isPackageInstalled(Context context, String packageName) {
+        if (packageName == null || packageName.trim().isEmpty()) return false;
+        try {
+            context.getPackageManager().getPackageInfo(packageName, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    private static String capabilityTitle(JSONObject cap) {
+        String title = cap.optString("title", "").trim();
+        if (!title.isEmpty()) return title;
+        title = cap.optString("description", "").trim();
+        if (!title.isEmpty()) return title;
+        title = cap.optString("id", "").trim();
+        return title.isEmpty() ? "—" : title;
+    }
+
+    private static String capabilitySummary(JSONArray caps, boolean zh, int max) {
+        if (caps == null || caps.length() == 0) return zh ? "未填写能力说明" : "No capability details";
+        StringBuilder sb = new StringBuilder();
+        int count = Math.min(caps.length(), max);
+        for (int i = 0; i < count; i++) {
+            JSONObject cap = caps.optJSONObject(i);
+            if (cap == null) continue;
+            if (sb.length() > 0) sb.append(zh ? "、" : ", ");
+            sb.append(capabilityTitle(cap));
+        }
+        if (caps.length() > count) {
+            sb.append(zh ? (" 等 " + caps.length() + " 项") : (" and " + (caps.length() - count) + " more"));
+        }
+        return sb.toString();
+    }
+
+    private static String installedLabel(boolean installed, boolean zh) {
+        if (zh) return installed ? "已安装" : "未安装";
+        return installed ? "Installed" : "Not installed";
+    }
+
     /**
      * 判断安装包是否带有系统应用标记。
      *
@@ -397,6 +562,73 @@ public class AppManagerPlugin implements ModulePlugin {
     private static String mdCell(String s) {
         if (s == null) return "";
         return s.replace("\r", "").replace("\n", " ").replace("|", "\\|");
+    }
+
+    private String formatCallableAppsDisplay(JSONObject obj) throws Exception {
+        int count = obj.optInt("count", 0);
+        JSONArray apps = obj.optJSONArray("apps");
+        boolean zh = isZh();
+        String title = zh
+                ? ("🧩 可交互应用能力（共 " + count + " 个）")
+                : ("🧩 Interactable App Capabilities (" + count + ")");
+        String[] headers = zh
+                ? new String[]{"应用", "状态", "包名", "可调用能力"}
+                : new String[]{"App", "Status", "Package", "Capabilities"};
+        List<String[]> rows = new ArrayList<>();
+        if (apps != null) {
+            for (int i = 0; i < apps.length(); i++) {
+                JSONObject app = apps.optJSONObject(i);
+                if (app == null) continue;
+                JSONArray caps = app.optJSONArray("capabilities");
+                rows.add(new String[]{
+                        mdCell(app.optString("appName", "")),
+                        mdCell(installedLabel(app.optBoolean("installed", false), zh)),
+                        mdCell(app.optString("packageName", "")),
+                        mdCell(capabilitySummary(caps, zh, 4))
+                });
+            }
+        }
+        return pgTable(title, headers, rows);
+    }
+
+    private String formatCallableAppsHtml(JSONObject obj) {
+        boolean zh = isZh();
+        JSONArray apps = obj.optJSONArray("apps");
+        int count = obj.optInt("count", apps != null ? apps.length() : 0);
+        if (apps == null || apps.length() == 0) {
+            String text = zh
+                    ? "服务端暂时没有返回已审核的可交互应用。可以稍后刷新，或让开发者先在官网提交应用并通过审核。"
+                    : "No approved interactable apps were returned. Try again later or ask developers to submit and pass review first.";
+            return HtmlOutputHelper.card("🧩", zh ? "可交互应用" : "Interactable Apps",
+                    HtmlOutputHelper.callout(zh ? "暂无结果" : "No results", text, "warn"));
+        }
+
+        StringBuilder body = new StringBuilder();
+        body.append(HtmlOutputHelper.muted(zh
+                ? "来自 PandaGenie 服务端的已审核能力应用。"
+                : "Approved capability apps from the PandaGenie server."));
+        int limit = Math.min(apps.length(), 20);
+        for (int i = 0; i < limit; i++) {
+            JSONObject app = apps.optJSONObject(i);
+            if (app == null) continue;
+            JSONArray caps = app.optJSONArray("capabilities");
+            String meta = installedLabel(app.optBoolean("installed", false), zh)
+                    + " · " + app.optInt("capabilityCount", caps != null ? caps.length() : 0)
+                    + (zh ? " 项能力 · " : " capabilities · ")
+                    + app.optString("packageName", "—");
+            String desc = app.optString("description", "").trim();
+            String capText = (zh ? "能力：" : "Capabilities: ") + capabilitySummary(caps, zh, 5);
+            body.append(HtmlOutputHelper.item(
+                    app.optString("appName", zh ? "未命名应用" : "Unnamed app"),
+                    meta,
+                    desc.isEmpty() ? capText : (desc + "\n" + capText)
+            ));
+        }
+        if (count > limit) {
+            body.append(HtmlOutputHelper.muted((zh ? "仅显示前 " : "Showing first ") + limit
+                    + (zh ? " 个，共 " : " of ") + count + (zh ? " 个。" : ".")));
+        }
+        return HtmlOutputHelper.card("🧩", zh ? "可交互应用" : "Interactable Apps", body.toString());
     }
 
     private String formatListAppsDisplay(JSONObject obj) throws Exception {

@@ -6,11 +6,32 @@
 
 Tell PandaGenie what you need in natural language. It plans, executes, and returns results through your LLM and hot-loadable Android modules.
 
-[Official Website](https://cf.pandagenie.ai) | [Module Marketplace](https://cf.pandagenie.ai/marketplace) | [Submit a Module](https://cf.pandagenie.ai/sign) | [Chinese](README_CN.md)
+[Official Website](https://cf.pandagenie.ai) | [Task & Module Marketplace](https://cf.pandagenie.ai/marketplace) | [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | [Submit a Module](https://cf.pandagenie.ai/sign) | [Discord](https://discord.gg/Cfc7pjrjt2) | [Chinese](README_CN.md)
 
 </div>
 
 ---
+
+## PandaGenie Ecosystem
+
+PandaGenie is split into a few related projects so app users, module developers, and Android app developers can start from the right place.
+
+| Project | What it is for |
+|---|---|
+| [Official Website](https://cf.pandagenie.ai) | APK download, task/module marketplace, SDK registration, developer docs, and publishing entry points. |
+| [PandaGenieSource](https://github.com/Rorschach123/PandaGenieSource) | This repository: Android app source, official module source, packaging scripts, and module catalog metadata. |
+| [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | Android AAR for app-to-app capability discovery and invocation. Use this when another Android app wants to expose functions to PandaGenie or build an AI assistant that calls approved apps. |
+| [PandaGenie Module Template](https://github.com/Rorschach123/PandaGenie-Module-Template) | Starter project for hot-loadable PandaGenie modules. Use this when you want to add a new module inside PandaGenie. |
+| [Module Submission](https://cf.pandagenie.ai/sign) | Upload and sign modules for the official module workflow. |
+| [SDK Registration](https://cf.pandagenie.ai/sdk) | Register an Android app package/signature/role so it can participate in PandaGenieSDK calls. |
+| [Discord](https://discord.gg/Cfc7pjrjt2) | Developer support, module publishing help, SDK review questions, and feedback. |
+
+Quick path:
+
+- **I want to try the app**: download the APK from the [official website](https://cf.pandagenie.ai).
+- **I want to write a PandaGenie module**: start from the [module template](https://github.com/Rorschach123/PandaGenie-Module-Template), then submit it through [Module Submission](https://cf.pandagenie.ai/sign).
+- **I want my Android app to be callable by PandaGenie**: integrate [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK), expose provider capabilities, then register the release package and signature on [SDK Registration](https://cf.pandagenie.ai/sdk).
+- **I want to build another AI assistant**: integrate PandaGenieSDK as an Agent app, register the agent role, discover approved providers, and feed their capability manifests into your planner.
 
 ## 1.0.35 Highlight: On-Device Memory
 

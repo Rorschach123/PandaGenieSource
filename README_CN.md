@@ -6,11 +6,32 @@
 
 用自然语言告诉 PandaGenie 你要做什么，它会结合大模型和热加载模块自动规划、执行并返回结果。
 
-[官网](https://cf.pandagenie.ai) | [模块市场](https://cf.pandagenie.ai/marketplace) | [提交模块](https://cf.pandagenie.ai/sign) | [English](README_EN.md)
+[官网](https://cf.pandagenie.ai) | [任务/模块市场](https://cf.pandagenie.ai/marketplace) | [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | [提交模块](https://cf.pandagenie.ai/sign) | [Discord](https://discord.gg/Cfc7pjrjt2) | [English](README_EN.md)
 
 </div>
 
 ---
+
+## PandaGenie 项目关系
+
+PandaGenie 现在由几个互相关联但职责不同的项目组成，方便不同类型的开发者快速找到入口。
+
+| 项目 | 用途 |
+|---|---|
+| [官网](https://cf.pandagenie.ai) | APK 下载、任务/模块市场、SDK 应用注册、开发者文档和发布入口。 |
+| [PandaGenieSource](https://github.com/Rorschach123/PandaGenieSource) | 当前仓库：Android App 源码、官方模块源码、模块打包脚本和模块目录元数据。 |
+| [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | Android AAR，用于应用之间的能力发现、鉴权和调用。适合让独立 Android 应用被 PandaGenie 调用，或开发另一个可调用能力应用的 AI 助手。 |
+| [PandaGenie Module Template](https://github.com/Rorschach123/PandaGenie-Module-Template) | PandaGenie 热加载模块开发模板。想扩展 PandaGenie 内部模块时从这里开始。 |
+| [提交模块](https://cf.pandagenie.ai/sign) | 上传、签名并提交模块。 |
+| [SDK 应用注册](https://cf.pandagenie.ai/sdk) | 注册 Android 应用的包名、签名和角色，通过审核后才能参与 SDK 调用。 |
+| [Discord](https://discord.gg/Cfc7pjrjt2) | 开发者交流、模块发布支持、SDK 审核沟通和问题反馈。 |
+
+快速选择：
+
+- **体验 App**：到 [官网](https://cf.pandagenie.ai) 下载 APK。
+- **开发 PandaGenie 模块**：从 [模块模板](https://github.com/Rorschach123/PandaGenie-Module-Template) 开始，然后到 [提交模块](https://cf.pandagenie.ai/sign) 发布。
+- **让自己的 Android 应用被 PandaGenie 调用**：接入 [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK)，声明 Provider 能力，再到 [SDK 应用注册](https://cf.pandagenie.ai/sdk) 提交审核。
+- **开发另一个 AI 助手**：接入 PandaGenieSDK 的 Agent 角色，注册并审核后发现已批准的能力应用，把能力清单交给自己的规划器使用。
 
 
 

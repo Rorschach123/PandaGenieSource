@@ -844,7 +844,7 @@ if ($builtModules.Count -gt 0 -and (Test-Path $modulesJsonPath)) {
                 $modEntry.capabilities = $caps
                 $modEntry | Add-Member -NotePropertyName categories -NotePropertyValue $cats -Force
                 $modEntry.apis = $apis
-                $modEntry.api_count = $apis.Count
+                $modEntry | Add-Member -NotePropertyName api_count -NotePropertyValue $apis.Count -Force
                 Write-Host "  + Synced $modId metadata in modules.json" -ForegroundColor Green
             } else {
                 # Auto-add new module from manifest
