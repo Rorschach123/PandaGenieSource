@@ -1,29 +1,28 @@
-# claw modules
+# ClawHub 适配模块
 
-This directory records the ClawHub skill adaptation batch.
+这个目录记录从 ClawHub 技能思路迁移到 PandaGenie Android 模块沙箱的一批模块。适配原则是：保留适合手机本地执行、可由用户明确触发、权限边界清晰的能力；跳过依赖桌面 shell、浏览器自动化、账号交易 API 或长期后台 Agent 的能力。
 
-ClawHub's top downloaded skills currently surface agent-oriented tools such as
-Self-Improving Agent, Skill Vetter, Ontology, Humanizer, GitHub, Gog,
-Polymarket, Weather, ClawHub Curation, and Auto Document Updater. For the
-mobile module market, this batch keeps the parts that can run inside
-PandaGenie's Android module sandbox without desktop shells, browser automation,
-GitHub accounts, trading APIs, or long-running background agents.
+## 已实现模块
 
-Implemented by developer `claw`:
+| 模块 | 来源思路 | 移动端适配方式 |
+|---|---|---|
+| `claw_skill_vetter` | Skill Vetter | 本地扫描文本、文件和 URL，识别风险指令和 prompt injection。 |
+| `claw_ontology` | Ontology | 在模块沙箱中维护小型私有知识图谱。 |
+| `claw_humanizer` | Humanizer | 使用 LLM 把文本改写得更自然、易读。 |
+| `claw_skill_discovery` | ClawHub Curation | 通过网络查询热门、认证、最新和搜索到的 ClawHub 技能。 |
+| `claw_doc_updater` | Auto Document Updater | 本地文档对比、changelog、更新计划和 todo 提取。 |
+| `claw_workflow_planner` | Automation Workflows | 使用 LLM 规划手机工作流，并生成本地检查清单和风险提示。 |
+| `claw_prompt_shield` | SkillScan / Shield CN | 中文友好的 prompt injection、密钥泄露和风险动作扫描。 |
 
-| Module | Source skill idea | Mobile adaptation |
-| --- | --- | --- |
-| `claw_skill_vetter` | Skill Vetter | Local text/file/URL scanner for risky skill instructions and prompt-injection patterns. |
-| `claw_ontology` | Ontology | Small private knowledge graph stored under the module sandbox. |
-| `claw_humanizer` | Humanizer | LLM-backed rewrite helper for natural, readable mobile text. |
-| `claw_skill_discovery` | Top ClawHub Skills / ClawHub Curation | Network lookup for top, certified, newest, and searched ClawHub skills. |
-| `claw_doc_updater` | Auto Document Updater | Local document comparison, changelog, update plan, and todo extraction helper. |
-| `claw_workflow_planner` | Automation Workflows / Proactive Agent | LLM-backed mobile workflow planner plus local checklist and risk checks. |
-| `claw_prompt_shield` | SkillScan / Shield CN | Local Chinese-aware prompt injection, secret leak, and risky-action scanner. |
+## 暂未适配
 
-Skipped for this batch:
+- Self-Improving Agent：需要自主代码修改和长工具循环，不适合手机模块沙箱。
+- GitHub、Gog、Polymarket：依赖账号、API 或桌面环境假设较强。
+- Weather：PandaGenie 已有维护中的天气模块，避免重复。
+- 完整后台版 Auto Document Updater / ClawHub Curation：已收敛为本地文档规划和只读发现能力。
 
-- Self-Improving Agent: requires autonomous code edits and tool loops that are not appropriate for a mobile module sandbox.
-- GitHub, Gog, Polymarket: account/API-heavy workflows with stronger desktop or server assumptions.
-- Weather: PandaGenie already has a maintained weather module, so this batch avoids a duplicate market entry.
-- Full autonomous Auto Document Updater and ClawHub Curation agents: adapted into local doc planning and read-only discovery modules instead of background repo automation.
+## English
+
+This folder tracks a batch of PandaGenie modules adapted from ClawHub skill ideas.
+
+The mobile adaptation keeps capabilities that can run safely inside PandaGenie's Android module sandbox, while skipping desktop shell workflows, browser automation, trading APIs, account-heavy integrations, and long-running autonomous agents.

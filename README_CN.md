@@ -1,151 +1,17 @@
-<div align="center">
+# PandaGenieSource 中文说明
 
-# PandaGenie
+这是 PandaGenie Android App、官方模块与模块开发工具源码仓库。
 
-**AI 驱动的模块化 Android 助手**
+主要入口：
 
-用自然语言告诉 PandaGenie 你要做什么，它会结合大模型和热加载模块自动规划、执行并返回结果。
+- 官网：<https://cf.pandagenie.ai>
+- APK 下载：<https://cf.pandagenie.ai/app-update/latest-download>
+- 任务/模块市场：<https://cf.pandagenie.ai/marketplace>
+- 模块提交：<https://cf.pandagenie.ai/sign>
+- SDK 注册：<https://cf.pandagenie.ai/sdk>
+- PandaGenieSDK：<https://github.com/Rorschach123/PandaGenieSDK>
+- 模块模板：<https://github.com/Rorschach123/PandaGenie-Module-Template>
+- SDK Provider 模板：<https://github.com/Rorschach123/PandaGenieSDK-Provider-Template>
+- Discord：<https://discord.gg/Cfc7pjrjt2>
 
-[官网](https://cf.pandagenie.ai) | [任务/模块市场](https://cf.pandagenie.ai/marketplace) | [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | [提交模块](https://cf.pandagenie.ai/sign) | [Discord](https://discord.gg/Cfc7pjrjt2) | [English](README_EN.md)
-
-</div>
-
----
-
-## PandaGenie 项目关系
-
-PandaGenie 现在由几个互相关联但职责不同的项目组成，方便不同类型的开发者快速找到入口。
-
-| 项目 | 用途 |
-|---|---|
-| [官网](https://cf.pandagenie.ai) | APK 下载、任务/模块市场、SDK 应用注册、开发者文档和发布入口。 |
-| [PandaGenieSource](https://github.com/Rorschach123/PandaGenieSource) | 当前仓库：Android App 源码、官方模块源码、模块打包脚本和模块目录元数据。 |
-| [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK) | Android AAR，用于应用之间的能力发现、鉴权和调用。适合让独立 Android 应用被 PandaGenie 调用，或开发另一个可调用能力应用的 AI 助手。 |
-| [PandaGenie Module Template](https://github.com/Rorschach123/PandaGenie-Module-Template) | PandaGenie 热加载模块开发模板。想扩展 PandaGenie 内部模块时从这里开始。 |
-| [提交模块](https://cf.pandagenie.ai/sign) | 上传、签名并提交模块。 |
-| [SDK 应用注册](https://cf.pandagenie.ai/sdk) | 注册 Android 应用的包名、签名和角色，通过审核后才能参与 SDK 调用。 |
-| [Discord](https://discord.gg/Cfc7pjrjt2) | 开发者交流、模块发布支持、SDK 审核沟通和问题反馈。 |
-
-快速选择：
-
-- **体验 App**：到 [官网](https://cf.pandagenie.ai) 下载 APK。
-- **开发 PandaGenie 模块**：从 [模块模板](https://github.com/Rorschach123/PandaGenie-Module-Template) 开始，然后到 [提交模块](https://cf.pandagenie.ai/sign) 发布。
-- **让自己的 Android 应用被 PandaGenie 调用**：接入 [PandaGenieSDK](https://github.com/Rorschach123/PandaGenieSDK)，声明 Provider 能力，再到 [SDK 应用注册](https://cf.pandagenie.ai/sdk) 提交审核。
-- **开发另一个 AI 助手**：接入 PandaGenieSDK 的 Agent 角色，注册并审核后发现已批准的能力应用，把能力清单交给自己的规划器使用。
-
-
-
-## 1.0.35 重点：端侧记忆系统
-
-PandaGenie 1.0.35 引入应用级端侧记忆能力，让助手可以跨会话理解用户偏好、常用任务习惯、纠正信息和成功任务模式。记忆系统接入聊天、Agent、LLM 请求和设置页，不作为普通第三方模块暴露全量读写权限。
-
-- AI 设置页新增“对话与应用记忆”卡片。
-- 新增三种记忆模式：全应用记忆、隐私记忆、不开启记忆。
-- 全应用记忆会在本机提取记忆；敏感值进入 Vault，提交给模型的是 `{{vault:name}}` 变量名。
-- 隐私记忆会保存脱敏后的本地记忆，并以脱敏内容参与 AI 交互；不保存敏感值。
-- 关闭模式不提取、不保存、不向模型注入应用记忆。
-- `AppMemoryStore` 将记忆存放在 App 私有目录，不导入导出，不上云；本地清除后即消失。
-- LLM 与 Agent 请求会按当前模式注入本机检索到的相关记忆，且本轮用户指令始终优先。
-- 聊天历史最多保留最近 500 条消息；应用记忆也会定期清理非长期记忆。
-
-## 记忆系统实现
-
-| 层级 | 实现 | 说明 |
-|---|---|---|
-| 设置入口 | `SettingsActivity` / `SettingsDataStore` | 提供三种记忆模式，并持久化为 DataStore 偏好。 |
-| 存储与检索 | `data/memory/AppMemoryStore.kt` | 负责记忆写入、去重、标签提取、保留策略、相关性排序和 prompt 构建。 |
-| 敏感值处理 | `SecureVaultStore` + `MemoryVaultVariables` | 全应用记忆把敏感值保存到 Vault 分类 `app_memory_sensitive`，提示词只暴露变量名。 |
-| 聊天接入 | `ChatViewModel` | 用户和助手消息会按当前模式进入记忆；发送前构造安全文本、历史和记忆上下文。 |
-| LLM/Agent 注入 | `ChatTaskService` | `memoryContext` 会追加到普通 LLM 调用和 Agent 自动模式的系统提示中。 |
-| 模块边界 | App 层能力 | 第三方模块不能直接读取全量记忆；记忆只影响 AI 规划上下文，不改变模块权限。 |
-
-## 当前模块目录
-
-`modules.json` 当前包含 **52 个官方模块**，共 **333 个 API**，最后更新于 **2026-05-15**。
-
-| ID | 模块 | 功能说明 | 版本 | APIs |
-|---|---|---|---|---|
-| `calculator` | 计算器 | 科学计算器模块，支持四则运算、三角函数、对数、阶乘、排列组合、表达式解析等 | 1.3 | 17 |
-| `filemanager` | 文件管理器 | 文件管理器模块，支持目录遍历、文件增删改查、搜索等操作 | 2.3 | 13 |
-| `archive` | 压缩解压 | 文件压缩解压模块，支持ZIP(含密码加密)、TAR、GZ、TAR.GZ格式 | 1.7 | 9 |
-| `signature_checker` | 签名校验 | 签名校验模块，校验APK安装包和所有已加载模块的签名状态（区分官方签名和开发者签名），展示开发者信息、签名指纹、签名主体，确保应用和模块的完整性与合法性 | 1.5 | 4 |
-| `app_manager` | 应用管理 | 已安装应用管理模块，支持获取应用列表、打开应用、查看应用详情（包名、版本、安装时间、来源等）、卸载应用、跳转系统设置应用信息页 | 1.5 | 6 |
-| `file_stats` | 文件信息统计 | 文件信息统计模块，支持获取文件详情、魔术字识别真实文件类型、计算哈希值(MD5/SHA1/SHA256)、对比文件、校验完整性、目录统计、查找重复文件、大文件扫描、查询空文件和空文件夹、文件名关键词搜索、文本统计等 | 1.9 | 11 |
-| `reminder` | 提醒助手 | 提醒助手模块，支持创建/查询/修改/删除日历事件、设置闹钟和倒计时、生日提醒、查看近期日程等 | 1.4 | 11 |
-| `text_tools` | 文本工具 | 文本工具模块，支持字数统计、Base64编解码、URL编解码、正则匹配替换、文本转换、UUID生成、文本哈希，以及通过大模型总结、改写、提取和整理文本。 | 1.6 | 11 |
-| `device_info` | 设备信息 | 设备信息模块，提供机型与系统版本、CPU、内存、存储、屏幕参数及一键汇总，仅使用系统公开 API。 | 1.6 | 6 |
-| `image_tools` | 图片工具 | 图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪、读取相册图片、查找完全重复和视觉相似图片等操作 | 1.8 | 9 |
-| `clipboard` | 剪贴板管理 | 剪贴板管理模块，支持读取、设置、清空剪贴板，以及剪贴板历史记录管理 | 1.5 | 7 |
-| `battery` | 电池管理 | 电池管理模块，支持查看电池电量、充电状态、健康状况、温度、电压等详细信息 | 1.5 | 3 |
-| `network_tools` | 网络工具 | 网络工具模块，支持 Ping 互通测试、TCP 端口检查、DNS 查询、本机 IP、公网 IP、网络连接状态和网络信息查看 | 1.6 | 8 |
-| `contacts` | 联系人管理 | 联系人管理模块，支持搜索、查看详情、列出全部联系人、导出VCF、查找重复联系人 | 1.5 | 6 |
-| `notes` | 笔记助手 | 笔记助手模块，支持创建、查看、编辑、删除、搜索、导出笔记，并可通过 AI 总结和整理本地笔记 | 1.6 | 10 |
-| `fortune` | 每日运势 | 每日运势模块，支持查询今日运势、指定日期运势、农历日期转换，基于日期和姓名生成个性化运势结果，含七个运势等级和丰富的运势词库 | 1.3 | 4 |
-| `magic_dice` | 骰子工具 | 骰子工具模块，支持掷骰子（1-6颗）、指定目标总数掷骰、大小判定、豹子（全同）、组合枚举和概率统计 | 1.2 | 6 |
-| `led_banner` | LED灯牌 | LED应援灯牌模块，支持创建滚动/浮现/静止文字横幅，自定义颜色、渐变背景、字体大小、特效（荧光、闪烁、抖动），内置多种赛博风格和应援色模板 | 1.7 | 4 |
-| `system_cleaner` | 系统清理 | 系统清理模块，扫描并清理临时文件、缓存、空文件夹、缩略图缓存和APK安装包等，释放存储空间 | 2.1 | 5 |
-| `color_picker` | 颜色工具 | 颜色拾取与转换：HEX、RGB、HSL、CMYK 互转；和谐色板（互补、类似、三角、分裂互补、四色）；随机色；CSS 命名色匹配 | 1.4 | 4 |
-| `unit_converter` | 单位转换 | 万能单位转换模块，支持长度、重量、温度、面积、体积、速度、时间、数据存储等多种单位互转 | 1.4 | 4 |
-| `password_gen` | 密码生成器 | 安全密码生成器模块，支持自定义长度、复杂度和字符类型生成强密码，还支持助记密码短语生成和密码强度检测 | 1.7 | 4 |
-| `qrcode` | 二维码工具 | 二维码工具模块，支持从文本/URL生成二维码、从图片识别解码二维码、查看和分享生成的二维码 | 1.6 | 5 |
-| `snake_game` | 贪吃蛇 | 经典贪吃蛇游戏，控制蛇移动吃掉食物增加长度，避免碰到墙壁和自身，支持设置难度 | 1.4 | 4 |
-| `farming_game` | 种菜游戏 | 种菜模拟游戏，选择种子种植，浇水、施肥、除草帮助植物生长，收获结果可保存记录，支持定时任务，只有一个存档 | 1.4 | 10 |
-| `gomoku_game` | 五子棋 | 经典五子棋游戏，玩家（黑子）与程序（白子）在15x15棋盘上对战，率先五子连珠者获胜 | 1.4 | 4 |
-| `tetris_game` | 俄罗斯方块 | 经典俄罗斯方块游戏，控制方块移动和旋转，将方块堆叠成完整行来消除得分，支持设置难度 | 1.5 | 7 |
-| `sudoku_game` | 数独 | 经典数独游戏，在9x9网格中填入1-9，使每行、每列和每个3x3子网格都不重复，支持设置难度自动生成题目 | 1.4 | 7 |
-| `tictactoe_game` | 井字棋 | 经典井字棋游戏，玩家（X）与程序（O）对战，在3x3网格中率先形成三连即获胜 | 1.4 | 4 |
-| `link_parser` | 链接解析 | 链接解析模块，支持抓取网页内容、提取标题/描述/图片/链接/下载文件等信息，也可调用 AI 总结网页或回答页面相关问题 | 1.5 | 10 |
-| `weather` | 天气助手 | 天气助手模块，支持查询城市当前天气、多日天气预报，以及今天和明天的气温/天气变化预警，使用 Open-Meteo 免费 API，无需密钥 | 1.5 | 5 |
-| `ocr` | 文字识别 | 图片文字识别模块，支持中文和英文OCR，从图片中提取文字内容，支持自动语言检测；会自动清理行首附件占位符，非图片文件会给出明确中文原因 | 1.10 | 3 |
-| `flashlight` | 手电筒 | 手电筒控制模块，支持开关闪光灯、切换状态、查询当前状态 | 1.3 | 5 |
-| `translator` | 翻译助手 | 文本翻译模块，支持中英日韩法德西等多语言互译、自动检测源语言；遇到阿根廷西班牙语、粤语、繁体中文等地域/非标准语种时会自动调用大模型翻译。 | 1.8 | 5 |
-| `compass` | 指南针 | 数字指南针模块，利用设备传感器显示当前方向，支持获取方位角和基本方位信息 | 1.3 | 2 |
-| `url_codec` | URL编解码 | URL编码解码工具，支持URL编码、URL解码、URL组件解析。当用户说【URL编码】【URL解码】【url encode】【url decode】【解析URL】时使用 | 1.2 | 6 |
-| `hello_world` | 自我介绍 | PandaGenie 自我介绍模块，当用户询问「你是谁」「能做什么」「有什么功能」等问题时，由 AI 自动调用，返回结构化的助手介绍与能力列表 | 1.2 | 3 |
-| `document_tools` | 文档处理 | 文档内容处理模块，支持提取、查询、创建、删除、替换、追加、格式转换、导入/生成 CSV、XLSX 表格，并可调用大模型总结文档或根据文档问答。 | 1.5 | 13 |
-| `device_controls` | 设备控制 | 设备、WiFi/Wi-Fi 与蓝牙控制模块：支持查询和调节屏幕亮度、媒体/铃声/闹钟等音量，查询 Wi-Fi/蓝牙状态，打开 Wi-Fi、互联网连接和蓝牙系统面板。 | 1.3 | 17 |
-| `fullscreen_countdown` | 倒计时 | 横屏全屏倒计时模块，支持按小时/分钟/秒设置时长，自动按分秒或时分秒显示，支持剩余1分钟震动和提示音、最后若干秒每秒震动和提示音提醒。 | 1.2 | 2 |
-| `phone_test_recorder` | 手机实测记录 | 记录充电、睡前待机、游戏发热等真实使用测试，持续采样电量、温度、电压、电流和内存变化，生成适合酷安分享的曲线报告与对比结论。 | 1.0 | 6 |
-| `storage_radar_report` | 存储雷达报告 | 扫描手机存储，找出大文件、视频、APK、压缩包、下载目录、微信目录和疑似重复文件，生成空间去向报告与清理建议。 | 1.1 | 4 |
-| `phone_check_report` | 机圈验机报告 | 一句话生成新机/二手机验机报告，汇总设备、系统、屏幕、电池、传感器、Camera2、Widevine、存储测速和预装应用关注项，输出适合酷安截图分享的重点报告。 | 1.2 | 5 |
-| `long_image_generator` | 长图生成器 | 把文本、Markdown、HTML、Word DOCX 文档、网页 URL 等内容转换成 1080px 宽 PNG 长图，适合文章摘录、报告、网页内容和聊天整理分享。 | 1.7 | 6 |
-| `file_downloader` | 文件下载器 | 文件下载模块，支持分析网页或直链中的可下载文件，构造可能存在的下载链接，并把选中的文件保存到 PandaGenie 下载目录。 | 1.1 | 6 |
-| `claw_skill_vetter` | Skill 体检 | 面向 Claude Code skill 的轻量安全体检模块，扫描文本、文件或 URL 中的危险命令、密钥外传、持久化和隐藏指令风险。 | 1.0.4 | 5 |
-| `claw_ontology` | 知识图谱 | 轻量本地知识图谱模块，在模块沙箱中记录 subject-relation-object 事实，支持查询、导入、删除和结构摘要。 | 1.0.4 | 7 |
-| `claw_humanizer` | 文本人味化 | 基于宿主 LLM 的文本润色模块，将生硬、模板化或过度 AI 感的文字改写成更自然、可读、适合手机屏幕的表达。 | 1.0.4 | 4 |
-| `claw_doc_updater` | 文档更新助手 | 从 Auto Document Updater 思路改造的手机端文档更新模块，比较两版文本、生成变更摘要、更新计划和待办项。 | 1.0.4 | 4 |
-| `claw_skill_discovery` | 技能发现 | 基于热门 skill/Top Skills 思路的移动端技能发现模块，支持查询热门、认证、新增和关键词搜索。 | 1.0.4 | 5 |
-| `claw_workflow_planner` | 工作流规划器 | 从 Automation Workflows / Proactive Agent 思路改造的规划模块，把目标整理成手机端可执行的步骤、模块建议和风险提示。 | 1.0.4 | 4 |
-| `claw_prompt_shield` | 提示词安全盾 | 从 SkillScan/Shield CN 思路改造的提示词安全模块，面向中文场景检查 prompt 注入、凭证泄露、外发数据和危险动作。 | 1.0.4 | 3 |
-
-## 下载
-
-> [下载 APK v1.0.35](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260515/PandaGenie-v1.0.35.apk)
-
-- Release 标签：[`20260515`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260515)
-- Android 工程版本：`versionName "1.0.35"` / `versionCode 10035`
-- 官网下载：<https://cf.pandagenie.ai/app-update/latest-download?v=10035>
-
-## 更新日志
-
-<details open>
-<summary><b>v1.0.35</b> (2026-05-15)</summary>
-
-- App 版本升级：Android 工程版本更新为 `versionName "1.0.35"` / `versionCode 10035`，并发布新的最终版 APK。
-- 端侧记忆系统：新增全应用记忆、隐私记忆和关闭三种模式，在本机提取、存储、检索对话记忆，并把相关片段注入 LLM 与 Agent 提示词。
-- 记忆隐私保护：普通记忆库保存在 App 私有目录；密钥、Token、手机号、邮箱等内容会在本地识别，全应用记忆写入 Vault 变量，隐私记忆只保留脱敏上下文。
-- 模块生态刷新：`modules.json` 保持 52 个官方模块，API 扩展到 333 个，更新联系人、设备控制、笔记和应用/提醒/二维码等模块能力。
-- 服务端同步：更新共享配置、会员额度、分享限流和官网版本展示。
-
-</details>
-
-## 构建
-
-```powershell
-cd E:\ProjectAI\PandaGenie\PandaGenie
-.\gradlew.bat assembleRelease -PfinalRelease --no-daemon
-```
-
-## 许可证
-
-PandaGenie 采用 LGPL-3.0 协议。
+完整中文说明请直接阅读 [README.md](README.md)。英文说明见 [README_EN.md](README_EN.md)。
