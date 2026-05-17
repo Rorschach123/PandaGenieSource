@@ -1,7 +1,7 @@
 {
     "version":  "1.0",
     "repository":  "https://github.com/Rorschach123/PandaGenieSource",
-    "updated_at":  "2026-05-16",
+    "updated_at":  "2026-05-17",
     "modules":  [
                     {
                         "id":  "calculator",
@@ -994,10 +994,10 @@
                                      "en":  "App Manager"
                                  },
                         "description":  {
-                                            "zh":  "应用管理模块，支持获取已安装应用列表、打开应用、查看应用详情、卸载应用、跳转系统设置应用信息页，并可从 PandaGenie 服务端获取已审核的可交互应用与能力列表",
-                                            "en":  "Manage apps: list installed apps, launch apps, view details, request uninstall, open system app info, and fetch approved interactable SDK apps and capabilities from PandaGenie server"
+                                            "zh":  "应用管理模块，支持获取已安装应用列表、打开应用、查看应用详情、卸载应用、跳转系统设置应用信息页，并可获取和调用已审核的 PandaGenie SDK 可交互应用能力。",
+                                            "en":  "Manage apps: list installed apps, launch apps, view details, request uninstall, open system app info, and fetch or invoke approved PandaGenie SDK interactable app capabilities."
                                         },
-                        "version":  "1.6",
+                        "version":  "2.8",
                         "icon":  "apps",
                         "filename":  "app_manager.mod",
                         "download_url":  [
@@ -1010,13 +1010,13 @@
                         "permissions":  [
                                             {
                                                 "name":  "android.permission.INTERNET",
-                                                "desc":  "用于从 PandaGenie 服务端获取已审核的可交互应用与能力列表",
-                                                "desc_en":  "Fetch approved interactable SDK apps and capabilities from PandaGenie server"
+                                                "desc":  "用于从 PandaGenie 服务端获取已审核的可交互应用与能力列表。",
+                                                "desc_en":  "Fetch approved interactable SDK apps and capabilities from PandaGenie server."
                                             },
                                             {
                                                 "name":  "android.permission.REQUEST_DELETE_PACKAGES",
-                                                "desc":  "用于请求卸载应用",
-                                                "desc_en":  "Request to uninstall applications"
+                                                "desc":  "用于请求卸载应用。",
+                                                "desc_en":  "Request to uninstall applications."
                                             }
                                         ],
                         "capabilities":  [
@@ -1026,112 +1026,141 @@
                         "apis":  [
                                      {
                                          "name":  "listApps",
-                                         "desc":  "仅用于获取已安装应用列表（包名+应用名），用户问【有哪些应用】【列出所有应用】时使用",
-                                         "desc_en":  "List installed apps (package name + app name). Use when user asks to list or show all apps",
+                                         "desc":  "仅用于获取已安装应用列表，包含应用名和包名。用户询问有哪些应用、列出所有应用时使用。",
+                                         "desc_en":  "List installed apps with package name and app name. Use when the user asks to list or show all apps.",
                                          "params":  [
                                                         "includeSystem"
                                                     ],
                                          "paramDesc":  [
-                                                           "是否包含系统应用(true/false，默认false)"
+                                                           "是否包含系统应用，true 或 false，默认 false。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "Include system apps (true/false, default false)"
+                                                              "Include system apps, true or false. Default false."
                                                           ]
                                      },
                                      {
                                          "name":  "listRecentApps",
-                                         "desc":  "获取最近安装或更新的应用列表（按时间排序）。用户问【最近安装了什么】【这个月装了哪些应用】时使用",
-                                         "desc_en":  "List recently installed or updated apps (sorted by date). Use when user asks about recent/new apps or apps installed this week/month",
+                                         "desc":  "获取最近安装或更新的应用列表，按时间排序。用户询问最近安装了什么、这个月装了哪些应用时使用。",
+                                         "desc_en":  "List recently installed or updated apps, sorted by time. Use when the user asks about recent or new apps, or apps installed this week/month.",
                                          "params":  [
                                                         "days",
                                                         "includeSystem",
                                                         "dateField"
                                                     ],
                                          "paramDesc":  [
-                                                           "查询最近多少天的应用(默认30)",
-                                                           "是否包含系统应用(默认false)",
-                                                           "排序字段: firstInstallTime(首次安装,默认) 或 lastUpdateTime(最后更新)"
+                                                           "查询最近多少天的应用，默认 30。",
+                                                           "是否包含系统应用，默认 false。",
+                                                           "排序字段：firstInstallTime 表示首次安装，lastUpdateTime 表示最后更新。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "Number of days to look back (default 30)",
-                                                              "Include system apps (default false)",
-                                                              "Sort field: firstInstallTime (default) or lastUpdateTime"
+                                                              "Number of days to look back. Default 30.",
+                                                              "Include system apps. Default false.",
+                                                              "Sort field: firstInstallTime or lastUpdateTime."
                                                           ]
                                      },
                                      {
                                          "name":  "listCallableApps",
-                                         "desc":  "从 PandaGenie 服务端获取最新已审核的可交互/可调用应用列表及能力。用户问【哪些应用可以被操作】【有哪些应用可以交互】【哪些应用能被调用】【可用能力应用】【SDK 应用能力】时使用。不要用 listApps 回答这类问题",
-                                         "desc_en":  "Fetch the latest approved interactable/callable app list and capabilities from PandaGenie server. Use when the user asks which apps can be operated, interacted with, called, or what SDK app capabilities are available. Do not use listApps for these questions",
+                                         "desc":  "从 PandaGenie 服务端获取最新已审核的可交互、可调用应用列表及能力。只用于回答哪些应用可以被操作、交互、调用，或有哪些 SDK 应用能力；如果用户要求打开或执行某个能力，不要停在此接口，应继续使用 invokeCallableApp。",
+                                         "desc_en":  "Fetch the latest approved interactable/callable app list and capabilities from PandaGenie server. Use only to answer which apps can be operated, interacted with, called, or what SDK capabilities are available. If the user asks to open or run a capability, continue with invokeCallableApp.",
                                          "params":  [
                                                         "search",
                                                         "limit",
                                                         "onlyInstalled"
                                                     ],
                                          "paramDesc":  [
-                                                           "按应用名、包名或能力关键词搜索，可为空",
-                                                           "返回数量，默认50，最大100",
-                                                           "是否只显示本机已安装应用，默认false"
+                                                           "按应用名、包名或能力关键词搜索，可为空。",
+                                                           "返回数量，默认 50，最大 100。",
+                                                           "是否只显示本机已安装应用，默认 false。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "Search by app name, package name, or capability keyword. Optional",
-                                                              "Result limit, default 50, max 100",
-                                                              "Only show apps installed on this device, default false"
+                                                              "Search by app name, package name, or capability keyword. Optional.",
+                                                              "Result limit, default 50, max 100.",
+                                                              "Only show apps installed on this device. Default false."
+                                                          ]
+                                     },
+                                     {
+                                         "name":  "invokeCallableApp",
+                                         "desc":  "调用已安装且已审核的可交互 SDK 应用能力。用户要求打开演示页、打开 SDK 页面、调用演示能力、读取 Provider 数据、触发广播演示等时使用；不要只调用 listCallableApps 介绍有哪些能力。演示应用建议优先填写 capabilityId，例如 demo.open_activity、demo.provider_rows。",
+                                         "desc_en":  "Invoke a capability exposed by an installed and approved interactable SDK app. Use when the user asks to open a demo page, open an SDK page, invoke a demo capability, read Provider data, trigger a broadcast demo, and similar actions. Do not only call listCallableApps.",
+                                         "params":  [
+                                                        "appNameOrPackage",
+                                                        "capabilityId",
+                                                        "capabilityKeyword",
+                                                        "paramsJson",
+                                                        "title",
+                                                        "message"
+                                                    ],
+                                         "paramDesc":  [
+                                                           "应用名称或包名，可为空；为空时按能力关键词匹配本机已安装的可交互应用。",
+                                                           "能力 ID，建议优先填写，例如 demo.open_activity、demo.provider_rows；为空时会按关键词匹配。",
+                                                           "能力关键词，例如打开演示页面、读取 Provider 数据；如果已知 capabilityId，仍可填写便于展示。",
+                                                           "传给目标能力的 JSON 参数，可为空。",
+                                                           "传给打开页面类能力的标题，可为空。",
+                                                           "传给打开页面类能力的内容，可为空。"
+                                                       ],
+                                         "paramDesc_en":  [
+                                                              "App name or package. Optional; when empty, PandaGenie matches installed interactable apps by capability keyword.",
+                                                              "Capability ID. Prefer exact IDs such as demo.open_activity or demo.provider_rows. When empty, PandaGenie matches by keyword.",
+                                                              "Capability keyword, for example open demo page or read Provider data. Can still be supplied for display when capabilityId is known.",
+                                                              "JSON params passed to the target capability. Optional.",
+                                                              "Title passed to open-page capabilities. Optional.",
+                                                              "Message passed to open-page capabilities. Optional."
                                                           ]
                                      },
                                      {
                                          "name":  "openApp",
-                                         "desc":  "直接启动/打开/运行手机上的应用。当用户说【打开XX】【启动XX】【运行XX】时，必须直接调用此接口，不需要先调用getAppInfo或listApps查询。支持应用名或包名，内部自动查找匹配",
-                                         "desc_en":  "Directly launch/open/run an app on the phone. When user says \u0027open XX\u0027, \u0027launch XX\u0027, \u0027run XX\u0027, call this action directly without calling getAppInfo or listApps first. Accepts app name or package name, auto-resolves internally",
+                                         "desc":  "直接启动、打开、运行手机上的普通应用。当用户说打开 XX、启动 XX、运行 XX，且 XX 是普通手机应用名或包名时，直接调用此接口，只需要一个步骤，不需要先调用 getAppInfo 或 listApps。若用户说的是可交互 SDK 能力或演示页，应优先使用 invokeCallableApp。",
+                                         "desc_en":  "Directly launch/open/run a normal app on the phone. When the user says open/launch/run XX and XX is a normal phone app name or package, call this action directly in one step without getAppInfo or listApps. If the user is asking for an interactable SDK capability or demo page, prefer invokeCallableApp.",
                                          "params":  [
                                                         "nameOrPackage"
                                                     ],
                                          "paramDesc":  [
-                                                           "应用名或包名，如: 微信、com.tencent.mm"
+                                                           "应用名或包名，例如微信、com.tencent.mm。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "App name or package name, e.g. WeChat, com.tencent.mm"
+                                                              "App name or package name, for example WeChat or com.tencent.mm."
                                                           ]
                                      },
                                      {
                                          "name":  "getAppInfo",
-                                         "desc":  "仅用于查询应用的详细信息（版本号、安装时间、来源等）。仅在用户明确要求查看/了解应用信息时使用，不要在打开应用前调用此接口",
-                                         "desc_en":  "Only for querying app details (version, install time, source, etc). Use only when user explicitly asks to view/check app info. Do NOT call before openApp",
+                                         "desc":  "仅用于查询应用详细信息，如版本号、安装时间、来源等。只在用户明确要求查看或了解应用信息时使用，不要在打开应用前调用。",
+                                         "desc_en":  "Only for querying app details such as version, install time, source, and similar metadata. Use only when the user explicitly asks to view/check app info. Do not call before openApp.",
                                          "params":  [
                                                         "nameOrPackage"
                                                     ],
                                          "paramDesc":  [
-                                                           "应用名或包名"
+                                                           "应用名或包名。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "App name or package name"
+                                                              "App name or package name."
                                                           ]
                                      },
                                      {
                                          "name":  "uninstallApp",
-                                         "desc":  "请求卸载指定应用（会弹出系统确认对话框）",
-                                         "desc_en":  "Request to uninstall an app (shows system confirmation dialog)",
+                                         "desc":  "请求卸载指定应用，会弹出系统确认对话框。",
+                                         "desc_en":  "Request to uninstall an app. The system confirmation dialog will be shown.",
                                          "params":  [
                                                         "packageName"
                                                     ],
                                          "paramDesc":  [
-                                                           "要卸载的应用包名"
+                                                           "要卸载的应用包名。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "Package name of the app to uninstall"
+                                                              "Package name of the app to uninstall."
                                                           ]
                                      },
                                      {
                                          "name":  "openAppSettings",
-                                         "desc":  "打开系统设置中指定应用的详情页，用户说【打开XX的设置】【查看XX的权限】时使用",
-                                         "desc_en":  "Open the system settings detail page for a specific app. Use when user says \u0027open settings for XX\u0027 or \u0027check permissions of XX\u0027",
+                                         "desc":  "打开系统设置中指定应用的详情页。用户说打开 XX 的设置、查看 XX 的权限时使用。",
+                                         "desc_en":  "Open the system settings detail page for a specific app. Use when the user says open settings for XX or check permissions of XX.",
                                          "params":  [
                                                         "nameOrPackage"
                                                     ],
                                          "paramDesc":  [
-                                                           "应用名或包名"
+                                                           "应用名或包名。"
                                                        ],
                                          "paramDesc_en":  [
-                                                              "App name or package name"
+                                                              "App name or package name."
                                                           ]
                                      }
                                  ],
@@ -1141,7 +1170,7 @@
                         "categories":  [
 
                                        ],
-                        "api_count":  7
+                        "api_count":  8
                     },
                     {
                         "id":  "file_stats",

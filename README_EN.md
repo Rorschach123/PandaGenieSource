@@ -56,7 +56,7 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 
 ## Current Module Catalog
 
-`modules.json` currently lists **52 official modules** with **333 APIs**, last updated on **2026-05-15**.
+`modules.json` currently lists **52 official modules** with **335 APIs**, last updated on **2026-05-17**.
 
 | ID | Module | Description | Version | APIs |
 |---|---|---|---|---|
@@ -115,15 +115,25 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 
 ## Download
 
-> [Download APK v1.0.35](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260515/PandaGenie-v1.0.35.apk)
+> [Download APK v1.0.36](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260517/PandaGenie-v1.0.36.apk)
 
-- Release tag: [`20260515`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260515)
-- Android project version: `versionName "1.0.35"` / `versionCode 10035`
-- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10035>
+- Release tag: [`20260517`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260517)
+- Android project version: `versionName "1.0.36"` / `versionCode 10036`
+- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10036>
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.36</b> (2026-05-17)</summary>
+
+- App version bump: updated Android to `versionName "1.0.36"` / `versionCode 10036` and published a new final APK.
+- SDK interoperability release: refreshed PandaGenieSDK to `1.0.36`, including the provider base class, agent discovery updates, and a signed provider demo APK.
+- Module ecosystem refresh: updated the App Manager module package and kept the official catalog aligned at 52 modules / 335 APIs.
+- Server sync: updated Cloudflare app-version metadata, the website download endpoint, SDK integration docs, and release automation defaults.
+
+</details>
+
+<details>
 <summary><b>v1.0.35</b> (2026-05-15)</summary>
 
 - App version bump: updated Android to `versionName "1.0.35"` / `versionCode 10035` and published a new final APK.
