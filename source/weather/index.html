@@ -10,7 +10,7 @@
 <div class="mod-header">
   <div class="icon">🌤️</div>
   <h2 data-i18n="mod_title">天气助手 / Weather</h2>
-  <p data-i18n="mod_subtitle">全球城市实时天气、1-7 日预报和今天/明天气温预警。</p>
+  <p data-i18n="mod_subtitle">全球城市实时天气、1-7 日预报，以及可直接给穿衣和出行建议的天气预警。</p>
   <p class="mt-8">
     <span class="badge" data-i18n="badge_om">Open-Meteo 免费</span>
   </p>
@@ -41,7 +41,7 @@
     </li>
     <li>
       <span class="api-name">getTemperatureAlert</span>
-      <span data-i18n="api_alert">- 对比当前、今天和明天，输出分级气温预警</span>
+      <span data-i18n="api_alert">- 对比当前、今天和明天，优先输出穿衣、带伞和出行建议</span>
     </li>
     <li>
       <span class="api-name">getWeatherByLocation</span>
@@ -68,7 +68,7 @@
   </div>
   <div class="about-row">
     <span class="label" data-i18n="about_ver_label">版本</span>
-    <span class="value" data-i18n="about_ver">1.5</span>
+    <span class="value" data-i18n="about_ver">1.6</span>
   </div>
   <div class="about-row">
     <span class="label" data-i18n="about_data_label">数据来源</span>
@@ -85,7 +85,7 @@ var i18n = {
   zh: {
     page_title: '天气助手 / Weather',
     mod_title: '天气助手 / Weather',
-    mod_subtitle: '全球城市实时天气、1-7 日预报和今天/明天气温预警。',
+    mod_subtitle: '全球城市实时天气、1-7 日预报，以及可直接给穿衣和出行建议的天气预警。',
     badge_om: 'Open-Meteo 免费',
     section_features: '功能特点',
     feat_temp: '实时温度',
@@ -97,25 +97,25 @@ var i18n = {
     section_apis: '功能接口',
     api_current: '- 按城市名查询当前天气',
     api_forecast: '- 查询未来 1-7 天预报',
-    api_alert: '- 对比当前、今天和明天，输出分级气温预警',
+    api_alert: '- 对比当前、今天和明天，优先输出穿衣、带伞和出行建议',
     api_location: '- 按经纬度查询天气',
     section_examples: '使用示例',
     ex_1: '北京今天温度多少？',
     ex_2: '上海未来三天天气',
-    ex_3: '明天和今天温差大吗？',
-    ex_4: '给深圳做一个明天气温预警',
+    ex_3: '根据今天和明天的天气给我穿衣建议',
+    ex_4: '今天出门要不要带伞？顺便说下穿什么',
     section_about: '关于',
     about_dev_label: '开发者',
     about_dev: 'Jarvan',
     about_ver_label: '版本',
-    about_ver: '1.5',
+    about_ver: '1.6',
     about_data_label: '数据来源',
     about_data: 'Open-Meteo 免费开放 API'
   },
   en: {
     page_title: 'Weather',
     mod_title: 'Weather',
-    mod_subtitle: 'Current conditions, 1-7 day forecasts, and today-vs-tomorrow temperature alerts.',
+    mod_subtitle: 'Current conditions, 1-7 day forecasts, and weather alerts with clothing and travel advice.',
     badge_om: 'Open-Meteo free',
     section_features: 'Features',
     feat_temp: 'Real-time temp',
@@ -127,18 +127,18 @@ var i18n = {
     section_apis: 'APIs',
     api_current: '- Current weather by city name',
     api_forecast: '- 1-7 day forecast',
-    api_alert: '- Compare now, today, and tomorrow with color-coded alerts',
+    api_alert: '- Compare now, today, and tomorrow; highlight clothing, umbrella, and travel advice',
     api_location: '- Weather by coordinates',
     section_examples: 'Example prompts',
     ex_1: 'What is the temperature in Beijing today?',
     ex_2: 'Shanghai 3-day forecast',
-    ex_3: 'Will tomorrow be much colder than today?',
-    ex_4: 'Give me a temperature alert for Shenzhen tomorrow',
+    ex_3: 'Based on today and tomorrow weather, tell me what to wear',
+    ex_4: 'Do I need an umbrella today, and what should I wear?',
     section_about: 'About',
     about_dev_label: 'Developer',
     about_dev: 'Jarvan',
     about_ver_label: 'Version',
-    about_ver: '1.5',
+    about_ver: '1.6',
     about_data_label: 'Data',
     about_data: 'Open-Meteo free open API'
   }

@@ -34,11 +34,11 @@ PandaGenie 的核心目标不是再做一个聊天机器人，而是让自然语
 
 ## 快速体验
 
-- 最新 APK： [PandaGenie v1.0.36](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260517/PandaGenie-v1.0.36.apk)
+- 最新 APK： [PandaGenie v1.0.37](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260519/PandaGenie-v1.0.37.apk)
 - 官网下载： [https://cf.pandagenie.ai](https://cf.pandagenie.ai)
-- 版本号：`1.0.36`
-- versionCode：`10036`
-- 最近更新：`2026-05-17`
+- 版本号：`1.0.37`
+- versionCode：`10037`
+- 最近更新：`2026-05-19`
 
 安装后可以直接尝试：
 
@@ -83,20 +83,27 @@ PandaGenie 的执行链路可以理解为一条可审计的手机任务流水线
 
 ## 当前能力
 
-截至 `2026-05-17`，官方模块包含约 52 个模块、335 个 API，覆盖以下方向：
+截至 `2026-05-19`，官方模块包含约 53 个模块、337 个 API，覆盖以下方向：
 
 | 分类 | 代表模块 | 能力示例 |
 | --- | --- | --- |
 | 文件与文档 | `filemanager`, `file_stats`, `archive`, `document_tools`, `long_image_generator` | 复制、移动、删除、解压、文档解析、文件统计、长图生成 |
-| 图片与识别 | `image_tools`, `ocr`, `qrcode`, `color_picker` | 图片压缩、格式转换、OCR、二维码生成和识别、取色 |
+| 图片与识别 | `image_tools`, `ocr`, `qrcode`, `color_picker` | 图片压缩、格式转换、OCR、二维码生成和识别、取色、相册分析、相似照片分组、低质量照片复核 |
 | 系统与设备 | `device_info`, `device_controls`, `battery`, `network_tools`, `system_cleaner` | 设备信息、电池信息、亮度音量、网络检测、空间体检 |
 | 应用与自动化 | `app_control`, `app_manager`, `contacts`, `clipboard` | 打开应用、应用列表、主题切换、联系人、剪贴板 |
-| 生活效率 | `weather`, `reminder`, `notes`, `password_gen` | 天气、提醒、便签、安全密码 |
+| 生活效率 | `weather`, `reminder`, `notes`, `password_gen`, `location_helper` | 天气、提醒、便签、安全密码、当前位置和经纬度反查 |
 | 文本与 AI | `text_tools`, `translator`, `link_parser`, `hello_world` | 文本处理、翻译、链接解析、示例模块 |
 | 游戏与页面 | `tetris_game`, `snake_game`, `sudoku_game`, `gomoku_game`, `fullscreen_countdown` | 游戏页面、全屏倒计时、可打开页面模块 |
 | 安全与开发 | `signature_checker`, `claw_*` | 签名检查、开发调试、示例能力 |
 
 部分模块可以声明 `AI 模型` 权限，通过 App 提供的统一 LLM 接口完成模块内部的总结、翻译、分析或结构化输出。PandaGenie Official 模型调用会计入体验次数和 token 用量，第三方模型配置则走用户自己的模型接口。
+
+## 1.0.37 更新重点
+
+- 图片工具升级到 `1.19`：新增相册结构分析、相似照片分组复核、低质量照片候选识别，并由 App 提供统一选择、预览和删除确认界面。
+- 天气助手升级到 `1.6`：穿衣、带伞、出行、温差等问题会把核心建议放在主输出顶部。
+- 新增 `location_helper` 位置助手模块：支持获取当前国家、城市、地址、经纬度、海拔、定位精度和按坐标反查地址。
+- 模块索引刷新到 53 个官方模块 / 337 个 API，并同步 GitHub Release、官网 APK 下载和 Cloudflare 版本数据库。
 
 ## 记忆与隐私
 

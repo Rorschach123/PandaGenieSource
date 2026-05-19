@@ -224,6 +224,10 @@ public class WeatherPlugin implements ModulePlugin {
 
     private String getTemperatureAlert(Context context, JSONObject params) throws Exception {
         String city = params.optString("city", "").trim();
+        String focus = params.optString("focus", "").trim();
+        if (focus.isEmpty()) focus = params.optString("intent", "").trim();
+        if (focus.isEmpty()) focus = params.optString("question", "").trim();
+        if (focus.isEmpty()) focus = params.optString("userPrompt", "").trim();
         ResolvedLocation location = resolveLocation(context, city);
 
         String url = WEATHER_API + "?latitude=" + location.latitude + "&longitude=" + location.longitude
@@ -250,8 +254,13 @@ public class WeatherPlugin implements ModulePlugin {
         double feelsLike = round1(current.optDouble("apparent_temperature", 0));
         int humidity = current.optInt("relative_humidity_2m", 0);
         double windSpeed = round1(current.optDouble("wind_speed_10m", 0));
+        int windDir = current.optInt("wind_direction_10m", 0);
+        String windDirText = degreeToDirection(windDir);
         int currentCode = current.optInt("weather_code", 0);
         String currentCondition = weatherCodeToText(currentCode);
+        String clothingAdvice = buildClothingAdvice(currentTemp, feelsLike, today, tomorrow, alert);
+        String travelAdvice = buildTravelAdvice(today, tomorrow, alert, windSpeed, windDirText);
+        String summary = buildTemperatureSummary(focus, currentTemp, feelsLike, currentCondition, today, tomorrow, alert, clothingAdvice, travelAdvice);
 
         JSONObject currentObj = new JSONObject();
         currentObj.put("time", current.optString("time", ""));
@@ -259,6 +268,7 @@ public class WeatherPlugin implements ModulePlugin {
         currentObj.put("feelsLike", feelsLike);
         currentObj.put("humidity", humidity);
         currentObj.put("windSpeed", windSpeed);
+        currentObj.put("windDirection", windDirText);
         currentObj.put("condition", currentCondition);
         currentObj.put("weatherCode", currentCode);
 
@@ -277,9 +287,16 @@ public class WeatherPlugin implements ModulePlugin {
         alertObj.put("title", alert.title);
         alertObj.put("message", alert.message);
         alertObj.put("advice", alert.advice);
+        alertObj.put("clothingAdvice", clothingAdvice);
+        alertObj.put("travelAdvice", travelAdvice);
+        alertObj.put("summary", summary);
 
         JSONObject out = new JSONObject();
         out.put("city", location.label);
+        out.put("focus", focus);
+        out.put("summary", summary);
+        out.put("clothingAdvice", clothingAdvice);
+        out.put("travelAdvice", travelAdvice);
         out.put("current", currentObj);
         out.put("today", today.toJson());
         out.put("tomorrow", tomorrow.toJson());
@@ -289,8 +306,10 @@ public class WeatherPlugin implements ModulePlugin {
         JSONObject r = new JSONObject();
         r.put("success", true);
         r.put("output", out.toString());
-        r.put("_displayText", buildTemperatureAlertText(location.label, currentTemp, currentCondition, today, tomorrow, alert));
-        r.put("_displayHtml", buildTemperatureAlertHtml(location.label, currentTemp, currentCondition, feelsLike, humidity, today, tomorrow, alert));
+        r.put("_displayText", buildTemperatureAlertText(location.label, currentTemp, currentCondition, feelsLike,
+                humidity, windSpeed, windDirText, today, tomorrow, alert, summary, clothingAdvice, travelAdvice));
+        r.put("_displayHtml", buildTemperatureAlertHtml(location.label, currentTemp, currentCondition, feelsLike,
+                humidity, windSpeed, windDirText, today, tomorrow, alert, summary, clothingAdvice, travelAdvice));
         return r.toString();
     }
 
@@ -491,7 +510,9 @@ public class WeatherPlugin implements ModulePlugin {
     }
 
     private static String buildTemperatureAlertText(String city, double currentTemp, String currentCondition,
-                                                    WeatherDay today, WeatherDay tomorrow, AlertEvaluation alert) {
+                                                    double feelsLike, int humidity, double windSpeed, String windDirText,
+                                                    WeatherDay today, WeatherDay tomorrow, AlertEvaluation alert,
+                                                    String summary, String clothingAdvice, String travelAdvice) {
         boolean zh = isZh();
         String trend = zh
                 ? ("warming".equals(alert.temperatureTrend) ? "升温" : ("cooling".equals(alert.temperatureTrend) ? "降温" : "平稳"))
@@ -499,46 +520,206 @@ public class WeatherPlugin implements ModulePlugin {
         if (zh) {
             return "🌡️ " + city + " 气温预警：" + alert.title + "\n"
                     + "━━━━━━━━━━━━━━━━\n"
-                    + "▸ 当前：" + formatTemp(currentTemp) + "，" + currentCondition + "\n"
-                    + "▸ 今天：" + today.date + "，" + formatTempRange(today) + "，" + today.condition + "\n"
-                    + "▸ 明天：" + tomorrow.date + "，" + formatTempRange(tomorrow) + "，" + tomorrow.condition + "\n"
-                    + "▸ 均温变化：" + formatDelta(alert.avgTempDelta) + "，趋势：" + trend + "\n"
-                    + "▸ 降水概率变化：" + signedInt(alert.precipitationDelta) + "%，风速变化：" + formatDelta(alert.windSpeedDelta).replace("\u00B0C", " km/h") + "\n"
-                    + alert.message + "\n"
-                    + alert.advice;
+                    + "重点：" + summary + "\n"
+                    + "穿衣：" + clothingAdvice + "\n"
+                    + "出行：" + travelAdvice + "\n"
+                    + "当前：" + currentCondition + "，" + formatTemp(currentTemp) + "，体感 " + formatTemp(feelsLike)
+                    + "，湿度 " + humidity + "%，风速 " + formatSpeed(windSpeed) + " " + windDirText + "\n"
+                    + "今天：" + today.date + "，" + formatTempRange(today) + "，" + today.condition
+                    + "，降水 " + today.precipProbability + "%，最大风速 " + formatSpeed(today.windSpeedMax) + "\n"
+                    + "明天：" + tomorrow.date + "，" + formatTempRange(tomorrow) + "，" + tomorrow.condition
+                    + "，降水 " + tomorrow.precipProbability + "%，最大风速 " + formatSpeed(tomorrow.windSpeedMax) + "\n"
+                    + "变化：均温 " + formatDelta(alert.avgTempDelta) + "，最高温 " + formatDelta(alert.maxTempDelta)
+                    + "，最低温 " + formatDelta(alert.minTempDelta) + "，趋势 " + trend + "\n"
+                    + "判断：" + alert.message + "\n"
+                    + "建议：" + alert.advice;
         }
         return "🌡️ " + city + " temperature alert: " + alert.title + "\n"
                 + "────────────────\n"
-                + "▸ Now: " + formatTemp(currentTemp) + ", " + currentCondition + "\n"
-                + "▸ Today: " + today.date + ", " + formatTempRange(today) + ", " + today.condition + "\n"
-                + "▸ Tomorrow: " + tomorrow.date + ", " + formatTempRange(tomorrow) + ", " + tomorrow.condition + "\n"
-                + "▸ Average change: " + formatDelta(alert.avgTempDelta) + ", trend: " + trend + "\n"
-                + "▸ Rain chance change: " + signedInt(alert.precipitationDelta) + "%, wind change: " + formatDelta(alert.windSpeedDelta).replace("\u00B0C", " km/h") + "\n"
-                + alert.message + "\n"
-                + alert.advice;
+                + "Focus: " + summary + "\n"
+                + "Clothing: " + clothingAdvice + "\n"
+                + "Travel: " + travelAdvice + "\n"
+                + "Now: " + currentCondition + ", " + formatTemp(currentTemp) + ", feels " + formatTemp(feelsLike)
+                + ", humidity " + humidity + "%, wind " + formatSpeed(windSpeed) + " " + windDirText + "\n"
+                + "Today: " + today.date + ", " + formatTempRange(today) + ", " + today.condition
+                + ", rain " + today.precipProbability + "%, max wind " + formatSpeed(today.windSpeedMax) + "\n"
+                + "Tomorrow: " + tomorrow.date + ", " + formatTempRange(tomorrow) + ", " + tomorrow.condition
+                + ", rain " + tomorrow.precipProbability + "%, max wind " + formatSpeed(tomorrow.windSpeedMax) + "\n"
+                + "Change: avg " + formatDelta(alert.avgTempDelta) + ", high " + formatDelta(alert.maxTempDelta)
+                + ", low " + formatDelta(alert.minTempDelta) + ", trend " + trend + "\n"
+                + "Assessment: " + alert.message + "\n"
+                + "Advice: " + alert.advice;
     }
 
     private static String buildTemperatureAlertHtml(String city, double currentTemp, String currentCondition,
-                                                    double feelsLike, int humidity, WeatherDay today,
-                                                    WeatherDay tomorrow, AlertEvaluation alert) {
+                                                    double feelsLike, int humidity, double windSpeed, String windDirText,
+                                                    WeatherDay today, WeatherDay tomorrow, AlertEvaluation alert,
+                                                    String summary, String clothingAdvice, String travelAdvice) {
         boolean zh = isZh();
         String body = HtmlOutputHelper.badge(alert.title, alert.color)
+                + weatherCallout(zh ? "先看结论" : "Key takeaways", summary, alertCalloutType(alert))
+                + weatherIconList(new String[][]{
+                        {zh ? "衣" : "C", (zh ? "穿衣：" : "Clothing: ") + clothingAdvice},
+                        {zh ? "行" : "T", (zh ? "出行：" : "Travel: ") + travelAdvice},
+                        {zh ? "变" : "D", (zh ? "变化：" : "Change: ") + (zh ? "今天 " : "Today ")
+                                + formatTempRange(today) + " / " + (zh ? "明天 " : "Tomorrow ") + formatTempRange(tomorrow)
+                                + "，" + (zh ? "均温 " : "avg ") + formatDelta(alert.avgTempDelta)}
+                })
                 + HtmlOutputHelper.metricGrid(new String[][]{
                         {formatTemp(currentTemp), zh ? "当前" : "Now"},
+                        {formatTemp(feelsLike), zh ? "体感" : "Feels"},
                         {formatTempRange(today), zh ? "今天" : "Today"},
-                        {formatTempRange(tomorrow), zh ? "明天" : "Tomorrow"},
-                        {formatDelta(alert.avgTempDelta), zh ? "均温变化" : "Avg change"}
+                        {formatTempRange(tomorrow), zh ? "明天" : "Tomorrow"}
                 })
                 + HtmlOutputHelper.keyValue(new String[][]{
                         {zh ? "当前天气" : "Current", currentCondition + " / " + (zh ? "体感 " : "feels ") + formatTemp(feelsLike)},
                         {zh ? "湿度" : "Humidity", humidity + "%"},
+                        {zh ? "当前风速" : "Current wind", formatSpeed(windSpeed) + " " + windDirText},
                         {zh ? "天气变化" : "Weather change", today.condition + " -> " + tomorrow.condition},
                         {zh ? "降水概率" : "Rain chance", today.precipProbability + "% -> " + tomorrow.precipProbability + "%"},
                         {zh ? "最大风速" : "Max wind", formatSpeed(today.windSpeedMax) + " -> " + formatSpeed(tomorrow.windSpeedMax)},
+                        {zh ? "均温变化" : "Avg change", formatDelta(alert.avgTempDelta)},
+                        {zh ? "最高温变化" : "High change", formatDelta(alert.maxTempDelta)},
+                        {zh ? "最低温变化" : "Low change", formatDelta(alert.minTempDelta)},
                         {zh ? "判断" : "Assessment", alert.message},
                         {zh ? "建议" : "Advice", alert.advice}
                 });
         return HtmlOutputHelper.card("🌡️", zh ? city + " 气温预警" : city + " Temperature Alert", body);
+    }
+
+    private static String buildTemperatureSummary(String focus, double currentTemp, double feelsLike, String currentCondition,
+                                                  WeatherDay today, WeatherDay tomorrow, AlertEvaluation alert,
+                                                  String clothingAdvice, String travelAdvice) {
+        boolean zh = isZh();
+        boolean clothingFocus = hasAny(focus, new String[]{"穿衣", "穿搭", "衣服", "外套", "保暖", "dress", "wear", "clothing", "outfit"});
+        boolean rainFocus = hasAny(focus, new String[]{"雨", "伞", "降水", "淋", "rain", "umbrella"});
+        boolean travelFocus = hasAny(focus, new String[]{"出门", "出行", "通勤", "运动", "户外", "travel", "commute", "outdoor"});
+
+        if (zh) {
+            if (clothingFocus) {
+                return clothingAdvice + " 目前" + currentCondition + "，体感 " + formatTemp(feelsLike)
+                        + "；明天均温变化 " + formatDelta(alert.avgTempDelta) + "。";
+            }
+            if (rainFocus) {
+                return travelAdvice + " 降水概率今天 " + today.precipProbability + "%、明天 " + tomorrow.precipProbability
+                        + "%；穿衣参考：" + clothingAdvice;
+            }
+            if (travelFocus) {
+                return travelAdvice + " 当前体感 " + formatTemp(feelsLike) + "，明天 " + tomorrow.condition
+                        + "，最高 " + formatTemp(tomorrow.maxTemp) + "。";
+            }
+            return alert.message + " " + clothingAdvice + " " + travelAdvice;
+        }
+        if (clothingFocus) {
+            return clothingAdvice + " Current condition is " + currentCondition + ", feels " + formatTemp(feelsLike)
+                    + "; tomorrow average changes " + formatDelta(alert.avgTempDelta) + ".";
+        }
+        if (rainFocus) {
+            return travelAdvice + " Rain chance is " + today.precipProbability + "% today and "
+                    + tomorrow.precipProbability + "% tomorrow. Clothing: " + clothingAdvice;
+        }
+        if (travelFocus) {
+            return travelAdvice + " Current feels-like temperature is " + formatTemp(feelsLike)
+                    + "; tomorrow is " + tomorrow.condition + " with a high of " + formatTemp(tomorrow.maxTemp) + ".";
+        }
+        return alert.message + " " + clothingAdvice + " " + travelAdvice;
+    }
+
+    private static String buildClothingAdvice(double currentTemp, double feelsLike, WeatherDay today,
+                                              WeatherDay tomorrow, AlertEvaluation alert) {
+        boolean zh = isZh();
+        double reference = Math.max(feelsLike, today.avgTemp());
+        String base;
+        if (zh) {
+            if (reference >= 32) base = "偏热，建议短袖、轻薄透气衣物，户外注意防晒补水";
+            else if (reference >= 27) base = "偏暖，短袖或薄衬衫为主，怕冷可备一件薄外套";
+            else if (reference >= 21) base = "体感舒适，长袖、薄外套或短袖加薄外套都合适";
+            else if (reference >= 14) base = "略凉，建议长袖加薄外套，早晚别只穿短袖";
+            else if (reference >= 6) base = "偏冷，建议卫衣/毛衣加外套";
+            else base = "较冷，建议厚外套、围巾等保暖装备";
+
+            if (alert.avgTempDelta >= 3) base += "；明天更热，可适当减薄";
+            else if (alert.avgTempDelta <= -3) base += "；明天更凉，提前加一层";
+            if (tomorrow.minTemp <= 16 && today.maxTemp - today.minTemp >= 8) base += "；早晚温差明显";
+            return base + "。";
+        }
+
+        if (reference >= 32) base = "Hot: wear short sleeves and breathable clothes; use sun protection outdoors";
+        else if (reference >= 27) base = "Warm: short sleeves or a light shirt should work; carry a thin layer if you get cold";
+        else if (reference >= 21) base = "Comfortable: long sleeves, a light jacket, or short sleeves plus a layer all work";
+        else if (reference >= 14) base = "Cool: wear long sleeves with a light jacket, especially morning/evening";
+        else if (reference >= 6) base = "Cold: choose a hoodie/sweater plus a jacket";
+        else base = "Very cold: wear a thick coat and warm accessories";
+
+        if (alert.avgTempDelta >= 3) base += "; tomorrow is warmer, so lighter layers may be enough";
+        else if (alert.avgTempDelta <= -3) base += "; tomorrow is cooler, so add one layer";
+        if (tomorrow.minTemp <= 16 && today.maxTemp - today.minTemp >= 8) base += "; morning/evening swings are noticeable";
+        return base + ".";
+    }
+
+    private static String buildTravelAdvice(WeatherDay today, WeatherDay tomorrow, AlertEvaluation alert,
+                                            double currentWindSpeed, String windDirText) {
+        boolean zh = isZh();
+        int rainMax = Math.max(today.precipProbability, tomorrow.precipProbability);
+        double windMax = Math.max(Math.max(today.windSpeedMax, tomorrow.windSpeedMax), currentWindSpeed);
+        if (zh) {
+            StringBuilder sb = new StringBuilder();
+            if (rainMax >= 70) sb.append("降水概率高，建议带伞，鞋子尽量选防滑或不怕湿的");
+            else if (rainMax >= 40) sb.append("有降水可能，出门前看雷达，包里放把折叠伞更稳妥");
+            else sb.append("降水风险不高，一般不用特意带伞");
+            if (windMax >= 30) sb.append("；风偏大，骑行和户外活动注意防风");
+            else if (windMax >= 18) sb.append("；有风，体感可能比气温略凉");
+            sb.append("。当前风向 ").append(windDirText).append("。");
+            return sb.toString();
+        }
+        StringBuilder sb = new StringBuilder();
+        if (rainMax >= 70) sb.append("High rain chance: carry an umbrella and choose shoes that can handle wet ground");
+        else if (rainMax >= 40) sb.append("Some rain risk: check radar before leaving and keep a compact umbrella handy");
+        else sb.append("Rain risk is low; an umbrella is usually not necessary");
+        if (windMax >= 30) sb.append("; wind may be strong, so be careful cycling or staying outdoors");
+        else if (windMax >= 18) sb.append("; breezy conditions may feel slightly cooler");
+        sb.append(". Current wind direction: ").append(windDirText).append(".");
+        return sb.toString();
+    }
+
+    private static boolean hasAny(String text, String[] keys) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String lower = text.toLowerCase(Locale.ROOT);
+        for (String key : keys) {
+            if (lower.contains(key.toLowerCase(Locale.ROOT))) return true;
+        }
+        return false;
+    }
+
+    private static String alertCalloutType(AlertEvaluation alert) {
+        if ("red".equals(alert.color) || "orange".equals(alert.color)) return "warn";
+        return null;
+    }
+
+    private static String weatherCallout(String title, String text, String type) {
+        String cls = "pg-callout";
+        if ("warn".equals(type)) cls += " warn";
+        if ("err".equals(type)) cls += " err";
+        return "<div class='" + cls + "'><div class='pg-section-title'>" + htmlEsc(title)
+                + "</div><div>" + htmlEsc(text) + "</div></div>";
+    }
+
+    private static String weatherIconList(String[][] items) {
+        StringBuilder sb = new StringBuilder("<ul class='pg-list'>");
+        for (String[] item : items) {
+            sb.append("<li>");
+            if (item.length >= 1) sb.append("<span class='icon'>").append(htmlEsc(item[0])).append("</span>");
+            if (item.length >= 2) sb.append(htmlEsc(item[1]));
+            sb.append("</li>");
+        }
+        sb.append("</ul>");
+        return sb.toString();
+    }
+
+    private static String htmlEsc(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     private static double round1(double value) {

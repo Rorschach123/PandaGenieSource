@@ -56,7 +56,13 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 
 ## Current Module Catalog
 
-`modules.json` currently lists **52 official modules** with **335 APIs**, last updated on **2026-05-17**.
+`modules.json` currently lists **53 official modules** with **337 APIs**, last updated on **2026-05-19**.
+
+Release 1.0.37 refreshes the catalog with:
+
+- **Image Tools 1.19**: gallery analysis, similar-photo grouping, low-quality photo review candidates, and app-side selection/delete confirmation.
+- **Weather Assistant 1.6**: clothing, umbrella, travel, wind/rain, and temperature-change advice is highlighted at the top of the result.
+- **Location Helper 1.0**: current country, city, address, latitude/longitude, altitude, accuracy, provider, timestamp, and reverse geocoding.
 
 | ID | Module | Description | Version | APIs |
 |---|---|---|---|---|
@@ -64,12 +70,12 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 | `filemanager` | File Manager | File manager with directory browsing, file CRUD, search and more | 2.3 | 13 |
 | `archive` | Archive | Archive module supporting ZIP (with password), TAR, GZ, TAR.GZ formats | 1.7 | 9 |
 | `signature_checker` | Signature Checker | Verify APK and module signatures (official & developer), display fingerprints and developer info to ensure integrity | 1.5 | 4 |
-| `app_manager` | App Manager | Manage installed apps: list, launch, view details (package name, version, install time, source), uninstall, and open system app info page | 1.5 | 6 |
+| `app_manager` | App Manager | Manage apps: list installed apps, launch apps, view details, request uninstall, open system app info, and fetch or invoke approved PandaGenie SDK interactable app capabilities. | 2.8 | 8 |
 | `file_stats` | File Stats | File statistics module: file details, magic bytes detection for true file type, hash calculation (MD5/SHA1/SHA256), file comparison, checksum verification, directory stats, duplicate finder, large file scanner, empty file/folder finder, filename search, text stats | 1.9 | 11 |
 | `reminder` | Reminder | Reminder assistant: create/query/update/delete calendar events, set alarms and timers, birthday reminders, view upcoming schedule | 1.4 | 11 |
 | `text_tools` | Text Tools | Text tools: word count, Base64 encode/decode, URL encode/decode, regex match/replace, text transform, UUID generation, text hashing, plus LLM-powered summarization, rewriting, extraction and formatting. | 1.6 | 11 |
 | `device_info` | Device Info | Device information module: model/OS, CPU, RAM, storage, display metrics, and one-call summary using public Android APIs only. | 1.6 | 6 |
-| `image_tools` | Image Tools | Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos | 1.8 | 9 |
+| `image_tools` | Image Tools | Image tools: view info, resize, compress, convert format, rotate, crop, list and organize gallery images, find exact/visual duplicates, and detect low-quality photo candidates | 1.19 | 11 |
 | `clipboard` | Clipboard Manager | Clipboard manager: read, set, clear clipboard, and manage clipboard history | 1.5 | 7 |
 | `battery` | Battery Manager | Battery management module: view battery level, charging status, health, temperature, voltage and more | 1.5 | 3 |
 | `network_tools` | Network Tools | Network tools: ping reachability, TCP port check, DNS lookup, local/public IP, connectivity check, network info | 1.6 | 8 |
@@ -80,9 +86,9 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 | `led_banner` | LED Banner | LED support banner module: create scrolling/fading/static text banners with custom colors, gradients, font size, effects (glow, flash, shake), built-in cyber and idol support color templates | 1.7 | 4 |
 | `system_cleaner` | System Cleaner | System cleaner: scan and clean temp files, cache, empty folders, thumbnail cache, and APK installer files to free storage space | 2.1 | 5 |
 | `color_picker` | Color Tools | Color picker and conversion across HEX, RGB, HSL, CMYK; harmonious palettes (complementary, analogous, triadic, split-complementary, tetradic); random colors; closest CSS named color lookup | 1.4 | 4 |
-| `unit_converter` | Unit Converter | Universal unit converter: length, weight, temperature, area, volume, speed, time, data storage, and more | 1.4 | 4 |
+| `unit_converter` | Unit Converter | Universal unit converter: length, weight, temperature, area, volume, speed, time, data storage, and more | 1.4 | 3 |
 | `password_gen` | Password Generator | Secure password generator: create strong passwords with customizable length, complexity, and character types. Also includes passphrase generation and password strength checker. | 1.7 | 4 |
-| `qrcode` | QR Code Tools | QR code tools: generate QR codes from text or URLs, decode QR codes from images, view and share generated codes | 1.6 | 5 |
+| `qrcode` | QR Code Tools | QR code tools: generate QR codes from text or URLs, decode QR codes from images, view and share generated codes | 1.6 | 3 |
 | `snake_game` | Snake Game | Classic Snake game. Control the snake to eat food and grow longer while avoiding walls and yourself. Supports difficulty settings | 1.4 | 4 |
 | `farming_game` | Farming Game | Farming simulation game. Plant seeds, water, fertilize and weed to help plants grow. Save harvest records. Supports scheduled tasks. Single save slot | 1.4 | 10 |
 | `gomoku_game` | Gomoku | Classic Gomoku (Five in a Row) game. Player (black) vs AI (white) on a 15x15 board. First to get five in a row wins | 1.4 | 4 |
@@ -90,7 +96,7 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 | `sudoku_game` | Sudoku | Classic Sudoku game. Fill a 9x9 grid with digits 1-9 so each row, column and 3x3 box is unique. Supports difficulty-based puzzle generation | 1.4 | 7 |
 | `tictactoe_game` | Tic-Tac-Toe | Classic Tic-Tac-Toe game. Player (X) vs AI (O) on a 3x3 grid. First to get three in a row wins | 1.4 | 4 |
 | `link_parser` | Link Parser | Parse URLs to extract titles, descriptions, images, links, downloadable files, and use AI to summarize pages or answer page-specific questions | 1.5 | 10 |
-| `weather` | Weather Assistant | Weather assistant module, query current weather, multi-day forecasts, and today-vs-tomorrow temperature/weather alerts using the Open-Meteo free API | 1.5 | 5 |
+| `weather` | Weather Assistant | Weather assistant module for current weather, multi-day forecasts, and today-vs-tomorrow alerts. When users ask about clothing, travel, umbrellas, or temperature changes, it highlights practical advice at the top of the main output using the free Open-Meteo API. | 1.6 | 5 |
 | `ocr` | OCR Text Recognition | OCR module for extracting text from images, supports Chinese and English with auto language detection; automatically removes leading attachment placeholders and returns clear non-image errors | 1.10 | 3 |
 | `flashlight` | Flashlight | Flashlight control module, toggle camera torch on/off, check current status | 1.3 | 5 |
 | `translator` | Translator | Text translation module supporting Chinese, English, Japanese, Korean, French, German, Spanish and more with auto detection; regional or non-standard targets such as Argentine Spanish, Cantonese, or Traditional Chinese automatically use LLM translation. | 1.8 | 5 |
@@ -112,18 +118,30 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 | `claw_skill_discovery` | Skill Discovery | Mobile skill discovery module inspired by curated Top Skills. Supports top downloads, certified skills, newest skills, and keyword search. | 1.0.4 | 5 |
 | `claw_workflow_planner` | Workflow Planner | Workflow planning module adapted from Automation Workflows and Proactive Agent ideas. Turns goals into mobile-friendly steps, module suggestions, and risk notes. | 1.0.4 | 4 |
 | `claw_prompt_shield` | Prompt Shield | Prompt security module adapted from SkillScan and Shield CN ideas. Checks prompt injection, credential leaks, data exfiltration, and dangerous actions with Chinese scenarios in mind. | 1.0.4 | 3 |
+| `location_helper` | Location Helper | Get current location details including country, city, address, latitude, longitude, altitude, accuracy, provider and timestamp, with reverse geocoding support. | 1.0 | 3 |
 
 ## Download
 
-> [Download APK v1.0.36](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260517/PandaGenie-v1.0.36.apk)
+> [Download APK v1.0.37](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260519/PandaGenie-v1.0.37.apk)
 
-- Release tag: [`20260517`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260517)
-- Android project version: `versionName "1.0.36"` / `versionCode 10036`
-- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10036>
+- Release tag: [`20260519`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260519)
+- Android project version: `versionName "1.0.37"` / `versionCode 10037`
+- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10037>
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.37</b> (2026-05-19)</summary>
+
+- App version bump: updated Android to `versionName "1.0.37"` / `versionCode 10037` and published a new final release APK.
+- Image Tools 1.19: added gallery analysis, similar-photo grouping, low-quality photo candidates, and app-side rich review UI for selecting and confirming file deletion.
+- Weather Assistant 1.6: puts clothing, umbrella, travel, rain/wind, and temperature-change advice at the top of the main output.
+- New Location Helper module: provides current country, city, address, latitude/longitude, altitude, accuracy, provider, timestamp, and reverse geocoding.
+- Cloudflare and GitHub sync: updated APK download metadata, D1 version data, module catalog metadata, GitHub README, tag, and Release assets.
+
+</details>
+
+<details>
 <summary><b>v1.0.36</b> (2026-05-17)</summary>
 
 - App version bump: updated Android to `versionName "1.0.36"` / `versionCode 10036` and published a new final APK.

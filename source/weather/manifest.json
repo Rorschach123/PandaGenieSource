@@ -2,9 +2,9 @@
   "id": "weather",
   "name": "天气助手",
   "name_en": "Weather Assistant",
-  "description": "天气助手模块，支持查询城市当前天气、多日天气预报，以及今天和明天的气温/天气变化预警，使用 Open-Meteo 免费 API，无需密钥",
-  "description_en": "Weather assistant module, query current weather, multi-day forecasts, and today-vs-tomorrow temperature/weather alerts using the Open-Meteo free API",
-  "version": "1.5",
+  "description": "天气助手模块，支持查询城市当前天气、多日天气预报，以及今天和明天的气温/天气变化预警；当用户询问穿衣、出行、带伞、温差时，把核心建议放在主输出顶部，使用 Open-Meteo 免费 API，无需密钥",
+  "description_en": "Weather assistant module for current weather, multi-day forecasts, and today-vs-tomorrow alerts. When users ask about clothing, travel, umbrellas, or temperature changes, it highlights practical advice at the top of the main output using the free Open-Meteo API.",
+  "version": "1.6",
   "icon": "cloud",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -71,21 +71,29 @@
     },
     {
       "name": "getTemperatureAlert",
-      "desc": "统计当前、今天和明天的天气及气温差异，按变化等级返回绿色/蓝色/橙色/红色气温预警与穿衣出行建议",
-      "desc_en": "Compare current, today, and tomorrow weather/temperature and return green/blue/orange/red temperature alerts with practical advice",
+      "desc": "统计当前、今天和明天的天气及气温差异，按变化等级返回绿色/蓝色/橙色/红色预警。用户问穿衣、带伞、出行、温差、明天是否变冷/变热时优先调用；请把用户原话或关注点传入 focus/question，模块会在主输出顶部突出穿衣建议、出行提醒、降水/风力和温差判断，不要只把建议藏在详情里。",
+      "desc_en": "Compare current, today, and tomorrow weather/temperature and return green/blue/orange/red alerts. Use this first when users ask about clothing, umbrellas, travel, temperature differences, or whether tomorrow is warmer/cooler. Pass the user's wording or focus via focus/question so the module can put clothing advice, travel reminders, rain/wind, and temperature-change judgment at the top of the main output.",
       "params": [
-        "city"
+        "city",
+        "focus",
+        "question"
       ],
       "paramDesc": [
-        "城市名称（可选，留空则自动定位）"
+        "城市名称（可选，留空则自动定位）",
+        "用户关注点（可选）：如 穿衣、出行、带伞、温差、运动、通勤；LLM 应按用户描述填写，用于调整主输出重点顺序",
+        "用户原始问题（可选）：用于模块判断哪些天气数据应优先展示"
       ],
       "paramDesc_en": [
-        "City name (optional, empty to use GPS location)"
+        "City name (optional, empty to use GPS location)",
+        "User focus (optional), such as clothing, travel, umbrella, temperature change, outdoor activity, or commute; LLM should fill this from the user's wording to prioritize output order",
+        "Original user question (optional), used to decide which weather fields should be highlighted first"
       ],
       "examples": [
         "明天和今天温差大吗？",
+        "根据今天和明天的天气给我穿衣建议",
+        "今天出门要不要带伞？顺便说下穿什么",
         "北京明天气温预警",
-        "Compare today and tomorrow weather in Shanghai"
+        "Compare today and tomorrow weather in Shanghai and tell me what to wear"
       ]
     },
     {

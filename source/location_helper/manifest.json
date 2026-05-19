@@ -1,0 +1,111 @@
+{
+  "id": "location_helper",
+  "name": "位置助手",
+  "name_en": "Location Helper",
+  "description": "获取当前位置信息，包含国家、城市、详细地址、经纬度、海拔、定位精度、来源和更新时间，并支持按坐标反查地址。",
+  "description_en": "Get current location details including country, city, address, latitude, longitude, altitude, accuracy, provider and timestamp, with reverse geocoding support.",
+  "version": "1.0",
+  "icon": "location_on",
+  "soLibraries": [],
+  "h5Page": "index.html",
+  "pluginJar": "plugin.jar",
+  "pluginClass": "ai.rorsch.moduleplugins.location_helper.LocationHelperPlugin",
+  "soLoadMode": "skip",
+  "capabilities": [
+    "location",
+    "network"
+  ],
+  "permissions": [
+    {
+      "name": "android.permission.ACCESS_FINE_LOCATION",
+      "desc": "用于获取精确经纬度、海拔和定位精度",
+      "desc_en": "Get precise latitude/longitude, altitude and accuracy"
+    },
+    {
+      "name": "android.permission.ACCESS_COARSE_LOCATION",
+      "desc": "用于在用户只允许大致位置时返回城市级位置信息",
+      "desc_en": "Return city-level location when only approximate location is granted"
+    },
+    {
+      "name": "android.permission.INTERNET",
+      "desc": "用于在系统地址解析不可用时通过网络反查城市、国家和地址",
+      "desc_en": "Reverse geocode city, country and address when system geocoder is unavailable"
+    }
+  ],
+  "categories": [
+    "lifestyle",
+    "tools"
+  ],
+  "developer": {
+    "name": "Jarvan",
+    "email": "",
+    "url": ""
+  },
+  "apis": [
+    {
+      "name": "getCurrentLocation",
+      "desc": "获取当前位置，输出国家、城市、地址、经纬度、海拔、精度、定位来源和更新时间；用户询问“我在哪”“当前位置”“当前城市”“经纬度”“海拔”时使用。",
+      "desc_en": "Get current location with country, city, address, latitude, longitude, altitude, accuracy, provider and update time. Use for requests like current location, current city, coordinates, or altitude.",
+      "params": [
+        "fresh",
+        "timeoutMs",
+        "includeAddress",
+        "useNetworkFallback",
+        "language"
+      ],
+      "paramDesc": [
+        "是否尽量获取新定位，默认 false；true 时会在权限允许时请求一次当前定位",
+        "获取新定位的等待时间，默认 8000，最大 15000",
+        "是否反查城市/国家/地址，默认 true",
+        "系统地址解析失败时是否使用网络兜底，默认 true",
+        "地址语言，可选 zh/en，默认跟随系统"
+      ],
+      "paramDesc_en": [
+        "Whether to try a fresh location fix, default false",
+        "Timeout for fresh location in milliseconds, default 8000, max 15000",
+        "Whether to reverse geocode city/country/address, default true",
+        "Use network fallback when system geocoder fails, default true",
+        "Address language, zh/en, default follows system"
+      ],
+      "examples": [
+        "我现在在哪个城市？",
+        "获取我当前经纬度和海拔",
+        "Where am I now?",
+        "Get my current coordinates and altitude"
+      ]
+    },
+    {
+      "name": "reverseGeocode",
+      "desc": "根据经纬度反查国家、城市和地址。",
+      "desc_en": "Reverse geocode country, city and address from latitude and longitude.",
+      "params": [
+        "latitude",
+        "longitude",
+        "language",
+        "useNetworkFallback"
+      ],
+      "paramDesc": [
+        "纬度",
+        "经度",
+        "地址语言，可选 zh/en，默认跟随系统",
+        "系统地址解析失败时是否使用网络兜底，默认 true"
+      ],
+      "paramDesc_en": [
+        "Latitude",
+        "Longitude",
+        "Address language, zh/en, default follows system",
+        "Use network fallback when system geocoder fails, default true"
+      ]
+    },
+    {
+      "name": "openPage",
+      "desc": "打开位置助手页面。",
+      "desc_en": "Open Location Helper UI.",
+      "params": [],
+      "paramDesc": [],
+      "paramDesc_en": [],
+      "openPage": true,
+      "uiIntent": "openPage"
+    }
+  ]
+}

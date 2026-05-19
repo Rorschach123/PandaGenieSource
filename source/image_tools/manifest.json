@@ -3,8 +3,8 @@
   "name": "图片工具",
   "name_en": "Image Tools",
   "description": "图片工具模块，支持查看图片信息、缩放、压缩、格式转换、旋转、裁剪、读取相册图片、查找完全重复和视觉相似图片等操作",
-  "description_en": "Image tools: view info, resize, compress, convert format, rotate, crop, list gallery images, and find exact or visually similar duplicate photos",
-  "version": "1.8",
+  "description_en": "Image tools: view info, resize, compress, convert format, rotate, crop, list and organize gallery images, find exact/visual duplicates, and detect low-quality photo candidates",
+  "version": "1.19",
   "icon": "image",
   "soLibraries": [],
   "h5Page": "index.html",
@@ -182,6 +182,49 @@
       ]
     },
     {
+      "name": "analyzeGalleryImages",
+      "desc": "扫描相册并按截图、文档/文字图、缩略图、低分辨率图、大文件、月份和相册进行分类，帮助用户先看清照片构成再整理",
+      "desc_en": "Analyze and organize gallery images by screenshots, document/text images, thumbnails, low-resolution images, large files, month, and album",
+      "params": [
+        "album",
+        "limit",
+        "maxItemsPerCategory",
+        "largeBytes"
+      ],
+      "paramDesc": [
+        "相册名，建议传 all 扫描全部可见相册；也可传具体相册名",
+        "最大扫描数量，默认 5000",
+        "每类最多返回多少张示例图片，默认 8",
+        "大文件阈值，默认 20MB"
+      ],
+      "paramDesc_en": [
+        "Album name; use all for all visible gallery images or pass a specific album",
+        "Maximum images to scan, default 5000",
+        "Maximum example images per category, default 8",
+        "Large-file threshold in bytes, default 20 MB"
+      ]
+    },
+    {
+      "name": "findLowQualityImages",
+      "desc": "查找疑似模糊、缩略图、过小或压缩过重的照片候选，只给出整理建议，不会自动删除",
+      "desc_en": "Find possible blurry, thumbnail, too-small, or heavily compressed photo candidates for manual review; never deletes automatically",
+      "params": [
+        "album",
+        "limit",
+        "maxCandidates"
+      ],
+      "paramDesc": [
+        "相册名，建议传 all 扫描全部可见相册；也可传具体相册名",
+        "最大扫描数量，默认 5000",
+        "最多返回候选数量，默认 50"
+      ],
+      "paramDesc_en": [
+        "Album name; use all for all visible gallery images or pass a specific album",
+        "Maximum images to scan, default 5000",
+        "Maximum candidates to return, default 50"
+      ]
+    },
+    {
       "name": "findDuplicateImages",
       "desc": "在默认相册或指定相册中按内容哈希查找重复图片",
       "desc_en": "Find exact duplicate images in the default Camera album, all albums, or a specified gallery album by SHA-256 content hash",
@@ -203,31 +246,40 @@
     },
     {
       "name": "findSimilarImages",
-      "desc": "在默认相册或指定相册中按视觉指纹查找相似图片、压缩副本和缩略图候选",
-      "desc_en": "Find visually similar images, compressed copies, and thumbnail candidates by perceptual dHash",
+      "desc": "按用户要求扫描默认相册、全部相册或指定相册，使用感知哈希、均值哈希和颜色特征查找相似照片、压缩副本和缩略图候选；只返回 image_groups 结构化富内容，模块负责分组列表、建议保留、候选标签和 deleteRecommendation，APP 负责通用文件选择、删除确认和真实删除。默认首轮会限量限时，只有 fullScan=true 才完整扫描。",
+      "desc_en": "Scan the default album, all albums, or a named album as requested, using perceptual hashes, average hashes, and color profiles to find similar photos, compressed copies, and thumbnail candidates. Returns only structured image_groups rich content: the module provides grouped file lists, suggested keeps, review candidates, labels, and deleteRecommendation flags; the app provides generic file selection, delete confirmation, and deletion execution. The first pass is capped and time-limited unless fullScan=true. If no high-confidence group is found, it returns the nearest manual-review pairs. Use for requests like find similar photos, group candidates, suggest which one to keep, and do not delete yet.",
       "params": [
         "album",
         "limit",
         "maxDistance",
+        "looseMaxDistance",
         "ratioTolerance",
         "minEdge",
-        "maxGroups"
+        "maxGroups",
+        "fullScan",
+        "timeLimitMs"
       ],
       "paramDesc": [
-        "相册名，默认 default/Camera；all 表示全部相册",
-        "最大扫描数量，默认 1000",
-        "dHash 最大汉明距离，默认 8，越小越严格",
-        "宽高比容差，默认 0.08",
-        "参与比较的最短边，默认 32 像素",
-        "最大返回分组数，默认 50"
+        "相册范围：默认相册/相机胶卷用 default；用户明确说全部/所有相册时用 all；也可以传具体相册名",
+        "最大扫描图片数，默认 5000；未开启 fullScan 时会保护性限制到 300 张，避免首次扫描过慢",
+        "严格视觉指纹最大汉明距离，默认 14，越小越严格",
+        "宽松候选最大汉明距离，默认 24；只作为人工复核候选，不代表可以自动删除",
+        "宽高比容差，默认 0.25；截图、裁剪图较多时可放宽到 0.35",
+        "参与比较的最短边像素，默认 32 像素",
+        "最多返回的相似分组数，默认 50",
+        "是否完整扫描，默认 false；只有用户明确要求全量扫描时才设为 true",
+        "模块内部限时，毫秒，默认 65000，用于避免超过 App 执行超时"
       ],
       "paramDesc_en": [
-        "Album name; default reads Camera/DCIM; use all for the whole gallery",
-        "Maximum images to scan, default 1000",
-        "Maximum dHash Hamming distance, default 8; lower is stricter",
-        "Aspect ratio tolerance, default 0.08",
+        "Album name: use default for default album/camera roll, all only when the user asks for all albums, or pass a named album",
+        "Maximum images to scan, default 5000; capped to 300 unless fullScan is true to avoid slow first scans",
+        "Strict visual-hash Hamming distance, default 14; lower is stricter",
+        "Loose candidate Hamming distance, default 24; only for manual review candidates, never automatic delete decisions",
+        "Aspect ratio tolerance, default 0.25; use 0.35 for a looser scan",
         "Minimum short edge to compare, default 32 px",
-        "Maximum groups to return, default 50"
+        "Maximum groups to return, default 50; result groups are review candidates and must not be deleted automatically",
+        "Whether to run a full scan. Default false; set true only when the user explicitly asks for a full/all-album scan",
+        "Internal module time budget in milliseconds, default 65000, used to finish before the app execution timeout"
       ]
     }
   ]
