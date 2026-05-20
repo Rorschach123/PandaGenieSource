@@ -1,5 +1,29 @@
 # Image Tools Module 接入说明
 
+## 图片来源区分
+
+图片扫描 API 现在明确区分两种来源：
+
+- 相册范围：用户说“相册、图库、默认相册、相机胶卷、全部相册、某个相册”时使用 `album`，例如 `album=default`、`album=all`、`album=Screenshots`。
+- 具体图片范围：用户选择、附加或指定一张/多张图片时使用 `imagePaths`。传入 `imagePaths` 后模块只扫描这些图片，并忽略 `album`。
+
+支持的具体图片参数别名：`imagePaths`、`images`、`paths`、`inputPaths`、`files`、`imagePath`、`path`。
+
+示例：
+
+```json
+{
+  "module": "image_tools",
+  "action": "findSimilarImages",
+  "params": {
+    "imagePaths": ["${input_file_1}", "${input_file_2}"],
+    "maxDistance": 16
+  }
+}
+```
+
+不要把“这张图、选中的图片、附件图片”的请求改成 `album=default`。只有用户明确要扫描默认相册时才使用 `album=default`。
+
 ## 相似照片分析能力
 
 `findSimilarImages` 用于扫描默认相册、全部相册或指定相册，按视觉相似度把照片分组，并给出每组的保留建议和可复核候选。模块只输出结构化分析结果，不直接删除照片。

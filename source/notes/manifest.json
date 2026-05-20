@@ -4,7 +4,7 @@
     "name_en":  "Notes",
     "description":  "笔记助手模块，支持创建、查看、编辑、删除、搜索、导出笔记，并可通过 AI 总结和整理本地笔记",
     "description_en":  "Note-taking module: create, view, edit, delete, search, export notes, and use AI to summarize or organize local notes",
-    "version":  "1.6",
+    "version":  "1.7",
     "icon":  "note",
     "soLibraries":  [
 

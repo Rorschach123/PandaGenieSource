@@ -15,6 +15,7 @@ import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.OpenableColumns;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Size;
@@ -231,14 +232,14 @@ public class ImageToolsPlugin implements ModulePlugin {
      */
     private static String listGalleryImages(Context context, JSONObject params) throws Exception {
         int limit = clampInt(params.optInt("limit", 100), 1, 5000);
-        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        boolean explicitImages = hasExplicitImagePaths(params);
+        List<GalleryImage> images = resolveImageScanScope(context, params, limit);
         JSONArray arr = new JSONArray();
         for (GalleryImage image : images) {
             arr.put(image.toJson(false));
         }
         JSONObject out = new JSONObject();
-        out.put("album", normalizedAlbum(params));
-        out.put("source", "MediaStore.Images");
+        putImageScopeFields(out, params, explicitImages);
         out.put("count", arr.length());
         out.put("limit", limit);
         out.put("images", arr);
@@ -249,7 +250,8 @@ public class ImageToolsPlugin implements ModulePlugin {
         int limit = clampInt(params.optInt("limit", 5000), 1, 20000);
         int maxItems = clampInt(params.optInt("maxItemsPerCategory", 8), 1, 50);
         long largeBytes = Math.max(1024L * 1024L, params.optLong("largeBytes", 20L * 1024L * 1024L));
-        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        boolean explicitImages = hasExplicitImagePaths(params);
+        List<GalleryImage> images = resolveImageScanScope(context, params, limit);
 
         JSONArray screenshots = new JSONArray();
         JSONArray textDocuments = new JSONArray();
@@ -300,8 +302,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         categories.put("byAlbum", mapToArray(byAlbum, isZh() ? "相册" : "Album"));
 
         JSONObject out = new JSONObject();
-        out.put("album", normalizedAlbum(params));
-        out.put("source", "MediaStore.Images");
+        putImageScopeFields(out, params, explicitImages);
         out.put("scannedImages", images.size());
         out.put("screenshotCount", screenshots.length());
         out.put("textOrDocumentCount", textDocuments.length());
@@ -320,7 +321,8 @@ public class ImageToolsPlugin implements ModulePlugin {
     private static String findLowQualityImages(Context context, JSONObject params) throws Exception {
         int limit = clampInt(params.optInt("limit", 5000), 1, 20000);
         int maxCandidates = clampInt(params.optInt("maxCandidates", 50), 1, 500);
-        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        boolean explicitImages = hasExplicitImagePaths(params);
+        List<GalleryImage> images = resolveImageScanScope(context, params, limit);
         List<LowQualityCandidate> candidates = new ArrayList<>();
         int unreadable = 0;
         for (GalleryImage image : images) {
@@ -346,8 +348,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         }
 
         JSONObject out = new JSONObject();
-        out.put("album", normalizedAlbum(params));
-        out.put("source", "MediaStore.Images");
+        putImageScopeFields(out, params, explicitImages);
         out.put("scannedImages", images.size());
         out.put("candidateCount", arr.length());
         out.put("unreadableImages", unreadable);
@@ -365,7 +366,8 @@ public class ImageToolsPlugin implements ModulePlugin {
     private static String findDuplicateImages(Context context, JSONObject params) throws Exception {
         int limit = clampInt(params.optInt("limit", 5000), 1, 20000);
         long minBytes = Math.max(0L, params.optLong("minBytes", 1L));
-        List<GalleryImage> images = queryGalleryImages(context, params, limit);
+        boolean explicitImages = hasExplicitImagePaths(params);
+        List<GalleryImage> images = resolveImageScanScope(context, params, limit);
         Map<Long, List<GalleryImage>> bySize = new HashMap<>();
         int skippedSmall = 0;
         for (GalleryImage image : images) {
@@ -445,8 +447,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         }
 
         JSONObject out = new JSONObject();
-        out.put("album", normalizedAlbum(params));
-        out.put("source", "MediaStore.Images");
+        putImageScopeFields(out, params, explicitImages);
         out.put("scannedImages", images.size());
         out.put("hashedImages", hashed);
         out.put("unreadableImages", unreadable);
@@ -472,10 +473,11 @@ public class ImageToolsPlugin implements ModulePlugin {
         long deadlineAt = System.currentTimeMillis() + timeLimitMs;
         boolean stoppedByTimeBudget = false;
 
-        String requestedAlbum = normalizedAlbum(params);
-        String effectiveAlbum = effectiveSimilarAlbum(requestedAlbum);
+        boolean explicitImages = hasExplicitImagePaths(params);
+        String requestedAlbum = explicitImages ? "" : normalizedAlbum(params);
+        String effectiveAlbum = explicitImages ? "selected_images" : effectiveSimilarAlbum(requestedAlbum);
         JSONObject queryParams = params;
-        if (!safeEquals(requestedAlbum, effectiveAlbum)) {
+        if (!explicitImages && !safeEquals(requestedAlbum, effectiveAlbum)) {
             queryParams = new JSONObject(params.toString());
             queryParams.put("album", effectiveAlbum);
         }
@@ -486,7 +488,7 @@ public class ImageToolsPlugin implements ModulePlugin {
             effectiveLimit = 300;
         }
 
-        List<GalleryImage> images = queryGalleryImages(context, queryParams, effectiveLimit);
+        List<GalleryImage> images = resolveImageScanScope(context, queryParams, effectiveLimit);
         List<SimilarImageInfo> infos = new ArrayList<>();
         int unreadable = 0;
         int skippedSmall = 0;
@@ -696,8 +698,8 @@ public class ImageToolsPlugin implements ModulePlugin {
                 group.put("threshold", maxDistance);
                 group.put("reason", "No strict visual group was found. This pair is one of the nearest review candidates; inspect the actual images before taking any action.");
                 group.put("summary", zh
-                        ? "\u4f4e\u7f6e\u4fe1\u5019\u9009\uff1a\u53ea\u7528\u6765\u70b9\u5f00\u5bf9\u6bd4\uff0c\u4e0d\u5efa\u8bae\u76f4\u63a5\u5220\u9664\u3002"
-                        : "Low-confidence candidate: compare visually; do not delete directly.");
+                        ? "\u8fd9\u7ec4\u53ea\u662f\u770b\u8d77\u6765\u6709\u70b9\u50cf\uff0c\u8bf7\u70b9\u5f00\u5bf9\u6bd4\u540e\u518d\u51b3\u5b9a\uff0c\u4e0d\u5efa\u8bae\u76f4\u63a5\u5220\u9664\u3002"
+                        : "This group only looks somewhat similar. Open and compare before deciding; do not delete directly.");
                 groups.put(group);
                 candidateImages += 1;
                 nearestReviewGroups++;
@@ -710,7 +712,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         JSONObject out = new JSONObject();
         out.put("requestedAlbum", requestedAlbum);
         out.put("album", effectiveAlbum);
-        out.put("source", "MediaStore.Images");
+        putImageScopeFields(out, queryParams, explicitImages);
         out.put("matchMode", "visual");
         out.put("algorithm", "dHash64+aHash64+color");
         out.put("threshold", maxDistance);
@@ -850,6 +852,255 @@ public class ImageToolsPlugin implements ModulePlugin {
             cursor.close();
         }
         return result;
+    }
+
+    private static List<GalleryImage> resolveImageScanScope(Context context, JSONObject params, int limit) throws Exception {
+        List<String> paths = explicitImagePathList(params);
+        if (paths.isEmpty()) {
+            return queryGalleryImages(context, params, limit);
+        }
+        ArrayList<GalleryImage> result = new ArrayList<>();
+        for (String path : paths) {
+            if (result.size() >= limit) {
+                break;
+            }
+            result.add(galleryImageFromPath(context, path));
+        }
+        return result;
+    }
+
+    private static boolean hasExplicitImagePaths(JSONObject params) {
+        return !explicitImagePathList(params).isEmpty();
+    }
+
+    private static List<String> explicitImagePathList(JSONObject params) {
+        ArrayList<String> paths = new ArrayList<>();
+        if (params == null) {
+            return paths;
+        }
+        addExplicitImagePaths(paths, params.opt("imagePaths"), false);
+        addExplicitImagePaths(paths, params.opt("images"), false);
+        addExplicitImagePaths(paths, params.opt("paths"), false);
+        addExplicitImagePaths(paths, params.opt("inputPaths"), false);
+        addExplicitImagePaths(paths, params.opt("files"), false);
+        addExplicitImagePaths(paths, params.opt("imagePath"), true);
+        addExplicitImagePaths(paths, params.opt("path"), true);
+        return paths;
+    }
+
+    private static void addExplicitImagePaths(List<String> out, Object value, boolean requirePathLike) {
+        if (value == null || value == JSONObject.NULL) {
+            return;
+        }
+        if (value instanceof JSONArray) {
+            JSONArray arr = (JSONArray) value;
+            for (int i = 0; i < arr.length(); i++) {
+                Object item = arr.opt(i);
+                if (item instanceof JSONObject) {
+                    JSONObject obj = (JSONObject) item;
+                    addExplicitImagePath(out, obj.optString("path", obj.optString("uri", "")), requirePathLike);
+                } else {
+                    addExplicitImagePaths(out, item, requirePathLike);
+                }
+            }
+            return;
+        }
+        if (value instanceof JSONObject) {
+            JSONObject obj = (JSONObject) value;
+            addExplicitImagePath(out, obj.optString("path", obj.optString("uri", "")), requirePathLike);
+            return;
+        }
+        String text = String.valueOf(value).trim();
+        if (text.length() == 0) {
+            return;
+        }
+        if (text.startsWith("[") && text.endsWith("]")) {
+            try {
+                addExplicitImagePaths(out, new JSONArray(text), requirePathLike);
+                return;
+            } catch (Exception ignored) {
+            }
+        }
+        String[] parts = text.split("[\\n;,]+");
+        for (String part : parts) {
+            addExplicitImagePath(out, part, requirePathLike);
+        }
+    }
+
+    private static void addExplicitImagePath(List<String> out, String raw, boolean requirePathLike) {
+        String path = normalizeExplicitImagePath(raw);
+        if (path.length() == 0) {
+            return;
+        }
+        if (requirePathLike && !looksLikeExplicitImagePath(path)) {
+            return;
+        }
+        if (!out.contains(path)) {
+            out.add(path);
+        }
+    }
+
+    private static String normalizeExplicitImagePath(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String path = raw.trim();
+        while ((path.startsWith("\"") && path.endsWith("\"")) || (path.startsWith("'") && path.endsWith("'"))) {
+            path = path.substring(1, path.length() - 1).trim();
+        }
+        if (path.startsWith("file://")) {
+            Uri uri = Uri.parse(path);
+            String parsed = uri.getPath();
+            if (parsed != null && parsed.length() > 0) {
+                path = parsed;
+            }
+        }
+        return path;
+    }
+
+    private static boolean looksLikeExplicitImagePath(String path) {
+        if (TextUtils.isEmpty(path)) {
+            return false;
+        }
+        String lower = path.toLowerCase(Locale.US);
+        return lower.startsWith("/")
+                || lower.startsWith("file:/")
+                || lower.startsWith("content:/")
+                || lower.endsWith(".jpg")
+                || lower.endsWith(".jpeg")
+                || lower.endsWith(".png")
+                || lower.endsWith(".webp")
+                || lower.endsWith(".heic")
+                || lower.endsWith(".bmp")
+                || lower.endsWith(".gif");
+    }
+
+    private static GalleryImage galleryImageFromPath(Context context, String rawPath) throws Exception {
+        String path = normalizeExplicitImagePath(rawPath);
+        if (path.startsWith("content://")) {
+            return galleryImageFromContentUri(context, Uri.parse(path));
+        }
+        requireReadableFile(path);
+        File file = new File(path);
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw new IllegalArgumentException("cannot read image bounds: " + path);
+        }
+        GalleryImage image = new GalleryImage();
+        image.id = Math.abs((long) path.hashCode());
+        image.uri = Uri.fromFile(file);
+        image.name = file.getName();
+        image.path = file.getAbsolutePath();
+        File parent = file.getParentFile();
+        image.relativePath = parent == null ? "" : parent.getAbsolutePath();
+        image.bucket = parent == null ? "selected_images" : safeLabel(parent.getName(), "selected_images");
+        image.mimeType = bounds.outMimeType != null ? bounds.outMimeType : mimeTypeFromExtension(path);
+        image.sizeBytes = file.length();
+        image.width = bounds.outWidth;
+        image.height = bounds.outHeight;
+        long modifiedSeconds = Math.max(0L, file.lastModified() / 1000L);
+        image.dateModified = modifiedSeconds;
+        image.dateAdded = modifiedSeconds;
+        return image;
+    }
+
+    private static GalleryImage galleryImageFromContentUri(Context context, Uri uri) throws Exception {
+        if (context == null) {
+            throw new IOException("content uri requires Android context");
+        }
+        ContentResolver resolver = context.getContentResolver();
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        InputStream in = null;
+        try {
+            in = resolver.openInputStream(uri);
+            if (in == null) {
+                throw new IOException("image content is not readable: " + uri);
+            }
+            BitmapFactory.decodeStream(in, null, bounds);
+        } finally {
+            if (in != null) {
+                try { in.close(); } catch (Exception ignored) {}
+            }
+        }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw new IllegalArgumentException("cannot read image bounds: " + uri);
+        }
+
+        String name = "";
+        long sizeBytes = 0L;
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(uri, new String[] {
+                    OpenableColumns.DISPLAY_NAME,
+                    OpenableColumns.SIZE
+            }, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    name = cursor.getString(nameIndex);
+                }
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                    sizeBytes = cursor.getLong(sizeIndex);
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (cursor != null) {
+                try { cursor.close(); } catch (Exception ignored) {}
+            }
+        }
+        if (TextUtils.isEmpty(name)) {
+            name = safeLabel(uri.getLastPathSegment(), "selected_image");
+        }
+        String mime = resolver.getType(uri);
+        if (TextUtils.isEmpty(mime)) {
+            mime = bounds.outMimeType != null ? bounds.outMimeType : mimeTypeFromExtension(name);
+        }
+        long nowSeconds = System.currentTimeMillis() / 1000L;
+
+        GalleryImage image = new GalleryImage();
+        image.id = Math.abs((long) uri.toString().hashCode());
+        image.uri = uri;
+        image.name = name;
+        image.path = uri.toString();
+        image.relativePath = "selected_images";
+        image.bucket = "selected_images";
+        image.mimeType = mime;
+        image.sizeBytes = Math.max(0L, sizeBytes);
+        image.width = bounds.outWidth;
+        image.height = bounds.outHeight;
+        image.dateModified = nowSeconds;
+        image.dateAdded = nowSeconds;
+        return image;
+    }
+
+    private static String mimeTypeFromExtension(String path) {
+        String ext = extensionOf(path);
+        if ("jpg".equals(ext) || "jpeg".equals(ext)) return "image/jpeg";
+        if ("png".equals(ext)) return "image/png";
+        if ("webp".equals(ext)) return "image/webp";
+        if ("heic".equals(ext) || "heif".equals(ext)) return "image/heic";
+        if ("bmp".equals(ext)) return "image/bmp";
+        if ("gif".equals(ext)) return "image/gif";
+        return "image/*";
+    }
+
+    private static void putImageScopeFields(JSONObject out, JSONObject params, boolean explicitImages) throws Exception {
+        if (explicitImages) {
+            out.put("scope", "image_paths");
+            out.put("album", "selected_images");
+            out.put("source", "input.imagePaths");
+            out.put("inputImageCount", explicitImagePathList(params).size());
+        } else {
+            out.put("scope", "gallery_album");
+            out.put("album", normalizedAlbum(params));
+            out.put("source", "MediaStore.Images");
+            out.put("inputImageCount", 0);
+        }
     }
 
     private static String normalizedAlbum(JSONObject params) {
@@ -1265,7 +1516,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         candidate.put("deleteRecommendation", recommendation);
         candidate.put("recommendationLabel", similarCandidateRecommendation(confidence, matchType, zh));
         JSONArray tags = new JSONArray();
-        tags.put("low".equals(confidence) ? (zh ? "\u4f4e\u7f6e\u4fe1\u590d\u6838" : "low confidence")
+        tags.put("low".equals(confidence) ? (zh ? "\u5148\u770b\u56fe\u786e\u8ba4" : "review first")
                 : (zh ? "\u53ef\u590d\u6838\u5019\u9009" : "review candidate"));
         tags.put(similarRelation(matchType, zh));
         double similarity = candidate.optDouble("similarityPercentToKeep", -1.0);
@@ -1294,8 +1545,8 @@ public class ImageToolsPlugin implements ModulePlugin {
     private static String similarCandidateRecommendation(String confidence, String matchType, boolean zh) {
         if ("low".equals(confidence)) {
             return zh
-                    ? "\u4f4e\u7f6e\u4fe1\uff1a\u53ea\u5efa\u8bae\u70b9\u5f00\u5bf9\u6bd4\uff0c\u4e0d\u5efa\u8bae\u76f4\u63a5\u5220\u9664"
-                    : "Low confidence: compare visually; do not delete directly";
+                    ? "\u5148\u70b9\u5f00\u5bf9\u6bd4\uff1a\u8fd9\u5f20\u53ea\u662f\u770b\u8d77\u6765\u6709\u70b9\u50cf\uff0c\u4e0d\u5efa\u8bae\u76f4\u63a5\u5220\u9664"
+                    : "Open and compare first: this only looks somewhat similar, so do not delete directly";
         }
         if ("thumbnailCandidate".equals(matchType)) {
             return zh
@@ -2550,9 +2801,11 @@ public class ImageToolsPlugin implements ModulePlugin {
         JSONObject o = new JSONObject(outputJson);
         JSONArray images = o.optJSONArray("images");
         int count = images == null ? 0 : images.length();
-        String title = zh ? "\u76f8\u518c\u56fe\u7247\u5df2\u8bfb\u53d6" : "Gallery images loaded";
+        String title = isImagePathScope(o)
+                ? (zh ? "\u5df2\u8bfb\u53d6\u9009\u4e2d\u56fe\u7247" : "Selected images loaded")
+                : (zh ? "\u76f8\u518c\u56fe\u7247\u5df2\u8bfb\u53d6" : "Gallery images loaded");
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { imageScopeLabel(o, zh), mdCell(imageScopeValue(o, zh)) });
         rows.add(new String[] { zh ? "\u8fd4\u56de\u6570\u91cf" : "Returned", String.valueOf(count) });
         rows.add(new String[] { zh ? "\u67e5\u8be2\u4e0a\u9650" : "Limit", String.valueOf(o.optInt("limit")) });
         int preview = Math.min(count, 8);
@@ -2587,7 +2840,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         JSONObject o = new JSONObject(outputJson);
         String title = zh ? "相册分类整理结果" : "Gallery organization summary";
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "相册" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { imageScopeLabel(o, zh), mdCell(imageScopeValue(o, zh)) });
         rows.add(new String[] { zh ? "扫描图片" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
         rows.add(new String[] { zh ? "截图" : "Screenshots", String.valueOf(o.optInt("screenshotCount")) });
         rows.add(new String[] { zh ? "文档/文字图" : "Document/text images", String.valueOf(o.optInt("textOrDocumentCount")) });
@@ -2629,6 +2882,22 @@ public class ImageToolsPlugin implements ModulePlugin {
         rows.add(new String[] { label, mdCell(value.toString()) });
     }
 
+    private static boolean isImagePathScope(JSONObject o) {
+        return "image_paths".equals(o.optString("scope"));
+    }
+
+    private static String imageScopeLabel(JSONObject o, boolean zh) {
+        return isImagePathScope(o) ? (zh ? "\u56fe\u7247\u6765\u6e90" : "Image source") : (zh ? "\u76f8\u518c" : "Album");
+    }
+
+    private static String imageScopeValue(JSONObject o, boolean zh) {
+        if (!isImagePathScope(o)) {
+            return o.optString("album");
+        }
+        int count = o.optInt("inputImageCount", o.optInt("scannedImages", 0));
+        return zh ? ("\u9009\u4e2d\u56fe\u7247 " + count + " \u5f20") : (count + " selected image(s)");
+    }
+
     private static String formatFindLowQualityImagesDisplay(String outputJson) throws Exception {
         boolean zh = isZh();
         JSONObject o = new JSONObject(outputJson);
@@ -2637,7 +2906,7 @@ public class ImageToolsPlugin implements ModulePlugin {
                 ? (zh ? "找到疑似低质量照片" : "Possible low-quality photos found")
                 : (zh ? "未发现明显低质量照片" : "No obvious low-quality photos found");
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "相册" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { imageScopeLabel(o, zh), mdCell(imageScopeValue(o, zh)) });
         rows.add(new String[] { zh ? "扫描图片" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
         rows.add(new String[] { zh ? "候选图片" : "Candidates", String.valueOf(candidateCount) });
         rows.add(new String[] { zh ? "无法读取" : "Unreadable images", String.valueOf(o.optInt("unreadableImages")) });
@@ -2668,7 +2937,7 @@ public class ImageToolsPlugin implements ModulePlugin {
                 ? (zh ? "\u627e\u5230\u91cd\u590d\u56fe\u7247" : "Duplicate images found")
                 : (zh ? "\u672a\u53d1\u73b0\u91cd\u590d\u56fe\u7247" : "No duplicate images found");
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { imageScopeLabel(o, zh), mdCell(imageScopeValue(o, zh)) });
         rows.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages", o.optInt("scannedCount"))) });
         rows.add(new String[] { zh ? "\u91cd\u590d\u7ec4" : "Duplicate groups", String.valueOf(groupCount) });
         rows.add(new String[] { zh ? "\u91cd\u590d\u56fe\u7247" : "Duplicate images", String.valueOf(o.optInt("duplicateImageCount")) });
@@ -2702,6 +2971,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         int groupCount = o.optInt("candidateGroupCount");
         int strictCount = o.optInt("strictCandidateGroupCount");
         int nearestCount = o.optInt("nearestReviewGroupCount");
+        int candidateImageCount = o.optInt("candidateImageCount");
         String title;
         if (groupCount <= 0) {
             title = zh ? "\u672a\u53d1\u73b0\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "No similar image candidates found";
@@ -2711,21 +2981,22 @@ public class ImageToolsPlugin implements ModulePlugin {
             title = zh ? "\u627e\u5230\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "Similar image candidates found";
         }
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { zh ? "\u76f8\u518c" : "Album", mdCell(o.optString("album")) });
+        rows.add(new String[] { imageScopeLabel(o, zh), mdCell(imageScopeValue(o, zh)) });
         String requestedAlbum = o.optString("requestedAlbum");
         if (!TextUtils.isEmpty(requestedAlbum) && !safeEquals(requestedAlbum, o.optString("album"))) {
             rows.add(new String[] { zh ? "\u7528\u6237\u8f93\u5165" : "Requested", mdCell(requestedAlbum) });
         }
         rows.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
-        rows.add(new String[] { zh ? "\u5df2\u751f\u6210\u6307\u7eb9" : "Fingerprinted", String.valueOf(o.optInt("fingerprintedImages")) });
-        rows.add(new String[] { zh ? "\u76f8\u4f3c\u7ec4" : "Candidate groups", String.valueOf(groupCount) });
-        rows.add(new String[] { zh ? "\u9ad8\u7f6e\u4fe1\u5206\u7ec4" : "High-confidence groups", String.valueOf(strictCount) });
-        rows.add(new String[] { zh ? "\u4f4e\u7f6e\u4fe1\u590d\u6838\u7ec4" : "Low-confidence review pairs", String.valueOf(nearestCount) });
-        rows.add(new String[] { zh ? "\u5019\u9009\u56fe\u7247" : "Candidate images", String.valueOf(o.optInt("candidateImageCount")) });
-        rows.add(new String[] { zh ? "\u7f29\u7565\u56fe\u7ec4" : "Thumbnail groups", String.valueOf(o.optInt("thumbnailCandidateGroupCount")) });
-        rows.add(new String[] { zh ? "\u7b97\u6cd5" : "Algorithm", mdCell(o.optString("algorithm")) });
-        rows.add(new String[] { zh ? "\u9608\u503c" : "Threshold", String.valueOf(o.optInt("threshold")) });
-        rows.add(new String[] { zh ? "\u5bbd\u9ad8\u5bb9\u5dee" : "Ratio tolerance", String.valueOf(o.optDouble("ratioTolerance")) });
+        if (groupCount > 0) {
+            rows.add(new String[] { zh ? "\u76f8\u4f3c\u7167\u7247\u7ec4" : "Similar photo groups", String.valueOf(groupCount) });
+            rows.add(new String[] { zh ? "\u9700\u8981\u4f60\u786e\u8ba4\u7684\u7167\u7247" : "Photos to review", String.valueOf(candidateImageCount) });
+            int thumbnailCount = o.optInt("thumbnailCandidateGroupCount");
+            if (thumbnailCount > 0) {
+                rows.add(new String[] { zh ? "\u7591\u4f3c\u7f29\u7565\u56fe/\u538b\u7f29\u526f\u672c" : "Possible thumbnails/copies", String.valueOf(thumbnailCount) });
+            }
+        } else {
+            rows.add(new String[] { zh ? "\u7ed3\u679c" : "Result", mdCell(zh ? "\u672a\u53d1\u73b0\u660e\u663e\u76f8\u4f3c\u7167\u7247" : "No obvious similar photos found") });
+        }
         JSONArray groups = o.optJSONArray("candidateGroups");
         int preview = Math.min(groups == null ? 0 : groups.length(), 5);
         for (int i = 0; i < preview; i++) {
@@ -2737,16 +3008,21 @@ public class ImageToolsPlugin implements ModulePlugin {
             JSONArray candidates = group.optJSONArray("candidates");
             String keepName = keep == null ? "" : keep.optString("name");
             String value = (candidates == null ? 0 : candidates.length()) + " "
-                    + (zh ? "\u5f20\u9700\u4eba\u5de5\u786e\u8ba4" : "need review")
-                    + (TextUtils.isEmpty(keepName) ? "" : " | keep " + keepName)
-                    + " | " + group.optString("matchType");
+                    + (zh ? "\u5f20\u5f85\u786e\u8ba4" : "to review")
+                    + (TextUtils.isEmpty(keepName) ? "" : (zh ? " | \u5efa\u8bae\u5148\u4fdd\u7559\uff1a" : " | suggested keep: ") + keepName)
+                    + " | " + similarRelation(group.optString("matchType"), zh);
             rows.add(new String[] { (zh ? "\u76f8\u4f3c\u7ec4 " : "Group ") + (i + 1), mdCell(value) });
         }
         if (groupCount == 0) {
             rows.add(new String[] { zh ? "\u4e0b\u4e00\u6b65" : "Next step",
                     mdCell(zh
-                            ? "\u5982\u679c\u4ecd\u89c9\u5f97\u6709\u76f8\u4f3c\u56fe\uff0c\u53ef\u4ee5\u7528 maxDistance=16\u3001looseMaxDistance=28\u3001ratioTolerance=0.35 \u653e\u5bbd\u91cd\u65b0\u626b\u63cf\uff1b\u4ecd\u4e0d\u4f1a\u81ea\u52a8\u5220\u56fe\u3002"
-                            : "If you still expect matches, run a looser scan with maxDistance=16, looseMaxDistance=28, and ratioTolerance=0.35. It still will not delete anything automatically.") });
+                            ? "\u5982\u679c\u8089\u773c\u770b\u5230\u6709\u76f8\u4f3c\u7167\u7247\uff0c\u53ef\u4ee5\u8bf4\u201c\u653e\u5bbd\u76f8\u4f3c\u5ea6\u91cd\u65b0\u626b\u63cf\u201d\u3002\u653e\u5bbd\u626b\u63cf\u4e5f\u53ea\u4f1a\u5217\u51fa\u5019\u9009\uff0c\u4e0d\u4f1a\u81ea\u52a8\u5220\u56fe\u3002"
+                            : "If you can see similar photos, ask PandaGenie to run a looser scan. It will still only list candidates and will not delete anything automatically.") });
+        } else {
+            rows.add(new String[] { zh ? "\u5efa\u8bae" : "Suggestion",
+                    mdCell(zh
+                            ? "\u70b9\u5f00\u6bcf\u7ec4\u7167\u7247\u5bf9\u6bd4\u540e\u518d\u9009\u62e9\u3002\u4f18\u5148\u4fdd\u7559\u66f4\u6e05\u6670\u3001\u5c3a\u5bf8\u66f4\u5927\u6216\u62cd\u6444\u65f6\u95f4\u66f4\u65b0\u7684\u4e00\u5f20\u3002"
+                            : "Open each group and compare the photos before selecting anything. Prefer the clearer, larger, or newer photo.") });
         }
         return title + "\n\n" + pgTable(title, new String[] {
                 zh ? "\u9879\u76ee" : "Item",
@@ -2918,7 +3194,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         int count = images == null ? 0 : images.length();
         String title = zh ? "\u76f8\u518c\u56fe\u7247\u5df2\u8bfb\u53d6" : "Gallery images loaded";
         List<String[]> pairs = new ArrayList<>();
-        pairs.add(new String[] { zh ? "\u76f8\u518c" : "Album", o.optString("album") });
+        pairs.add(new String[] { imageScopeLabel(o, zh), imageScopeValue(o, zh) });
         pairs.add(new String[] { zh ? "\u8fd4\u56de\u6570\u91cf" : "Returned", String.valueOf(count) });
         pairs.add(new String[] { zh ? "\u67e5\u8be2\u4e0a\u9650" : "Limit", String.valueOf(o.optInt("limit")) });
         if (count > 0) {
@@ -3062,7 +3338,7 @@ public class ImageToolsPlugin implements ModulePlugin {
                 ? (zh ? "\u627e\u5230\u91cd\u590d\u56fe\u7247" : "Duplicate images found")
                 : (zh ? "\u672a\u53d1\u73b0\u91cd\u590d\u56fe\u7247" : "No duplicate images found");
         List<String[]> pairs = new ArrayList<>();
-        pairs.add(new String[] { zh ? "\u76f8\u518c" : "Album", o.optString("album") });
+        pairs.add(new String[] { imageScopeLabel(o, zh), imageScopeValue(o, zh) });
         pairs.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages", o.optInt("scannedCount"))) });
         pairs.add(new String[] { zh ? "\u91cd\u590d\u7ec4" : "Duplicate groups", String.valueOf(groupCount) });
         pairs.add(new String[] { zh ? "\u91cd\u590d\u56fe\u7247" : "Duplicate images", String.valueOf(o.optInt("duplicateImageCount")) });
@@ -3083,6 +3359,7 @@ public class ImageToolsPlugin implements ModulePlugin {
         int groupCount = o.optInt("candidateGroupCount");
         int strictCount = o.optInt("strictCandidateGroupCount");
         int nearestCount = o.optInt("nearestReviewGroupCount");
+        int candidateImageCount = o.optInt("candidateImageCount");
         String title;
         if (groupCount <= 0) {
             title = zh ? "\u672a\u53d1\u73b0\u76f8\u4f3c\u56fe\u7247\u5019\u9009" : "No similar image candidates found";
@@ -3098,16 +3375,16 @@ public class ImageToolsPlugin implements ModulePlugin {
             pairs.add(new String[] { zh ? "\u7528\u6237\u8f93\u5165" : "Requested", requestedAlbum });
         }
         pairs.add(new String[] { zh ? "\u626b\u63cf\u56fe\u7247" : "Scanned images", String.valueOf(o.optInt("scannedImages")) });
-        pairs.add(new String[] { zh ? "\u5df2\u751f\u6210\u6307\u7eb9" : "Fingerprinted", String.valueOf(o.optInt("fingerprintedImages")) });
-        pairs.add(new String[] { zh ? "\u76f8\u4f3c\u7ec4" : "Candidate groups", String.valueOf(groupCount) });
-        pairs.add(new String[] { zh ? "\u9ad8\u7f6e\u4fe1\u5206\u7ec4" : "High-confidence groups", String.valueOf(strictCount) });
-        pairs.add(new String[] { zh ? "\u4f4e\u7f6e\u4fe1\u590d\u6838\u7ec4" : "Low-confidence review pairs", String.valueOf(nearestCount) });
-        pairs.add(new String[] { zh ? "\u5019\u9009\u56fe\u7247" : "Candidate images", String.valueOf(o.optInt("candidateImageCount")) });
-        pairs.add(new String[] { zh ? "\u5df2\u6bd4\u5bf9" : "Compared pairs", String.valueOf(o.optInt("comparedPairs")) });
-        pairs.add(new String[] { zh ? "\u76f8\u4f3c\u9608\u503c" : "Threshold", String.valueOf(o.optInt("threshold")) });
-        pairs.add(new String[] { zh ? "\u5bbd\u9ad8\u5bb9\u5dee" : "Ratio tolerance", String.valueOf(o.optDouble("ratioTolerance")) });
-        pairs.add(new String[] { zh ? "\u7f29\u7565\u56fe\u7ec4" : "Thumbnail groups", String.valueOf(o.optInt("thumbnailCandidateGroupCount")) });
-        pairs.add(new String[] { zh ? "\u7b97\u6cd5" : "Algorithm", o.optString("algorithm") });
+        if (groupCount > 0) {
+            pairs.add(new String[] { zh ? "\u76f8\u4f3c\u7167\u7247\u7ec4" : "Similar photo groups", String.valueOf(groupCount) });
+            pairs.add(new String[] { zh ? "\u9700\u8981\u4f60\u786e\u8ba4\u7684\u7167\u7247" : "Photos to review", String.valueOf(candidateImageCount) });
+            int thumbnailCount = o.optInt("thumbnailCandidateGroupCount");
+            if (thumbnailCount > 0) {
+                pairs.add(new String[] { zh ? "\u7591\u4f3c\u7f29\u7565\u56fe/\u538b\u7f29\u526f\u672c" : "Possible thumbnails/copies", String.valueOf(thumbnailCount) });
+            }
+        } else {
+            pairs.add(new String[] { zh ? "\u7ed3\u679c" : "Result", zh ? "\u672a\u53d1\u73b0\u660e\u663e\u76f8\u4f3c\u7167\u7247" : "No obvious similar photos found" });
+        }
         String body = groupCount > 0 ? HtmlOutputHelper.successBadge() : "";
         body += HtmlOutputHelper.keyValue(pairs.toArray(new String[0][]));
         if (groupCount > 0) {
@@ -3118,15 +3395,15 @@ public class ImageToolsPlugin implements ModulePlugin {
                             ? "\u6ca1\u6709\u547d\u4e2d\u9ad8\u7f6e\u4fe1\u7684\u76f8\u4f3c\u7ec4\uff0c\u4e0b\u65b9\u53ea\u5217\u51fa\u6700\u63a5\u8fd1\u7684\u51e0\u7ec4\u4f9b\u4eba\u5de5\u770b\u56fe\u590d\u6838\u3002\u8fd9\u4e9b\u4e0d\u4ee3\u8868\u53ef\u4ee5\u5220\u9664\uff0c\u53ea\u662f\u5e2e\u4f60\u5feb\u901f\u5b9a\u4f4d\u53ef\u80fd\u76f8\u50cf\u7684\u7167\u7247\u3002"
                             : "No high-confidence group was found. The list below only shows the closest pairs for manual visual review. They are not delete decisions; they just help you locate photos that may look alike.")
                             : (zh
-                            ? "\u76f8\u4f3c\u56fe\u4f7f\u7528 dHash \u611f\u77e5\u54c8\u5e0c\u3001\u5747\u503c\u54c8\u5e0c\u548c\u989c\u8272\u7279\u5f81\u5339\u914d\uff0c\u53ef\u4ee5\u627e\u51fa\u538b\u7f29\u526f\u672c\u548c\u7f29\u7565\u56fe\u5019\u9009\u3002\u672c\u6a21\u5757\u53ea\u8f93\u51fa\u5206\u7ec4\u5217\u8868\u3001\u5efa\u8bae\u4fdd\u7559\u56fe\u548c\u53ef\u590d\u6838\u5019\u9009\uff1b\u9009\u62e9\u6587\u4ef6\u3001\u5168\u9009\u3001\u5220\u9664\u786e\u8ba4\u548c\u771f\u5b9e\u5220\u9664\u7531 APP \u7684\u901a\u7528\u6587\u4ef6\u64cd\u4f5c\u754c\u9762\u63d0\u4f9b\u3002"
-                            : "Similar images are matched by perceptual hash, average hash, and color-profile signals. This can catch compressed copies and thumbnail candidates. The module only outputs grouped file lists, suggested keeps, and review candidates; file selection, select-all, delete confirmation, and actual deletion are provided by the app's generic file actions."),
+                            ? "\u8bf7\u70b9\u5f00\u5206\u7ec4\u9010\u5f20\u5bf9\u6bd4\u3002\u4e00\u822c\u4f18\u5148\u4fdd\u7559\u66f4\u6e05\u6670\u3001\u5c3a\u5bf8\u66f4\u5927\u6216\u62cd\u6444\u65f6\u95f4\u66f4\u65b0\u7684\u4e00\u5f20\u3002\u6a59\u8272\u7167\u7247\u53ea\u662f\u9700\u8981\u4f60\u590d\u6838\u7684\u5019\u9009\uff0c\u4e0d\u4ee3\u8868\u4e00\u5b9a\u8981\u5220\u3002"
+                            : "Open each group and compare the photos. Prefer the clearer, larger, or newer photo. Orange photos are review candidates, not automatic delete decisions."),
                     "warn");
         } else {
             body += HtmlOutputHelper.callout(
                     zh ? "\u672c\u6b21\u6ca1\u6709\u547d\u4e2d\u5019\u9009" : "No candidates in this scan",
                     zh
-                            ? "\u5df2\u6309\u89c6\u89c9\u6307\u7eb9\u626b\u63cf\u5e76\u6bd4\u5bf9\u3002\u5982\u679c\u4f60\u786e\u5b9e\u770b\u5230\u6709\u76f8\u4f3c\u56fe\uff0c\u53ef\u4ee5\u518d\u8bf4\u201c\u653e\u5bbd\u76f8\u4f3c\u5ea6\u91cd\u65b0\u626b\u63cf\u201d\uff0c\u5efa\u8bae\u4f7f\u7528 maxDistance=16\u3001looseMaxDistance=28\u3001ratioTolerance=0.35\u3001limit=5000\u3002\u653e\u5bbd\u626b\u63cf\u4e5f\u53ea\u4f1a\u5217\u51fa\u5019\u9009\uff0c\u4e0d\u4f1a\u81ea\u52a8\u5220\u56fe\u3002"
-                            : "The gallery was fingerprinted and compared, but no review candidates were found. If you can see similar photos, try a looser scan with maxDistance=16, looseMaxDistance=28, ratioTolerance=0.35, and limit=5000. A looser scan still only lists candidates and never deletes automatically.",
+                            ? "\u5982\u679c\u8089\u773c\u770b\u5230\u6709\u76f8\u4f3c\u7167\u7247\uff0c\u53ef\u4ee5\u8bf4\u201c\u653e\u5bbd\u76f8\u4f3c\u5ea6\u91cd\u65b0\u626b\u63cf\u201d\u3002\u653e\u5bbd\u626b\u63cf\u4e5f\u53ea\u4f1a\u5217\u51fa\u5019\u9009\uff0c\u4e0d\u4f1a\u81ea\u52a8\u5220\u56fe\u3002"
+                            : "If you can see similar photos, ask PandaGenie to run a looser scan. It will still only list candidates and will not delete anything automatically.",
                     "warn");
         }
         return HtmlOutputHelper.card("\uD83D\uDD0D", title, body);
@@ -3134,12 +3411,12 @@ public class ImageToolsPlugin implements ModulePlugin {
 
     private static String similarRelation(String raw, boolean zh) {
         if ("thumbnailCandidate".equals(raw)) {
-            return zh ? "\u7f29\u7565\u56fe\u5019\u9009" : "thumbnail candidate";
+            return zh ? "\u7591\u4f3c\u7f29\u7565\u56fe/\u538b\u7f29\u526f\u672c" : "possible thumbnail/copy";
         }
         if ("nearVisualReview".equals(raw)) {
-            return zh ? "\u4f4e\u7f6e\u4fe1\u590d\u6838" : "low-confidence review";
+            return zh ? "\u770b\u8d77\u6765\u6709\u70b9\u50cf" : "looks similar";
         }
-        return zh ? "\u89c6\u89c9\u76f8\u4f3c" : "visually similar";
+        return zh ? "\u753b\u9762\u76f8\u4f3c" : "similar look";
     }
 
     private static JSONObject similarImageGroupsRichItem(JSONObject output, JSONArray groups, boolean zh) throws Exception {
@@ -3161,7 +3438,6 @@ public class ImageToolsPlugin implements ModulePlugin {
         payload.put("album", output.optString("album", ""));
         payload.put("requestedAlbum", output.optString("requestedAlbum", ""));
         payload.put("scannedImages", output.optInt("scannedImages", 0));
-        payload.put("fingerprintedImages", output.optInt("fingerprintedImages", 0));
         payload.put("candidateImageCount", candidateCount);
         payload.put("safeToDeleteAutomatically", false);
         payload.put("groups", groups);

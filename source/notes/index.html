@@ -333,6 +333,285 @@ textarea.note-content-input {
   font-family: inherit;
   line-height: 1.55;
 }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(79, 107, 237, 0.10), transparent 30%),
+    linear-gradient(180deg, #f7f8fc 0%, #f3f5fb 100%);
+}
+.notes-app {
+  max-width: 560px;
+  min-height: 100vh;
+  padding: 28px 18px 112px;
+}
+.notes-toolbar {
+  display: block;
+  margin-bottom: 16px;
+}
+.notes-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.hero-label {
+  color: #6f7890;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 5px;
+}
+.notes-toolbar h1 {
+  color: #21304d;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  margin: 0;
+}
+.notes-subtitle {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.hero-action {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 18px;
+  background: #4f6bed;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(79, 107, 237, 0.25);
+}
+.search-wrap {
+  width: 100%;
+}
+.search-wrap input {
+  width: 100%;
+  height: 52px;
+  padding: 0 48px 0 44px;
+  border: 1px solid rgba(35, 48, 77, 0.10);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #202736;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+.search-wrap input:focus {
+  border-color: rgba(79, 107, 237, 0.55);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 107, 237, 0.14), 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+.search-wrap .search-icon {
+  left: 16px;
+  font-size: 18px;
+}
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(31, 41, 55, 0.08);
+  color: #596174;
+  font-size: 18px;
+  display: none;
+}
+.search-clear.show {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.list-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  color: #7b8191;
+  font-size: 12px;
+}
+.note-count-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(79, 107, 237, 0.10);
+  color: #3953c8;
+  font-weight: 700;
+}
+.note-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(35, 48, 77, 0.09);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+}
+.note-card:active {
+  transform: scale(0.995);
+}
+.note-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e7ecff, #f7f4dc);
+  color: #3d56d6;
+  font-size: 18px;
+  font-weight: 800;
+}
+.note-card-content {
+  min-width: 0;
+}
+.note-card-main {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+}
+.note-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.card-title {
+  color: #202736;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-date {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f3f8;
+  color: #7a8395;
+  font-size: 11px;
+  margin: 0;
+}
+.card-preview {
+  margin-top: 9px;
+  color: #5f6675;
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-line-clamp: 3;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+.card-stat {
+  color: #8a91a1;
+  font-size: 12px;
+}
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.mini-action {
+  border: 1px solid rgba(79, 107, 237, 0.16);
+  background: #f6f8ff;
+  color: #455bd6;
+  border-radius: 12px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.mini-action.danger {
+  border-color: rgba(192, 32, 39, 0.12);
+  background: #fff2f1;
+  color: #b3261e;
+}
+.fab {
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  background: #4f6bed;
+  box-shadow: 0 14px 28px rgba(79, 107, 237, 0.28);
+}
+.top-bar .btn-icon,
+.input-group input,
+.input-group textarea,
+.note-body-read,
+.dialog-box {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(35, 48, 77, 0.10);
+}
+.top-bar h2,
+.note-title-read {
+  color: #202736;
+}
+.detail-actions .btn {
+  border-radius: 14px;
+}
+.note-body-read {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+.empty-state {
+  margin-top: 28px;
+  padding: 34px 22px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.80);
+  border: 1px dashed rgba(79, 107, 237, 0.22);
+}
+@media (max-width: 380px) {
+  .notes-app {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .note-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding: 14px;
+  }
+  .note-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  .card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .card-actions {
+    justify-content: flex-start;
+  }
+}
 </style>
 </head>
 <body>
@@ -342,10 +621,22 @@ textarea.note-content-input {
   <!-- List view -->
   <section class="view-panel active" id="viewList" aria-labelledby="listHeading">
     <div class="notes-toolbar">
-      <h1 id="listHeading" data-i18n="appTitle">Notes</h1>
+      <div class="notes-hero">
+        <div>
+          <div class="hero-label" data-i18n="heroLabel">PandaGenie Notes</div>
+          <h1 id="listHeading" data-i18n="appTitle">Notes</h1>
+          <p class="notes-subtitle" id="listSubtitle" data-i18n="listSubtitle">Capture, search, edit, and export your notes.</p>
+        </div>
+        <button type="button" class="hero-action" id="btnHeaderCreate" aria-label="New note" data-i18n-title="fabNewTitle" title="New note">+</button>
+      </div>
       <div class="search-wrap">
         <span class="search-icon" aria-hidden="true">🔍</span>
         <input type="search" id="searchInput" autocomplete="off" data-i18n-placeholder="searchPlaceholder" placeholder="Search notes…" />
+        <button type="button" class="search-clear" id="btnClearSearch" aria-label="Clear search">×</button>
+      </div>
+      <div class="list-meta">
+        <span class="note-count-pill" id="noteCount">0 notes</span>
+        <span id="searchState"></span>
       </div>
     </div>
     <div id="listLoading" class="loading-inline hidden" data-i18n="loading">Loading…</div>
@@ -384,6 +675,7 @@ textarea.note-content-input {
     </div>
     <div class="detail-actions" id="detailToolbarRead">
       <button type="button" class="btn btn-outline btn-sm" id="btnEdit" data-i18n="detailEdit">Edit</button>
+      <button type="button" class="btn btn-outline btn-sm" id="btnCopy" data-i18n="detailCopy">Copy</button>
       <button type="button" class="btn btn-outline btn-sm" id="btnExport" data-i18n="detailExport">Export</button>
       <button type="button" class="btn btn-danger btn-sm" id="btnDelete" data-i18n="detailDelete">Delete</button>
     </div>
@@ -431,7 +723,10 @@ textarea.note-content-input {
     zh: {
       pageTitle: '笔记',
       appTitle: '笔记',
+      heroLabel: 'PandaGenie 笔记',
+      listSubtitle: '记录、搜索、编辑和导出手机里的轻量笔记。',
       searchPlaceholder: '搜索笔记…',
+      btnClearSearch: '清除搜索',
       fabNewTitle: '新建笔记',
       emptyList: '暂无笔记，点右下角 + 新建',
       emptySearch: '没有匹配的笔记',
@@ -446,8 +741,11 @@ textarea.note-content-input {
       btnSave: '保存',
       btnCancel: '取消',
       detailEdit: '编辑',
+      detailCopy: '复制',
       detailDelete: '删除',
       detailExport: '导出',
+      btnOpen: '打开',
+      btnEditCard: '编辑',
       confirmDelete: '删除笔记？',
       confirmDeleteMsg: '此操作无法撤销。',
       confirmYes: '删除',
@@ -458,9 +756,14 @@ textarea.note-content-input {
       errorGeneric: '操作失败',
       errorLoad: '无法加载笔记',
       saveSuccess: '已保存',
+      copySuccess: '已复制',
       deleteSuccess: '已删除',
       createdLabel: '创建',
       updatedLabel: '更新',
+      noteCount: '共 {count} 条',
+      searchResultCount: '匹配 {count} 条',
+      charCount: '{count} 字',
+      contentEmpty: '暂无正文',
       untitled: '无标题',
       btnDeleteCard: '删除',
       searchDebounce: '搜索中…'
@@ -468,7 +771,10 @@ textarea.note-content-input {
     en: {
       pageTitle: 'Notes',
       appTitle: 'Notes',
+      heroLabel: 'PandaGenie Notes',
+      listSubtitle: 'Capture, search, edit, and export lightweight notes.',
       searchPlaceholder: 'Search notes…',
+      btnClearSearch: 'Clear search',
       fabNewTitle: 'New note',
       emptyList: 'No notes yet. Tap + to create one.',
       emptySearch: 'No notes match your search.',
@@ -483,8 +789,11 @@ textarea.note-content-input {
       btnSave: 'Save',
       btnCancel: 'Cancel',
       detailEdit: 'Edit',
+      detailCopy: 'Copy',
       detailDelete: 'Delete',
       detailExport: 'Export',
+      btnOpen: 'Open',
+      btnEditCard: 'Edit',
       confirmDelete: 'Delete note?',
       confirmDeleteMsg: 'This cannot be undone.',
       confirmYes: 'Delete',
@@ -495,9 +804,14 @@ textarea.note-content-input {
       errorGeneric: 'Something went wrong',
       errorLoad: 'Could not load note',
       saveSuccess: 'Saved',
+      copySuccess: 'Copied',
       deleteSuccess: 'Deleted',
       createdLabel: 'Created',
       updatedLabel: 'Updated',
+      noteCount: '{count} notes',
+      searchResultCount: '{count} matches',
+      charCount: '{count} chars',
+      contentEmpty: 'No content yet.',
       untitled: 'Untitled',
       btnDeleteCard: 'Delete',
       searchDebounce: 'Searching…'
@@ -530,6 +844,14 @@ textarea.note-content-input {
   function t(key) {
     var pack = i18n[_lang] || i18n.en;
     return pack[key] || i18n.en[key] || key;
+  }
+
+  function tf(key, values) {
+    var text = t(key);
+    Object.keys(values || {}).forEach(function (name) {
+      text = text.replace(new RegExp('\\{' + name + '\\}', 'g'), String(values[name]));
+    });
+    return text;
   }
 
   function applyI18n() {
@@ -581,6 +903,9 @@ textarea.note-content-input {
     listEmpty: document.getElementById('listEmpty'),
     emptyMessage: document.getElementById('emptyMessage'),
     searchInput: document.getElementById('searchInput'),
+    btnClearSearch: document.getElementById('btnClearSearch'),
+    noteCount: document.getElementById('noteCount'),
+    searchState: document.getElementById('searchState'),
     fabCreate: document.getElementById('fabCreate'),
     bridgeBanner: document.getElementById('bridgeBanner'),
     toast: document.getElementById('toast'),
@@ -624,12 +949,33 @@ textarea.note-content-input {
 
   function formatDate(s) {
     if (!s) return '—';
-    return s;
+    var text = String(s).replace('T', ' ');
+    return text.length > 16 ? text.slice(0, 16) : text;
+  }
+
+  function getInitial(title) {
+    var clean = (title || t('untitled')).trim();
+    if (!clean) return 'N';
+    return clean.charAt(0).toUpperCase();
+  }
+
+  function noteLength(note) {
+    return String((note && (note.content || note.preview)) || '').length;
+  }
+
+  function updateListMeta() {
+    var count = state.notes.length;
+    els.noteCount.textContent = state.searchQ
+      ? tf('searchResultCount', { count: count })
+      : tf('noteCount', { count: count });
+    els.searchState.textContent = state.searchQ ? '"' + state.searchQ + '"' : '';
+    els.btnClearSearch.classList.toggle('show', !!state.searchQ || !!els.searchInput.value);
   }
 
   function renderNotesList() {
     var notes = state.notes;
     els.noteList.innerHTML = '';
+    updateListMeta();
     if (!notes.length) {
       els.listEmpty.classList.remove('hidden');
       els.emptyMessage.setAttribute('data-i18n', state.searchQ ? 'emptySearch' : 'emptyList');
@@ -639,18 +985,24 @@ textarea.note-content-input {
     els.listEmpty.classList.add('hidden');
     notes.forEach(function (note) {
       var id = note.id || '';
-      var host = document.createElement('div');
-      host.className = 'swipe-host';
-      host.dataset.noteId = id;
+      var card = document.createElement('article');
+      card.className = 'note-card';
+      card.dataset.noteId = id;
 
-      var track = document.createElement('div');
-      track.className = 'swipe-track';
-      track.dataset.trackId = id;
+      var avatar = document.createElement('div');
+      avatar.className = 'note-avatar';
+      avatar.textContent = getInitial(note.title);
+
+      var content = document.createElement('div');
+      content.className = 'note-card-content';
 
       var main = document.createElement('button');
       main.type = 'button';
-      main.className = 'card-main';
+      main.className = 'note-card-main';
       main.setAttribute('aria-label', note.title || t('untitled'));
+
+      var head = document.createElement('div');
+      head.className = 'note-card-head';
 
       var h = document.createElement('div');
       h.className = 'card-title';
@@ -661,26 +1013,51 @@ textarea.note-content-input {
       var u = note.updatedAt || note.createdAt || '';
       d.textContent = formatDate(u);
 
+      head.appendChild(h);
+      head.appendChild(d);
+
       var p = document.createElement('div');
       p.className = 'card-preview';
-      p.textContent = note.preview || '';
+      p.textContent = note.preview || t('contentEmpty');
 
-      main.appendChild(h);
-      main.appendChild(d);
+      main.appendChild(head);
       main.appendChild(p);
 
-      main.addEventListener('click', function (ev) {
-        if (track.classList.contains('open')) {
-          track.classList.remove('open');
-          track.style.transform = '';
-          return;
-        }
+      main.addEventListener('click', function () {
         openDetail(id);
+      });
+
+      var footer = document.createElement('div');
+      footer.className = 'card-footer';
+
+      var stat = document.createElement('div');
+      stat.className = 'card-stat';
+      stat.textContent = tf('charCount', { count: noteLength(note) });
+
+      var actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      var openBtn = document.createElement('button');
+      openBtn.type = 'button';
+      openBtn.className = 'mini-action';
+      openBtn.textContent = t('btnOpen');
+      openBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openDetail(id);
+      });
+
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'mini-action';
+      editBtn.textContent = t('btnEditCard');
+      editBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openDetail(id, true);
       });
 
       var del = document.createElement('button');
       del.type = 'button';
-      del.className = 'card-delete';
+      del.className = 'mini-action danger';
       del.textContent = t('btnDeleteCard');
       del.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -689,12 +1066,17 @@ textarea.note-content-input {
         });
       });
 
-      track.appendChild(main);
-      track.appendChild(del);
-      host.appendChild(track);
+      actions.appendChild(openBtn);
+      actions.appendChild(editBtn);
+      actions.appendChild(del);
+      footer.appendChild(stat);
+      footer.appendChild(actions);
 
-      attachSwipe(host, track, id);
-      els.noteList.appendChild(host);
+      content.appendChild(main);
+      content.appendChild(footer);
+      card.appendChild(avatar);
+      card.appendChild(content);
+      els.noteList.appendChild(card);
     });
   }
 
@@ -765,7 +1147,7 @@ textarea.note-content-input {
     renderNotesList();
   }
 
-  function openDetail(id) {
+  function openDetail(id, editAfterOpen) {
     state.currentId = id;
     state.editing = false;
     var u = unwrap(callPlugin('getNote', { id: id }));
@@ -776,14 +1158,14 @@ textarea.note-content-input {
     state.currentNote = u.data;
     fillDetailRead();
     showView('detail');
-    setDetailMode(false);
+    setDetailMode(!!editAfterOpen);
   }
 
   function fillDetailRead() {
     var n = state.currentNote || {};
     var title = n.title || t('untitled');
     els.detailTitleRead.textContent = title;
-    els.detailContentRead.textContent = n.content || '';
+    els.detailContentRead.textContent = n.content || t('contentEmpty');
     var c = n.createdAt ? t('createdLabel') + ': ' + n.createdAt : '';
     var u = n.updatedAt ? t('updatedLabel') + ': ' + n.updatedAt : '';
     els.detailMeta.textContent = [c, u].filter(Boolean).join(' · ') || '';
@@ -809,6 +1191,41 @@ textarea.note-content-input {
 
   document.getElementById('btnEdit').addEventListener('click', function () {
     setDetailMode(true);
+  });
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        showToast(t('copySuccess'));
+      }).catch(function () {
+        fallbackCopyText(text);
+      });
+      return;
+    }
+    fallbackCopyText(text);
+  }
+
+  function fallbackCopyText(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast(t('copySuccess'));
+    } catch (e) {
+      showToast(t('errorGeneric') + ': ' + e, true);
+    }
+    document.body.removeChild(ta);
+  }
+
+  document.getElementById('btnCopy').addEventListener('click', function () {
+    var n = state.currentNote || {};
+    var text = (n.title || t('untitled')) + '\n\n' + (n.content || '');
+    copyText(text);
   });
 
   document.getElementById('btnCancelEdit').addEventListener('click', function () {
@@ -905,6 +1322,11 @@ textarea.note-content-input {
     document.getElementById('createContent').value = '';
     showView('create');
   });
+  document.getElementById('btnHeaderCreate').addEventListener('click', function () {
+    document.getElementById('createTitle').value = '';
+    document.getElementById('createContent').value = '';
+    showView('create');
+  });
 
   document.getElementById('btnCreateBack').addEventListener('click', function () {
     showView('list');
@@ -934,11 +1356,19 @@ textarea.note-content-input {
 
   els.searchInput.addEventListener('input', function () {
     var q = els.searchInput.value;
+    els.btnClearSearch.classList.toggle('show', !!q);
     clearTimeout(state.searchTimer);
     state.searchTimer = setTimeout(function () {
       state.searchQ = q;
       loadNotes(q);
     }, 320);
+  });
+
+  els.btnClearSearch.addEventListener('click', function () {
+    els.searchInput.value = '';
+    state.searchQ = '';
+    els.btnClearSearch.classList.remove('show');
+    loadNotes('');
   });
 
   loadNotes('');
