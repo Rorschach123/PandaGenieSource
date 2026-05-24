@@ -56,13 +56,13 @@ PandaGenie 1.0.35 introduces app-level on-device memory. It is not a normal modu
 
 ## Current Module Catalog
 
-`modules.json` currently lists **53 official modules** with **337 APIs**, last updated on **2026-05-19**.
+`modules.json` currently lists **53 official modules** with **337 APIs**, last updated on **2026-05-24**.
 
-Release 1.0.37 refreshes the catalog with:
+Release 1.0.38 refreshes the presentation workflow with:
 
-- **Image Tools 1.19**: gallery analysis, similar-photo grouping, low-quality photo review candidates, and app-side selection/delete confirmation.
-- **Weather Assistant 1.6**: clothing, umbrella, travel, wind/rain, and temperature-change advice is highlighted at the top of the result.
-- **Location Helper 1.0**: current country, city, address, latitude/longitude, altitude, accuracy, provider, timestamp, and reverse geocoding.
+- **PPT planning guardrails**: when users ask for a PPT and do not request text-only output, the app completes the research -> image search -> PPT generation chain.
+- **Image/PPT handoff**: image search now clearly produces reusable `imageAssets` for the PPT module instead of letting presentation generation rely on placeholders.
+- **Module metadata refresh**: `image_search`, `web_research`, and `pptx_file_tools` descriptions now make the multi-step presentation pipeline easier for the planner to choose.
 
 | ID | Module | Description | Version | APIs |
 |---|---|---|---|---|
@@ -122,15 +122,25 @@ Release 1.0.37 refreshes the catalog with:
 
 ## Download
 
-> [Download APK v1.0.37](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260519/PandaGenie-v1.0.37.apk)
+> [Download APK v1.0.38](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260524/PandaGenie-v1.0.38.apk)
 
-- Release tag: [`20260519`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260519)
-- Android project version: `versionName "1.0.37"` / `versionCode 10037`
-- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10037>
+- Release tag: [`20260524`](https://github.com/Rorschach123/PandaGenieSource/releases/tag/20260524)
+- Android project version: `versionName "1.0.38"` / `versionCode 10038`
+- Official download: <https://cf.pandagenie.ai/app-update/latest-download?v=10038>
 
 ## Changelog
 
 <details open>
+<summary><b>v1.0.38</b> (2026-05-24)</summary>
+
+- App version bump: updated Android to `versionName "1.0.38"` / `versionCode 10038` and built both the official release APK and release AAB from the current branch.
+- Presentation planning: PPT requests now get an explicit research -> image search -> presentation workflow unless the user asks for text-only/no-image output.
+- Image Search/Web Research/PPT Tools metadata now clarifies how `suggestedImageQueries`, `imageAssets`, `researchItems`, and `sourceNotes` should flow between modules.
+- Release artifacts include a GitHub/official APK package and a Google Play-ready AAB for the same branch and package name.
+
+</details>
+
+<details>
 <summary><b>v1.0.37</b> (2026-05-19)</summary>
 
 - App version bump: updated Android to `versionName "1.0.37"` / `versionCode 10037` and published a new final release APK.

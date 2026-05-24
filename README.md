@@ -34,11 +34,11 @@ PandaGenie 的核心目标不是再做一个聊天机器人，而是让自然语
 
 ## 快速体验
 
-- 最新 APK： [PandaGenie v1.0.37](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260519/PandaGenie-v1.0.37.apk)
+- 最新 APK： [PandaGenie v1.0.38](https://github.com/Rorschach123/PandaGenieSource/releases/download/20260524/PandaGenie-v1.0.38.apk)
 - 官网下载： [https://cf.pandagenie.ai](https://cf.pandagenie.ai)
-- 版本号：`1.0.37`
-- versionCode：`10037`
-- 最近更新：`2026-05-19`
+- 版本号：`1.0.38`
+- versionCode：`10038`
+- 最近更新：`2026-05-24`
 
 安装后可以直接尝试：
 
@@ -83,7 +83,7 @@ PandaGenie 的执行链路可以理解为一条可审计的手机任务流水线
 
 ## 当前能力
 
-截至 `2026-05-19`，官方模块包含约 53 个模块、337 个 API，覆盖以下方向：
+截至 `2026-05-24`，官方模块包含约 53 个模块、337 个 API，覆盖以下方向：
 
 | 分类 | 代表模块 | 能力示例 |
 | --- | --- | --- |
@@ -98,12 +98,12 @@ PandaGenie 的执行链路可以理解为一条可审计的手机任务流水线
 
 部分模块可以声明 `AI 模型` 权限，通过 App 提供的统一 LLM 接口完成模块内部的总结、翻译、分析或结构化输出。PandaGenie Official 模型调用会计入体验次数和 token 用量，第三方模型配置则走用户自己的模型接口。
 
-## 1.0.37 更新重点
+## 1.0.38 更新重点
 
-- 图片工具升级到 `1.19`：新增相册结构分析、相似照片分组复核、低质量照片候选识别，并由 App 提供统一选择、预览和删除确认界面。
-- 天气助手升级到 `1.6`：穿衣、带伞、出行、温差等问题会把核心建议放在主输出顶部。
-- 新增 `location_helper` 位置助手模块：支持获取当前国家、城市、地址、经纬度、海拔、定位精度和按坐标反查地址。
-- 模块索引刷新到 53 个官方模块 / 337 个 API，并同步 GitHub Release、官网 APK 下载和 Cloudflare 版本数据库。
+- PPT 任务规划增强：用户要求生成 PPT 且没有明确要求纯文字时，App 会优先补全资料检索、图片搜索和 PPT 生成的多步骤链路。
+- 图片搜索与 PPT 模块协作说明优化：明确先由图片搜索模块产出 `imageAssets`，再传给 PPT 模块生成真实配图。
+- `image_search`、`web_research`、`pptx_file_tools` 的模块描述和 API 元数据刷新，让任务规划更稳定地组合资料、图片和演示文稿生成。
+- 同一分支同时产出官方 release APK 和 Google Play 可用 AAB，版本号同步为 `1.0.38 / 10038`。
 
 ## 记忆与隐私
 
