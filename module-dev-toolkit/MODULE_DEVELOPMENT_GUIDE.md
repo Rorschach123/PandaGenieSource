@@ -302,6 +302,46 @@ String resultJson = ModuleLlm.completeJson(context, req.toString());
 
 ---
 
+### 托管文件删除 / App-Managed File Deletion
+
+任何会删除用户存储文件的模块，必须走 APP 托管删除流程。模块不能直接调用 `File.delete()`、`Files.delete()`、`rm -rf` 或 native `unlink/rmdir` 删除用户文件。
+
+Any module that deletes user storage files must use the App-managed deletion flow. Modules must not directly call `File.delete()`, `Files.delete()`, `rm -rf`, or native `unlink/rmdir` for user files.
+
+**标准流程 / Standard flow**:
+
+1. 模块先扫描并返回候选文件列表，包含 `path`、`displayName`、`reason`、`group`、`recommended` 等信息。
+2. 调用 `ModuleFileDelete.prepare(...)` 导出复核 CSV，或调用 `ModuleFileDelete.prepareAndConfirm(...)` 直接进入 APP 确认弹窗。
+3. APP 展示候选路径和复核表，用户二次勾选确认后才执行删除。
+4. 只删除用户确认的精确路径；未确认、危险根目录或不在授权范围内的路径会被拒绝。
+
+**Java 调用示例 / Java example**:
+
+```java
+import ai.rorsch.pandagenie.module.runtime.ModuleFileDelete;
+
+JSONArray candidates = new JSONArray()
+    .put(new JSONObject()
+        .put("path", path)
+        .put("displayName", name)
+        .put("reason", "Duplicate candidate")
+        .put("group", "duplicate")
+        .put("recommended", true));
+
+JSONObject req = new JSONObject()
+    .put("title", "Duplicate photo cleanup")
+    .put("summary", "Review duplicate photos before deleting.")
+    .put("candidates", candidates);
+
+String resultJson = ModuleFileDelete.prepareAndConfirm(context, req.toString());
+```
+
+`prepareAndConfirm(...)` 会阻塞等待用户选择。需要分步 UI 时，可以先调用 `prepare(...)` 生成 `requestId` 和复核表路径，再调用 `confirmAndDelete(context, requestId)`。
+
+`prepareAndConfirm(...)` blocks until the user decides. For split UI flows, call `prepare(...)` first to get `requestId` and the review table path, then call `confirmAndDelete(context, requestId)`.
+
+---
+
 ### apis 接口列表 / API List
 
 `apis` 是模块对外暴露的接口列表，**这是 AI 任务调度的核心依据**。APP 运行时从 `manifest.json` 动态读取 `apis` 构建 AI system prompt。
